@@ -70,7 +70,7 @@ kotlin {
 // ──────────────────────────────────────────────────
 val pyllarFlavor: String = (project.findProperty("pyllar.flavor") as? String) ?: "release"
 val iosBaseUrl: String = when (pyllarFlavor) {
-    "debug" -> "http://10.222.186.212:8080"
+    "debug" -> "http://localhost:8080"
     else    -> "https://api.pyllar.in"
 }
 
