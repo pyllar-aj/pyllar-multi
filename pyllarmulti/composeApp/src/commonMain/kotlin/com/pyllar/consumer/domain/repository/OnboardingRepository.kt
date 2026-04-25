@@ -62,5 +62,22 @@ interface OnboardingRepository {
     fun selectGoal(
         request: com.pyllar.consumer.data.remote.requests.GoalSelectionRequest
     ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.GoalSelectionResponseDto>>
+
+    fun submitBankDetails(
+        userId: String,
+        accountNumber: String,
+        ifscCode: String,
+        accountType: String
+    ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.BankDetailsResponseDto>>
+
+    fun initiateBankVerification(
+        userId: String,
+        name: String
+    ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.VerificationInitiateResponseDto>>
+
+    fun getVerificationStatus(
+        verificationId: String,
+        userId: String
+    ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.VerificationStatusResponseDto>>
 }
 

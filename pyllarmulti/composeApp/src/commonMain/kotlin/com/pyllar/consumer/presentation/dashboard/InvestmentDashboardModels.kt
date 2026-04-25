@@ -14,8 +14,8 @@ data class InvestmentDashboardV2State(
     val hasFirstMilestone: Boolean = false,
     val hasFirstLakhMilestone: Boolean = false,
     val lakhMilestoneMessage: String = "",
-    val firstMilestoneTimestamp: Long = 0L,
-    val firstLakhMilestoneTimestamp: Long = 0L,
+    val firstMilestoneTimestamp: Long = 0,
+    val firstLakhMilestoneTimestamp: Long = 0,
     val kycStatus: String = "PENDING",
     val userName: String = "",
     val isLoading: Boolean = true,
@@ -29,9 +29,8 @@ data class InvestmentGoal(
     val iconType: String,
     val targetAmount: Double,
     val investedAmount: Double,
-    val currentValue: Double,
     val cummulativeValue: Double = 0.0,
-    val investmentInProgressValue: Double = 0.0,
+    val currentValue: Double,
     val returnsPercentage: Double,
     val progressPercentage: Double,
     val timeRemainingMonths: Int,
@@ -45,7 +44,9 @@ data class InvestmentGoal(
     val folioNo: String? = null,
     val planNumber: String? = null,
     val createdDate: String? = null,
+    val transactions: List<com.pyllar.consumer.data.remote.model.dto.RecentTransactionDto> = emptyList(),
     val isin: String? = null,
+    val investmentInProgressValue: Double = 0.0,
     val planSummary: PlanSummary? = null,
     val unitsInGm: Double? = null,
     val profit: Double = 0.0,
@@ -68,14 +69,8 @@ data class FundDetail(
     val folioNo: String?,
     val totalInvested: Double,
     val currentValue: Double,
-    val plans: List<PlanDetail>,
-    val mandateStatus: String? = null
-)
-
-data class PlanDetail(
-    val amount: Double,
-    val createdAt: String,
-    val nextInstallmentDate: String?
+    val plans: List<String>,
+    val mandateStatus: String?
 )
 
 data class HoldingDetail(
@@ -89,8 +84,8 @@ data class HoldingDetail(
 data class InitialDashboardGoalsState(
     val primaryGoals: List<InvestmentGoal> = emptyList(),
     val recommendedGoals: List<InvestmentGoal> = emptyList(),
-    val growthData: Map<String, BucketGrowthData> = emptyMap(),
-    val isLoading: Boolean = true
+    val isLoading: Boolean = true,
+    val growthData: Map<String, BucketGrowthData> = emptyMap()
 )
 
 data class BucketGrowthData(
@@ -102,4 +97,3 @@ data class BucketGrowthData(
     val startDate: String,
     val tradingDays: Int
 )
-

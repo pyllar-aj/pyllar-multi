@@ -22,6 +22,7 @@ fun ProfileScreen(
     viewModel: ProfileViewModel = koinInject(),
     onLogout: () -> Unit = {},
     onDeleteAccount: () -> Unit = {},
+    onHelpSupport: () -> Unit = {},
     onBack: () -> Unit = {}
 ) {
     val profileState by viewModel.profileState.collectAsState()
@@ -101,7 +102,7 @@ fun ProfileScreen(
                         headlineContent = { Text("Need Help?") },
                         leadingContent = { Icon(Icons.Filled.Help, contentDescription = null) },
                         trailingContent = { Icon(Icons.Filled.ChevronRight, contentDescription = null) },
-                        modifier = Modifier.clickable { showHelpSheet = true }
+                        modifier = Modifier.clickable { onHelpSupport() }
                     )
                 }
             }

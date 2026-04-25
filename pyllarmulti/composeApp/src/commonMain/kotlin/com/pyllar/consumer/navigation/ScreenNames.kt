@@ -21,6 +21,7 @@ object ScreenNames {
     const val SIGNATURE = "signature"
     const val ESIGN_INFORMATION = "esign_information"
     const val SIP_AMOUNT = "sip_amount"
+    const val SIP_AMOUNT_V2 = "sip_amount_v2"
     const val MANDATE_AUTH = "mandate_auth"
     const val DASHBOARD = "dashboard"
     const val INVESTMENT_DASHBOARD = "investment_dashboard"

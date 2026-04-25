@@ -92,4 +92,15 @@ class FundDetailsRepositoryImpl(
         )
         emit(result)
     }
+
+    override fun syncMandate(
+        request: com.pyllar.consumer.data.remote.requests.PollMandateRequest
+    ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.MandateStatus>> = flow {
+        emit(Resource.Loading())
+        val result = apiClient.post<com.pyllar.consumer.data.remote.model.dto.MandateStatus, com.pyllar.consumer.data.remote.requests.PollMandateRequest>(
+            path = "api/mandates/sync-mandate",
+            body = request
+        )
+        emit(result)
+    }
 }

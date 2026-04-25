@@ -9,9 +9,13 @@ import com.pyllar.consumer.presentation.auth.phone.PhoneVerificationScreen
 import com.pyllar.consumer.presentation.auth.phone.PhoneVerificationViewModel
 import com.pyllar.consumer.presentation.auth.phone.OtpVerificationScreen
 import com.pyllar.consumer.presentation.auth.phone.OtpVerificationViewModel
-import com.pyllar.consumer.presentation.dashboard.InitialDashboardScreen
-import com.pyllar.consumer.presentation.dashboard.InitialDashboardViewModel
+import com.pyllar.consumer.presentation.dashboard.*
+import com.pyllar.consumer.presentation.mutualfund.details.*
 import com.pyllar.consumer.presentation.mutualfund.onboarding.*
+import com.pyllar.consumer.presentation.home.*
+import com.pyllar.consumer.presentation.notification.*
+import com.pyllar.consumer.presentation.profile.*
+import com.pyllar.consumer.presentation.support.*
 import com.pyllar.consumer.presentation.mutualfund.upi.UpiAccountLinkingScreen
 import com.pyllar.consumer.presentation.mutualfund.upi.UpiAccountLinkingViewModel
 import com.pyllar.consumer.data.remote.model.dto.NavigationAction
@@ -27,6 +31,12 @@ sealed class Screen {
         val nextScreen: String? = null
     ) : Screen()
     data class PanKyc(val userId: String, val preVerificationId: String?) : Screen()
+    data class PreVerification(val userId: String) : Screen()
+    data class AdditionalKyc(val userId: String, val kycAttemptId: String) : Screen()
+    data class NomineeDetails(val userId: String, val kycAttemptId: String, val investorId: String) : Screen()
+    data class BankDetails(val userId: String, val kycAttemptId: String) : Screen()
+    data class KycInformation(val userId: String) : Screen()
+    data class EsignInformation(val userId: String) : Screen()
     data class MinDetails(
         val userId: String,
         val pan: String,
@@ -44,6 +54,25 @@ sealed class Screen {
     data class CheckPanPopulatedDetails(val userId: String, val preVerificationId: String?) : Screen()
     data class InitialDashboard(val userId: String) : Screen()
     data class UpiAccountLinking(val userId: String) : Screen()
+    data class InvestmentDashboard(val userId: String) : Screen()
+    data class SchemeDetails(val userId: String, val purpose: String) : Screen()
+    data class Withdraw(val userId: String) : Screen()
+    data class FundDetails(val isin: String, val userId: String, val goalId: String, val sipAmount: Double) : Screen()
+    data class SipAmountV2(val userId: String, val kycAttemptId: String, val investorId: String, val goalId: String) : Screen()
+    data class MandateAuth(
+        val userId: String,
+        val kycAttemptId: String,
+        val investorId: String,
+        val amount: Double,
+        val mandateUrl: String,
+        val mandateId: Long,
+        val mandateRef: Long
+    ) : Screen()
+    data class Profile(val userId: String) : Screen()
+    data class AccountDeletion(val userId: String) : Screen()
+    data class HelpSupport(val userId: String) : Screen()
+    data class NotificationWebView(val url: String, val title: String) : Screen()
+    object Home : Screen()
 }
 
 @Composable
@@ -114,6 +143,62 @@ fun App() {
                     viewModel = panVm
                 )
             }
+            is Screen.PreVerification -> {
+                PreVerificationScreen(
+                    onNavigateNext = { /* handled via screen result */ },
+                    onNavigateBack = { currentScreen = Screen.PhoneVerification },
+                    onNavigateToScreen = { nextScreen ->
+                        handleNavigation(nextScreen, screen.userId, null) { currentScreen = it }
+                    },
+                    onNavigateToHelp = { /* Open Help */ }
+                )
+            }
+            is Screen.AdditionalKyc -> {
+                AdditionalKycScreen(
+                    kycAttemptId = screen.kycAttemptId,
+                    token = "", // Token usually retrieved from session
+                    onNavigateToHelp = { /* Open Help */ }
+                )
+            }
+            is Screen.NomineeDetails -> {
+                NomineeDetailsScreen(
+                    onNext = { nextScreen ->
+                        handleNavigation(nextScreen ?: "", screen.userId, null) { currentScreen = it }
+                    },
+                    userId = screen.userId,
+                    kycAttemptId = screen.kycAttemptId,
+                    investorId = screen.investorId,
+                    onNavigateToHelp = { /* Open Help */ }
+                )
+            }
+            is Screen.BankDetails -> {
+                BankDetailsScreen(
+                    userId = screen.userId,
+                    kycAttemptId = screen.kycAttemptId,
+                    onNext = { nextScreen, investorId ->
+                        handleNavigation(nextScreen ?: "", screen.userId, null) { currentScreen = it }
+                    },
+                    onNavigateToHelp = { /* Open Help */ }
+                )
+            }
+            is Screen.KycInformation -> {
+                KycInformationScreen(
+                    onProceed = {
+                        // Normally this would trigger the actual KYC flow (WebView/DigiLocker)
+                        handleNavigation("MIN_DETAILS", screen.userId, null) { currentScreen = it }
+                    },
+                    onNavigateToHelp = { /* Open Help */ }
+                )
+            }
+            is Screen.EsignInformation -> {
+                EsignInformationScreen(
+                    onProceed = {
+                        // Normally this would trigger the E-sign flow
+                        handleNavigation("MANDATE_AUTH", screen.userId, null) { currentScreen = it }
+                    },
+                    onNavigateToHelp = { /* Open Help */ }
+                )
+            }
             is Screen.MinDetails -> {
                 val minVm: MinDetailsViewModel = koinInject()
                 MinDetailsScreen(
@@ -165,6 +250,112 @@ fun App() {
                     onNavigateBack = { /* Back */ }
                 )
             }
+            is Screen.InvestmentDashboard -> {
+                InvestmentDashboardScreen(
+                    userId = screen.userId,
+                    onNavigateToSchemeDetails = { purpose ->
+                        currentScreen = Screen.SchemeDetails(screen.userId, purpose)
+                    },
+                    onNavigateToWithdraw = {
+                        currentScreen = Screen.Withdraw(screen.userId)
+                    },
+                    onNavigateToOnboarding = { _, _ -> /* Onboarding */ },
+                    onNavigateToProfile = { currentScreen = Screen.Profile(screen.userId) }
+                )
+            }
+            is Screen.SchemeDetails -> {
+                SchemeDetailsScreen(
+                    userId = screen.userId,
+                    purpose = screen.purpose,
+                    onNavigateBack = { currentScreen = Screen.InvestmentDashboard(screen.userId) },
+                    onNavigateToWithdraw = { params ->
+                        WithdrawParamsManager.set(params)
+                        currentScreen = Screen.Withdraw(screen.userId)
+                    }
+                )
+            }
+            is Screen.Withdraw -> {
+                WithdrawScreen(
+                    userId = screen.userId,
+                    onNavigateBack = { currentScreen = Screen.InvestmentDashboard(screen.userId) },
+                    onProceed = { _, _ -> /* Proceed */ }
+                )
+            }
+            is Screen.FundDetails -> {
+                FundDetailsScreen(
+                    isin = screen.isin,
+                    userId = screen.userId,
+                    goalId = screen.goalId,
+                    sipAmount = screen.sipAmount,
+                    onBackClick = { currentScreen = Screen.InitialDashboard(screen.userId) }
+                )
+            }
+            is Screen.SipAmountV2 -> {
+                SipAmountScreenV2(
+                    userId = screen.userId,
+                    kycAttemptId = screen.kycAttemptId,
+                    investorId = screen.investorId,
+                    goalId = screen.goalId,
+                    onSipCreated = { amount, url, id, ref ->
+                        currentScreen = Screen.MandateAuth(
+                            userId = screen.userId,
+                            kycAttemptId = screen.kycAttemptId,
+                            investorId = screen.investorId,
+                            amount = amount,
+                            mandateUrl = url ?: "",
+                            mandateId = id ?: 0L,
+                            mandateRef = ref ?: 0L
+                        )
+                    },
+                    onNavigateBack = { currentScreen = Screen.InitialDashboard(screen.userId) }
+                )
+            }
+            is Screen.MandateAuth -> {
+                MandateAuthScreen(
+                    userId = screen.userId,
+                    kycAttemptId = screen.kycAttemptId,
+                    investorId = screen.investorId,
+                    amount = screen.amount,
+                    mandateUrl = screen.mandateUrl,
+                    mandateId = screen.mandateId,
+                    mandateRef = screen.mandateRef,
+                    onGoToHome = { currentScreen = Screen.InvestmentDashboard(screen.userId) },
+                    onNavigateBack = { currentScreen = Screen.SipAmountV2(screen.userId, screen.kycAttemptId, screen.investorId, "") }
+                )
+            }
+            is Screen.Profile -> {
+                ProfileScreen(
+                    userId = screen.userId,
+                    onLogout = { currentScreen = Screen.PhoneVerification },
+                    onDeleteAccount = { currentScreen = Screen.AccountDeletion(screen.userId) },
+                    onHelpSupport = { currentScreen = Screen.HelpSupport(screen.userId) },
+                    onBack = { currentScreen = Screen.InvestmentDashboard(screen.userId) }
+                )
+            }
+            is Screen.AccountDeletion -> {
+                AccountDeletionScreen(
+                    userId = screen.userId,
+                    onBack = { currentScreen = Screen.Profile(screen.userId) }
+                )
+            }
+            is Screen.HelpSupport -> {
+                HelpSupportScreen(
+                    userId = screen.userId,
+                    onBack = { currentScreen = Screen.Profile(screen.userId) }
+                )
+            }
+            is Screen.NotificationWebView -> {
+                NotificationWebViewScreen(
+                    url = screen.url,
+                    title = screen.title,
+                    onBack = { currentScreen = Screen.InvestmentDashboard("") } // userId might be needed
+                )
+            }
+            is Screen.Home -> {
+                HomeScreen(
+                    onNavigateToMutualFund = { currentScreen = Screen.InitialDashboard("") }
+                )
+            }
         }
     }
 }
@@ -176,11 +367,20 @@ private fun handleNavigation(
     onNavigate: (Screen) -> Unit
 ) {
     when (action) {
+        ScreenNames.PRE_VERIFICATION -> onNavigate(Screen.PreVerification(userId))
+        ScreenNames.ADDITIONAL_KYC -> onNavigate(Screen.AdditionalKyc(userId, ""))
+        ScreenNames.NOMINEE_DETAILS -> onNavigate(Screen.NomineeDetails(userId, "", ""))
+        ScreenNames.BANK_DETAILS -> onNavigate(Screen.BankDetails(userId, ""))
+        ScreenNames.KYC_INFORMATION -> onNavigate(Screen.KycInformation(userId))
+        ScreenNames.ESIGN_INFORMATION -> onNavigate(Screen.EsignInformation(userId))
         ScreenNames.PAN_KYC -> onNavigate(Screen.PanKyc(userId, preVerificationId))
         ScreenNames.MIN_DETAILS -> onNavigate(Screen.MinDetails(userId, "", "", "", ""))
         ScreenNames.NAME_DOB -> onNavigate(Screen.NameDob(userId, "", "", "", ""))
         ScreenNames.CHECK_PAN_POPULATED_DETAILS -> onNavigate(Screen.CheckPanPopulatedDetails(userId, preVerificationId))
-        ScreenNames.INITIAL_DASHBOARD, ScreenNames.DASHBOARD -> onNavigate(Screen.InitialDashboard(userId))
-        else -> onNavigate(Screen.InitialDashboard(userId))
+        ScreenNames.INITIAL_DASHBOARD -> onNavigate(Screen.InitialDashboard(userId))
+        ScreenNames.SIP_AMOUNT_V2 -> onNavigate(Screen.SipAmountV2(userId, "", "", ""))
+        ScreenNames.MANDATE_AUTH -> onNavigate(Screen.MandateAuth(userId, "", "", 0.0, "", 0L, 0L))
+        ScreenNames.DASHBOARD, ScreenNames.INVESTMENT_DASHBOARD -> onNavigate(Screen.InvestmentDashboard(userId))
+        else -> onNavigate(Screen.InvestmentDashboard(userId))
     }
 }

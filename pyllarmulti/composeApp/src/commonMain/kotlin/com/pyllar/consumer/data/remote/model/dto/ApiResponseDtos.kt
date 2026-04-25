@@ -211,3 +211,37 @@ data class ConsentOtpVerificationResponseDto(
     @SerialName("success")
     val success: Boolean = false
 )
+
+@Serializable
+data class VerificationInitiateResponseDto(
+    @SerialName("verificationId")
+    val verificationId: String? = null,
+    @SerialName("status")
+    val status: String? = null,
+    @SerialName("message")
+    val message: String? = null,
+    @SerialName("paymentLinks")
+    val paymentLinks: Map<String, String>? = null
+)
+
+@Serializable
+data class VerificationStatusResponseDto(
+    @SerialName("verificationId")
+    val verificationId: String? = null,
+    @SerialName("status")
+    val status: String? = null,
+    @SerialName("message")
+    val message: String? = null,
+    @SerialName("bankDetails")
+    val bankDetails: VerificationBankDetailsDto? = null
+)
+
+@Serializable
+data class VerificationBankDetailsDto(
+    @SerialName("bankAccount")
+    val bankAccount: String? = null,
+    @SerialName("ifsc")
+    val ifsc: String? = null,
+    @SerialName("nameAtBank")
+    val nameAtBank: String? = null
+)

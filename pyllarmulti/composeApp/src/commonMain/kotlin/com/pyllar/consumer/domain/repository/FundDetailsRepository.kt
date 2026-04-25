@@ -21,5 +21,9 @@ interface FundDetailsRepository {
     fun getInvestmentLimits(
         userInvestmentPurposeId: String
     ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.InvestmentLimitsResponseDto>>
+
+    fun syncMandate(
+        request: com.pyllar.consumer.data.remote.requests.PollMandateRequest
+    ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.MandateStatus>>
 }
 

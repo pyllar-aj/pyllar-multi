@@ -35,11 +35,15 @@ import com.pyllar.consumer.presentation.mutualfund.onboarding.NameDobViewModel
 import com.pyllar.consumer.presentation.mutualfund.onboarding.NomineeDetailsViewModel
 import com.pyllar.consumer.presentation.mutualfund.onboarding.PanKycViewModel
 import com.pyllar.consumer.presentation.mutualfund.onboarding.AdditionalKycViewModel
+import com.pyllar.consumer.presentation.mutualfund.onboarding.BankDetailsViewModel
 import com.pyllar.consumer.presentation.mutualfund.onboarding.SipAmountScreenV2ViewModel
 import com.pyllar.consumer.presentation.mutualfund.onboarding.PreVerificationViewModel
 import com.pyllar.consumer.domain.repository.PreVerificationRepository
 import com.pyllar.consumer.data.repository.PreVerificationRepositoryImpl
+import com.pyllar.consumer.presentation.mutualfund.onboarding.MandateAuthModel
 import com.pyllar.consumer.presentation.mutualfund.onboarding.CheckPanPopulatedDetailsViewModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.factoryOf
 import org.koin.dsl.module
@@ -80,9 +84,11 @@ val sharedModule: Module = module {
     factoryOf(::NomineeDetailsViewModel)
     factoryOf(::PanKycViewModel)
     factoryOf(::AdditionalKycViewModel)
+    factoryOf(::BankDetailsViewModel)
     factoryOf(::SipAmountScreenV2ViewModel)
     factoryOf(::PreVerificationViewModel)
     factoryOf(::CheckPanPopulatedDetailsViewModel)
+    factory { MandateAuthModel(get(), CoroutineScope(Dispatchers.Main)) }
     factory { WithdrawAmountViewModel(get(), get()) }
     factory { com.pyllar.consumer.presentation.mutualfund.upi.UpiAccountLinkingViewModel(get()) }
 

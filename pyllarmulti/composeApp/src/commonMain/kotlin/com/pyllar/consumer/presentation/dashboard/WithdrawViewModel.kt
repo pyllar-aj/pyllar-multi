@@ -45,6 +45,20 @@ data class WithdrawScheme(
     val canWithdraw: Boolean
 )
 
+object WithdrawParamsManager {
+    private var params: WithdrawInitParams? = null
+    fun set(p: WithdrawInitParams) { params = p }
+    fun get(): WithdrawInitParams? = params
+    fun clear() { params = null }
+}
+
+object WithdrawSchemeManager {
+    private var scheme: WithdrawScheme? = null
+    fun set(s: WithdrawScheme) { scheme = s }
+    fun get(): WithdrawScheme? = scheme
+    fun clear() { scheme = null }
+}
+
 class WithdrawViewModel(
     private val dashboardRepository: DashboardRepository
 ) : ViewModel() {
