@@ -35,14 +35,14 @@ fi
 
 BASE_URL="https://api.pyllar.in"
 if [[ "$FLAVOR" == "debug" ]]; then
-    BASE_URL="http://10.222.186.212:8080"
+    BASE_URL="http://localhost:8080"
 fi
 
 echo "==> Flavor: $FLAVOR  (baseUrl: $BASE_URL)"
 
 # ── Simulator config ───────────────────────────────────────────────────────
-SIMULATOR_UDID="F6DC6730-7DCA-4536-AEE0-F730A91AE88B"
-SIMULATOR_NAME="iPhone 17 Pro"
+SIMULATOR_UDID="0BDF3796-6D9E-44D4-8D1C-F13D0204E4FB"
+SIMULATOR_NAME="Test iPhone 26.4"
 BUNDLE_ID="com.pyllar.consumer.Pyllar"
 DERIVED_DATA="/tmp/pyllar-ios-build"
 PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
@@ -70,8 +70,9 @@ xcodebuild \
     -derivedDataPath "$DERIVED_DATA" \
     clean build | grep -E "(error:|warning: |BUILD (SUCCEEDED|FAILED))"
 
-echo "==> Installing app..."
+echo "==> Uninstalling and Installing app..."
 xcrun simctl terminate "$SIMULATOR_UDID" "$BUNDLE_ID" 2>/dev/null || true
+xcrun simctl uninstall "$SIMULATOR_UDID" "$BUNDLE_ID" 2>/dev/null || true
 xcrun simctl install "$SIMULATOR_UDID" "$DERIVED_DATA/Build/Products/${XCODE_CONFIGURATION}-iphonesimulator/Pyllar.app"
 
 echo "==> Launching app (console output follows)..."

@@ -251,15 +251,18 @@ fun App() {
                 )
             }
             is Screen.InvestmentDashboard -> {
-                InvestmentDashboardScreen(
+                InvestmentDashboardV2Screen(
                     userId = screen.userId,
                     onNavigateToSchemeDetails = { purpose ->
                         currentScreen = Screen.SchemeDetails(screen.userId, purpose)
                     },
+                    onNavigateToGoal = { goalId ->
+                        // Navigate to SipAmountV2 - in a real app we'd fetch kycAttemptId/investorId from session
+                        currentScreen = Screen.SipAmountV2(screen.userId, "", "", goalId)
+                    },
                     onNavigateToWithdraw = {
                         currentScreen = Screen.Withdraw(screen.userId)
                     },
-                    onNavigateToOnboarding = { _, _ -> /* Onboarding */ },
                     onNavigateToProfile = { currentScreen = Screen.Profile(screen.userId) }
                 )
             }

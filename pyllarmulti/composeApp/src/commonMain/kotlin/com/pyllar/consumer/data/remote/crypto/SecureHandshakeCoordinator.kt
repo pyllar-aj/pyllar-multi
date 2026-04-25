@@ -18,7 +18,11 @@ class SecureHandshakeCoordinator(
     private val crypto = SecurePayloadCrypto()
 
     suspend fun ensureSession(): SecureSessionData {
-        sessionStore.getSession()?.takeIf { !it.isExpired() }?.let { return it }
+        val existing = sessionStore.getSession()
+        if (existing != null && !existing.isExpired()) {
+            return existing
+        }
+        com.pyllar.consumer.util.platformLog("HTTPSecure(Pyllar) Session missing or expired, performing handshake...")
         return lock.withLock {
             sessionStore.getSession()?.takeIf { !it.isExpired() } ?: performHandshake()
         }

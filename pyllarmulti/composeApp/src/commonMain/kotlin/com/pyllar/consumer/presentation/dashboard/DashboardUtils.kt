@@ -33,3 +33,45 @@ fun getCorrelationColorForCategory(category: String?, colorTheme: String?): Colo
 fun formatSchemeName(name: String): String {
     return name.replace("Direct Plan", "").replace("Growth", "").trim()
 }
+
+fun formatIndian(value: Double): String {
+    val longVal = kotlin.math.round(value).toLong()
+    val negative = longVal < 0
+    val s = kotlin.math.abs(longVal).toString()
+    if (s.length <= 3) return if (negative) "-$s" else s
+    val last3 = s.takeLast(3)
+    val rest = s.dropLast(3)
+    val grouped = buildString {
+        for ((i, c) in rest.reversed().withIndex()) {
+            if (i > 0 && i % 2 == 0) append(',')
+            append(c)
+        }
+    }.reversed()
+    val result = "$grouped,$last3"
+    return if (negative) "-$result" else result
+}
+
+fun formatPercent(value: Double, decimals: Int = 2): String {
+    val factor = when (decimals) {
+        1 -> 10.0
+        2 -> 100.0
+        else -> 100.0
+    }
+    val rounded = (value * factor).toLong() / factor
+    return rounded.toString()
+}
+
+fun formatKycStatus(status: String): String {
+    return when (status.uppercase()) {
+        "PENDING" -> "KYC Pending"
+        "IN_PROGRESS" -> "KYC In Progress"
+        "EXPIRED" -> "KYC Expired"
+        "REJECTED" -> "KYC Rejected"
+        "SUCCESS", "COMPLETED" -> "KYC Verified"
+        else -> status
+    }
+}
+
+fun ceil(value: Double): Double {
+    return kotlin.math.ceil(value)
+}

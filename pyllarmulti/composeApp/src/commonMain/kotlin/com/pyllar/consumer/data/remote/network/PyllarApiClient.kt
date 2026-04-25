@@ -17,12 +17,15 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
 import com.pyllar.consumer.data.remote.crypto.SecureHandshakeCoordinator
 import com.pyllar.consumer.data.remote.crypto.SecurePayloadCrypto
+import com.pyllar.consumer.data.remote.crypto.SecureChannelException
 import com.pyllar.consumer.data.remote.model.crypto.SecurePayloadEnvelopeDto
 import io.ktor.client.request.header
 import io.ktor.client.request.request
 import io.ktor.http.HttpMethod
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import com.pyllar.consumer.domain.storage.SessionStore
+import com.pyllar.consumer.platform.DeviceInfoProvider
 
 class PyllarApiClient(
     @PublishedApi internal val baseUrl: String
@@ -36,6 +39,12 @@ class PyllarApiClient(
 
     @PublishedApi
     internal val crypto = SecurePayloadCrypto()
+
+    @PublishedApi
+    internal val sessionStore: SessionStore by inject()
+
+    @PublishedApi
+    internal val deviceInfoProvider: DeviceInfoProvider by inject()
 
     @PublishedApi
     internal val json = Json {
@@ -97,7 +106,6 @@ class PyllarApiClient(
             val response: HttpResponse = client.request("$baseUrl/$path") {
                 this.method = HttpMethod.parse(method)
                 
-                val session = handshakeCoordinator.ensureSession()
                 var timestamp = crypto.createFreshHeaders(session).second
                 
                 if (method.uppercase() in listOf("POST", "PUT", "PATCH") && body != null) {
@@ -112,9 +120,38 @@ class PyllarApiClient(
                 
                 header("X-Handshake-Id", session.handshakeId)
                 header("X-Timestamp-Utc", timestamp)
-                header("X-App-Version", "1.0.0")
+                
+                // Mandatory headers for backend controllers
+                val appVersion = deviceInfoProvider.getAppVersion() ?: "1.0.0"
+                val osName = deviceInfoProvider.getOsName()
+                val osVersion = deviceInfoProvider.getOsVersion()
+                val deviceId = deviceInfoProvider.getDeviceId() ?: ""
+                
+                header("app_version", appVersion)
+                header("X-App-Version", appVersion)
+                header("app_name", "pyllar-consumer")
                 header("X-App-Name", "pyllar-consumer")
+                header("os", osName)
+                header("X-OS", osName)
+                header("os_version", osVersion)
+                header("X-OS-Version", osVersion)
+                header("device_id", deviceId)
+                header("X-Device-Id", deviceId)
+                header("platform", osName.lowercase())
+                header("X-Platform", osName.lowercase())
+                header("utm_source", "direct")
+                header("utm_medium", "mobile")
+                header("utm_campaign", "app")
+                
+                // Add Authorization header if token exists
+                val authToken = sessionStore.getCurrentToken()
+                if (authToken.isNotBlank()) {
+                    header("Authorization", "Bearer $authToken")
+                }
+                
                 configure()
+                
+                platformLog("HTTPSecure(Pyllar) REQUEST: $method $baseUrl/$path")
             }
 
             if (response.status.value == 401) {
@@ -126,11 +163,13 @@ class PyllarApiClient(
             }
 
             val responseText = response.bodyAsText()
+            platformLog("HTTPSecure(Pyllar) RESPONSE RAW (Status: ${response.status.value}): $responseText")
             
             // Server always responds with envelope for secure endpoints
             val envelope: SecurePayloadEnvelopeDto? = try {
                 json.decodeFromString(serializer<SecurePayloadEnvelopeDto>(), responseText)
             } catch (e: Exception) {
+                platformLog("HTTPSecure(Pyllar) Envelope parse failed (might be plain JSON): ${e.message}")
                 null
             }
 
@@ -139,19 +178,32 @@ class PyllarApiClient(
                 val parsed: StandardApiResponseDtoRaw = try {
                     json.decodeFromString(serializer<StandardApiResponseDtoRaw>(), responseText)
                 } catch (e: Exception) {
+                    platformLog("HTTPSecure(Pyllar) Plain JSON parse failed: ${e.message}")
                     StandardApiResponseDtoRaw(status = response.status.value.toString(), message = responseText)
                 }
                 return parseStandardResponse<T>(parsed)
             }
 
-            val decryptedBytes = crypto.decrypt(envelope, session)
+            platformLog("HTTPSecure(Pyllar) DECRYPTING response envelope...")
+            val decryptedBytes = try {
+                crypto.decrypt(envelope, session)
+            } catch (e: Exception) {
+                platformLog("HTTPSecure(Pyllar) DECRYPTION FAILED: ${e::class.simpleName}: ${e.message}")
+                throw e
+            }
+            
             val decryptedString = decryptedBytes.decodeToString()
+            platformLog("HTTPSecure(Pyllar) DECRYPTED SUCCESS: $decryptedString")
+            
             val parsed: StandardApiResponseDtoRaw = json.decodeFromString(decryptedString)
             
             parseStandardResponse<T>(parsed)
             
         } catch (e: Exception) {
-            platformLog("HTTPSecure(Pyllar) ERROR: ${e::class.simpleName}: ${e.message}")
+            platformLog("HTTPSecure(Pyllar) TOP-LEVEL ERROR: ${e::class.simpleName}: ${e.message}")
+            if (e is SecureChannelException) {
+                platformLog("HTTPSecure(Pyllar) SecureChannelException details: ${e.message}")
+            }
             Resource.Error(
                 message = e.message ?: "Network error",
                 errorType = ErrorType.NETWORK_ERROR

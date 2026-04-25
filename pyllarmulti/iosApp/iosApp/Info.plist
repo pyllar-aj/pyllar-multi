@@ -8,5 +8,10 @@
 	<string>Pyllar needs your location for KYC and regulatory compliance purposes.</string>
 	<key>NSUserNotificationUsageDescription</key>
 	<string>Pyllar sends notifications to keep you updated on your investments.</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
 </dict>
 </plist>

@@ -22,33 +22,6 @@ class InvestmentDashboardV2ViewModel(
     companion object {
         private const val TAG = "InvestmentDashboardV2ViewModel"
         private const val MILLIS_IN_DAY: Long = 24L * 60L * 60L * 1000L
-
-        private fun formatIndian(value: Double): String {
-            val longVal = value.roundToLong()
-            val negative = longVal < 0
-            val s = longVal.absoluteValue.toString()
-            if (s.length <= 3) return if (negative) "-$s" else s
-            val last3 = s.takeLast(3)
-            val rest = s.dropLast(3)
-            val grouped = buildString {
-                for ((i, c) in rest.reversed().withIndex()) {
-                    if (i > 0 && i % 2 == 0) append(',')
-                    append(c)
-                }
-            }.reversed()
-            val result = "$grouped,$last3"
-            return if (negative) "-$result" else result
-        }
-
-        private fun formatPercent(value: Double, decimals: Int = 2): String {
-            val factor = when (decimals) {
-                1 -> 10.0
-                2 -> 100.0
-                else -> 100.0
-            }
-            val rounded = (value * factor).roundToLong() / factor
-            return rounded.toString()
-        }
     }
 
     private val _dashboardState = MutableStateFlow(InvestmentDashboardV2State())
@@ -105,6 +78,22 @@ class InvestmentDashboardV2ViewModel(
 
     fun refreshDashboardData(userId: String) {
         loadDashboardData(userId)
+    }
+
+    suspend fun initGoalTxn(userId: String, goalId: String): Resource<com.pyllar.consumer.data.remote.model.dto.GoalSelectionResponseDto> {
+        Log.d(TAG, "initGoalTxn called - userId: $userId, goalId: $goalId")
+        val request = com.pyllar.consumer.data.remote.requests.GoalSelectionRequest(
+            userId = userId,
+            goal = goalId
+        )
+        
+        var finalResult: Resource<com.pyllar.consumer.data.remote.model.dto.GoalSelectionResponseDto> = Resource.Loading()
+        
+        dashboardRepository.initGoalTxn(request).collect { result ->
+            finalResult = result
+        }
+        
+        return finalResult
     }
 
     fun clearErrorMessage() {

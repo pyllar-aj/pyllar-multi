@@ -9,6 +9,7 @@ import platform.Foundation.NSUUID
 import platform.posix.arc4random
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
+import com.pyllar.consumer.util.platformLog
 
 actual class HandshakeContext(
     val privateKeyOpaque: Any,
@@ -44,6 +45,10 @@ actual class SecurePayloadCrypto actual constructor() {
         val expectedHmac = Base64.decode(envelope.hmac)
 
         val computed = computeHmac(session, envelope.timestampUtc, iv, ciphertext)
+        platformLog("HTTPSecure(Pyllar) HMAC Debug: handshakeId=${session.handshakeId}, timestamp=${envelope.timestampUtc}")
+        platformLog("HTTPSecure(Pyllar) Expected HMAC: ${envelope.hmac}")
+        platformLog("HTTPSecure(Pyllar) Computed HMAC: ${Base64.encode(computed)}")
+
         if (!computed.contentEquals(expectedHmac)) {
             throw SecureChannelException("HMAC validation failed")
         }

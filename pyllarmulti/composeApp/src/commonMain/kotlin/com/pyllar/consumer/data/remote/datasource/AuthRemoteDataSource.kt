@@ -35,7 +35,7 @@ class AuthRemoteDataSourceImpl(
     }
 
     override suspend fun updateEmail(request: UpdateEmailRequest): Resource<UpdateEmailResponseDto> {
-        return apiClient.post("api/auth/update-email", request)
+        return apiClient.post("api/kyc/onboarding/updateEm", request)
     }
 }
 
