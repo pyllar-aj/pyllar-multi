@@ -1,0 +1,38 @@
+package com.pyllar.consumer.data.remote.model.dto
+
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class MandateWrapper(
+    val finMandateId: Long?,
+    val mandateId: Long?,
+    val uri: String?
+)
+
+@Serializable
+data class MandateStatusResponseDto(
+    val status: String,
+    val message: String?,
+    val mandateId: Long?,
+    val mandateRef: Long?,
+    val requiresPolling: Boolean = false
+)
+
+@Serializable
+data class MandateSyncResponseDto(
+    val mandateStatus: String,
+    val message: String?,
+    val mandateId: Long?,
+    val mandateRef: Long?,
+    val requiresPolling: Boolean = false,
+    val nextPollInSeconds: Int? = null
+)
+
+enum class MandateStatus {
+    CREATED,
+    RECEIVED,
+    APPROVED,
+    SUBMITTED,
+    REJECTED,
+    CANCELLED
+}
