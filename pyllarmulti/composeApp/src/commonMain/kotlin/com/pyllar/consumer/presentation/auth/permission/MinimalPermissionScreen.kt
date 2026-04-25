@@ -56,30 +56,36 @@ fun MinimalPermissionScreen(
     // Handle API result — navigate or show error
     LaunchedEffect(state.updateEmailResult) {
         val result = state.updateEmailResult ?: return@LaunchedEffect
+        com.pyllar.consumer.util.Log.d("PermissionFlow", "updateEmailResult changed: $result")
         when (result) {
             is com.pyllar.consumer.util.Resource.Success -> {
                 val nav = result.navigation
+                com.pyllar.consumer.util.Log.d("PermissionFlow", "Navigation info: $nav")
                 when (nav?.action) {
                     NavigationAction.STAY, NavigationAction.RETRY -> {
-                        // Server says stay — serverErrorMessage already set in ViewModel
+                        com.pyllar.consumer.util.Log.d("PermissionFlow", "Server says STAY or RETRY")
                         viewModel.clearResult()
                     }
                     NavigationAction.POLL -> {
+                        com.pyllar.consumer.util.Log.d("PermissionFlow", "Server says POLL")
                         viewModel.clearResult()
                     }
                     else -> {
                         val nextScreen = nav?.nextScreen
+                        com.pyllar.consumer.util.Log.d("PermissionFlow", "Next screen: $nextScreen")
                         if (!nextScreen.isNullOrBlank()) {
+                            com.pyllar.consumer.util.Log.d("PermissionFlow", "Triggering navigation to: $nextScreen")
                             onNavigateNext(nextScreen)
                             viewModel.clearResult()
                         } else {
+                            com.pyllar.consumer.util.Log.d("PermissionFlow", "Next screen is null/blank, clearing result")
                             viewModel.clearResult()
                         }
                     }
                 }
             }
             is com.pyllar.consumer.util.Resource.Error -> {
-                // serverErrorMessage already set in ViewModel
+                com.pyllar.consumer.util.Log.e("PermissionFlow", "Error updating email: ${result.message}")
             }
             else -> Unit
         }

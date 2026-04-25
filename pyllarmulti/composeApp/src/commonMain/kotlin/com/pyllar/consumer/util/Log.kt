@@ -2,15 +2,15 @@ package com.pyllar.consumer.util
 
 object Log {
     fun d(tag: String, message: String) {
-        // No-op in common; platform-specific logging can wrap this if needed
+        platformLog("$tag: [DEBUG] $message")
     }
 
     fun e(tag: String, message: String) {
-        // No-op in common
+        platformLog("$tag: [ERROR] $message")
     }
 
     fun w(tag: String, message: String) {
-        // No-op in common
+        platformLog("$tag: [WARN] $message")
     }
 }
 

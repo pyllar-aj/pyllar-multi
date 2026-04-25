@@ -61,15 +61,22 @@ class PermissionViewModel(
 
     /** Main entry point — called when user taps the CTA button. */
     fun onGrantPermissionsTapped(userId: String) {
+        com.pyllar.consumer.util.Log.d("PermissionFlow", "onGrantPermissionsTapped called - userId: $userId")
         val current = _state.value
         if (current.email.isBlank()) {
+            com.pyllar.consumer.util.Log.d("PermissionFlow", "Email is blank")
             _state.value = current.copy(showEmailError = true)
             return
         }
-        if (!current.isConsentChecked) return
+        if (!current.isConsentChecked) {
+            com.pyllar.consumer.util.Log.d("PermissionFlow", "Consent not checked")
+            return
+        }
 
         val status = permissionManager.checkStatus()
+        com.pyllar.consumer.util.Log.d("PermissionFlow", "Current status: $status")
         if (status.notificationsGranted && status.locationGranted && status.gpsEnabled) {
+            com.pyllar.consumer.util.Log.d("PermissionFlow", "Permissions already granted, calling updateEmail")
             _state.value = _state.value.copy(
                 permissionFlow = PermissionFlowState.Completed,
                 permissionStatus = status
@@ -77,16 +84,19 @@ class PermissionViewModel(
             callUpdateEmailApi(userId)
             return
         }
+        com.pyllar.consumer.util.Log.d("PermissionFlow", "Starting permission flow")
         startPermissionFlow(userId)
     }
 
     private fun startPermissionFlow(userId: String) {
         viewModelScope.launch {
             // Step 1: Notifications
+            com.pyllar.consumer.util.Log.d("PermissionFlow", "Requesting notifications...")
             _state.value = _state.value.copy(permissionFlow = PermissionFlowState.RequestingNotifications)
             permissionManager.requestNotifications() // result ignored — flow continues regardless
 
             // Step 2: Location
+            com.pyllar.consumer.util.Log.d("PermissionFlow", "Requesting location...")
             val statusAfterNotif = permissionManager.checkStatus()
             _state.value = _state.value.copy(
                 permissionFlow = PermissionFlowState.RequestingLocation,
@@ -95,6 +105,7 @@ class PermissionViewModel(
             permissionManager.requestLocation() // result ignored — flow continues regardless
 
             // Step 3: GPS (synchronous read inside checkStatus)
+            com.pyllar.consumer.util.Log.d("PermissionFlow", "Checking GPS...")
             val statusAfterLocation = permissionManager.checkStatus()
             _state.value = _state.value.copy(
                 permissionFlow = PermissionFlowState.CheckingGps,
@@ -102,6 +113,7 @@ class PermissionViewModel(
             )
 
             // Flow complete
+            com.pyllar.consumer.util.Log.d("PermissionFlow", "Flow complete, calling updateEmail")
             val finalStatus = permissionManager.checkStatus()
             _state.value = _state.value.copy(
                 permissionFlow = PermissionFlowState.Completed,
@@ -112,9 +124,11 @@ class PermissionViewModel(
     }
 
     private fun callUpdateEmailApi(userId: String) {
+        com.pyllar.consumer.util.Log.d("PermissionFlow", "callUpdateEmailApi called for email: ${_state.value.email}")
         _state.value = _state.value.copy(isProcessing = true, serverErrorMessage = null)
         viewModelScope.launch {
             authRepository.updateEmail(_state.value.email, userId).collect { result ->
+                com.pyllar.consumer.util.Log.d("PermissionFlow", "updateEmail result: $result")
                 when (result) {
                     is Resource.Loading -> {
                         _state.value = _state.value.copy(updateEmailResult = result)

@@ -369,6 +369,7 @@ private fun handleNavigation(
     preVerificationId: String?,
     onNavigate: (Screen) -> Unit
 ) {
+    com.pyllar.consumer.util.Log.d("AppNav", "handleNavigation: action=$action, userId=$userId")
     when (action) {
         ScreenNames.PRE_VERIFICATION -> onNavigate(Screen.PreVerification(userId))
         ScreenNames.ADDITIONAL_KYC -> onNavigate(Screen.AdditionalKyc(userId, ""))
@@ -383,7 +384,13 @@ private fun handleNavigation(
         ScreenNames.INITIAL_DASHBOARD -> onNavigate(Screen.InitialDashboard(userId))
         ScreenNames.SIP_AMOUNT_V2 -> onNavigate(Screen.SipAmountV2(userId, "", "", ""))
         ScreenNames.MANDATE_AUTH -> onNavigate(Screen.MandateAuth(userId, "", "", 0.0, "", 0L, 0L))
-        ScreenNames.DASHBOARD, ScreenNames.INVESTMENT_DASHBOARD -> onNavigate(Screen.InvestmentDashboard(userId))
-        else -> onNavigate(Screen.InvestmentDashboard(userId))
+        ScreenNames.DASHBOARD, ScreenNames.INVESTMENT_DASHBOARD -> {
+            com.pyllar.consumer.util.Log.d("AppNav", "Navigating to dashboard for user: $userId")
+            onNavigate(Screen.InvestmentDashboard(userId))
+        }
+        else -> {
+            com.pyllar.consumer.util.Log.d("AppNav", "Defaulting navigation to dashboard for action: $action")
+            onNavigate(Screen.InvestmentDashboard(userId))
+        }
     }
 }

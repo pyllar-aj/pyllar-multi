@@ -62,6 +62,8 @@ class IosPermissionManager : PermissionManager {
         }
     }
 
+    private var activeLocationDelegate: CLLocationManagerDelegateProtocol? = null
+
     override suspend fun requestLocation(): Boolean {
         val currentStatus = CLLocationManager.authorizationStatus()
         if (currentStatus == kCLAuthorizationStatusAuthorizedWhenInUse ||
@@ -69,7 +71,6 @@ class IosPermissionManager : PermissionManager {
         ) {
             return true
         }
-        // Already denied — no point showing dialog again; return current state
         if (currentStatus != kCLAuthorizationStatusNotDetermined) {
             return false
         }
@@ -83,13 +84,21 @@ class IosPermissionManager : PermissionManager {
                     if (didChangeAuthorizationStatus == kCLAuthorizationStatusNotDetermined) return
                     val granted = didChangeAuthorizationStatus == kCLAuthorizationStatusAuthorizedWhenInUse ||
                             didChangeAuthorizationStatus == kCLAuthorizationStatusAuthorizedAlways
+                    
+                    activeLocationDelegate = null
+                    locationManager.delegate = null
                     if (cont.isActive) cont.resume(granted)
                 }
             }
+            activeLocationDelegate = delegate
             locationManager.delegate = delegate
             locationManager.desiredAccuracy = kCLLocationAccuracyBest
             locationManager.requestWhenInUseAuthorization()
-            cont.invokeOnCancellation { locationManager.delegate = null }
+            
+            cont.invokeOnCancellation { 
+                activeLocationDelegate = null
+                locationManager.delegate = null 
+            }
         }
     }
 }

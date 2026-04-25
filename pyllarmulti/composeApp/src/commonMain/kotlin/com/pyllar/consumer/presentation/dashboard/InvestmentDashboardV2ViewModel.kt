@@ -28,8 +28,9 @@ class InvestmentDashboardV2ViewModel(
     val dashboardState: StateFlow<InvestmentDashboardV2State> = _dashboardState
 
     fun loadDashboardData(userId: String) {
+        com.pyllar.consumer.util.Log.d(TAG, "loadDashboardData: START for userId: $userId")
         viewModelScope.launch {
-            Log.d(TAG, "loadDashboardData called - userId: $userId")
+            Log.d(TAG, "loadDashboardData coroutine: START")
             _dashboardState.value = _dashboardState.value.copy(isLoading = true, errorMessage = null)
 
             dashboardRepository.getDashboardV2(userId).collect { result ->

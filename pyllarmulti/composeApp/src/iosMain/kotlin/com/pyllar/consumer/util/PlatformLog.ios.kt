@@ -1,6 +1,7 @@
 package com.pyllar.consumer.util
 
-actual fun platformLog(message: String) {
-    println(message)
-}
+import platform.Foundation.NSLog
 
+actual fun platformLog(message: String) {
+    NSLog(message)
+}

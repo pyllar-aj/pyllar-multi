@@ -23,6 +23,7 @@ import com.pyllar.consumer.presentation.auth.phone.OtpVerificationViewModel
 import com.pyllar.consumer.presentation.auth.phone.PhoneVerificationViewModel
 import com.pyllar.consumer.presentation.dashboard.DashboardViewModel
 import com.pyllar.consumer.presentation.dashboard.InitialDashboardViewModel
+import com.pyllar.consumer.presentation.dashboard.InvestmentDashboardV2ViewModel
 import com.pyllar.consumer.presentation.dashboard.SchemeDetailsViewModel
 import com.pyllar.consumer.presentation.dashboard.WithdrawAmountViewModel
 import com.pyllar.consumer.presentation.dashboard.WithdrawViewModel
@@ -95,6 +96,7 @@ val sharedModule: Module = module {
     // Dashboard ViewModels
     factoryOf(::DashboardViewModel)
     factoryOf(::InitialDashboardViewModel)
+    factoryOf(::InvestmentDashboardV2ViewModel)
     factoryOf(::SchemeDetailsViewModel)
     factoryOf(::WithdrawViewModel)
 }

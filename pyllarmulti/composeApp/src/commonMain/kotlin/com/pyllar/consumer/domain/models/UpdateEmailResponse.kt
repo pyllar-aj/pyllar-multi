@@ -6,5 +6,7 @@ data class UpdateEmailResponse(
     val isUpdated: Boolean,
     val isNewUser: Boolean,
     val isMismatch: Boolean,
-    val isError: Boolean
+    val isError: Boolean,
+    val preverify: Boolean = false,
+    val screen: String? = null
 )

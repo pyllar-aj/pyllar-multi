@@ -66,7 +66,11 @@ data class UpdateEmailResponseDto(
     @SerialName("mismatch")
     val mismatch: Boolean? = null,
     @SerialName("error")
-    val error: Boolean? = null
+    val error: Boolean? = null,
+    @SerialName("preverify")
+    val preverify: Boolean? = null,
+    @SerialName("screen")
+    val screen: String? = null
 )
 
 @Serializable
