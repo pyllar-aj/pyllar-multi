@@ -20,6 +20,7 @@ import com.pyllar.consumer.presentation.mutualfund.upi.UpiAccountLinkingScreen
 import com.pyllar.consumer.presentation.mutualfund.upi.UpiAccountLinkingViewModel
 import com.pyllar.consumer.data.remote.model.dto.NavigationAction
 import com.pyllar.consumer.util.Resource
+import com.pyllar.consumer.util.platformLog
 import org.koin.compose.koinInject
 
 sealed class Screen {
@@ -80,6 +81,7 @@ fun App() {
     MaterialTheme {
         var currentScreen by remember { mutableStateOf<Screen>(Screen.PhoneVerification) }
 
+        platformLog("App: Rendering screen: ${currentScreen::class.simpleName}")
         when (val screen = currentScreen) {
             is Screen.PhoneVerification -> {
                 val phoneVm: PhoneVerificationViewModel = koinInject()
@@ -156,7 +158,10 @@ fun App() {
             is Screen.AdditionalKyc -> {
                 AdditionalKycScreen(
                     kycAttemptId = screen.kycAttemptId,
-                    token = "", // Token usually retrieved from session
+                    token = "", // Token retrieved from session in VM
+                    onNext = { nextScreen, attemptId ->
+                        handleNavigation(nextScreen, screen.userId, null, attemptId) { currentScreen = it }
+                    },
                     onNavigateToHelp = { /* Open Help */ }
                 )
             }
@@ -202,8 +207,8 @@ fun App() {
             is Screen.MinDetails -> {
                 val minVm: MinDetailsViewModel = koinInject()
                 MinDetailsScreen(
-                    onNext = { nextScreen, _ ->
-                        handleNavigation(nextScreen, screen.userId, null) { currentScreen = it }
+                    onNext = { nextScreen, kycAttemptId ->
+                        handleNavigation(nextScreen, screen.userId, null, kycAttemptId) { currentScreen = it }
                     },
                     viewModel = minVm,
                     userId = screen.userId,
@@ -238,8 +243,10 @@ fun App() {
             is Screen.InitialDashboard -> {
                 InitialDashboardScreen(
                     userId = screen.userId,
-                    onNavigateToOnboarding = { _, _ -> /* Handled via server action */ },
-                    onNavigateToRoute = { _ -> /* Navigation logic */ }
+                    onNavigateToOnboarding = { _, _ -> /* Fallback */ },
+                    onNavigateToRoute = { nextScreen, preVerificationId ->
+                        handleNavigation(nextScreen, screen.userId, preVerificationId) { currentScreen = it }
+                    }
                 )
             }
             is Screen.UpiAccountLinking -> {
@@ -367,28 +374,70 @@ private fun handleNavigation(
     action: String?,
     userId: String,
     preVerificationId: String?,
+    kycAttemptId: String? = null,
     onNavigate: (Screen) -> Unit
 ) {
+    platformLog("AppNav: handleNavigation: action='$action', userId='$userId'")
     com.pyllar.consumer.util.Log.d("AppNav", "handleNavigation: action=$action, userId=$userId")
     when (action) {
-        ScreenNames.PRE_VERIFICATION -> onNavigate(Screen.PreVerification(userId))
-        ScreenNames.ADDITIONAL_KYC -> onNavigate(Screen.AdditionalKyc(userId, ""))
-        ScreenNames.NOMINEE_DETAILS -> onNavigate(Screen.NomineeDetails(userId, "", ""))
-        ScreenNames.BANK_DETAILS -> onNavigate(Screen.BankDetails(userId, ""))
-        ScreenNames.KYC_INFORMATION -> onNavigate(Screen.KycInformation(userId))
-        ScreenNames.ESIGN_INFORMATION -> onNavigate(Screen.EsignInformation(userId))
-        ScreenNames.PAN_KYC -> onNavigate(Screen.PanKyc(userId, preVerificationId))
-        ScreenNames.MIN_DETAILS -> onNavigate(Screen.MinDetails(userId, "", "", "", ""))
-        ScreenNames.NAME_DOB -> onNavigate(Screen.NameDob(userId, "", "", "", ""))
-        ScreenNames.CHECK_PAN_POPULATED_DETAILS -> onNavigate(Screen.CheckPanPopulatedDetails(userId, preVerificationId))
-        ScreenNames.INITIAL_DASHBOARD -> onNavigate(Screen.InitialDashboard(userId))
-        ScreenNames.SIP_AMOUNT_V2 -> onNavigate(Screen.SipAmountV2(userId, "", "", ""))
-        ScreenNames.MANDATE_AUTH -> onNavigate(Screen.MandateAuth(userId, "", "", 0.0, "", 0L, 0L))
+        ScreenNames.PRE_VERIFICATION -> {
+            platformLog("AppNav: Matched PRE_VERIFICATION")
+            onNavigate(Screen.PreVerification(userId))
+        }
+        ScreenNames.ADDITIONAL_KYC -> {
+            platformLog("AppNav: Matched ADDITIONAL_KYC with kycAttemptId: $kycAttemptId")
+            onNavigate(Screen.AdditionalKyc(userId, kycAttemptId ?: ""))
+        }
+        ScreenNames.NOMINEE_DETAILS -> {
+            platformLog("AppNav: Matched NOMINEE_DETAILS")
+            onNavigate(Screen.NomineeDetails(userId, "", ""))
+        }
+        ScreenNames.BANK_DETAILS -> {
+            platformLog("AppNav: Matched BANK_DETAILS")
+            onNavigate(Screen.BankDetails(userId, ""))
+        }
+        ScreenNames.KYC_INFORMATION -> {
+            platformLog("AppNav: Matched KYC_INFORMATION")
+            onNavigate(Screen.KycInformation(userId))
+        }
+        ScreenNames.ESIGN_INFORMATION -> {
+            platformLog("AppNav: Matched ESIGN_INFORMATION")
+            onNavigate(Screen.EsignInformation(userId))
+        }
+        ScreenNames.PAN_KYC -> {
+            platformLog("AppNav: Matched PAN_KYC")
+            onNavigate(Screen.PanKyc(userId, preVerificationId))
+        }
+        ScreenNames.MIN_DETAILS -> {
+            platformLog("AppNav: Matched MIN_DETAILS")
+            onNavigate(Screen.MinDetails(userId, "", "", "", ""))
+        }
+        ScreenNames.NAME_DOB -> {
+            platformLog("AppNav: Matched NAME_DOB")
+            onNavigate(Screen.NameDob(userId, "", "", "", ""))
+        }
+        ScreenNames.CHECK_PAN_POPULATED_DETAILS -> {
+            platformLog("AppNav: Matched CHECK_PAN_POPULATED_DETAILS")
+            onNavigate(Screen.CheckPanPopulatedDetails(userId, preVerificationId))
+        }
+        ScreenNames.INITIAL_DASHBOARD -> {
+            platformLog("AppNav: Matched INITIAL_DASHBOARD")
+            onNavigate(Screen.InitialDashboard(userId))
+        }
+        ScreenNames.SIP_AMOUNT_V2 -> {
+            platformLog("AppNav: Matched SIP_AMOUNT_V2")
+            onNavigate(Screen.SipAmountV2(userId, "", "", ""))
+        }
+        ScreenNames.MANDATE_AUTH -> {
+            platformLog("AppNav: Matched MANDATE_AUTH")
+            onNavigate(Screen.MandateAuth(userId, "", "", 0.0, "", 0L, 0L))
+        }
         ScreenNames.DASHBOARD, ScreenNames.INVESTMENT_DASHBOARD -> {
-            com.pyllar.consumer.util.Log.d("AppNav", "Navigating to dashboard for user: $userId")
+            platformLog("AppNav: Matched DASHBOARD/INVESTMENT_DASHBOARD")
             onNavigate(Screen.InvestmentDashboard(userId))
         }
         else -> {
+            platformLog("AppNav: Defaulting to dashboard for action: '$action'")
             com.pyllar.consumer.util.Log.d("AppNav", "Defaulting navigation to dashboard for action: $action")
             onNavigate(Screen.InvestmentDashboard(userId))
         }

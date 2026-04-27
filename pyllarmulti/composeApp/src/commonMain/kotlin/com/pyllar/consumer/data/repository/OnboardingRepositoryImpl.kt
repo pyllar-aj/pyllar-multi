@@ -276,10 +276,15 @@ class OnboardingRepositoryImpl(
         emit(Resource.Loading())
         @kotlinx.serialization.Serializable
         data class BankReq(val userId: String, val accountNumber: String, val ifscCode: String, val accountType: String)
-        val result = apiClient.post<com.pyllar.consumer.data.remote.model.dto.BankDetailsResponseDto, BankReq>(
-            path = "api/kyc/onboarding/bankDetails",
-            body = BankReq(userId, accountNumber, ifscCode, accountType)
-        )
+        val result = apiClient.get<com.pyllar.consumer.data.remote.model.dto.BankDetailsResponseDto>(
+            path = "api/kyc/onboarding/bank-account"
+        ) {
+            method = HttpMethod.Post
+            url.parameters.append("userId", userId)
+            url.parameters.append("accountNumber", accountNumber)
+            url.parameters.append("ifscCode", ifscCode)
+            url.parameters.append("accountType", accountType)
+        }
         emit(result)
     }
 
@@ -291,7 +296,7 @@ class OnboardingRepositoryImpl(
         @kotlinx.serialization.Serializable
         data class InitReq(val userId: String, val name: String)
         val result = apiClient.post<com.pyllar.consumer.data.remote.model.dto.VerificationInitiateResponseDto, InitReq>(
-            path = "api/kyc/onboarding/initiateBankVerification/$userId",
+            path = "api/bank-verification/initiate",
             body = InitReq(userId, name)
         )
         emit(result)
@@ -303,7 +308,7 @@ class OnboardingRepositoryImpl(
     ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.VerificationStatusResponseDto>> = flow {
         emit(Resource.Loading())
         val result = apiClient.get<com.pyllar.consumer.data.remote.model.dto.VerificationStatusResponseDto>(
-            path = "api/kyc/onboarding/getVerificationStatus/$verificationId/$userId"
+            path = "api/bank-verification/status/$verificationId"
         )
         emit(result)
     }

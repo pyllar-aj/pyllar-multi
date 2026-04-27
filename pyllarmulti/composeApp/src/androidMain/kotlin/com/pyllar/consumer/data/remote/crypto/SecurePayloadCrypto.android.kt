@@ -150,7 +150,7 @@ actual object Hkdf {
     }
 }
 
-actual class SecureSessionStore actual constructor() : KoinComponent {
+class AndroidSecureSessionStore : SecureSessionStore, KoinComponent {
     private val context: Context by inject()
 
     private val prefs: SharedPreferences by lazy {
@@ -166,17 +166,25 @@ actual class SecureSessionStore actual constructor() : KoinComponent {
         )
     }
 
-    actual fun saveSession(session: SecureSessionData) {
+    override fun getClientSessionId(): String {
+        return prefs.getString("clientSessionId", null) ?: run {
+            val newId = UUID.randomUUID().toString()
+            prefs.edit().putString("clientSessionId", newId).apply()
+            newId
+        }
+    }
+
+    override fun saveSession(session: SecureSessionData) {
         prefs.edit()
             .putString("handshakeId", session.handshakeId)
             .putString("encryptionKey", Base64.encodeToString(session.encryptionKey, Base64.NO_WRAP))
             .putString("hmacKey", Base64.encodeToString(session.hmacKey, Base64.NO_WRAP))
-            .putString("expiresAt", session.expiresAt.toString())
+            .putString("expiresAt", session.expiresAt)
             .putString("clientSessionId", session.clientSessionId)
             .apply()
     }
 
-    actual fun getSession(): SecureSessionData? {
+    override fun getSession(): SecureSessionData? {
         val handshakeId = prefs.getString("handshakeId", null) ?: return null
         val encKeyStr = prefs.getString("encryptionKey", null) ?: return null
         val hmacKeyStr = prefs.getString("hmacKey", null) ?: return null
@@ -192,15 +200,9 @@ actual class SecureSessionStore actual constructor() : KoinComponent {
         )
     }
 
-    actual fun clear() {
+    override fun clear() {
         prefs.edit().clear().apply()
     }
-
-    actual fun getClientSessionId(): String {
-        return prefs.getString("clientSessionId", null) ?: run {
-            val newId = UUID.randomUUID().toString()
-            prefs.edit().putString("clientSessionId", newId).apply()
-            newId
-        }
-    }
 }
+
+actual fun createSecureSessionStore(): SecureSessionStore = AndroidSecureSessionStore()

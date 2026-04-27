@@ -26,6 +26,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import com.pyllar.consumer.util.platformLog
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Warning
 import com.pyllar.otp.OtpField
@@ -87,17 +88,29 @@ fun PreVerificationScreen(
     }
 
     // Handle readiness check result
-    LaunchedEffect(uiState.verificationResult) {
+    LaunchedEffect(uiState.verificationResult, uiState.verificationStatus) {
+        platformLog("PreVerificationScreen: \uD83D\uDCC4 Status change: ${uiState.verificationStatus}")
+        
         when (val result = uiState.verificationResult) {
             is Resource.Success -> {
-                isSubmitting = false
+                platformLog("PreVerificationScreen: \u2705 SUCCESS - Result: ${result.data?.status}, Msg: ${result.data?.message}")
+                platformLog("PreVerificationScreen: \uD83E\uDDF3 Navigation Info: ${result.data?.navigation?.nextScreen ?: "None"} (Action: ${result.data?.navigation?.action ?: "None"})")
+                
+                // Keep isSubmitting true if we are still polling
+                if (uiState.verificationStatus != VerificationStatus.IN_PROGRESS) {
+                    isSubmitting = false
+                }
                 readinessCheckStarted = true
                 PlatformAnalyticsLogger.logEvent("readiness_check_success", mapOf("pan_last4" to panNumber.takeLast(4)))
             }
             is Resource.Error -> {
+                platformLog("PreVerificationScreen: \u274C ERROR - Msg: ${result.message}")
                 isSubmitting = false
                 timeoutState.triggerTimeout()
                 PlatformAnalyticsLogger.logEvent("readiness_check_error", mapOf("pan_last4" to panNumber.takeLast(4), "error" to (result.message ?: "unknown")))
+            }
+            is Resource.Loading -> {
+                platformLog("PreVerificationScreen: \u23F3 LOADING...")
             }
             else -> {}
         }
@@ -106,6 +119,7 @@ fun PreVerificationScreen(
     // Handle server-driven navigation
     LaunchedEffect(uiState.nextScreen) {
         uiState.nextScreen?.let { screenName ->
+            platformLog("PreVerificationScreen: \uD83D\uDE80 NAVIGATING to screen: $screenName")
             PlatformAnalyticsLogger.logEvent("server_navigation", mapOf("from_screen" to "pre_verification", "to_screen" to screenName))
             onNavigateToScreen(screenName)
         }
@@ -135,7 +149,7 @@ fun PreVerificationScreen(
                     showOtpBottomSheet = true
                 } else if (data.status == "ALREADY_VERIFIED") {
                     if (!data.panNumber.isNullOrBlank()) {
-                        panNumber = data.panNumber ?: ""
+                        panNumber = data.panNumber
                         fetchedPanName = data.fullName
                         showManualEntryForm = true
                         autoFetchFailed = false
@@ -351,12 +365,50 @@ fun PreVerificationScreen(
                                             isSubmitting = true
                                             viewModel.checkInvestorReadiness(panNumber)
                                         },
-                                        enabled = isPanValid && !isSubmitting && uiState.verificationResult !is Resource.Loading,
+                                        enabled = isPanValid && !isSubmitting && uiState.verificationResult !is Resource.Loading && uiState.verificationStatus != VerificationStatus.IN_PROGRESS,
                                         timeoutState = timeoutState,
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
-                                        Text("Verify PAN", fontWeight = FontWeight.Bold)
+                                        if (isSubmitting || uiState.verificationResult is Resource.Loading || uiState.verificationStatus == VerificationStatus.IN_PROGRESS) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.Center
+                                            ) {
+                                                CircularProgressIndicator(
+                                                    modifier = Modifier.size(18.dp),
+                                                    color = Color.White,
+                                                    strokeWidth = 2.dp
+                                                )
+                                                Spacer(modifier = Modifier.width(12.dp))
+                                                Text("Checking...", fontWeight = FontWeight.Bold)
+                                            }
+                                        } else {
+                                            Text("Verify PAN", fontWeight = FontWeight.Bold)
+                                        }
                                     }
+
+                                     if (uiState.verificationStatus == VerificationStatus.IN_PROGRESS) {
+                                         Spacer(modifier = Modifier.height(12.dp))
+                                         Column(
+                                             modifier = Modifier.fillMaxWidth(),
+                                             horizontalAlignment = Alignment.CenterHorizontally
+                                         ) {
+                                             Text(
+                                                 text = "Verification in progress...",
+                                                 style = MaterialTheme.typography.bodyMedium,
+                                                 color = MaterialTheme.colorScheme.primary
+                                             )
+                                             uiState.serverMessage?.let { message ->
+                                                 Text(
+                                                     text = message,
+                                                     style = MaterialTheme.typography.bodySmall,
+                                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                     textAlign = TextAlign.Center,
+                                                     modifier = Modifier.padding(top = 4.dp)
+                                                 )
+                                             }
+                                         }
+                                     }
                                 }
                             }
                         }
@@ -405,7 +457,12 @@ fun PreVerificationScreen(
             }
         }
 
-        if (isSubmitting || uiState.verificationResult is Resource.Loading || uiState.panFetchResult is Resource.Loading) {
+        // Only show full-screen overlay for initial loading or PAN fetch, not during polling
+        val showOverlay = (isSubmitting && uiState.verificationStatus != VerificationStatus.IN_PROGRESS) || 
+                          (uiState.verificationResult is Resource.Loading && uiState.verificationStatus != VerificationStatus.IN_PROGRESS) || 
+                          uiState.panFetchResult is Resource.Loading
+        
+        if (showOverlay) {
             Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f)).zIndex(10f)) {
                 LoadingScreen(text = "Please wait...", modifier = Modifier.fillMaxSize())
             }

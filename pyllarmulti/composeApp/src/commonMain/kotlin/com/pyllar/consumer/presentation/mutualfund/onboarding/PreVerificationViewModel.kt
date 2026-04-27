@@ -61,7 +61,14 @@ class PreVerificationViewModel(
                     if (result is Resource.Success) {
                         val dataMap = result.data?.data
                         if (dataMap != null) {
-                            val stringMap = dataMap.mapValues { it.value?.toString() }
+                            val stringMap = dataMap.mapValues { 
+                                val element = it.value
+                                if (element is kotlinx.serialization.json.JsonPrimitive && element.isString) {
+                                    element.content
+                                } else {
+                                    element?.toString()
+                                }
+                            }
                             platformLog("PreVerificationVM: \u2705 Received data")
                             _uiState.value = _uiState.value.copy(prepopulatedData = stringMap)
                         }
@@ -94,10 +101,12 @@ class PreVerificationViewModel(
                 preVerificationRepository.checkInvestorReadiness(panNumber).collectLatest { result ->
                     when (result) {
                         is Resource.Success -> {
-                            platformLog("PreVerificationVM: \u2705 Readiness check initiated successfully")
-                            val preVerificationId = result.data?.data?.id
+                            platformLog("PreVerificationVM: \u2705 Readiness check response: ${result.data}")
+                            val preVerificationId = result.data?.data?.id ?: result.data?.id
+                            platformLog("PreVerificationVM: \uD83C\uDD94 ID received: $preVerificationId")
                             if (preVerificationId != null) {
                                 currentPreVerificationId = preVerificationId
+                                _uiState.value = _uiState.value.copy(verificationResult = result)
                                 platformLog("PreVerificationVM: \uD83D\uDD04 Starting polling for readiness check completion: $preVerificationId")
                                 startPolling(preVerificationId)
                             } else {
@@ -238,12 +247,15 @@ class PreVerificationViewModel(
                         )
                     }
                     is Resource.Success -> {
-                        val navigation = result.data?.navigation
+                        platformLog("PreVerificationVM: \uD83D\uDCE9 Polling response received. Status: ${result.data?.status ?: result.data?.data?.status}")
+                        val navigation = result.navigation
+                        platformLog("PreVerificationVM: \uD83E\uDDF3 Navigation: ${navigation?.nextScreen ?: "None"} (Action: ${navigation?.action ?: "None"})")
+                        
                         when {
                             navigation?.shouldNavigate() == true -> {
                                 platformLog("PreVerificationVM: \uD83D\uDE80 Server says navigate during polling")
                                 stopPolling()
-                                handleVerificationSuccess(result.data)
+                                handleVerificationSuccess(result.data, navigation)
                             }
                             navigation?.shouldPoll() == true -> {
                                 platformLog("PreVerificationVM: \uD83D\uDD04 Server says continue polling")
@@ -255,15 +267,15 @@ class PreVerificationViewModel(
                             navigation?.shouldStay() == true -> {
                                 platformLog("PreVerificationVM: \u23F8\uFE0F Server says stay - stopping polling")
                                 stopPolling()
-                                handleVerificationSuccess(result.data)
+                                handleVerificationSuccess(result.data, navigation)
                             }
                             result.data?.data?.isCompleted() == true -> {
-                                platformLog("PreVerificationVM: Verification completed")
+                                platformLog("PreVerificationVM: \u2705 Verification completed")
                                 stopPolling()
-                                handleVerificationSuccess(result.data)
+                                handleVerificationSuccess(result.data, navigation)
                             }
                             else -> {
-                                platformLog("PreVerificationVM: Polling update - no server action, continuing")
+                                platformLog("PreVerificationVM: \u23F3 Polling update - no server action, continuing")
                             }
                         }
                     }
@@ -287,8 +299,12 @@ class PreVerificationViewModel(
         platformLog("PreVerificationVM: Polling stopped")
     }
 
-    private fun handleVerificationSuccess(response: PreVerificationResponseDto?) {
-        if (response?.data == null) {
+    private fun handleVerificationSuccess(
+        response: PreVerificationResponseDto?,
+        externalNavigation: com.pyllar.consumer.data.remote.model.dto.NavigationInfo? = null
+    ) {
+        val hasData = response?.data != null || response?.id != null
+        if (!hasData) {
             _uiState.value = _uiState.value.copy(
                 verificationResult = Resource.Error("Invalid response from server"),
                 errorMessage = "Invalid response from server"
@@ -297,12 +313,12 @@ class PreVerificationViewModel(
         }
 
         val data = response.data
-        val navigation = response.navigation
-        platformLog("PreVerificationVM: Pre-verification completed with status: ${data.status}")
-        platformLog("PreVerificationVM: Server navigation: ${navigation?.nextScreen}")
+        val navigation = externalNavigation ?: response?.navigation
+        val status = data?.status ?: response?.status
+        platformLog("PreVerificationVM: handleVerificationSuccess: nextScreen='${navigation?.nextScreen}', status='$status'")
 
-        val verifiedAccounts = data.getVerifiedBankAccounts()
-        val manualVerificationAccounts = data.getBankAccountsRequiringManualVerification()
+        val verifiedAccounts = data?.getVerifiedBankAccounts() ?: emptyList()
+        val manualVerificationAccounts = data?.getBankAccountsRequiringManualVerification() ?: emptyList()
         
         val nextScreen = if (navigation?.shouldNavigate() == true) {
             navigation.nextScreen
@@ -372,7 +388,7 @@ class PreVerificationViewModel(
                     serverMessage = message
                 )
             }
-            data.isInProgress() -> {
+            data?.isInProgress() == true -> {
                 platformLog("PreVerificationVM: \u23F3 Verification in progress")
                 _uiState.value = _uiState.value.copy(
                     verificationResult = Resource.Loading(),
@@ -384,7 +400,7 @@ class PreVerificationViewModel(
             }
             else -> {
                 platformLog("PreVerificationVM: \u2753 No server navigation - using fallback logic")
-                val fallbackScreen = determineFallbackScreen(data)
+                val fallbackScreen = determineFallbackScreen(data, response)
                 _uiState.value = _uiState.value.copy(
                     verificationResult = Resource.Success(response),
                     errorMessage = "Verification completed but navigation unclear",
@@ -397,9 +413,9 @@ class PreVerificationViewModel(
         }
     }
 
-    private fun determineFallbackScreen(data: com.pyllar.consumer.data.remote.dto.PreVerificationDataDto): String {
-        val isInvestorReady = data.isInvestorReadyToInvest()
-        val hasVerifiedBankAccount = data.getVerifiedBankAccounts().isNotEmpty()
+    private fun determineFallbackScreen(data: com.pyllar.consumer.data.remote.dto.PreVerificationDataDto?, response: PreVerificationResponseDto): String {
+        val isInvestorReady = data?.isInvestorReadyToInvest() ?: (response.readiness?.status == "verified")
+        val hasVerifiedBankAccount = data?.getVerifiedBankAccounts()?.isNotEmpty() ?: false
         
         return when {
             isInvestorReady && hasVerifiedBankAccount -> {

@@ -29,7 +29,7 @@ data class StandardApiResponseDtoRaw(
     // metadata intentionally omitted in KMP build
 ) {
     val isSuccess: Boolean
-        get() = status.equals("SUCCESS", ignoreCase = true)
+        get() = status.equals("SUCCESS", ignoreCase = true) || status.equals("ACCEPTED", ignoreCase = true)
 
     val hasValidationErrors: Boolean
         get() = status.equals("VALIDATION_ERROR", ignoreCase = true) && !errors.isNullOrEmpty()

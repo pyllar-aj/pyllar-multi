@@ -8,7 +8,7 @@ import com.pyllar.consumer.util.Resource
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-class SecureHandshakeCoordinator(
+open class SecureHandshakeCoordinator(
     private val apiClientUrlProvider: () -> String, // Provide base URL dynamically to avoid circular injection
     private val sessionStore: SecureSessionStore,
     private val deviceInfoProvider: DeviceInfoProvider
@@ -17,7 +17,7 @@ class SecureHandshakeCoordinator(
     private val lock = Mutex()
     private val crypto = SecurePayloadCrypto()
 
-    suspend fun ensureSession(): SecureSessionData {
+    open suspend fun ensureSession(): SecureSessionData {
         val existing = sessionStore.getSession()
         if (existing != null && !existing.isExpired()) {
             return existing
@@ -28,7 +28,7 @@ class SecureHandshakeCoordinator(
         }
     }
 
-    fun invalidateSession() {
+    open fun invalidateSession() {
         sessionStore.clear()
     }
 

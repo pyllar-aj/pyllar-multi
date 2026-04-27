@@ -22,6 +22,7 @@ class IosSessionStore : SessionStore {
         defaults.setObject(authToken, forKey = KEY_AUTH_TOKEN)
         defaults.setObject(fullName, forKey = KEY_FULL_NAME)
         defaults.setBool(true, forKey = KEY_LOGGED_IN)
+        defaults.synchronize()
     }
 
     override suspend fun getCurrentToken(): String =
@@ -53,10 +54,12 @@ class IosSessionStore : SessionStore {
 
     override suspend fun saveToken(token: String) {
         defaults.setObject(token, forKey = KEY_AUTH_TOKEN)
+        defaults.synchronize()
     }
 
     override suspend fun saveUserId(userId: String) {
         defaults.setObject(userId, forKey = KEY_USER_ID)
+        defaults.synchronize()
     }
 
     override suspend fun savePhone(phone: String) {

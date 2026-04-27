@@ -126,11 +126,11 @@ actual object Hkdf {
 }
 
 @OptIn(ExperimentalEncodingApi::class)
-actual class SecureSessionStore {
+class IosSecureSessionStore : SecureSessionStore {
     
     private val defaults = NSUserDefaults.standardUserDefaults
 
-    actual fun saveSession(session: SecureSessionData) {
+    override fun saveSession(session: SecureSessionData) {
         defaults.setObject(session.handshakeId, "secure_session_handshakeId")
         defaults.setObject(Base64.encode(session.encryptionKey), "secure_session_encryptionKey")
         defaults.setObject(Base64.encode(session.hmacKey), "secure_session_hmacKey")
@@ -139,7 +139,7 @@ actual class SecureSessionStore {
         defaults.synchronize()
     }
 
-    actual fun getSession(): SecureSessionData? {
+    override fun getSession(): SecureSessionData? {
         val handshakeId = defaults.stringForKey("secure_session_handshakeId") ?: return null
         val encKeyStr = defaults.stringForKey("secure_session_encryptionKey") ?: return null
         val hmacKeyStr = defaults.stringForKey("secure_session_hmacKey") ?: return null
@@ -155,7 +155,7 @@ actual class SecureSessionStore {
         )
     }
 
-    actual fun clear() {
+    override fun clear() {
         defaults.removeObjectForKey("secure_session_handshakeId")
         defaults.removeObjectForKey("secure_session_encryptionKey")
         defaults.removeObjectForKey("secure_session_hmacKey")
@@ -164,7 +164,7 @@ actual class SecureSessionStore {
         defaults.synchronize()
     }
 
-    actual fun getClientSessionId(): String {
+    override fun getClientSessionId(): String {
         return defaults.stringForKey("secure_session_clientSessionId") ?: run {
             val newId = NSUUID.UUID().UUIDString
             defaults.setObject(newId, "secure_session_clientSessionId")
@@ -173,3 +173,5 @@ actual class SecureSessionStore {
         }
     }
 }
+
+actual fun createSecureSessionStore(): SecureSessionStore = IosSecureSessionStore()

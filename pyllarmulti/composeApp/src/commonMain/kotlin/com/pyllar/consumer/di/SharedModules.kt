@@ -56,7 +56,7 @@ import org.koin.dsl.module
  */
 val sharedModule: Module = module {
     single { PyllarApiClient(getApiBaseUrl()) }
-    single { com.pyllar.consumer.data.remote.crypto.SecureSessionStore() }
+    single { com.pyllar.consumer.data.remote.crypto.createSecureSessionStore() }
     single { com.pyllar.consumer.data.remote.crypto.SecureHandshakeCoordinator({ getApiBaseUrl() }, get(), get()) }
     single<AuthRemoteDataSource> { AuthRemoteDataSourceImpl(get()) }
     single<AuthRepository> { AuthRepositoryImpl(get(), get<SessionStore>()) }

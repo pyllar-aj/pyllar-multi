@@ -68,7 +68,7 @@ private fun goalBorderColor(category: String): Color = when (category.uppercase(
 fun InitialDashboardScreen(
     userId: String = "",
     onNavigateToOnboarding: (goalId: String, userId: String) -> Unit,
-    onNavigateToRoute: (String) -> Unit = {}
+    onNavigateToRoute: (screen: String, preVerificationId: String?) -> Unit = { _, _ -> }
 ) {
     val viewModel: InitialDashboardViewModel = koinInject()
     val coroutineScope = rememberCoroutineScope()
@@ -166,7 +166,16 @@ fun InitialDashboardScreen(
                                             val result = viewModel.selectGoal(userId = userId, goalId = goal.goalId)
                                             when (result) {
                                                 is Resource.Success -> {
-                                                    onNavigateToOnboarding(goal.goalId, userId)
+                                                    val nextScreen = result.navigation?.nextScreen
+                                                    val userPurposeId = result.data?.userPurposeId
+                                                    
+                                                    if (!nextScreen.isNullOrBlank()) {
+                                                        platformLog("🚀 Server-driven navigation to: $nextScreen (purposeId: $userPurposeId)")
+                                                        onNavigateToRoute(nextScreen, userPurposeId)
+                                                    } else {
+                                                        platformLog("⚠️ No nextScreen in response, falling back to default onboarding")
+                                                        onNavigateToOnboarding(goal.goalId, userId)
+                                                    }
                                                 }
                                                 is Resource.Error -> {
                                                     errorMessage = result.message ?: "Unable to select goal"

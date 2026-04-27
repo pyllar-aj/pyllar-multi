@@ -34,9 +34,15 @@ class AuthRepositoryImpl(
             is Resource.Success -> {
                 val data = result.data
                 if (data != null) {
+                    val actualUserId = data.actualUserId
+                    if (!actualUserId.isNullOrBlank()) {
+                        com.pyllar.consumer.util.Log.d("AuthRepository", "💾 [sendOtp] Saving actualUserId: $actualUserId")
+                        sessionStore.saveUserId(actualUserId)
+                    }
+
                     val authToken = AuthToken(
                         token = "",
-                        userId = data.actualUserId ?: "",
+                        userId = actualUserId ?: "",
                         auth_token = "",
                         otpRef = data.ref,
                         phoneNumber = data.phoneNumber
@@ -75,9 +81,19 @@ class AuthRepositoryImpl(
             is Resource.Success -> {
                 val data = result.data
                 if (data != null) {
+                    val storedUserId = sessionStore.getCurrentUserId()
+                    val bestUserId = if (data.userId == "anonymous" || data.userId.isBlank()) {
+                        com.pyllar.consumer.util.Log.d("AuthRepository", "⚠️ [verifyOtp] Server returned anonymous/blank userId, falling back to stored: $storedUserId")
+                        storedUserId
+                    } else {
+                        data.userId
+                    }
+
+                    com.pyllar.consumer.util.Log.d("AuthRepository", "🔐 [verifyOtp] Final userId for session: $bestUserId")
+
                     val domainUser = AuthUserDTO(
                         token = data.authToken,
-                        userId = data.userId,
+                        userId = bestUserId,
                         phoneNumber = data.phoneNumber,
                         email = "",
                         firstName = "",
@@ -89,7 +105,7 @@ class AuthRepositoryImpl(
                         AuthToken(
                             auth_token = data.authToken,
                             token = data.authToken,
-                            userId = data.userId
+                            userId = bestUserId
                         )
                     )
                     emit(Resource.Success(domainUser, result.navigation, result.fieldErrors))
@@ -135,7 +151,8 @@ class AuthRepositoryImpl(
                         isMismatch = data.mismatch ?: false,
                         isError = data.error ?: false
                     )
-                    sessionStore.saveUserSession(userId = userId, email = email)
+                    val existingToken = sessionStore.getCurrentToken()
+                    sessionStore.saveUserSession(userId = userId, email = email, authToken = existingToken)
                     emit(Resource.Success(domain, result.navigation, result.fieldErrors))
                 } else {
                     emit(

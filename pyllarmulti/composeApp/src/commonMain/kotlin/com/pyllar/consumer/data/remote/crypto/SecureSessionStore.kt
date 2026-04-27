@@ -1,8 +1,10 @@
 package com.pyllar.consumer.data.remote.crypto
 
-expect class SecureSessionStore() {
+interface SecureSessionStore {
     fun saveSession(session: SecureSessionData)
     fun getSession(): SecureSessionData?
     fun clear()
     fun getClientSessionId(): String
 }
+
+expect fun createSecureSessionStore(): SecureSessionStore

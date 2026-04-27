@@ -12,7 +12,12 @@ import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.TextContent
+import io.ktor.http.takeFrom
+import io.ktor.http.path
+import io.ktor.http.encodedPath
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
 import com.pyllar.consumer.data.remote.crypto.SecureHandshakeCoordinator
@@ -28,23 +33,33 @@ import com.pyllar.consumer.domain.storage.SessionStore
 import com.pyllar.consumer.platform.DeviceInfoProvider
 
 class PyllarApiClient(
-    @PublishedApi internal val baseUrl: String
+    @PublishedApi internal val baseUrl: String,
+    @PublishedApi internal val testClient: io.ktor.client.HttpClient? = null,
+    private val injectedHandshakeCoordinator: SecureHandshakeCoordinator? = null,
+    private val injectedSessionStore: SessionStore? = null,
+    private val injectedDeviceInfoProvider: DeviceInfoProvider? = null
 ) : KoinComponent {
 
     @PublishedApi
-    internal val client = createHttpClient()
+    internal val client = testClient ?: createHttpClient()
 
     @PublishedApi
-    internal val handshakeCoordinator: SecureHandshakeCoordinator by inject()
+    internal val handshakeCoordinator: SecureHandshakeCoordinator by lazy { 
+        injectedHandshakeCoordinator ?: inject<SecureHandshakeCoordinator>().value 
+    }
 
     @PublishedApi
     internal val crypto = SecurePayloadCrypto()
 
     @PublishedApi
-    internal val sessionStore: SessionStore by inject()
+    internal val sessionStore: SessionStore by lazy { 
+        injectedSessionStore ?: inject<SessionStore>().value 
+    }
 
     @PublishedApi
-    internal val deviceInfoProvider: DeviceInfoProvider by inject()
+    internal val deviceInfoProvider: DeviceInfoProvider by lazy { 
+        injectedDeviceInfoProvider ?: inject<DeviceInfoProvider>().value 
+    }
 
     @PublishedApi
     internal val json = Json {
@@ -102,8 +117,21 @@ class PyllarApiClient(
 
             // Ensure secure session is established
             val session = handshakeCoordinator.ensureSession()
+            
+            // Fetch session info OUTSIDE the request block to ensure reliable suspension handling
+            val authToken = sessionStore.getCurrentToken()
+            val sessionUserId = sessionStore.getCurrentUserId()
+            
+            platformLog("PyllarApiClient: \ud83d\udd10 Preparing request with authToken: ${if (authToken.isNotBlank()) "PRESENT (${authToken.take(10)}...)" else "MISSING"}, sessionUserId: $sessionUserId")
 
-            val response: HttpResponse = client.request("$baseUrl/$path") {
+            val response: HttpResponse = client.request {
+                url {
+                    takeFrom(baseUrl)
+                    val cleanPath = if (path.startsWith("/")) path.substring(1) else path
+                    // Ensure baseUrl ends with / before appending cleanPath
+                    val baseWithTrailing = if (baseUrl.endsWith("/")) baseUrl else "$baseUrl/"
+                    takeFrom(baseWithTrailing + cleanPath)
+                }
                 this.method = HttpMethod.parse(method)
                 
                 var timestamp = crypto.createFreshHeaders(session).second
@@ -144,14 +172,23 @@ class PyllarApiClient(
                 header("utm_campaign", "app")
                 
                 // Add Authorization header if token exists
-                val authToken = sessionStore.getCurrentToken()
                 if (authToken.isNotBlank()) {
-                    header("Authorization", "Bearer $authToken")
+                    this.header(HttpHeaders.Authorization, "Bearer $authToken")
+                    platformLog("PyllarApiClient: \u2705 Added Authorization header")
+                } else {
+                    platformLog("PyllarApiClient: \u26a0\ufe0f Skipping Authorization header (token is blank)")
+                }
+
+                // Add User ID header for user context tracking
+                if (sessionUserId.isNotBlank()) {
+                    header("X-User-Id", sessionUserId)
+                    header("Session-User-Id", sessionUserId)
+                    platformLog("PyllarApiClient: \u2705 Added X-User-Id and Session-User-Id headers")
                 }
                 
                 configure()
                 
-                platformLog("HTTPSecure(Pyllar) REQUEST: $method $baseUrl/$path")
+                platformLog("HTTPSecure(Pyllar) REQUEST: $method ${this.url.buildString()}")
             }
 
             if (response.status.value == 401) {
@@ -193,8 +230,7 @@ class PyllarApiClient(
             }
             
             val decryptedString = decryptedBytes.decodeToString()
-            platformLog("HTTPSecure(Pyllar) DECRYPTED SUCCESS: $decryptedString")
-            
+            platformLog("PyllarApiClient: \uD83D\uDD13 Decrypted Response: $decryptedString")
             val parsed: StandardApiResponseDtoRaw = json.decodeFromString(decryptedString)
             
             parseStandardResponse<T>(parsed)
@@ -226,8 +262,21 @@ class PyllarApiClient(
                     ContentType.Application.Json
                 ))
             }
-            header("X-App-Version", "1.0.0")
+            val appVersion = deviceInfoProvider.getAppVersion() ?: "1.0.0"
+            val deviceId = deviceInfoProvider.getDeviceId() ?: ""
+            val sessionUserId = sessionStore.getCurrentUserId()
+
+            header("X-App-Version", appVersion)
             header("X-App-Name", "pyllar-consumer")
+            header("X-Device-Id", deviceId)
+            header("device_id", deviceId)
+
+            if (sessionUserId.isNotBlank()) {
+                header("X-User-Id", sessionUserId)
+                header("Session-User-Id", sessionUserId)
+                platformLog("PyllarApiClient: ✅ [RawRequest] Added X-User-Id and Session-User-Id: $sessionUserId")
+            }
+
             configure()
         }
         return if (response.status.value in 200..299) {

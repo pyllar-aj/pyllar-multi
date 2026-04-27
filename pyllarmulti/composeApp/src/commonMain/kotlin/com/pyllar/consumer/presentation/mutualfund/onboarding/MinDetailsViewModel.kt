@@ -39,7 +39,14 @@ class MinDetailsViewModel(
                     if (dataMap != null) {
                         // Assuming ScreenDataResponseDto.data is Map<String, String> or Map<String, Any>
                         // Let's coerce to string map for UI prepopulation
-                        val stringMap = dataMap.mapValues { it.value?.toString() }
+                        val stringMap = dataMap.mapValues { 
+                            val element = it.value
+                            if (element is kotlinx.serialization.json.JsonPrimitive && element.isString) {
+                                element.content
+                            } else {
+                                element?.toString()
+                            }
+                        }
                         _prefillData.value = stringMap
                     }
                 }

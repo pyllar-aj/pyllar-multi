@@ -36,7 +36,14 @@ class NameDobViewModel(
                 if (result is Resource.Success) {
                     val dataMap = result.data?.data
                     if (dataMap != null) {
-                        val stringMap = dataMap.mapValues { it.value?.toString() }
+                        val stringMap = dataMap.mapValues { 
+                            val element = it.value
+                            if (element is kotlinx.serialization.json.JsonPrimitive && element.isString) {
+                                element.content
+                            } else {
+                                element?.toString()
+                            }
+                        }
                         _prefillData.value = stringMap
                     }
                 }

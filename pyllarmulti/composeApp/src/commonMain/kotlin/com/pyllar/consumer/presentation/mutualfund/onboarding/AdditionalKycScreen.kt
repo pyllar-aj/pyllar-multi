@@ -38,7 +38,7 @@ import org.koin.compose.koinInject
 fun AdditionalKycScreen(
     kycAttemptId: String,
     token: String,
-    onSubmit: (String, String, String, String, Boolean, String, String, String, String?) -> Unit = { _, _, _, _, _, _, _, _, _ -> },
+    onNext: (String?, String?) -> Unit,
     onNavigateToHelp: () -> Unit = {},
     viewModel: AdditionalKycViewModel = koinInject()
 ) {
@@ -275,11 +275,18 @@ fun AdditionalKycScreen(
         }
     }
     
+    val nextScr by viewModel.nextScreen.collectAsState()
+
+    LaunchedEffect(nextScr) {
+        if (nextScr != null) {
+            onNext(nextScr, kycAttemptId)
+        }
+    }
+
     LaunchedEffect(submitResult) {
-        if (submitResult is Resource.Success<*>) {
+        if (submitResult != null && !submitResult!!.contains("Failed")) {
             isSubmitting = false
-            // Navigate based on server response or callback
-        } else if (submitResult is Resource.Error<*>) {
+        } else if (submitResult != null && submitResult!!.contains("Failed")) {
             isSubmitting = false
         }
     }

@@ -86,7 +86,15 @@ data class PreVerificationResponseDto(
     val message: String? = null,
     val data: PreVerificationDataDto? = null,
     val errors: List<String>? = null,
-    val navigation: com.pyllar.consumer.data.remote.model.dto.NavigationInfo? = null
+    val navigation: com.pyllar.consumer.data.remote.model.dto.NavigationInfo? = null,
+    
+    // Flattened fields for responses where 'data' is at the top level
+    val id: String? = null,
+    @SerialName("object")
+    val objectType: String? = null,
+    @SerialName("investor_identifier")
+    val investorIdentifier: String? = null,
+    val readiness: ReadinessDto? = null
 )
 
 @Serializable
