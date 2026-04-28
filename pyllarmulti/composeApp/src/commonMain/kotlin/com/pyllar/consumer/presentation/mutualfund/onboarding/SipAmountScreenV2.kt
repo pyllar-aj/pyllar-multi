@@ -11,9 +11,19 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.VerifiedUser
+import androidx.compose.material.icons.filled.Login
+import org.jetbrains.compose.resources.painterResource
+import pyllar.composeapp.generated.resources.Res
+import pyllar.composeapp.generated.resources.goldbar_icon
+import pyllar.composeapp.generated.resources.silver_icon
+import pyllar.composeapp.generated.resources.invesco
+import pyllar.composeapp.generated.resources.aditya
+import pyllar.composeapp.generated.resources.axis_lo
+import pyllar.composeapp.generated.resources.nippon
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -112,9 +122,15 @@ fun SipAmountScreenV2(
 
     LaunchedEffect(userId, goalId) {
         platformLog("SipAmountScreenV2: Loading limits and fund details for user $userId, goal $goalId")
-        // In a real app, we'd fetch the userPurposeId first or use goalId to get it
         viewModel.fetchInvestmentLimits(goalId.ifBlank { "default_purpose" })
         fundDetailsViewModel.loadFundDetailsByGoal(userId, goalId)
+    }
+
+    // Helper to get investment status text
+    val getInvestmentStatus = {
+        if (fundDetailsState.isLoading) "Fetching..."
+        else if (fundDetailsState.error != null) "Not Available"
+        else "Active"
     }
     
     LaunchedEffect(limitsState) {
@@ -239,7 +255,6 @@ fun SipAmountScreenV2(
                                     }
                                 )
                             }
-                            // Custom Amount Chip placeholder logic
                             AmountChip(
                                 label = "Custom",
                                 isSelected = isCustomMode,
@@ -248,12 +263,58 @@ fun SipAmountScreenV2(
                             )
                         }
 
-                        Slider(
-                            value = amount,
-                            onValueChange = { amount = it },
-                            valueRange = minAmount..maxAmount,
-                            steps = if (maxAmount - minAmount > 0) ((maxAmount - minAmount) / 10).toInt() else 0
-                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // SIP starts at section
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("SIP starts at", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(getInvestmentStatus(), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                            }
+                        }
+
+                        // Investing in section
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Investing in", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                                fundDetailsState.fundDetails?.fundName?.let { fundName ->
+                                    val logo = when {
+                                        fundName.contains("Invesco", true) -> Res.drawable.invesco
+                                        fundName.contains("Aditya", true) -> Res.drawable.aditya
+                                        fundName.contains("Axis", true) -> Res.drawable.axis_lo
+                                        fundName.contains("Nippon", true) -> Res.drawable.nippon
+                                        else -> null
+                                    }
+                                    if (logo != null) {
+                                        androidx.compose.foundation.Image(
+                                            painter = painterResource(logo),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(40.dp)
+                                        )
+                                    } else {
+                                        Text(fundName, style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.End)
+                                    }
+                                }
+                            }
+                        }
                     }
 
                     Spacer(modifier = Modifier.weight(1f))
@@ -547,31 +608,109 @@ fun FundDetailsBottomSheet(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(modifier = Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Text("${getGoalDisplayName(goalType)} Daily SIP", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            
-            fundDetailsState.fundDetails?.let { details ->
-                Text("Powered by ${details.fundName}", style = MaterialTheme.typography.bodyMedium)
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            val title = when (goalType) {
+                GoalType.GOLD -> "Gold Daily SIP"
+                GoalType.SILVER -> "Silver Daily SIP"
+                else -> "Daily SIP"
             }
-            
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Daily Amount", style = MaterialTheme.typography.labelSmall)
-                    Text("₹${amount.toInt()}", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    fundDetailsState.fundDetails?.fundName?.let { fundName ->
+                        Text(
+                            text = "Powered by $fundName",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                // Fund Logo
+                fundDetailsState.fundDetails?.fundName?.let { fundName ->
+                    val logo = when {
+                        fundName.contains("Invesco", true) -> Res.drawable.invesco
+                        fundName.contains("Aditya", true) -> Res.drawable.aditya
+                        fundName.contains("Axis", true) -> Res.drawable.axis_lo
+                        fundName.contains("Nippon", true) -> Res.drawable.nippon
+                        else -> null
+                    }
+                    if (logo != null) {
+                        androidx.compose.foundation.Image(
+                            painter = painterResource(logo),
+                            contentDescription = null,
+                            modifier = Modifier.size(60.dp)
+                        )
+                    }
                 }
             }
-            
-            fundDetailsState.bankAccountNumber?.let { acc ->
-                ListItem(
-                    headlineContent = { Text("Bank Account") },
-                    supportingContent = { Text("A/C: $acc") },
-                    leadingContent = { Icon(Icons.Default.Info, contentDescription = null) }
-                )
-            }
-            
-            Button(onClick = onConfirm, modifier = Modifier.fillMaxWidth().height(56.dp)) {
-                Text("Invest ₹${amount.toInt()}/day")
+
+            if (fundDetailsState.isLoading) {
+                Box(modifier = Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            } else {
+                // Investment Summary Card
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                ) {
+                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("Daily Amount", style = MaterialTheme.typography.labelSmall)
+                        Text("₹${amount.toInt()}", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                // Bank Details
+                fundDetailsState.bankAccountNumber?.let { acc ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Icon(Icons.Default.VerifiedUser, contentDescription = null, tint = Color(0xFF4CAF50))
+                            Column {
+                                Text("Bank Account", style = MaterialTheme.typography.labelSmall)
+                                Text("A/C: $acc", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+
+                Button(
+                    onClick = onConfirm,
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Invest ₹${amount.toInt()}/day", fontWeight = FontWeight.Bold)
+                }
+                
+                Spacer(modifier = Modifier.height(8.dp))
             }
         }
     }

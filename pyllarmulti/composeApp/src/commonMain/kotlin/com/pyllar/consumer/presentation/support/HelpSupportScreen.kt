@@ -265,7 +265,7 @@ fun KycHelpInformationCard() {
             Text("KYC \u2013 Help Information", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
             Text("KYC (Know Your Customer) is mandatory as per SEBI and government regulations.", style = MaterialTheme.typography.bodySmall)
             
-            Divider()
+            HorizontalDivider()
             
             Text("Process:", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
             Text("\u2022 PAN Verification: Enter your name and DOB exactly as on PAN card.", style = MaterialTheme.typography.bodySmall)
@@ -287,7 +287,7 @@ fun BankHelpInformationCard() {
             Text("Bank Account Setup \u2013 Help", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
             Text("We need your bank details to process SIPs and credit withdrawals securely.", style = MaterialTheme.typography.bodySmall)
             
-            Divider()
+            HorizontalDivider()
             
             Text("Requirements:", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
             Text("\u2022 Individual savings account in your name.", style = MaterialTheme.typography.bodySmall)
