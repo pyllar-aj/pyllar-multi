@@ -67,12 +67,11 @@ fun OnboardingStepper(currentStep: Int, completedStep: Int, currentScreenRoute: 
                 )
             }
             if (index < steps.lastIndex) {
-                Divider(
+                HorizontalDivider(
                     color = if (index < completedStep) green else darkGrey,
                     thickness = 2.dp,
                     modifier = Modifier
                         .weight(0.2f)
-                        .height(2.dp)
                 )
             }
         }

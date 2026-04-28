@@ -239,9 +239,9 @@ fun BankDetailsScreen(
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Divider(modifier = Modifier.weight(1f))
+                    HorizontalDivider(modifier = Modifier.weight(1f))
                     Text("  OR  ", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.outline)
-                    Divider(modifier = Modifier.weight(1f))
+                    HorizontalDivider(modifier = Modifier.weight(1f))
                 }
 
                 // Manual Entry Card

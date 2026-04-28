@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -50,28 +51,16 @@ import org.koin.compose.koinInject
 import com.pyllar.consumer.platform.PlatformActions
 import kotlin.math.ceil
 import org.jetbrains.compose.resources.painterResource
-import pyllar.composeapp.generated.resources.Res
-import pyllar.composeapp.generated.resources.invesco
-import pyllar.composeapp.generated.resources.aditya
-import pyllar.composeapp.generated.resources.axis_lo
-import pyllar.composeapp.generated.resources.nippon
 import org.jetbrains.compose.resources.DrawableResource
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Path
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.ui.draw.rotate
+import pyllar.composeapp.generated.resources.*
 
-// --- Metal Texture Palettes & Constants ---
-private val goldMetalColors = listOf(
-    Color(0xFFC8892E), Color(0xFFE8C46A), Color(0xFFC9973A),
-    Color(0xFFF0D080), Color(0xFFB8821A), Color(0xFFE0B84A), Color(0xFFC9973A)
-)
-private val silverMetalColors = listOf(
-    Color(0xFF8A9DB0), Color(0xFFC8D8E4), Color(0xFF7A8FA0),
-    Color(0xFFD8E8F0), Color(0xFF6A8090), Color(0xFFB8CCD8), Color(0xFF8A9DB0)
-)
-private const val GOLD_BRUSH_ALPHA = 10 / 255f
-private const val SILVER_BRUSH_ALPHA = 15 / 255f
-private val goldShadowColor = Color(0xFFB47814)
-private val silverShadowColor = Color(0xFF506070)
-private val goldStrokeColor = Color(0x80C9973A)
-private val silverStrokeColor = Color(0x807A8FA0)
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -200,8 +189,64 @@ fun InvestmentDashboardV2Screen(
                     PrimaryGoalCard(
                         goal = goal,
                         isLoading = false,
-                        onClick = {
-                            onNavigateToSchemeDetails(goal.goalId)
+                        onTopCardClick = {
+                            coroutineScope.launch {
+                                isSelectingGoal = true
+                                val result = viewModel.initGoalTxn(userId, goal.goalId)
+                                if (result is Resource.Success) {
+                                    val response = result.data
+                                    if (response != null) {
+                                        val params = SchemeDetailsParams(
+                                            isin = goal.isin,
+                                            folioNumber = goal.folioNo,
+                                            schemeName = goal.schemeName,
+                                            currentValue = goal.currentValue,
+                                            investmentInProgress = goal.investmentInProgressValue,
+                                            investedAmount = goal.investedAmount,
+                                            goalName = goal.name,
+                                            unitsInGm = goal.unitsInGm,
+                                            category = goal.category,
+                                            colorTheme = goal.colorTheme,
+                                            profit = goal.profit,
+                                            realizedProfit = goal.realizedProfit,
+                                            unrealizedProfit = goal.unrealizedProfit
+                                        )
+                                        SchemeDetailsParamsManager.set(params)
+                                        onNavigateToSchemeDetails(response.userPurposeId ?: goal.goalId)
+                                    }
+                                }
+                                isSelectingGoal = false
+                            }
+                        },
+                        onBottomCardClick = {
+                            coroutineScope.launch {
+                                isSelectingGoal = true
+                                val result = viewModel.initGoalTxn(userId, goal.goalId)
+                                if (result is Resource.Success) {
+                                    val response = result.data
+                                    if (response != null) {
+                                        val params = SchemeDetailsParams(
+                                            isin = goal.isin,
+                                            folioNumber = goal.folioNo,
+                                            schemeName = goal.schemeName,
+                                            currentValue = goal.currentValue,
+                                            investmentInProgress = goal.investmentInProgressValue,
+                                            investedAmount = goal.investedAmount,
+                                            goalName = goal.name,
+                                            unitsInGm = goal.unitsInGm,
+                                            category = goal.category,
+                                            colorTheme = goal.colorTheme,
+                                            profit = goal.profit,
+                                            realizedProfit = goal.realizedProfit,
+                                            unrealizedProfit = goal.unrealizedProfit,
+                                            selectedTab = 1 // Open Active Plans tab
+                                        )
+                                        SchemeDetailsParamsManager.set(params)
+                                        onNavigateToSchemeDetails(response.userPurposeId ?: goal.goalId)
+                                    }
+                                }
+                                isSelectingGoal = false
+                            }
                         }
                     )
                 }
@@ -426,164 +471,166 @@ fun CombinedDashboardCard(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            // Gold & Silver Row
-            Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-                // Gold
-                val goldSectionShape = RoundedCornerShape(topStart = 16.dp, topEnd = 0.dp, bottomStart = 0.dp, bottomEnd = 0.dp)
+        Column(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            // Gold and Silver Section
+            Row(
+                modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)
+            ) {
+                // Gold Section
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .fillMaxHeight()
-                        .shadow(4.dp, goldSectionShape, spotColor = goldShadowColor, ambientColor = goldShadowColor)
-                        .clip(goldSectionShape)
-                        .drawBehind {
-                            val w = size.width
-                            val h = size.height
-                            drawRect(
-                                brush = Brush.linearGradient(
-                                    colors = goldMetalColors,
-                                    start = Offset(0f, h),
-                                    end = Offset(w, 0f)
-                                )
-                            )
-                            drawRect(
-                                brush = Brush.verticalGradient(
-                                    colors = listOf(Color.White.copy(alpha = 0.2f), Color.Transparent),
-                                    startY = 0f, endY = h
-                                )
-                            )
-                            var y = 0f
-                            while (y < h) {
-                                drawLine(
-                                    color = Color.White.copy(alpha = GOLD_BRUSH_ALPHA),
-                                    start = Offset(0f, y),
-                                    end = Offset(w, y),
-                                    strokeWidth = 1f
-                                )
-                                y += 3f
-                            }
-                        }
-                        .padding(16.dp),
+                        .background(Color(0xFFFFF9E6))
+                        .padding(vertical = 16.dp, horizontal = 8.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        val goldHasValue = goldUnitsInGm != null && goldUnitsInGm > 0
+                        val goldIconSize = if (goldHasValue) 40.dp else 52.dp
+                        val goldImageSize = if (goldHasValue) 24.dp else 36.dp
+
                         Surface(
-                            color = Color.White.copy(alpha = 0.35f),
+                            color = Color(0xFFFFE8B8),
                             shape = CircleShape,
-                            modifier = Modifier.size(40.dp)
+                            modifier = Modifier.size(goldIconSize)
                         ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.Star,
-                                    contentDescription = null,
-                                    tint = Color(0xFFFFD700),
-                                    modifier = Modifier.size(24.dp)
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                Image(
+                                    painter = painterResource(Res.drawable.goldbar_icon),
+                                    contentDescription = "Gold",
+                                    modifier = Modifier.size(goldImageSize),
+                                    contentScale = ContentScale.Fit
                                 )
                             }
                         }
-                        Spacer(modifier = Modifier.height(8.dp))
+
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                color = Color(0xFFA27915),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            val unitsText = if (goldHasValue && goldUnitsInGm != null) {
+                                formatWeight(goldUnitsInGm)
+                            } else {
+                                "0 g"
+                            }
+                            Text(
+                                text = unitsText,
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = Color(0xFFA27915)
+                            )
+                        }
+
                         Text(
-                            text = if (isLoading) "..." else "${formatWeight(goldUnitsInGm ?: 0.0)}",
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF4A3600)
+                            text = "Gold",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Color(0xFFA27915)
                         )
-                        Text("Gold", style = MaterialTheme.typography.labelSmall, color = Color(0xFF6A4C00))
                     }
                 }
-                // Silver
-                val silverSectionShape = RoundedCornerShape(topStart = 0.dp, topEnd = 16.dp, bottomStart = 0.dp, bottomEnd = 0.dp)
+                
+                // Silver Section
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .fillMaxHeight()
-                        .shadow(4.dp, silverSectionShape, spotColor = silverShadowColor, ambientColor = silverShadowColor)
-                        .clip(silverSectionShape)
-                        .drawBehind {
-                            val w = size.width
-                            val h = size.height
-                            drawRect(
-                                brush = Brush.linearGradient(
-                                    colors = silverMetalColors,
-                                    start = Offset(0f, h),
-                                    end = Offset(w, 0f)
-                                )
-                            )
-                            drawRect(
-                                brush = Brush.verticalGradient(
-                                    colors = listOf(Color.White.copy(alpha = 0.25f), Color.Transparent),
-                                    startY = 0f, endY = h
-                                )
-                            )
-                            var y = 0f
-                            while (y < h) {
-                                drawLine(
-                                    color = Color.White.copy(alpha = SILVER_BRUSH_ALPHA),
-                                    start = Offset(0f, y),
-                                    end = Offset(w, y),
-                                    strokeWidth = 1f
-                                )
-                                y += 3f
-                            }
-                        }
-                        .padding(16.dp),
+                        .background(Color(0xFFFAFAFA))
+                        .padding(vertical = 16.dp, horizontal = 8.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        val silverHasValue = silverUnitsInGm != null && silverUnitsInGm > 0
+                        val silverIconSize = if (silverHasValue) 40.dp else 52.dp
+                        val silverImageSize = if (silverHasValue) 24.dp else 36.dp
+
                         Surface(
-                            color = Color.White.copy(alpha = 0.4f),
+                            color = Color(0xFFE8E8E8),
                             shape = CircleShape,
-                            modifier = Modifier.size(40.dp)
+                            modifier = Modifier.size(silverIconSize)
                         ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.BrightnessLow,
-                                    contentDescription = null,
-                                    tint = Color(0xFFC0C0C0),
-                                    modifier = Modifier.size(24.dp)
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                Image(
+                                    painter = painterResource(Res.drawable.silver_icon),
+                                    contentDescription = "Silver",
+                                    modifier = Modifier.size(silverImageSize),
+                                    contentScale = ContentScale.Fit
                                 )
                             }
                         }
-                        Spacer(modifier = Modifier.height(8.dp))
+
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                color = Color(0xFF818181),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            val unitsText = if (silverHasValue && silverUnitsInGm != null) {
+                                formatWeight(silverUnitsInGm)
+                            } else {
+                                "0 g"
+                            }
+                            Text(
+                                text = unitsText,
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = Color(0xFF818181)
+                            )
+                        }
+
                         Text(
-                            text = if (isLoading) "..." else "${formatWeight(silverUnitsInGm ?: 0.0)}",
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF2C343A)
+                            text = "Silver",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Color(0xFF818181)
                         )
-                        Text("Silver", style = MaterialTheme.typography.labelSmall, color = Color(0xFF505A61))
                     }
                 }
             }
 
-            // Total Value
+            // Total Value Section
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFFD5ECD6))
-                    .padding(20.dp),
-                contentAlignment = Alignment.Center
+                    .background(Color(0xFFC8E6C9))
+                    .padding(20.dp)
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Total Value", style = MaterialTheme.typography.titleSmall, color = Color(0xFF5F6F64))
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     Text(
-                        text = if (isLoading) "₹..." else "₹${formatIndian(ceil(totalValue))}",
-                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                        color = Color(0xFF1C1C1C)
+                        text = "Total Value",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                     )
-                    if (!isLoading) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = if (profitLoss >= 0) Icons.Default.TrendingUp else Icons.Default.TrendingDown,
-                                contentDescription = null,
-                                tint = if (profitLoss >= 0) Color(0xFF2E7D32) else Color.Red,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Text(
-                                text = " ₹${formatIndian(profitLoss)} (${formatPercent(profitLossPercentage)}%)",
-                                color = if (profitLoss >= 0) Color(0xFF2E7D32) else Color.Red,
-                                style = MaterialTheme.typography.labelMedium
-                            )
-                        }
+                    
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    } else {
+                        val ceiledTotalValue = ceil(totalValue)
+                        Text(
+                            text = "₹${formatIndian(ceiledTotalValue)}",
+                            style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
                     }
                 }
             }
@@ -626,37 +673,320 @@ fun StatusInfoCard(
 
 @Composable
 fun PrimaryGoalCard(
-    goal: InvestmentGoal,
+    goal: InvestmentGoal?,
     isLoading: Boolean,
-    onClick: () -> Unit
+    fundDetails: List<FundDetail> = emptyList(),
+    holdingsDetails: List<HoldingDetail> = emptyList(),
+    onTopCardClick: () -> Unit = {},
+    onBottomCardClick: () -> Unit = {}
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth().clickable { onClick() },
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    var showInfoDialog by remember { mutableStateOf(false) }
+    val borderColor = if (goal != null) {
+        // Use colorTheme if available, otherwise use category
+        goal.colorTheme.toColor()
+    } else {
+        Color(0xFF4CAF50) // Default green
+    }
+    
+    val gradientColors = if (goal != null) {
+        getGoalGradientColors(goal.category, goal.colorTheme)
+    } else {
+        listOf(Color.White, Color.White)
+    }
+    
+    val correlationColor = if (goal != null) {
+        getCorrelationColorForCategory(goal.category, goal.colorTheme)
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
+
+    val topCardClickable = if (isLoading || goal == null) Modifier else Modifier.clickable { onTopCardClick() }
+
+    Column(
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(goal.iconType, fontSize = 24.sp)
-                Spacer(modifier = Modifier.width(12.dp))
-                Column {
-                    Text(goal.name, fontWeight = FontWeight.Bold)
-                    Text(goal.schemeName ?: "Direct Plan", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+        // Top Card - Goal Info
+        val hasPlanSummary = goal?.planSummary != null
+        
+        val topCardShape = if (hasPlanSummary) {
+            RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
+        } else {
+            RoundedCornerShape(16.dp)
+        }
+        
+        val topBorderModifier = if (hasPlanSummary) {
+             Modifier.drawBehind {
+                val stroke = Stroke(width = 2.dp.toPx())
+                val radius = 16.dp.toPx() // Top corners radius
+                
+                // Draw Top-Left -> Top-Right -> Down
+                val path = Path().apply {
+                    // Start at Bottom-Left
+                    moveTo(0f, size.height) 
+                    lineTo(0f, radius)
+                    
+                    // Top-Left Corner
+                    arcTo(
+                        rect = Rect(0f, 0f, 2 * radius, 2 * radius),
+                        startAngleDegrees = 180f,
+                        sweepAngleDegrees = 90f,
+                        forceMoveTo = false
+                    )
+                    
+                    lineTo(size.width - radius, 0f)
+                    
+                    // Top-Right Corner
+                    arcTo(
+                        rect = Rect(size.width - 2 * radius, 0f, size.width, 2 * radius),
+                        startAngleDegrees = 270f,
+                        sweepAngleDegrees = 90f,
+                        forceMoveTo = false
+                    )
+                    
+                    lineTo(size.width, size.height)
                 }
-                Spacer(modifier = Modifier.weight(1f))
-                Column(horizontalAlignment = Alignment.End) {
-                    Text("₹${formatIndian(goal.currentValue)}", fontWeight = FontWeight.Bold)
-                    Text("${formatPercent(goal.returnsPercentage)}%", color = Color(0xFF2E7D32), style = MaterialTheme.typography.labelSmall)
+                drawPath(path, borderColor, style = stroke)
+            }
+        } else {
+            Modifier.border(2.dp, borderColor, topCardShape)
+        }
+        
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(topCardClickable)
+                .then(topBorderModifier),
+            colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            shape = topCardShape
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(topCardShape)
+                    .background(
+                        brush = Brush.verticalGradient(colors = gradientColors),
+                        shape = topCardShape
+                    )
+            ) {
+                 if (isLoading) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                } else if (goal != null) {
+                    // Goal Info Section (with padding)
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // Goal Header - Only Icon, Name, and Progress Circle
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Icon and Goal Name Row
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                // Goal Icon
+                                val iconDrawable = getGoalIconDrawable(goal.category)
+                                val iconBgColor = getIconBackgroundColorForCategory(goal.category, goal.colorTheme)
+                                val iconText = goal.iconType.ifBlank { "🎯" }
+                                Card(
+                                    colors = CardDefaults.cardColors(containerColor = iconBgColor),
+                                    shape = CircleShape,
+                                    modifier = Modifier.size(32.dp),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                                ) {
+                                    Box(
+                                        contentAlignment = Alignment.Center,
+                                        modifier = Modifier.fillMaxSize()
+                                    ) {
+                                        if (iconDrawable != null) {
+                                            Image(
+                                                painter = painterResource(iconDrawable),
+                                                contentDescription = goal.name,
+                                                modifier = Modifier.size(24.dp),
+                                                contentScale = ContentScale.Fit
+                                            )
+                                        } else {
+                                            Text(
+                                                text = iconText,
+                                                style = MaterialTheme.typography.titleMedium
+                                            )
+                                        }
+                                    }
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(
+                                    text = formatGoalName(goal.name),
+                                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                                    color = correlationColor
+                                )
+                            }
+                            
+                            // Units in Gram (Gold/Silver) - Top Right
+                            if (goal.unitsInGm != null && goal.unitsInGm > 0) {
+                                val unitsText = formatWeight(goal.unitsInGm)
+                                Text(
+                                    text = unitsText,
+                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = correlationColor
+                                )
+                            }
+                        }
+
+                        // Goal Details - Below progress bar
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        // Current Value and Processing Row
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            // Center-aligned column
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                // Use cumulative value for display
+                                val ceiledCummulativeValue = ceil(goal.cummulativeValue)
+                                Text(
+                                    text = "₹${formatIndian(ceiledCummulativeValue)}",
+                                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Text(
+                                        text = "Total Value",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    IconButton(
+                                        onClick = { showInfoDialog = true },
+                                        modifier = Modifier.size(20.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Filled.Info,
+                                            contentDescription = "Info",
+                                            modifier = Modifier.size(16.dp),
+                                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
-            Spacer(modifier = Modifier.height(12.dp))
-            LinearProgressIndicator(
-                progress = { (goal.progressPercentage / 100f).toFloat() },
-                modifier = Modifier.fillMaxWidth().height(4.dp).clip(CircleShape),
-                color = getCorrelationColorForCategory(goal.category, goal.colorTheme)
-            )
         }
+
+        // Plan Details Section (Bottom Card)
+        if (goal?.planSummary != null) {
+            Spacer(modifier = Modifier.height(1.dp)) 
+            
+            val bottomCardShape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onBottomCardClick() }
+                    .drawBehind {
+                        val stroke = Stroke(width = 2.dp.toPx())
+                        val radius = 16.dp.toPx() // Bottom corners radius
+                        
+                        // Draw Top-Left -> Bottom-Left -> Bottom-Right -> Top-Right
+                        val path = Path().apply {
+                            moveTo(0f, 0f)
+                            lineTo(0f, size.height - radius)
+                            
+                            // Bottom-Left Corner
+                            arcTo(
+                                rect = Rect(0f, size.height - 2 * radius, 2 * radius, size.height),
+                                startAngleDegrees = 180f,
+                                sweepAngleDegrees = -90f,
+                                forceMoveTo = false
+                            )
+                            
+                            lineTo(size.width - radius, size.height)
+                            
+                            // Bottom-Right Corner
+                            arcTo(
+                                rect = Rect(size.width - 2 * radius, size.height - 2 * radius, size.width, size.height),
+                                startAngleDegrees = 90f,
+                                sweepAngleDegrees = -90f,
+                                forceMoveTo = false
+                            )
+                            
+                            lineTo(size.width, 0f)
+                        }
+                        drawPath(path, borderColor, style = stroke)
+                    },
+                colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                shape = bottomCardShape
+            ) {
+                 Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(bottomCardShape)
+                        .background(
+                            brush = Brush.verticalGradient(colors = gradientColors),
+                            shape = bottomCardShape
+                        )
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    ) {
+                        PlanDetailsSection(summary = goal.planSummary)
+                    }
+                }
+            }
+        }
+    }
+    
+    // Info Dialog
+    if (showInfoDialog) {
+        AlertDialog(
+            onDismissRequest = { showInfoDialog = false },
+            title = {
+                Text(
+                    text = "Total Value",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier.padding(12.dp)
+                ) {
+                    Text(
+                        text = "Total value equals the current market value of your investments plus any payments currently being processed.",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { showInfoDialog = false }
+                ) {
+                    Text("OK")
+                }
+            }
+        )
     }
 }
 
@@ -863,6 +1193,79 @@ fun PoweredByAmcsSection() {
             AmcLogoItem(Res.drawable.invesco)
             AmcLogoItem(Res.drawable.aditya)
             AmcLogoItem(Res.drawable.nippon)
+        }
+    }
+}
+
+@Composable
+fun DashedDivider(
+    modifier: Modifier = Modifier,
+    color: Color = Color.Gray,
+    thickness: androidx.compose.ui.unit.Dp = 1.dp,
+    dashLength: androidx.compose.ui.unit.Dp = 4.dp,
+    gapLength: androidx.compose.ui.unit.Dp = 4.dp
+) {
+    Canvas(modifier = modifier.fillMaxWidth().height(thickness)) {
+        val dashLengthPx = dashLength.toPx()
+        val gapLengthPx = gapLength.toPx()
+        val thicknessPx = thickness.toPx()
+        val width = size.width
+        var currentX = 0f
+        while (currentX < width) {
+            drawLine(
+                color = color,
+                start = Offset(currentX, thicknessPx / 2),
+                end = Offset(currentX + dashLengthPx, thicknessPx / 2),
+                strokeWidth = thicknessPx
+            )
+            currentX += dashLengthPx + gapLengthPx
+        }
+    }
+}
+
+@Composable
+private fun PlanDetailsSection(summary: PlanSummary) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        // SIP Amount and Next SIP Date row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            // SIP Amount
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = "₹${formatIndian(summary.amount)}",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "SIP Amount",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+            }
+            
+            // Next SIP Date
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = formatNextSipDate(summary.nextSipDate) ?: "—",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "Next SIP",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+            }
         }
     }
 }

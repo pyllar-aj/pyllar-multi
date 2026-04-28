@@ -356,7 +356,10 @@ fun App() {
                             Screen.InitialDashboard(screen.userId)
                         }
                     },
-                    onNavigateToHelp = { currentScreen = Screen.HelpSupport(screen.userId) }
+                    onNavigateToHelp = { currentScreen = Screen.HelpSupport(screen.userId) },
+                    onNavigateToFundDetails = { userId, goalId, amt, kycId, invId ->
+                        currentScreen = Screen.FundDetails("", userId, goalId, amt)
+                    }
                 )
             }
             is Screen.MandateAuth -> {
@@ -393,7 +396,7 @@ fun App() {
                     showKycHelp = screen.showKycHelp,
                     showBankHelp = screen.showBankHelp,
                     showOnlyKycInfo = screen.showOnlyKycInfo,
-                    onBack = { currentScreen = Screen.Profile(screen.userId) }
+                    onBack = { currentScreen = Screen.InvestmentDashboard(screen.userId) }
                 )
             }
             is Screen.NotificationWebView -> {

@@ -95,6 +95,7 @@ fun SipAmountScreenV2(
     onSipCreated: (amount: Double, mandateUrl: String?, mandateId: Long?, mandateRef: Long?) -> Unit = { _, _, _, _ -> },
     onNavigateBack: () -> Unit = {},
     onNavigateToHelp: () -> Unit = {},
+    onNavigateToFundDetails: (userId: String, goalId: String, amount: Double, kycAttemptId: String, investorId: String) -> Unit = { _, _, _, _, _ -> },
     viewModel: SipAmountScreenV2ViewModel = koinInject(),
     fundDetailsViewModel: FundDetailsViewModel = koinInject(),
     platformActions: PlatformActions = koinInject()
@@ -284,7 +285,17 @@ fun SipAmountScreenV2(
 
                         // Investing in section
                         Card(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onNavigateToFundDetails(
+                                        userId,
+                                        goalId,
+                                        amount.toDouble(),
+                                        kycAttemptId,
+                                        investorId
+                                    )
+                                },
                             shape = RoundedCornerShape(12.dp),
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)

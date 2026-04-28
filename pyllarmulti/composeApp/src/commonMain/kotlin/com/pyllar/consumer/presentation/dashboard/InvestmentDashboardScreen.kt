@@ -259,7 +259,7 @@ fun DailySipScheduleCard(
                 StatusChip(todayStatus)
             }
 
-            Divider(color = MaterialTheme.colorScheme.surfaceVariant)
+            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
