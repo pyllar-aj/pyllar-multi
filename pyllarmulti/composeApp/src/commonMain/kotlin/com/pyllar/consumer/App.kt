@@ -36,7 +36,7 @@ sealed class Screen {
     data class AdditionalKyc(val userId: String, val kycAttemptId: String) : Screen()
     data class NomineeDetails(val userId: String, val kycAttemptId: String, val investorId: String) : Screen()
     data class BankDetails(val userId: String, val kycAttemptId: String) : Screen()
-    data class KycInformation(val userId: String) : Screen()
+    data class KycInformation(val userId: String, val reUrl: String? = null) : Screen()
     data class EsignInformation(val userId: String) : Screen()
     data class MinDetails(
         val userId: String,
@@ -192,10 +192,17 @@ fun App() {
                 )
             }
             is Screen.KycInformation -> {
+                val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
                 KycInformationScreen(
                     onProceed = {
-                        // Normally this would trigger the actual KYC flow (WebView/DigiLocker)
-                        handleNavigation("MIN_DETAILS", screen.userId, null, null, null) { currentScreen = it }
+                        if (!screen.reUrl.isNullOrBlank()) {
+                            uriHandler.openUri(screen.reUrl)
+                        } else {
+                            handleNavigation(ScreenNames.MIN_DETAILS, screen.userId) { currentScreen = it }
+                        }
+                    },
+                    onOpenWebSignIn = {
+                        if (!screen.reUrl.isNullOrBlank()) uriHandler.openUri(screen.reUrl)
                     },
                     onNavigateToHelp = { /* Open Help */ }
                 )
@@ -226,8 +233,15 @@ fun App() {
             is Screen.NameDob -> {
                 val nameVm: NameDobViewModel = koinInject()
                 NameDobScreen(
-                    onKycSubmitted = { _, _, _, _ ->
-                        handleNavigation(ScreenNames.INITIAL_DASHBOARD, screen.userId, null, null, null) { currentScreen = it }
+                    onKycSubmitted = { _, _, navInfo, data ->
+                        // Extract reUrl and nextScreen for DigiLocker flow
+                        val nextAction = navInfo?.nextScreen ?: ScreenNames.INITIAL_DASHBOARD
+                        val reUrl = navInfo?.getParam("reUrl")
+                        handleNavigation(
+                            action = nextAction,
+                            userId = screen.userId,
+                            reUrl = reUrl
+                        ) { currentScreen = it }
                     },
                     userId = screen.userId,
                     pan = screen.pan,
@@ -381,6 +395,7 @@ private fun handleNavigation(
     kycAttemptId: String? = null,
     investorId: String? = null,
     preVerificationId: String? = null,
+    reUrl: String? = null,
     onNavigate: (Screen) -> Unit
 ) {
     platformLog("AppNav: handleNavigation: action='$action', userId='$userId'")
@@ -403,8 +418,8 @@ private fun handleNavigation(
             onNavigate(Screen.BankDetails(userId, kycAttemptId ?: ""))
         }
         ScreenNames.KYC_INFORMATION -> {
-            platformLog("AppNav: Matched KYC_INFORMATION")
-            onNavigate(Screen.KycInformation(userId))
+            platformLog("AppNav: Matched KYC_INFORMATION with reUrl: ${reUrl != null}")
+            onNavigate(Screen.KycInformation(userId, reUrl))
         }
         ScreenNames.ESIGN_INFORMATION -> {
             platformLog("AppNav: Matched ESIGN_INFORMATION")

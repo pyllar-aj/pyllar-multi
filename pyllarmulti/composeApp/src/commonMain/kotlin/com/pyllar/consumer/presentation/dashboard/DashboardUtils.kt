@@ -75,3 +75,8 @@ fun formatKycStatus(status: String): String {
 fun ceil(value: Double): Double {
     return kotlin.math.ceil(value)
 }
+
+fun formatWeight(value: Double): String {
+    val rounded = (kotlin.math.round(value * 100) / 100.0)
+    return "$rounded g"
+}

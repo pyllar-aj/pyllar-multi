@@ -24,6 +24,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontFamily
 import com.pyllar.consumer.analytics.PlatformAnalyticsLogger
 import com.pyllar.consumer.navigation.ScreenNames
 import com.pyllar.consumer.presentation.components.LoadingScreen
@@ -60,6 +63,56 @@ fun AdditionalKycScreen(
     
     var isSubmitting by remember { mutableStateOf(false) }
     var showValidationErrors by remember { mutableStateOf(false) }
+    var touchedFields by remember { mutableStateOf(setOf<String>()) }
+    var visitedFields by remember { mutableStateOf(setOf<String>()) }
+    var currentFocusedField by remember { mutableStateOf<String?>(null) }
+
+    val fieldOrder = listOf(
+        "fatherName", "gender", "maritalStatus", "placeOfBirth", "occupationType",
+        "addressLine1", "addressLine2", "addressLine3", "city", "pincode",
+        "incomeSlab", "residentialStatus", "nationality", "politicallyExposed", "isConfirmed"
+    )
+
+    fun onFieldFocusChanged(fieldName: String, isFocused: Boolean) {
+        if (isFocused) {
+            currentFocusedField = fieldName
+            visitedFields = visitedFields + fieldName
+        } else {
+            if (currentFocusedField == fieldName) {
+                touchedFields = touchedFields + fieldName
+                currentFocusedField = null
+            }
+        }
+    }
+
+    fun onFieldInteracted(fieldName: String) {
+        visitedFields = visitedFields + fieldName
+        touchedFields = touchedFields + fieldName
+    }
+
+    fun shouldShowError(fieldName: String, fieldValue: String, isValid: (String) -> Boolean = { it.isNotBlank() }): Boolean {
+        if (isValid(fieldValue)) return false
+        if (showValidationErrors) return true
+        if (fieldName in touchedFields) return true
+        
+        val fieldIndex = fieldOrder.indexOf(fieldName)
+        if (fieldIndex >= 0) {
+            val laterFields = fieldOrder.drop(fieldIndex + 1)
+            if (laterFields.any { it in visitedFields }) return true
+        }
+        return false
+    }
+
+    fun filterAddress(newValue: String): String {
+        if (newValue.length > 32) return newValue.take(32)
+        val filtered = newValue.filter { it.isLetterOrDigit() || it == ',' || it.isWhitespace() }
+        val trimmed = filtered.trimStart()
+        if (trimmed.isEmpty()) return ""
+        val firstChar = trimmed[0]
+        return if (firstChar.isLetter()) trimmed.replaceFirstChar { it.uppercase() }
+        else if (firstChar.isDigit()) trimmed
+        else ""
+    }
 
     val scrollState = rememberScrollState()
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -141,83 +194,161 @@ fun AdditionalKycScreen(
                     color = MaterialTheme.colorScheme.primary
                 )
 
+                val isFatherNameError = shouldShowError("fatherName", fatherName)
                 OutlinedTextField(
                     value = fatherName,
                     onValueChange = { fatherName = it.uppercase() },
                     label = { Text("Father's Name") },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().onFocusChanged { onFieldFocusChanged("fatherName", it.isFocused) },
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters, imeAction = ImeAction.Next),
-                    isError = showValidationErrors && fatherName.isBlank()
+                    isError = isFatherNameError,
+                    supportingText = if (isFatherNameError) { { Text("Field is required", color = MaterialTheme.colorScheme.error) } } else null
                 )
 
-                Text("Gender", style = MaterialTheme.typography.bodyLarge)
+                val isGenderError = shouldShowError("gender", gender)
+                Text("Gender", style = MaterialTheme.typography.bodyLarge, color = if (isGenderError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface)
                 ContainedButtonBox(
                     options = genderOptions,
                     selectedOption = gender,
-                    onOptionSelected = { gender = it },
-                    showError = showValidationErrors && gender.isBlank()
+                    onOptionSelected = { 
+                        gender = it
+                        onFieldInteracted("gender")
+                    },
+                    showError = isGenderError
                 )
 
-                Text("Marital Status", style = MaterialTheme.typography.bodyLarge)
+                val isMaritalError = shouldShowError("maritalStatus", maritalStatus)
+                Text("Marital Status", style = MaterialTheme.typography.bodyLarge, color = if (isMaritalError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface)
                 ContainedButtonBox(
                     options = maritalOptions,
                     selectedOption = maritalStatus,
-                    onOptionSelected = { maritalStatus = it },
-                    showError = showValidationErrors && maritalStatus.isBlank()
+                    onOptionSelected = { 
+                        maritalStatus = it
+                        onFieldInteracted("maritalStatus")
+                    },
+                    showError = isMaritalError
                 )
 
+                val isPlaceError = shouldShowError("placeOfBirth", placeOfBirth)
                 OutlinedTextField(
                     value = placeOfBirth,
                     onValueChange = { placeOfBirth = it },
                     label = { Text("Place of Birth") },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().onFocusChanged { onFieldFocusChanged("placeOfBirth", it.isFocused) },
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Next),
-                    isError = showValidationErrors && placeOfBirth.isBlank()
+                    isError = isPlaceError,
+                    supportingText = if (isPlaceError) { { Text("Field is required", color = MaterialTheme.colorScheme.error) } } else null
                 )
 
+                val isOccupationError = shouldShowError("occupationType", occupationType)
                 ExposedDropdownFieldWithDisplay(
                     label = "Occupation Type",
                     selected = occupationType,
                     options = occupationOptions,
                     displayMap = occupationOptions.associateWith { it.replace("_", " ").replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() } },
-                    onSelect = { occupationType = it },
-                    showError = showValidationErrors && occupationType.isBlank()
+                    onSelect = { 
+                        occupationType = it
+                        onFieldInteracted("occupationType")
+                    },
+                    showError = isOccupationError
                 )
 
+                val isAddress1Error = shouldShowError("addressLine1", addressLine1)
                 OutlinedTextField(
                     value = addressLine1,
-                    onValueChange = { addressLine1 = it },
+                    onValueChange = { addressLine1 = filterAddress(it) },
                     label = { Text("Address Line 1") },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().onFocusChanged { onFieldFocusChanged("addressLine1", it.isFocused) },
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                    isError = showValidationErrors && addressLine1.isBlank()
+                    isError = isAddress1Error,
+                    supportingText = if (isAddress1Error) { { Text("Field is required", color = MaterialTheme.colorScheme.error) } } else null
+                )
+
+                val isAddress2Error = shouldShowError("addressLine2", addressLine2)
+                OutlinedTextField(
+                    value = addressLine2,
+                    onValueChange = { addressLine2 = filterAddress(it) },
+                    label = { Text("Address Line 2") },
+                    modifier = Modifier.fillMaxWidth().onFocusChanged { onFieldFocusChanged("addressLine2", it.isFocused) },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                    isError = isAddress2Error,
+                    supportingText = if (isAddress2Error) { { Text("Field is required", color = MaterialTheme.colorScheme.error) } } else null
+                )
+
+                val isAddress3Error = shouldShowError("addressLine3", addressLine3)
+                OutlinedTextField(
+                    value = addressLine3,
+                    onValueChange = { addressLine3 = filterAddress(it) },
+                    label = { Text("Address Line 3") },
+                    modifier = Modifier.fillMaxWidth().onFocusChanged { onFieldFocusChanged("addressLine3", it.isFocused) },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                    isError = isAddress3Error,
+                    supportingText = if (isAddress3Error) { { Text("Field is required", color = MaterialTheme.colorScheme.error) } } else null
                 )
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val isCityError = shouldShowError("city", city)
                     OutlinedTextField(
                         value = city,
                         onValueChange = { city = it },
                         label = { Text("City") },
-                        modifier = Modifier.weight(1f),
-                        isError = showValidationErrors && city.isBlank()
+                        modifier = Modifier.weight(1f).onFocusChanged { onFieldFocusChanged("city", it.isFocused) },
+                        isError = isCityError,
+                        supportingText = if (isCityError) { { Text("Required", color = MaterialTheme.colorScheme.error) } } else null
                     )
+                    val isPincodeError = shouldShowError("pincode", pincode, { it.length == 6 && it.all { it.isDigit() } })
                     OutlinedTextField(
                         value = pincode,
                         onValueChange = { if (it.length <= 6) pincode = it },
                         label = { Text("Pincode") },
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f).onFocusChanged { onFieldFocusChanged("pincode", it.isFocused) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        isError = showValidationErrors && pincode.length != 6
+                        isError = isPincodeError,
+                        supportingText = if (isPincodeError) { { Text("Invalid", color = MaterialTheme.colorScheme.error) } } else null
                     )
                 }
 
+                val isIncomeError = shouldShowError("incomeSlab", incomeSlab)
                 ExposedDropdownFieldWithDisplay(
                     label = "Annual Income",
                     selected = incomeSlab,
                     options = incomeOptions,
                     displayMap = incomeOptions.associateWith { it.replace("_", " ").replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() } },
-                    onSelect = { incomeSlab = it },
-                    showError = showValidationErrors && incomeSlab.isBlank()
+                    onSelect = { 
+                        incomeSlab = it
+                        onFieldInteracted("incomeSlab")
+                    },
+                    showError = isIncomeError
+                )
+
+                Text("Are you an Indian Resident?", style = MaterialTheme.typography.bodyLarge)
+                ContainedButtonBox(
+                    options = listOf("yes", "no"),
+                    selectedOption = residentialStatus,
+                    onOptionSelected = { 
+                        residentialStatus = it
+                        onFieldInteracted("residentialStatus")
+                    }
+                )
+
+                Text("Are you an Indian National?", style = MaterialTheme.typography.bodyLarge)
+                ContainedButtonBox(
+                    options = listOf("yes", "no"),
+                    selectedOption = nationality,
+                    onOptionSelected = { 
+                        nationality = it
+                        onFieldInteracted("nationality")
+                    }
+                )
+
+                Text("Are you a Politically Exposed Person?", style = MaterialTheme.typography.bodyLarge)
+                ContainedButtonBox(
+                    options = listOf("yes", "no"),
+                    selectedOption = politicallyExposed,
+                    onOptionSelected = { 
+                        politicallyExposed = it
+                        onFieldInteracted("politicallyExposed")
+                    }
                 )
 
                 Row(verticalAlignment = Alignment.CenterVertically) {

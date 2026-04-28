@@ -42,7 +42,10 @@ data class WithdrawScheme(
     val isin: String,
     val investedAmount: Double,
     val currentValue: Double,
-    val canWithdraw: Boolean
+    val canWithdraw: Boolean,
+    val redeemableAmount: Double = 0.0,
+    val redemptionInProgress: Double = 0.0,
+    val instantRedemptionValue: Double? = null
 )
 
 object WithdrawParamsManager {
@@ -54,9 +57,15 @@ object WithdrawParamsManager {
 
 object WithdrawSchemeManager {
     private var scheme: WithdrawScheme? = null
+    private var mode: String = "NORMAL"
     fun set(s: WithdrawScheme) { scheme = s }
     fun get(): WithdrawScheme? = scheme
-    fun clear() { scheme = null }
+    fun setMode(m: String) { mode = m }
+    fun getMode(): String = mode
+    fun clear() { 
+        scheme = null 
+        mode = "NORMAL"
+    }
 }
 
 class WithdrawViewModel(

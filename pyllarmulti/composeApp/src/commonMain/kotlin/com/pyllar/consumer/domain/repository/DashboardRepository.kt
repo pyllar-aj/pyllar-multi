@@ -16,5 +16,9 @@ interface DashboardRepository {
     fun getTransactions(request: TransactionDetailsRequest): Flow<Resource<TransactionDetailsResponseDto>>
 
     fun initGoalTxn(request: com.pyllar.consumer.data.remote.requests.GoalSelectionRequest): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.GoalSelectionResponseDto>>
+
+    fun pauseSip(userId: String, planId: String?, mandateId: Long? = null): Flow<Resource<Unit>>
+    fun resumeSip(userId: String, planId: String?, mandateId: Long? = null): Flow<Resource<Unit>>
+    fun cancelSip(userId: String, planId: String?, mandateId: Long? = null, reason: String? = null): Flow<Resource<Unit>>
 }
 

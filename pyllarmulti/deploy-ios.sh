@@ -68,7 +68,7 @@ xcodebuild \
     -configuration "$XCODE_CONFIGURATION" \
     -destination "id=$SIMULATOR_UDID" \
     -derivedDataPath "$DERIVED_DATA" \
-    clean build | grep -E "(error:|warning: |BUILD (SUCCEEDED|FAILED))"
+    clean build CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY="-" | grep -E "(error:|warning: |BUILD (SUCCEEDED|FAILED))"
 
 echo "==> Uninstalling and Installing app..."
 xcrun simctl terminate "$SIMULATOR_UDID" "$BUNDLE_ID" 2>/dev/null || true

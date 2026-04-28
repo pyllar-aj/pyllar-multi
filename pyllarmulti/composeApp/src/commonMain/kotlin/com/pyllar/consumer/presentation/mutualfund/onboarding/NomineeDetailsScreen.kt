@@ -245,12 +245,14 @@ fun NomineeDetailsScreen(
                         }
 
                         if (skipAddingNominee) {
-                            Text(
-                                "You can add these anytime from your profile settings.",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(start = 48.dp)
-                            )
+                            Row(modifier = Modifier.fillMaxWidth()) {
+                                Spacer(modifier = Modifier.width(60.dp))
+                                Text(
+                                    "You can add these anytime from your profile settings.",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
                         }
                     }
 
@@ -419,7 +421,11 @@ private fun NomineeFormSection(
             modifier = Modifier.fillMaxWidth().bringIntoViewRequester(panBringIntoViewRequester),
             keyboardOptions = KeyboardOptions(
                 capitalization = KeyboardCapitalization.Characters,
-                keyboardType = if (nominee.panNumber.length in 5..8) KeyboardType.Number else KeyboardType.Text,
+                keyboardType = when {
+                    nominee.panNumber.length < 5 -> KeyboardType.Text
+                    nominee.panNumber.length < 9 -> KeyboardType.Number
+                    else -> KeyboardType.Text
+                },
                 imeAction = ImeAction.Next
             ),
             keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(androidx.compose.ui.focus.FocusDirection.Down) }),
@@ -483,9 +489,9 @@ private fun OtpVerificationBottomSheet(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Text("Verify Nominee Addition", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
-            IconButton(onClick = onDismiss) { Icon(Icons.Filled.Close, contentDescription = "Close") }
+            IconButton(onClick = onDismiss) { Icon(Icons.Filled.Close, contentDescription = "Close", tint = MaterialTheme.colorScheme.error) }
         }
         
         Text("OTP sent to $maskedPhoneNumber", style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)

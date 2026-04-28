@@ -101,6 +101,14 @@ fun MinDetailsScreen(
                 effectiveToken = sessionStore.getCurrentToken()
             }
             
+            // Lock name field if PAN holder name is already known
+            val storedPanHolderName = sessionStore.getValue("pan_holder_name")
+            if (!storedPanHolderName.isNullOrBlank() && name.isBlank()) {
+                panHolderName = storedPanHolderName
+                name = storedPanHolderName
+                isNameEditable = false
+            }
+            
             platformLog("MinDetailsScreen [Try $retries]: phone='$effectivePhone', email='$effectiveEmail', pan='$effectivePan'")
             
             if (effectivePhone.isNotBlank() && effectivePan.isNotBlank() && effectiveEmail.isNotBlank()) {
@@ -119,7 +127,9 @@ fun MinDetailsScreen(
     LaunchedEffect(prefillData) {
         val prepopulatedName = prefillData["name"] as? String
         if (!prepopulatedName.isNullOrBlank() && name.isBlank()) {
-            name = prepopulatedName
+            name = prepopulatedName.uppercase()
+            // If name is prefilled from a trusted source, we might want to lock it
+            // isNameEditable = false 
         }
         
         val prepopulatedDob = prefillData["dob"] as? String
@@ -132,7 +142,7 @@ fun MinDetailsScreen(
         // Update PAN from API if available
         val prepopulatedPan = prefillData["pan"] as? String
         if (!prepopulatedPan.isNullOrBlank() && effectivePan.isBlank()) {
-            effectivePan = prepopulatedPan
+            effectivePan = prepopulatedPan.uppercase()
         }
     }
     

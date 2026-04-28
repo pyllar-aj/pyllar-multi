@@ -9,6 +9,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -51,7 +52,6 @@ fun BankDetailsScreen(
     val statusResult by viewModel.statusResult.collectAsState()
 
     var accountNumber by remember { mutableStateOf("") }
-    var confirmAccountNumber by remember { mutableStateOf("") }
     var ifscCode by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
     var verificationMode by remember { mutableStateOf("UPI") } // "UPI" or "MANUAL"
@@ -195,6 +195,32 @@ fun BankDetailsScreen(
                         }
                         Text("We will fetch your bank details securely using a ₹1 verification transaction via UPI.", style = MaterialTheme.typography.bodySmall)
                         
+                        // Info banner (green theme) - Parity with Android
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9))
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Info,
+                                    contentDescription = "Info",
+                                    tint = Color(0xFF2E7D32),
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .padding(end = 8.dp)
+                                )
+                                Text(
+                                    text = "₹1 will be debited and refunded within 2 working days.",
+                                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                    color = Color(0xFF2E7D32)
+                                )
+                            }
+                        }
+                        
                         Button(
                             onClick = { 
                                 viewModel.initiateBankVerification(userId)
@@ -235,15 +261,6 @@ fun BankDetailsScreen(
                         )
 
                         OutlinedTextField(
-                            value = confirmAccountNumber,
-                            onValueChange = { confirmAccountNumber = it.filter { it.isDigit() } },
-                            label = { Text("Confirm Account Number") },
-                            modifier = Modifier.fillMaxWidth(),
-                            isError = confirmAccountNumber.isNotEmpty() && confirmAccountNumber != accountNumber,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next)
-                        )
-
-                        OutlinedTextField(
                             value = ifscCode,
                             onValueChange = { ifscCode = it.uppercase().take(11) },
                             label = { Text("IFSC Code") },
@@ -269,51 +286,236 @@ fun BankDetailsScreen(
                                 viewModel.submitBankDetails(userId, accountNumber, ifscCode)
                             },
                             modifier = Modifier.fillMaxWidth(),
-                            enabled = !isPolling && accountNumber.length > 8 && accountNumber == confirmAccountNumber && ifscCode.length == 11
+                            enabled = !isPolling && accountNumber.length > 8 && ifscCode.length == 11
                         ) {
                             Text("Submit Manual Details")
                         }
                     }
                 }
+
+                // Attention card (lighter green theme) - Parity with Android
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F8E9)),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(bottom = 10.dp)
+                        ) {
+                            Text(text = "⚠️", style = MaterialTheme.typography.bodyLarge)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "ATTENTION",
+                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                color = Color(0xFF33691E)
+                            )
+                        }
+                        
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Row(horizontalArrangement = Arrangement.Start) {
+                                Text(text = "• ", style = MaterialTheme.typography.bodyMedium, color = Color(0xFF33691E))
+                                Text(
+                                    text = "Use your own individual savings account",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color(0xFF33691E),
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                            Row(horizontalArrangement = Arrangement.Start) {
+                                Text(text = "• ", style = MaterialTheme.typography.bodyMedium, color = Color(0xFF33691E))
+                                Text(
+                                    text = "Do not use a joint account or someone else's account",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color(0xFF33691E),
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Why is bank verification needed? - Parity with Android
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "Why is bank verification needed?",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                        Text(
+                            text = "To ensure seamless investments and withdrawals, we must verify that the bank account belongs to you as per SEBI regulations.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                OutlinedButton(
+                    onClick = onNavigateToHelp,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Know More")
+                }
+
                 Spacer(modifier = Modifier.height(32.dp))
             }
         }
 
-        if (showPaymentSheet) {
-            ModalBottomSheet(
-                onDismissRequest = { showPaymentSheet = false },
-                sheetState = rememberModalBottomSheetState()
+    var selectedUpiTabIndex by remember { mutableIntStateOf(0) }
+    val tabs = listOf("Choose UPI App", "Scan QR Code")
+
+    if (showPaymentSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { 
+                showPaymentSheet = false 
+                selectedUpiTabIndex = 0
+            },
+            sheetState = rememberModalBottomSheetState()
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Column(modifier = Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Text("Select Payment App", style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold))
-                    Text("Pay ₹1 to verify your bank account. It will be refunded automatically.", textAlign = TextAlign.Center)
-                    
+                Text(
+                    text = "Complete Transaction",
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
+                )
+                
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "Pay ₹1 to verify your bank account.",
+                        textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Text(
+                        text = "It will be refunded automatically within 2 days.",
+                        textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                // Tab Switcher
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                        .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(24.dp))
+                        .padding(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    tabs.forEachIndexed { index, title ->
+                        val isSelected = selectedUpiTabIndex == index
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .background(
+                                    if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                    RoundedCornerShape(20.dp)
+                                )
+                                .clickable { selectedUpiTabIndex = index },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = title,
+                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                                color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                if (selectedUpiTabIndex == 0) {
+                    // App List Tab
                     if (initiateResult is Resource.Success) {
                         val upiUrl = initiateResult?.data?.paymentLinks?.get("upi")
                         if (upiUrl != null) {
                             rpdVerificationId = initiateResult?.data?.verificationId
-                            Button(onClick = { uriHandler.openUri(upiUrl) }, modifier = Modifier.fillMaxWidth()) {
+                            Button(
+                                onClick = { uriHandler.openUri(upiUrl) },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(Icons.Default.OpenInNew, contentDescription = null)
+                                Spacer(modifier = Modifier.width(8.dp))
                                 Text("Open UPI App")
                             }
                         } else {
-                            Text("No UPI payment link available.", color = MaterialTheme.colorScheme.error)
+                            Text("No UPI link found.", color = MaterialTheme.colorScheme.error)
                         }
                     } else if (initiateResult is Resource.Loading) {
                         CircularProgressIndicator()
                     } else if (initiateResult is Resource.Error) {
-                        Text(initiateResult?.message ?: "Failed to initiate payment", color = MaterialTheme.colorScheme.error)
+                        Text(initiateResult?.message ?: "Failed to initiate", color = MaterialTheme.colorScheme.error)
                     }
-                    
-                    if (rpdVerificationId != null) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
-                            CircularProgressIndicator(modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Waiting for payment confirmation...", style = MaterialTheme.typography.bodySmall)
+                } else {
+                    // QR Code Tab
+                    if (initiateResult is Resource.Success) {
+                        val upiUrl = initiateResult?.data?.paymentLinks?.get("upi")
+                        if (upiUrl != null) {
+                            Card(
+                                modifier = Modifier.size(220.dp),
+                                shape = RoundedCornerShape(16.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color.White),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                            ) {
+                                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    // Placeholder for QR Code
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Icon(
+                                            Icons.Default.QrCode,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(100.dp),
+                                            tint = Color.Black
+                                        )
+                                        Text(
+                                            "QR Code Placeholder",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = Color.Gray
+                                        )
+                                    }
+                                }
+                            }
+                            Text(
+                                "Scan this QR with any UPI app to pay ₹1",
+                                style = MaterialTheme.typography.bodySmall,
+                                textAlign = TextAlign.Center
+                            )
                         }
+                    } else {
+                        CircularProgressIndicator()
                     }
-                    Spacer(modifier = Modifier.height(32.dp))
                 }
+                
+                if (rpdVerificationId != null) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier.padding(top = 8.dp)
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Waiting for payment...", style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
+    }
     }
 }

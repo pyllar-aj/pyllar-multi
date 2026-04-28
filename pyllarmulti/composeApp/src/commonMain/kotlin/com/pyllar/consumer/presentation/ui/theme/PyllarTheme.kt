@@ -56,6 +56,7 @@ fun PyllarTheme(
 ) {
     MaterialTheme(
         colorScheme = LightColorScheme,
+        typography = AppTypography(),
         content = content
     )
 }

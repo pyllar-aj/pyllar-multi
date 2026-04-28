@@ -1,35 +1,52 @@
 package com.pyllar.consumer.presentation.ui.theme
 
+import androidx.compose.runtime.Composable
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import org.jetbrains.compose.resources.Font
+import pyllar.composeapp.generated.resources.Res
+import pyllar.composeapp.generated.resources.outfit_regular
+import pyllar.composeapp.generated.resources.outfit_medium
+import pyllar.composeapp.generated.resources.outfit_semibold
+import pyllar.composeapp.generated.resources.outfit_bold
+import pyllar.composeapp.generated.resources.cursive_font
 
-// In Compose Multiplatform, using custom fonts requires the compose-resources library.
-// For now, we will use the default font family.
-// To use Outfit font in KMP, add outfit_*.ttf to composeApp/src/commonMain/composeResources/font/
-// and load them using Font(Res.font.outfit_regular)
+// Outfit Font Family
+@Composable
+fun getOutfitFontFamily() = FontFamily(
+    Font(Res.font.outfit_regular, FontWeight.Normal),
+    Font(Res.font.outfit_medium, FontWeight.Medium),
+    Font(Res.font.outfit_semibold, FontWeight.SemiBold),
+    Font(Res.font.outfit_bold, FontWeight.Bold)
+)
 
-val AppFontFamily = FontFamily.Default
+// Cursive Font Family for special accents
+@Composable
+fun getCursiveFontFamily() = FontFamily(
+    Font(Res.font.cursive_font, FontWeight.Normal)
+)
 
-val Typography = Typography(
+@Composable
+fun AppTypography() = Typography(
     bodyLarge = TextStyle(
-        fontFamily = AppFontFamily,
+        fontFamily = getOutfitFontFamily(),
         fontWeight = FontWeight.Normal,
         fontSize = 16.sp,
         lineHeight = 24.sp,
         letterSpacing = 0.5.sp
     ),
     titleLarge = TextStyle(
-        fontFamily = AppFontFamily,
+        fontFamily = getOutfitFontFamily(),
         fontWeight = FontWeight.Normal,
         fontSize = 22.sp,
         lineHeight = 28.sp,
         letterSpacing = 0.sp
     ),
     labelSmall = TextStyle(
-        fontFamily = AppFontFamily,
+        fontFamily = getOutfitFontFamily(),
         fontWeight = FontWeight.Medium,
         fontSize = 11.sp,
         lineHeight = 16.sp,

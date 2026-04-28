@@ -90,11 +90,27 @@ data class SchemeDetailsState(
     val totalGain: Double = 0.0,
     val withdrawnGain: Double = 0.0,
     val availableGain: Double = 0.0,
+    val redemptionInProgress: Double = 0.0,
     val transactions: List<TransactionDisplayItem> = emptyList(),
     val mandates: List<MandateDisplayItem> = emptyList(),
     val isLoading: Boolean = true,
     val errorMessage: String? = null
 )
+
+sealed class CancelSipResult {
+    object Success : CancelSipResult()
+    data class Error(val message: String) : CancelSipResult()
+}
+
+sealed class PauseSipResult {
+    object Success : PauseSipResult()
+    data class Error(val message: String) : PauseSipResult()
+}
+
+sealed class ResumeSipResult {
+    object Success : ResumeSipResult()
+    data class Error(val message: String) : ResumeSipResult()
+}
 
 class SchemeDetailsViewModel(
     private val dashboardRepository: DashboardRepository
@@ -102,6 +118,24 @@ class SchemeDetailsViewModel(
 
     private val _uiState = MutableStateFlow(SchemeDetailsState())
     val uiState: StateFlow<SchemeDetailsState> = _uiState.asStateFlow()
+
+    private val _cancelSipResult = MutableStateFlow<CancelSipResult?>(null)
+    val cancelSipResult: StateFlow<CancelSipResult?> = _cancelSipResult.asStateFlow()
+
+    private val _pauseSipResult = MutableStateFlow<PauseSipResult?>(null)
+    val pauseSipResult: StateFlow<PauseSipResult?> = _pauseSipResult.asStateFlow()
+
+    private val _resumeSipResult = MutableStateFlow<ResumeSipResult?>(null)
+    val resumeSipResult: StateFlow<ResumeSipResult?> = _resumeSipResult.asStateFlow()
+
+    private val _cancelSipLoading = MutableStateFlow(false)
+    val cancelSipLoading: StateFlow<Boolean> = _cancelSipLoading.asStateFlow()
+
+    private val _pauseSipLoading = MutableStateFlow(false)
+    val pauseSipLoading: StateFlow<Boolean> = _pauseSipLoading.asStateFlow()
+
+    private val _resumeSipLoading = MutableStateFlow(false)
+    val resumeSipLoading: StateFlow<Boolean> = _resumeSipLoading.asStateFlow()
 
     fun clearState() {
         platformLog("🧹 Clearing SchemeDetailsViewModel state")
@@ -298,6 +332,91 @@ class SchemeDetailsViewModel(
             errorMessage = null
         )
     }
+
+    fun cancelSip(userId: String, planId: String?, mandateId: Long?, reason: String?) {
+        viewModelScope.launch {
+            _cancelSipLoading.value = true
+            try {
+                platformLog("🛑 Cancelling SIP for user: $userId, planId: $planId, mandateId: $mandateId")
+                dashboardRepository.cancelSip(userId, planId, mandateId, reason).collectLatest { result ->
+                    when (result) {
+                        is Resource.Success -> {
+                            platformLog("✅ SIP cancelled successfully")
+                            _cancelSipResult.value = CancelSipResult.Success
+                        }
+                        is Resource.Error<*> -> {
+                            platformLog("❌ SIP cancellation failed: ${result.message}")
+                            _cancelSipResult.value = CancelSipResult.Error(result.message ?: "Failed to cancel SIP")
+                        }
+                        is Resource.Loading<*> -> { }
+                    }
+                }
+            } catch (e: Exception) {
+                platformLog("❌ Exception cancelling SIP: ${e.message}")
+                _cancelSipResult.value = CancelSipResult.Error(e.message ?: "Something went wrong")
+            } finally {
+                _cancelSipLoading.value = false
+            }
+        }
+    }
+
+    fun pauseSip(userId: String, planId: String?, mandateId: Long? = null) {
+        viewModelScope.launch {
+            _pauseSipLoading.value = true
+            try {
+                platformLog("⏸️ Pausing SIP for user: $userId, planId: $planId")
+                dashboardRepository.pauseSip(userId, planId, mandateId).collectLatest { result ->
+                    when (result) {
+                        is Resource.Success -> {
+                            platformLog("✅ SIP paused successfully")
+                            _pauseSipResult.value = PauseSipResult.Success
+                        }
+                        is Resource.Error<*> -> {
+                            platformLog("❌ SIP pause failed: ${result.message}")
+                            _pauseSipResult.value = PauseSipResult.Error(result.message ?: "Failed to pause SIP")
+                        }
+                        is Resource.Loading<*> -> { }
+                    }
+                }
+            } catch (e: Exception) {
+                platformLog("❌ Exception pausing SIP: ${e.message}")
+                _pauseSipResult.value = PauseSipResult.Error(e.message ?: "Something went wrong")
+            } finally {
+                _pauseSipLoading.value = false
+            }
+        }
+    }
+
+    fun resumeSip(userId: String, planId: String?, mandateId: Long?) {
+        viewModelScope.launch {
+            _resumeSipLoading.value = true
+            try {
+                platformLog("▶️ Resuming SIP for user: $userId, planId: $planId, mandateId: $mandateId")
+                dashboardRepository.resumeSip(userId, planId, mandateId).collectLatest { result ->
+                    when (result) {
+                        is Resource.Success -> {
+                            platformLog("✅ SIP resumed successfully")
+                            _resumeSipResult.value = ResumeSipResult.Success
+                        }
+                        is Resource.Error<*> -> {
+                            platformLog("❌ SIP resume failed: ${result.message}")
+                            _resumeSipResult.value = ResumeSipResult.Error(result.message ?: "Failed to resume SIP")
+                        }
+                        is Resource.Loading<*> -> { }
+                    }
+                }
+            } catch (e: Exception) {
+                platformLog("❌ Exception resuming SIP: ${e.message}")
+                _resumeSipResult.value = ResumeSipResult.Error(e.message ?: "Something went wrong")
+            } finally {
+                _resumeSipLoading.value = false
+            }
+        }
+    }
+
+    fun clearCancelSipResult() { _cancelSipResult.value = null }
+    fun clearPauseSipResult() { _pauseSipResult.value = null }
+    fun clearResumeSipResult() { _resumeSipResult.value = null }
 
     // A simplified format date since KMP doesn't easily support full SimpleDateFormat 
     // without kotlinx.datetime. Using original format for KMP right now, or basic splitting.

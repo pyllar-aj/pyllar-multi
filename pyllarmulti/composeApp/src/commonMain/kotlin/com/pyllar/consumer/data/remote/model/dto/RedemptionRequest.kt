@@ -8,4 +8,5 @@ data class RedemptionRequest(
     val isin: String,
     val folioNumber: String,
     val amount: Double,
+    val mode: String? = "NORMAL"
 )
