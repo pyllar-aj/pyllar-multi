@@ -14,9 +14,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+import com.pyllar.consumer.domain.storage.SessionStore
+
 class MinDetailsViewModel(
     private val onboardingRepository: OnboardingRepository,
-    private val commonRepository: CommonRepository
+    private val commonRepository: CommonRepository,
+    private val sessionStore: SessionStore
 ) : ViewModel() {
     
     private val _minDetailsState = MutableStateFlow<Resource<MinimalKycResponse>?>(null)
@@ -69,7 +72,22 @@ class MinDetailsViewModel(
         _isSubmitting.value = true
         viewModelScope.launch {
             try {
-                platformLog("MinDetailsViewModel: Starting minimal details submission for pre-verified user, preVerificationId: $preVerificationId")
+                if (token.isNotBlank()) {
+                    platformLog("MinDetailsViewModel: Saving token to sessionStore: ${token.take(10)}...")
+                    sessionStore.saveToken(token)
+                }
+                if (userId.isNotBlank() && userId != "anonymous") {
+                    platformLog("MinDetailsViewModel: Saving userId to sessionStore: $userId")
+                    sessionStore.saveUserId(userId)
+                }
+                
+                platformLog(
+                    "MinDetailsViewModel: Starting submission: userId=$userId name=$name panNumber=${
+                        panNumber.takeLast(
+                            4
+                        )
+                    } dateOfBirth=$dateOfBirth emailAddress=$emailAddress mobile=$mobileCountryCode-$mobileNumber preVerificationId=$preVerificationId"
+                )
 
                 _minDetailsState.value = Resource.Loading()
 

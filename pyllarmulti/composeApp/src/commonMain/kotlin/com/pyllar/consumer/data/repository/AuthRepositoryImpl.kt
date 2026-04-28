@@ -10,6 +10,7 @@ import com.pyllar.consumer.domain.models.UpdateEmailResponse
 import com.pyllar.consumer.domain.repository.AuthRepository
 import com.pyllar.consumer.domain.storage.SessionStore
 import com.pyllar.consumer.util.Resource
+import com.pyllar.consumer.util.platformLog
 import com.pyllar.consumer.data.remote.parser.ErrorType
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -101,11 +102,14 @@ class AuthRepositoryImpl(
                         newUser = true
                     )
                     // Persist token via SessionStore
+                    val finalPhone = if (data.phoneNumber.isNotBlank()) data.phoneNumber else request.phoneNumber
+                    platformLog("AuthRepository: Saving AuthToken with finalPhone: $finalPhone (from response: ${data.phoneNumber}, from request: ${request.phoneNumber})")
                     sessionStore.saveAuthToken(
                         AuthToken(
                             auth_token = data.authToken,
                             token = data.authToken,
-                            userId = bestUserId
+                            userId = bestUserId,
+                            phoneNumber = finalPhone
                         )
                     )
                     emit(Resource.Success(domainUser, result.navigation, result.fieldErrors))
@@ -152,7 +156,8 @@ class AuthRepositoryImpl(
                         isError = data.error ?: false
                     )
                     val existingToken = sessionStore.getCurrentToken()
-                    sessionStore.saveUserSession(userId = userId, email = email, authToken = existingToken)
+                    val existingPhone = sessionStore.getCurrentPhone()
+                    sessionStore.saveUserSession(userId = userId, email = email, phone = existingPhone, authToken = existingToken)
                     emit(Resource.Success(domain, result.navigation, result.fieldErrors))
                 } else {
                     emit(

@@ -140,7 +140,7 @@ fun OnboardingScreen(
                         readOnly = true,
                         label = { Text("Gender *") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = genderExpanded) },
-                        modifier = Modifier.menuAnchor().fillMaxWidth()
+                        modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable).fillMaxWidth()
                     )
                     
                     ExposedDropdownMenu(
@@ -258,7 +258,7 @@ fun OnboardingScreen(
                         readOnly = true,
                         label = { Text("State *") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = stateExpanded) },
-                        modifier = Modifier.menuAnchor().fillMaxWidth()
+                        modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable).fillMaxWidth()
                     )
                     
                     ExposedDropdownMenu(
@@ -320,7 +320,7 @@ fun OnboardingScreen(
                         readOnly = true,
                         label = { Text("Occupation *") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = occupationExpanded) },
-                        modifier = Modifier.menuAnchor().fillMaxWidth()
+                        modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable).fillMaxWidth()
                     )
                     
                     ExposedDropdownMenu(
@@ -351,7 +351,7 @@ fun OnboardingScreen(
                         readOnly = true,
                         label = { Text("Income Range *") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = incomeExpanded) },
-                        modifier = Modifier.menuAnchor().fillMaxWidth()
+                        modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable).fillMaxWidth()
                     )
                     
                     ExposedDropdownMenu(
@@ -432,7 +432,7 @@ fun OnboardingScreen(
                         readOnly = true,
                         label = { Text("Account Type *") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = accountTypeExpanded) },
-                        modifier = Modifier.menuAnchor().fillMaxWidth()
+                        modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable).fillMaxWidth()
                     )
                     
                     ExposedDropdownMenu(

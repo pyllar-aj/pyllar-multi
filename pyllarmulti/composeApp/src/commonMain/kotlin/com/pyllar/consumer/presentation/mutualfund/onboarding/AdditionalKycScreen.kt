@@ -242,7 +242,7 @@ fun AdditionalKycScreen(
                             fatherName = fatherName,
                             annualIncome = incomeSlab,
                             isPoliticallyExposed = politicallyExposed == "yes",
-                            nationalityCountry = if (nationality == "yes") "IN" else "Other",
+                            nationalityCountry = if (nationality == "yes") "IN" else "OTHERS",
                             placeOfBirth = placeOfBirth,
                             gender = gender,
                             addressLine1 = addressLine1,

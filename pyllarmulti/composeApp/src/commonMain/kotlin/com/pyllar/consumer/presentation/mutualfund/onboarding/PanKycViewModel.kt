@@ -44,7 +44,7 @@ class PanKycViewModel(
             _panCheckResult.value = Resource.Loading()
             platformLog("PanKycViewModel: checkPan: Loading")
             try {
-                val userId = sessionStore.getValue("current_user_id") ?: ""
+                val userId = sessionStore.getCurrentUserId()
                 if (userId.isBlank()) {
                     _panCheckResult.value = Resource.Error("User ID not found")
                     return@launch
@@ -52,10 +52,8 @@ class PanKycViewModel(
                 
                 onboardingRepository.checkPan(currentPan, userId).collect { result ->
                     platformLog("PanKycViewModel: checkPan: Resource=$result")
-                    when (result) {
-                        is Resource.Success -> platformLog("PanKycViewModel: checkPan: Success data=${result.data}")
-                        is Resource.Error -> platformLog("PanKycViewModel: checkPan: Error message=${result.message}")
-                        is Resource.Loading -> platformLog("PanKycViewModel: checkPan: Loading state")
+                    if (result is Resource.Success) {
+                        sessionStore.saveValue(com.pyllar.consumer.data.local.KeyValueConstants.PAN, currentPan)
                     }
                     _panCheckResult.value = result
                 }

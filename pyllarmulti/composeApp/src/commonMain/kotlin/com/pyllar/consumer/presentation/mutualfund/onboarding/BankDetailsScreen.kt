@@ -30,6 +30,7 @@ import com.pyllar.consumer.navigation.ScreenNames
 import com.pyllar.consumer.presentation.components.LoadingScreen
 import com.pyllar.consumer.presentation.ui.components.*
 import com.pyllar.consumer.util.Resource
+import com.pyllar.consumer.util.platformLog
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -56,6 +57,9 @@ fun BankDetailsScreen(
     var verificationMode by remember { mutableStateOf("UPI") } // "UPI" or "MANUAL"
     var showPaymentSheet by remember { mutableStateOf(false) }
     var rpdVerificationId by remember { mutableStateOf<String?>(null) }
+    var isPolling by remember { mutableStateOf(false) }
+    var pollMessage by remember { mutableStateOf<String?>(null) }
+    var currentDelayMs by remember { mutableStateOf(5000L) }
     
     val uriHandler = LocalUriHandler.current
     val scrollState = rememberScrollState()
@@ -72,11 +76,27 @@ fun BankDetailsScreen(
     }
 
     LaunchedEffect(submitResult) {
-        if (submitResult is Resource.Success) {
-            isLoading = false
-            onNext(submitResult?.navigation?.nextScreen, submitResult?.data?.investorId)
-        } else if (submitResult is Resource.Error) {
-            isLoading = false
+        when (val result = submitResult) {
+            is Resource.Success -> {
+                val nav = result.navigation
+                if (nav?.action == com.pyllar.consumer.data.remote.model.dto.NavigationAction.POLL) {
+                    isLoading = false
+                    isPolling = true
+                    pollMessage = nav.getMessage() ?: "Verifying bank details..."
+                    currentDelayMs = nav.getParam("delayMs")?.toLongOrNull() ?: 5000L
+                } else {
+                    isLoading = false
+                    isPolling = false
+                    onNext(nav?.nextScreen ?: ScreenNames.NOMINEE_DETAILS, result.data?.investorId)
+                }
+            }
+            is Resource.Error -> {
+                isLoading = false
+                isPolling = false
+                // Do NOT navigate to "error" which defaults to Dashboard. 
+                // Stay on screen to show the error message.
+            }
+            else -> {}
         }
     }
 
@@ -86,6 +106,17 @@ fun BankDetailsScreen(
         while (rpdVerificationId != null) {
             delay(5000)
             viewModel.pollVerificationStatus(userId, rpdVerificationId!!)
+        }
+    }
+
+    // Manual Submission Polling
+    LaunchedEffect(isPolling) {
+        if (!isPolling) return@LaunchedEffect
+        while (isPolling) {
+            delay(currentDelayMs)
+            if (!isPolling) break
+            platformLog("BankDetailsScreen: 🔄 Polling manual submission status")
+            viewModel.submitBankDetails(userId, accountNumber, ifscCode)
         }
     }
 
@@ -224,13 +255,21 @@ fun BankDetailsScreen(
                             Text(submitResult?.message ?: "Error submitting details", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                         }
 
+                        if (isPolling && pollMessage != null) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                                CircularProgressIndicator(modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(pollMessage!!, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                            }
+                        }
+
                         Button(
                             onClick = { 
                                 isLoading = true
                                 viewModel.submitBankDetails(userId, accountNumber, ifscCode)
                             },
                             modifier = Modifier.fillMaxWidth(),
-                            enabled = accountNumber.length > 8 && accountNumber == confirmAccountNumber && ifscCode.length == 11
+                            enabled = !isPolling && accountNumber.length > 8 && accountNumber == confirmAccountNumber && ifscCode.length == 11
                         ) {
                             Text("Submit Manual Details")
                         }

@@ -14,9 +14,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+import com.pyllar.consumer.domain.storage.SessionStore
+
 class NameDobViewModel(
     private val onboardingRepository: OnboardingRepository,
-    private val commonRepository: CommonRepository
+    private val commonRepository: CommonRepository,
+    private val sessionStore: SessionStore
 ) : ViewModel() {
     private val _kycResult = MutableStateFlow<Resource<MinimalKycResponse>?>(null)
     val kycResult: StateFlow<Resource<MinimalKycResponse>?> = _kycResult.asStateFlow()
@@ -74,6 +77,15 @@ class NameDobViewModel(
 
         viewModelScope.launch {
             try {
+                if (token.isNotBlank()) {
+                    platformLog("NameDobViewModel: Saving token to sessionStore: ${token.take(10)}...")
+                    sessionStore.saveToken(token)
+                }
+                if (userId.isNotBlank() && userId != "anonymous") {
+                    platformLog("NameDobViewModel: Saving userId to sessionStore: $userId")
+                    sessionStore.saveUserId(userId)
+                }
+                
                 val request = MinimalKycRequest(
                     userId = userId,
                     name = name,

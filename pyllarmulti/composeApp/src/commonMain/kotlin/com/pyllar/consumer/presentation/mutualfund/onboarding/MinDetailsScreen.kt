@@ -55,12 +55,19 @@ fun MinDetailsScreen(
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
     val scope = rememberCoroutineScope()
+    val scrollState = rememberScrollState()
+    val timeoutState = rememberTimeoutState("MinDetails", "continue")
+    val sessionStore: com.pyllar.consumer.domain.storage.SessionStore = koinInject()
     
     // Optimized state management to prevent flickering
     var name by remember { mutableStateOf("") }
     var dob by remember { mutableStateOf("") }
-    var displayPan by remember { mutableStateOf(pan) } 
+    var effectivePan by remember { mutableStateOf(pan) }
+    var effectiveEmail by remember { mutableStateOf(email) }
+    var effectivePhone by remember { mutableStateOf(phone) }
+    var effectiveToken by remember { mutableStateOf(token) }
     var panHolderName by remember { mutableStateOf<String?>(null) }
+    
     var isNameEditable by remember { mutableStateOf(true) }
     var nameError by remember { mutableStateOf<String?>(null) }
     var dobError by remember { mutableStateOf<String?>(null) }
@@ -77,9 +84,33 @@ fun MinDetailsScreen(
     var selectedMonth by remember { mutableStateOf<Int?>(null) }
     var selectedDay by remember { mutableStateOf<Int?>(null) }
     
-    val scrollState = rememberScrollState()
-    val timeoutState = rememberTimeoutState("MinDetails", "continue")
-    
+    // Fetch missing data from session store if needed
+    LaunchedEffect(Unit) {
+        var retries = 0
+        while (retries < 3) {
+            if (effectivePan.isBlank()) {
+                effectivePan = sessionStore.getValue(com.pyllar.consumer.data.local.KeyValueConstants.PAN) ?: ""
+            }
+            if (effectiveEmail.isBlank()) {
+                effectiveEmail = sessionStore.getCurrentEmail()
+            }
+            if (effectivePhone.isBlank()) {
+                effectivePhone = sessionStore.getCurrentPhone()
+            }
+            if (effectiveToken.isBlank()) {
+                effectiveToken = sessionStore.getCurrentToken()
+            }
+            
+            platformLog("MinDetailsScreen [Try $retries]: phone='$effectivePhone', email='$effectiveEmail', pan='$effectivePan'")
+            
+            if (effectivePhone.isNotBlank() && effectivePan.isNotBlank() && effectiveEmail.isNotBlank()) {
+                break
+            }
+            delay(500)
+            retries++
+        }
+    }
+
     // Fresh ViewModel state observation
     val minDetailsState by viewModel.minDetailsState.collectAsStateWithLifecycle()
     val prefillData by viewModel.prefillData.collectAsStateWithLifecycle()
@@ -100,8 +131,8 @@ fun MinDetailsScreen(
         
         // Update PAN from API if available
         val prepopulatedPan = prefillData["pan"] as? String
-        if (!prepopulatedPan.isNullOrBlank() && displayPan.isBlank()) {
-            displayPan = prepopulatedPan
+        if (!prepopulatedPan.isNullOrBlank() && effectivePan.isBlank()) {
+            effectivePan = prepopulatedPan
         }
     }
     
@@ -120,15 +151,23 @@ fun MinDetailsScreen(
         isSubmitting = true
         
         scope.launch {
+            val freshUserId = if (userId.isBlank() || userId == "anonymous") sessionStore.getCurrentUserId() else userId
+            val freshEmail = if (effectiveEmail.isBlank()) sessionStore.getCurrentEmail() else effectiveEmail
+            val storedPhone = sessionStore.getCurrentPhone()
+            val freshPhone = if (effectivePhone.isBlank()) storedPhone else effectivePhone
+            val freshToken = if (effectiveToken.isBlank()) sessionStore.getCurrentToken() else effectiveToken
+
+            platformLog("MinDetailsScreen: \uD83D\uDCE1 [DEBUG] submitMinDetails - effectivePhone='$effectivePhone', storedPhone='$storedPhone', final='$freshPhone'")
+
             viewModel.submitMinimalDetails(
-                userId = userId,
+                userId = freshUserId,
                 name = name,
-                panNumber = pan,
+                panNumber = effectivePan,
                 dateOfBirth = dob,
-                emailAddress = email,
+                emailAddress = freshEmail,
                 mobileCountryCode = "+91",
-                mobileNumber = phone.takeLast(10),
-                token = token,
+                mobileNumber = freshPhone.filter { it.isDigit() }.takeLast(10),
+                token = freshToken,
                 preVerificationId = preVerificationId
             )
         }
@@ -153,27 +192,19 @@ fun MinDetailsScreen(
                 
                 when (navigationAction) {
                     NavigationAction.POLL -> {
-                        val receivedPreVerificationId = try {
-                            navigation?.params?.get("preVerificationId") as? String
-                        } catch (e: Exception) { null }
-                        
+                        val receivedPreVerificationId = navigation.getParam("preVerificationId")
                         if (receivedPreVerificationId != null) {
                             preVerificationId = receivedPreVerificationId
                         }
                         
-                        val delayMsFromParams = try {
-                            when {
-                                navigation?.params?.get("delayMs") is Number -> (navigation.params["delayMs"] as Number).toLong()
-                                navigation?.params?.get("delay_seconds") is Number -> ((navigation.params["delay_seconds"] as Number).toLong() * 1000L)
-                                navigation?.params?.get("retry_after_sec") is Number -> ((navigation.params["retry_after_sec"] as Number).toLong() * 1000L)
-                                navigation?.params?.get("retry_after_ms") is Number -> (navigation.params["retry_after_ms"] as Number).toLong()
-                                navigation?.params?.get("poll_interval_ms") is Number -> (navigation.params["poll_interval_ms"] as Number).toLong()
-                                else -> null
-                            }
-                        } catch (e: Exception) { null }
-                        val delayMs = delayMsFromParams ?: 5000L
+                        val delayMs = navigation.getParam("delayMs")?.toLongOrNull()
+                            ?: navigation.getParam("delay_seconds")?.toLongOrNull()?.let { it * 1000L }
+                            ?: navigation.getParam("retry_after_sec")?.toLongOrNull()?.let { it * 1000L }
+                            ?: navigation.getParam("retry_after_ms")?.toLongOrNull()
+                            ?: navigation.getParam("poll_interval_ms")?.toLongOrNull()
+                            ?: 5000L
                         
-                        pollMessage = navigation?.params?.get("message") as? String ?: "Verification in progress. Please wait..."
+                        pollMessage = navigation.getMessage() ?: "Verification in progress. Please wait..."
                         
                         if (!isPolling) {
                             isPolling = true
@@ -217,25 +248,31 @@ fun MinDetailsScreen(
             if (!isPolling) break
             val elapsed = pollingStartTime?.let { currentTimeMillis() - it } ?: 0L
             
+            val freshUserId = if (userId.isBlank() || userId == "anonymous") sessionStore.getCurrentUserId() else userId
+            val freshEmail = if (effectiveEmail.isBlank()) sessionStore.getCurrentEmail() else effectiveEmail
+            val storedPhone = sessionStore.getCurrentPhone()
+            val freshPhone = if (effectivePhone.isBlank()) storedPhone else effectivePhone
+            val freshToken = if (effectiveToken.isBlank()) sessionStore.getCurrentToken() else effectiveToken
+
+            platformLog("MinDetailsScreen: \uD83D\uDCE1 [DEBUG] polling retry - effectivePhone='$effectivePhone', storedPhone='$storedPhone', final='$freshPhone'")
+
             viewModel.submitMinimalDetails(
-                userId = userId,
+                userId = freshUserId,
                 name = name,
-                panNumber = pan,
+                panNumber = effectivePan,
                 dateOfBirth = dob,
-                emailAddress = email,
+                emailAddress = freshEmail,
                 mobileCountryCode = "+91",
-                mobileNumber = phone.takeLast(10),
-                token = token,
+                mobileNumber = freshPhone.filter { it.isDigit() }.takeLast(10),
+                token = freshToken,
                 preVerificationId = preVerificationId
             )
             
             val latestState = minDetailsState
             if (latestState is Resource.Success && latestState.navigation?.action == NavigationAction.POLL) {
-                val newDelay = try {
-                    latestState.navigation?.params?.get("delayMs") as? Number
-                } catch (e: Exception) { null }
+                val newDelay = latestState.navigation?.getParam("delayMs")?.toLongOrNull()
                 if (newDelay != null) {
-                    currentDelayMs = newDelay.toLong()
+                    currentDelayMs = newDelay
                 }
             }
         }
@@ -432,11 +469,11 @@ fun MinDetailsScreen(
                 )
             }
             
-            if (displayPan.isNotBlank()) {
+            if (effectivePan.isNotBlank()) {
                 Spacer(modifier = Modifier.height(16.dp))
                 Column(modifier = Modifier.fillMaxWidth(0.95f)) {
                     OutlinedTextField(
-                        value = displayPan,
+                        value = effectivePan,
                         onValueChange = {},
                         label = { Text("PAN Number") },
                         singleLine = true,

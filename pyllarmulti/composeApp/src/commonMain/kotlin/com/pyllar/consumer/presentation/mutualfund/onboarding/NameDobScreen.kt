@@ -31,9 +31,7 @@ import com.pyllar.consumer.data.remote.model.dto.NavigationAction
 import com.pyllar.consumer.data.remote.model.dto.NavigationInfo
 import com.pyllar.consumer.navigation.ScreenNames
 import com.pyllar.consumer.presentation.components.LoadingScreen
-import com.pyllar.consumer.presentation.ui.components.LanguageLetterButton
-import com.pyllar.consumer.presentation.ui.components.TimeoutButton
-import com.pyllar.consumer.presentation.ui.components.rememberTimeoutState
+import com.pyllar.consumer.presentation.ui.components.*
 import com.pyllar.consumer.presentation.ui.theme.lightGreyBackground
 import com.pyllar.consumer.util.Resource
 import kotlinx.coroutines.delay
@@ -72,6 +70,7 @@ fun NameDobScreen(
     token: String
 ) {
     val viewModel: NameDobViewModel = koinInject()
+    val sessionStore: com.pyllar.consumer.domain.storage.SessionStore = koinInject()
     val scrollState = rememberScrollState()
     val scope = rememberCoroutineScope()
     val timeoutState = rememberTimeoutState("NameDob", "continue")
@@ -79,8 +78,27 @@ fun NameDobScreen(
     // ── Form state ────────────────────────────────────────────────────────────
     var name by remember { mutableStateOf("") }
     var dob by remember { mutableStateOf("") }
-    var displayPan by remember { mutableStateOf(pan) }
+    var effectivePan by remember { mutableStateOf(pan) }
+    var effectiveEmail by remember { mutableStateOf(email) }
+    var effectivePhone by remember { mutableStateOf(phone) }
+    var effectiveToken by remember { mutableStateOf(token) }
     var isNameEditable by remember { mutableStateOf(true) }
+
+    // Fetch missing data from session store if needed
+    LaunchedEffect(Unit) {
+        if (effectivePan.isBlank()) {
+            effectivePan = sessionStore.getValue(com.pyllar.consumer.data.local.KeyValueConstants.PAN) ?: ""
+        }
+        if (effectiveEmail.isBlank()) {
+            effectiveEmail = sessionStore.getCurrentEmail()
+        }
+        if (effectivePhone.isBlank()) {
+            effectivePhone = sessionStore.getCurrentPhone()
+        }
+        if (effectiveToken.isBlank()) {
+            effectiveToken = sessionStore.getCurrentToken()
+        }
+    }
 
     // ── Date picker state ─────────────────────────────────────────────────────
     var showDatePicker by remember { mutableStateOf(false) }
@@ -124,7 +142,7 @@ fun NameDobScreen(
                 }
             }
         }
-        prefillData["pan"]?.let { if (it.isNotBlank() && displayPan.isBlank()) displayPan = it }
+        prefillData["pan"]?.let { if (it.isNotBlank() && effectivePan.isBlank()) effectivePan = it }
     }
 
     // ── Polling loop ──────────────────────────────────────────────────────────
@@ -145,9 +163,14 @@ fun NameDobScreen(
             }
             retryCount++
             viewModel.createMinimalKyc(
-                userId = userId, name = name, panNumber = pan, dateOfBirth = dob,
-                emailAddress = email, mobileCountryCode = "+91",
-                mobileNumber = phone.takeLast(10), token = token,
+                userId = userId,
+                name = name,
+                panNumber = effectivePan,
+                dateOfBirth = dob,
+                emailAddress = effectiveEmail,
+                mobileCountryCode = "+91",
+                mobileNumber = effectivePhone.filter { it.isDigit() }.takeLast(10),
+                token = effectiveToken,
                 preVerificationId = preVerificationId
             )
         }
@@ -173,8 +196,8 @@ fun NameDobScreen(
                 if (navInfo?.action == NavigationAction.POLL) {
                     isPolling = true
                     isSubmitting = false
-                    pollMessage = navInfo.params?.get("message") as? String ?: "Verifying details..."
-                    preVerificationId = navInfo.params?.get("preVerificationId") as? String
+                    pollMessage = navInfo.getMessage() ?: "Verifying details..."
+                    preVerificationId = navInfo.getParam("preVerificationId")
                         ?: result.data?.kycAttemptId
                 } else {
                     isPolling = false; isSubmitting = false; pollMessage = null; pollingStartTime = null
@@ -204,9 +227,14 @@ fun NameDobScreen(
         isSubmitting = true
         scope.launch {
             viewModel.createMinimalKyc(
-                userId = userId, name = name, panNumber = pan, dateOfBirth = dob,
-                emailAddress = email, mobileCountryCode = "+91",
-                mobileNumber = phone.takeLast(10), token = token,
+                userId = userId,
+                name = name,
+                panNumber = effectivePan,
+                dateOfBirth = dob,
+                emailAddress = effectiveEmail,
+                mobileCountryCode = "+91",
+                mobileNumber = effectivePhone.filter { it.isDigit() }.takeLast(10),
+                token = effectiveToken,
                 preVerificationId = preVerificationId
             )
         }
@@ -346,7 +374,7 @@ fun NameDobScreen(
 
                 if (showDatePicker) {
                     HierarchicalDatePicker(
-                        onDateSelected = { y, m, d ->
+                        onDateSelected = { y: Int, m: Int, d: Int ->
                             dob = "$y-${m.toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}"
                             dobError = null
                             showDatePicker = false
@@ -358,19 +386,19 @@ fun NameDobScreen(
                         },
                         currentStep = datePickerStep,
                         selectedYear = selectedYear, selectedMonth = selectedMonth, selectedDay = selectedDay,
-                        onStepChange = { datePickerStep = it },
-                        onYearSelected = { selectedYear = it },
-                        onMonthSelected = { selectedMonth = it },
-                        onDaySelected = { selectedDay = it }
+                        onStepChange = { step: Int -> datePickerStep = step },
+                        onYearSelected = { year: Int -> selectedYear = year },
+                        onMonthSelected = { month: Int -> selectedMonth = month },
+                        onDaySelected = { day: Int -> selectedDay = day }
                     )
                 }
 
                 // PAN (read-only)
-                if (displayPan.isNotBlank()) {
+                if (effectivePan.isNotBlank()) {
                     Spacer(modifier = Modifier.height(16.dp))
                     Column(modifier = Modifier.fillMaxWidth(0.95f)) {
                         OutlinedTextField(
-                            value = displayPan, onValueChange = {},
+                            value = effectivePan, onValueChange = {},
                             label = { Text("PAN Number") },
                             singleLine = true, readOnly = true, enabled = false,
                             modifier = Modifier.fillMaxWidth(),
@@ -411,139 +439,6 @@ fun NameDobScreen(
                     .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) {}
             ) {
                 LoadingScreen(text = pollMessage ?: "Submitting, please wait...")
-            }
-        }
-    }
-}
-
-// ── Hierarchical date picker (KMP, no java.util.Calendar) ────────────────────
-
-@Composable
-fun HierarchicalDatePicker(
-    onDateSelected: (Int, Int, Int) -> Unit,
-    onDismiss: () -> Unit,
-    currentStep: Int,
-    selectedYear: Int?,
-    selectedMonth: Int?,
-    selectedDay: Int?,
-    onStepChange: (Int) -> Unit,
-    onYearSelected: (Int) -> Unit,
-    onMonthSelected: (Int) -> Unit,
-    onDaySelected: (Int) -> Unit
-) {
-    Dialog(onDismissRequest = onDismiss) {
-        Card(
-            modifier = Modifier.fillMaxWidth().height(400.dp).padding(16.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-        ) {
-            Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.primary)
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = when (currentStep) { 0 -> "Year"; 1 -> "Month"; 2 -> "Day"; else -> "Date" },
-                        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                        color = Color.White
-                    )
-                    if (currentStep > 0) {
-                        TextButton(onClick = { onStepChange(currentStep - 1) },
-                            colors = ButtonDefaults.textButtonColors(contentColor = Color.White)) {
-                            Text("Back")
-                        }
-                    }
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-                when (currentStep) {
-                    0 -> KmpYearPicker(onYearSelected = { y -> onYearSelected(y); onStepChange(1) })
-                    1 -> KmpMonthPicker(selectedYear = selectedYear, onMonthSelected = { m -> onMonthSelected(m); onStepChange(2) })
-                    2 -> KmpDayPicker(selectedYear = selectedYear, selectedMonth = selectedMonth,
-                        onDaySelected = { d ->
-                            onDaySelected(d)
-                            if (selectedYear != null && selectedMonth != null) onDateSelected(selectedYear, selectedMonth, d)
-                        })
-                }
-                Spacer(modifier = Modifier.weight(1f))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    TextButton(onClick = onDismiss) { Text("Cancel") }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun KmpYearPicker(onYearSelected: (Int) -> Unit) {
-    val years = (1950..CUTOFF_YEAR).toList().reversed()
-    LazyVerticalGrid(columns = GridCells.Fixed(3), modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        items(years) { year ->
-            Card(modifier = Modifier.aspectRatio(1.5f).clickable { onYearSelected(year) },
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(year.toString(), style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun KmpMonthPicker(selectedYear: Int?, onMonthSelected: (Int) -> Unit) {
-    val months = listOf("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec")
-    val count = if (selectedYear != null && selectedYear >= CUTOFF_YEAR) {
-        // Limit months for current edge year (approximate — server validates authoratively)
-        minOf(months.size, 12)
-    } else months.size
-
-    Column(modifier = Modifier.fillMaxSize()) {
-        if (selectedYear != null) {
-            Text("Year: $selectedYear", style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = 8.dp))
-        }
-        LazyVerticalGrid(columns = GridCells.Fixed(3), modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            items((0 until count).toList()) { idx ->
-                Card(modifier = Modifier.aspectRatio(1.5f).clickable { onMonthSelected(idx + 1) },
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(months[idx], style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun KmpDayPicker(selectedYear: Int?, selectedMonth: Int?, onDaySelected: (Int) -> Unit) {
-    val days = if (selectedYear != null && selectedMonth != null)
-        daysInMonth(selectedYear, selectedMonth) else 31
-    val monthNames = listOf("January","February","March","April","May","June",
-        "July","August","September","October","November","December")
-
-    Column(modifier = Modifier.fillMaxSize()) {
-        if (selectedYear != null && selectedMonth != null) {
-            Text("${monthNames[selectedMonth - 1]} $selectedYear",
-                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = 8.dp))
-        }
-        LazyVerticalGrid(columns = GridCells.Fixed(7), modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            items((1..days).toList()) { day ->
-                Card(modifier = Modifier.aspectRatio(1f).clickable { onDaySelected(day) },
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(day.toString(), style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
             }
         }
     }

@@ -16,11 +16,22 @@ class IosSessionStore : SessionStore {
         authToken: String,
         fullName: String
     ) {
-        defaults.setObject(userId, forKey = KEY_USER_ID)
-        defaults.setObject(email, forKey = KEY_EMAIL)
-        defaults.setObject(phone, forKey = KEY_PHONE)
-        defaults.setObject(authToken, forKey = KEY_AUTH_TOKEN)
-        defaults.setObject(fullName, forKey = KEY_FULL_NAME)
+        if (userId.isNotBlank()) defaults.setObject(userId, forKey = KEY_USER_ID)
+        if (email.isNotBlank()) defaults.setObject(email, forKey = KEY_EMAIL)
+        
+        // Critically: don't overwrite a good phone with a blank one
+        if (phone.isNotBlank()) {
+            defaults.setObject(phone, forKey = KEY_PHONE)
+        } else {
+            val current = defaults.stringForKey(KEY_PHONE)
+            if (current.isNullOrBlank()) {
+                // Only if it's currently empty, do we allow setting it to blank (though it already is)
+            }
+        }
+        
+        if (authToken.isNotBlank()) defaults.setObject(authToken, forKey = KEY_AUTH_TOKEN)
+        if (fullName.isNotBlank()) defaults.setObject(fullName, forKey = KEY_FULL_NAME)
+        
         defaults.setBool(true, forKey = KEY_LOGGED_IN)
         defaults.synchronize()
     }
@@ -50,6 +61,7 @@ class IosSessionStore : SessionStore {
         defaults.removeObjectForKey(KEY_AUTH_TOKEN)
         defaults.removeObjectForKey(KEY_FULL_NAME)
         defaults.setBool(false, forKey = KEY_LOGGED_IN)
+        defaults.synchronize()
     }
 
     override suspend fun saveToken(token: String) {
@@ -64,10 +76,12 @@ class IosSessionStore : SessionStore {
 
     override suspend fun savePhone(phone: String) {
         defaults.setObject(phone, forKey = KEY_PHONE)
+        defaults.synchronize()
     }
 
     override suspend fun saveValue(key: String, value: String) {
         defaults.setObject(value, forKey = key)
+        defaults.synchronize()
     }
 
     override suspend fun getValue(key: String): String? =

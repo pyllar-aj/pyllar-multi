@@ -14,12 +14,16 @@ import com.pyllar.consumer.data.remote.requests.CreateNomineeRequestV2
 import com.pyllar.consumer.data.remote.requests.HelperCodeRequest
 import com.pyllar.consumer.domain.repository.OnboardingRepository
 import com.pyllar.consumer.util.Resource
+import io.ktor.http.HttpMethod
+import com.pyllar.consumer.domain.storage.SessionStore
+import com.pyllar.consumer.util.platformLog
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.json.JsonObject
 
 class OnboardingRepositoryImpl(
-    private val apiClient: PyllarApiClient
+    private val apiClient: PyllarApiClient,
+    private val sessionStore: SessionStore
 ) : OnboardingRepository {
 
     override fun selectGoal(
@@ -88,6 +92,12 @@ class OnboardingRepositoryImpl(
         request: MinimalKycRequest
     ): Flow<Resource<MinimalKycResponse>> = flow {
         emit(Resource.Loading())
+        
+        // Ensure userId is saved to sessionStore so PyllarApiClient picks it up in headers
+        if (request.userId.isNotBlank() && request.userId != "anonymous") {
+            platformLog("OnboardingRepository: Saving userId to sessionStore: ${request.userId}")
+            sessionStore.saveUserId(request.userId)
+        }
         when (val result =
             apiClient.post<MinimalKycResponseDto, MinimalKycRequest>(
                 path = "api/kyc/onboarding/requestV2",
@@ -137,6 +147,19 @@ class OnboardingRepositoryImpl(
         request: MinimalKycRequest
     ): Flow<Resource<MinimalKycResponse>> = flow {
         emit(Resource.Loading())
+
+        // Ensure userId is saved to sessionStore so PyllarApiClient picks it up in headers
+        if (request.userId.isNotBlank() && request.userId != "anonymous") {
+            platformLog("OnboardingRepository: Saving userId to sessionStore: ${request.userId}")
+            sessionStore.saveUserId(request.userId)
+        }
+        platformLog(
+            "[API-REQ] createMinimalDetails: userId=${request.userId} name=${request.name} panNumber=${
+                request.panNumber.takeLast(
+                    4
+                )
+            } dob=${request.dateOfBirth} email=${request.emailAddress} mobile=${request.mobile.countryCode}-${request.mobile.number} preVerificationId=${request.preVerificationId}"
+        )
         when (val result =
             apiClient.post<MinimalKycResponseDto, MinimalKycRequest>(
                 path = "api/kyc/onboarding/minDetails",
@@ -274,12 +297,13 @@ class OnboardingRepositoryImpl(
         accountType: String
     ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.BankDetailsResponseDto>> = flow {
         emit(Resource.Loading())
-        @kotlinx.serialization.Serializable
-        data class BankReq(val userId: String, val accountNumber: String, val ifscCode: String, val accountType: String)
-        val result = apiClient.get<com.pyllar.consumer.data.remote.model.dto.BankDetailsResponseDto>(
-            path = "api/kyc/onboarding/bank-account"
+        if (userId.isNotBlank() && userId != "anonymous") {
+            sessionStore.saveUserId(userId)
+        }
+        val result = apiClient.post<com.pyllar.consumer.data.remote.model.dto.BankDetailsResponseDto, Unit?>(
+            path = "api/kyc/onboarding/bank-account",
+            body = null
         ) {
-            method = HttpMethod.Post
             url.parameters.append("userId", userId)
             url.parameters.append("accountNumber", accountNumber)
             url.parameters.append("ifscCode", ifscCode)
@@ -293,6 +317,9 @@ class OnboardingRepositoryImpl(
         name: String
     ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.VerificationInitiateResponseDto>> = flow {
         emit(Resource.Loading())
+        if (userId.isNotBlank() && userId != "anonymous") {
+            sessionStore.saveUserId(userId)
+        }
         @kotlinx.serialization.Serializable
         data class InitReq(val userId: String, val name: String)
         val result = apiClient.post<com.pyllar.consumer.data.remote.model.dto.VerificationInitiateResponseDto, InitReq>(
@@ -307,6 +334,9 @@ class OnboardingRepositoryImpl(
         userId: String
     ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.VerificationStatusResponseDto>> = flow {
         emit(Resource.Loading())
+        if (userId.isNotBlank() && userId != "anonymous") {
+            sessionStore.saveUserId(userId)
+        }
         val result = apiClient.get<com.pyllar.consumer.data.remote.model.dto.VerificationStatusResponseDto>(
             path = "api/bank-verification/status/$verificationId"
         )

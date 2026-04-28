@@ -2,6 +2,8 @@ package com.pyllar.consumer.data.remote.model.dto
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.jsonPrimitive
 
 /**
  * Navigation information coming from API responses.
@@ -13,9 +15,9 @@ data class NavigationInfo(
     @SerialName("action")
     val action: NavigationAction?,
     @SerialName("params")
-    val params: Map<String, String>? = null,
+    val params: Map<String, JsonElement>? = null,
     @SerialName("nextPayload")
-    val nextPayload: Map<String, String>? = null,
+    val nextPayload: Map<String, JsonElement>? = null,
     @SerialName("payloadType")
     val payloadType: String? = null,
     @SerialName("payloadVersion")
@@ -30,8 +32,15 @@ data class NavigationInfo(
     fun shouldNavigate(): Boolean = action == NavigationAction.NAVIGATE || action == NavigationAction.REPLACE
     fun shouldPoll(): Boolean = action == NavigationAction.POLL
     fun shouldStay(): Boolean = action == NavigationAction.STAY
-    fun requiresManualVerification(): Boolean = params?.get("requiresManualVerification") == "true"
-    fun getMessage(): String? = params?.get("message")
+    
+    fun getParam(key: String): String? = try {
+        params?.get(key)?.jsonPrimitive?.content
+    } catch (e: Exception) {
+        params?.get(key)?.toString()
+    }
+    
+    fun requiresManualVerification(): Boolean = getParam("requiresManualVerification") == "true"
+    fun getMessage(): String? = getParam("message")
 }
 
 /**

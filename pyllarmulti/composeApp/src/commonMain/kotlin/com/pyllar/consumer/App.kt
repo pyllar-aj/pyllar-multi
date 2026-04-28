@@ -181,7 +181,12 @@ fun App() {
                     userId = screen.userId,
                     kycAttemptId = screen.kycAttemptId,
                     onNext = { nextScreen, investorId ->
-                        handleNavigation(nextScreen ?: "", screen.userId, null) { currentScreen = it }
+                        handleNavigation(
+                            action = nextScreen ?: "",
+                            userId = screen.userId,
+                            kycAttemptId = screen.kycAttemptId,
+                            investorId = investorId
+                        ) { currentScreen = it }
                     },
                     onNavigateToHelp = { /* Open Help */ }
                 )
@@ -190,7 +195,7 @@ fun App() {
                 KycInformationScreen(
                     onProceed = {
                         // Normally this would trigger the actual KYC flow (WebView/DigiLocker)
-                        handleNavigation("MIN_DETAILS", screen.userId, null) { currentScreen = it }
+                        handleNavigation("MIN_DETAILS", screen.userId, null, null, null) { currentScreen = it }
                     },
                     onNavigateToHelp = { /* Open Help */ }
                 )
@@ -199,7 +204,7 @@ fun App() {
                 EsignInformationScreen(
                     onProceed = {
                         // Normally this would trigger the E-sign flow
-                        handleNavigation("MANDATE_AUTH", screen.userId, null) { currentScreen = it }
+                        handleNavigation("MANDATE_AUTH", screen.userId, null, null, null) { currentScreen = it }
                     },
                     onNavigateToHelp = { /* Open Help */ }
                 )
@@ -208,7 +213,7 @@ fun App() {
                 val minVm: MinDetailsViewModel = koinInject()
                 MinDetailsScreen(
                     onNext = { nextScreen, kycAttemptId ->
-                        handleNavigation(nextScreen, screen.userId, null, kycAttemptId) { currentScreen = it }
+                        handleNavigation(nextScreen, screen.userId, kycAttemptId, null, null) { currentScreen = it }
                     },
                     viewModel = minVm,
                     userId = screen.userId,
@@ -222,7 +227,7 @@ fun App() {
                 val nameVm: NameDobViewModel = koinInject()
                 NameDobScreen(
                     onKycSubmitted = { _, _, _, _ ->
-                        handleNavigation(ScreenNames.INITIAL_DASHBOARD, screen.userId, null) { currentScreen = it }
+                        handleNavigation(ScreenNames.INITIAL_DASHBOARD, screen.userId, null, null, null) { currentScreen = it }
                     },
                     userId = screen.userId,
                     pan = screen.pan,
@@ -236,7 +241,7 @@ fun App() {
                 CheckPanPopulatedDetailsScreen(
                     onSubmit = { name, gender, dob, father, marital, perm, corr ->
                         checkVm.submitDetails(screen.userId, screen.preVerificationId, name, gender, dob, father, marital, perm, corr)
-                        handleNavigation(ScreenNames.INITIAL_DASHBOARD, screen.userId, screen.preVerificationId) { currentScreen = it }
+                        handleNavigation(ScreenNames.INITIAL_DASHBOARD, screen.userId, null, null, screen.preVerificationId) { currentScreen = it }
                     }
                 )
             }
@@ -245,7 +250,7 @@ fun App() {
                     userId = screen.userId,
                     onNavigateToOnboarding = { _, _ -> /* Fallback */ },
                     onNavigateToRoute = { nextScreen, preVerificationId ->
-                        handleNavigation(nextScreen, screen.userId, preVerificationId) { currentScreen = it }
+                        handleNavigation(nextScreen, screen.userId, null, null, preVerificationId) { currentScreen = it }
                     }
                 )
             }
@@ -373,8 +378,9 @@ fun App() {
 private fun handleNavigation(
     action: String?,
     userId: String,
-    preVerificationId: String?,
     kycAttemptId: String? = null,
+    investorId: String? = null,
+    preVerificationId: String? = null,
     onNavigate: (Screen) -> Unit
 ) {
     platformLog("AppNav: handleNavigation: action='$action', userId='$userId'")
@@ -390,11 +396,11 @@ private fun handleNavigation(
         }
         ScreenNames.NOMINEE_DETAILS -> {
             platformLog("AppNav: Matched NOMINEE_DETAILS")
-            onNavigate(Screen.NomineeDetails(userId, "", ""))
+            onNavigate(Screen.NomineeDetails(userId, kycAttemptId ?: "", investorId ?: ""))
         }
         ScreenNames.BANK_DETAILS -> {
             platformLog("AppNav: Matched BANK_DETAILS")
-            onNavigate(Screen.BankDetails(userId, ""))
+            onNavigate(Screen.BankDetails(userId, kycAttemptId ?: ""))
         }
         ScreenNames.KYC_INFORMATION -> {
             platformLog("AppNav: Matched KYC_INFORMATION")
@@ -437,9 +443,9 @@ private fun handleNavigation(
             onNavigate(Screen.InvestmentDashboard(userId))
         }
         else -> {
-            platformLog("AppNav: Defaulting to dashboard for action: '$action'")
-            com.pyllar.consumer.util.Log.d("AppNav", "Defaulting navigation to dashboard for action: $action")
-            onNavigate(Screen.InvestmentDashboard(userId))
+            platformLog("AppNav: Defaulting to PRE_VERIFICATION for action: '$action'")
+            com.pyllar.consumer.util.Log.d("AppNav", "Defaulting navigation to PRE_VERIFICATION for action: $action")
+            onNavigate(Screen.PreVerification(userId))
         }
     }
 }

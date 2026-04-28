@@ -38,5 +38,6 @@ interface SessionStore {
     suspend fun saveAuthToken(authToken: AuthToken) {
         saveToken(authToken.token)
         authToken.userId?.let { saveUserId(it) }
+        authToken.phoneNumber?.let { savePhone(it) }
     }
 }

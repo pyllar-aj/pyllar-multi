@@ -18,6 +18,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.contentOrNull
 
 data class NomineeInfo(
     val name: String,
@@ -170,15 +172,21 @@ class NomineeDetailsViewModel(
                     when (result) {
                         is Resource.Success -> {
                             try {
+                                val data = result.data
                                 sessionStore.saveValue("nominee_submitted", "true")
                                 platformLog("NomineeDetailsViewModel: \u2705 [submitNomineeDetailsV2] Nominee data saved successfully")
                                 
-                                val trackerId = result.navigation?.params?.get("trackerId") as? String
+                                // Extract trackerId from either navigation params or data object
+                                val trackerId = result.navigation?.getParam("trackerId") 
+                                    ?: data?.get("tokenTrackerId")?.jsonPrimitive?.content
+                                    ?: data?.get("tokenTrackerId")?.toString()?.trim('"')
+
                                 if (trackerId != null) {
                                     _tokenTrackerId.value = trackerId
                                     sessionStore.saveValue("consent_token_tracker_id", trackerId)
+                                    platformLog("NomineeDetailsViewModel: \u2705 Stored trackerId: $trackerId")
                                 } else {
-                                    platformLog("NomineeDetailsViewModel: \u26A0\uFE0F No tokenTrackerId in response")
+                                    platformLog("NomineeDetailsViewModel: No trackerId found in response")
                                 }
                             } catch (e: Exception) {
                                 platformLog("NomineeDetailsViewModel: \u274C Error saving data: ${e.message}")
@@ -212,8 +220,7 @@ class NomineeDetailsViewModel(
         viewModelScope.launch {
             _otpVerificationResult.value = Resource.Loading()
             try {
-                // Here we assume sessionStore holds userId
-                val userId = sessionStore.getValue("current_user_id") ?: ""
+                val userId = sessionStore.getCurrentUserId()
                 if (userId.isBlank()) {
                     _otpVerificationResult.value = Resource.Error("User information not available")
                     return@launch
@@ -231,9 +238,12 @@ class NomineeDetailsViewModel(
                     }
                 
                 if (trackerId.isNullOrBlank()) {
+                    platformLog("NomineeDetailsViewModel: \u26A0\uFE0F verifyOtp - No tokenTrackerId available")
                     _otpVerificationResult.value = Resource.Error("OTP session expired. Please request a new OTP.")
                     return@launch
                 }
+
+                platformLog("NomineeDetailsViewModel: \uD83D\uDCE1 [API-REQ] verifyConsentOtp - userId=$userId, phone=$sanitizedPhone, trackerId=$trackerId, otp=[MASKED]")
 
                 val request = RedemptionOtpVerifyRequestDto(
                     id = trackerId,
@@ -267,8 +277,9 @@ class NomineeDetailsViewModel(
     fun generateOtp(phoneNumber: String) {
         viewModelScope.launch {
             _otpGenerationResult.value = Resource.Loading()
+            _otpVerificationResult.value = null // Clear previous verification error/result
             try {
-                val userId = sessionStore.getValue("current_user_id") ?: ""
+                val userId = sessionStore.getCurrentUserId()
                 if (userId.isBlank()) {
                     _otpGenerationResult.value = Resource.Error("User information not available")
                     return@launch
@@ -279,6 +290,8 @@ class NomineeDetailsViewModel(
                     _otpGenerationResult.value = Resource.Error("Phone number not available")
                     return@launch
                 }
+
+                platformLog("NomineeDetailsViewModel: \uD83D\uDCE1 [API-REQ] sendConsentOtp - userId=$userId, phone=$sanitizedPhone")
 
                 mutualFundRepository.sendConsentOtp(userId, sanitizedPhone).collect { result ->
                     when (result) {

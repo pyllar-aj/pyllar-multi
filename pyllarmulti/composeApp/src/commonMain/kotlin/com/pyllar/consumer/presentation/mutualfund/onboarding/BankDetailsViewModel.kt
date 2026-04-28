@@ -77,7 +77,7 @@ class BankDetailsViewModel(
     fun initiateBankVerification(userId: String) {
         viewModelScope.launch {
             _initiateResult.value = Resource.Loading()
-            val name = sessionStore.getValue("current_user_name") ?: "User"
+            val name = sessionStore.getCurrentFullName().ifBlank { "User" }
             onboardingRepository.initiateBankVerification(userId, name).collectLatest { result ->
                 _initiateResult.value = result
             }
