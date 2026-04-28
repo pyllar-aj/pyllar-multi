@@ -102,6 +102,7 @@ fun SipAmountScreenV2(
     }
 
     var amount by remember { mutableStateOf(targetAmount) }
+    var isCustomMode by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     var showSavingsGrowthBottomSheet by remember { mutableStateOf(false) }
     var savingsGrowthSelectedYears by remember { mutableStateOf(7) }
@@ -132,13 +133,11 @@ fun SipAmountScreenV2(
                     }
                 },
                 actions = {
-                    IconButton(onClick = {
-                        platformActions.shareText("Build your wealth with Pyllar! https://pyllar.in", "Share Pyllar")
-                    }) {
+                    IconButton(onClick = { platformActions.shareText("Start your investment journey with Pyllar! https://pyllar.in") }) {
                         Icon(Icons.Default.Share, contentDescription = "Share", tint = MaterialTheme.colorScheme.primary)
                     }
                     TextButton(onClick = onNavigateToHelp) {
-                        Text("Help", color = MaterialTheme.colorScheme.primary)
+                        Text("Help", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                     }
                 }
             )
@@ -168,22 +167,49 @@ fun SipAmountScreenV2(
                     )
 
                     // Amount Selection
-                    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            "Daily Investment",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        )
+                        
+                        if (isCustomMode) {
+                            OutlinedTextField(
+                                value = amount.toInt().toString(),
+                                onValueChange = { val str = it.filter { c -> c.isDigit() }; if (str.isNotEmpty()) amount = str.toFloat() },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                modifier = Modifier.width(150.dp),
+                                textStyle = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold, textAlign = TextAlign.Center),
+                                singleLine = true,
+                                colors = TextFieldDefaults.colors(
+                                    focusedContainerColor = Color.Transparent,
+                                    unfocusedContainerColor = Color.Transparent
+                                )
+                            )
+                        } else {
+                            Text(
+                                "₹${amount.toInt()}",
+                                style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.clickable { isCustomMode = true }
+                            )
+                        }
+                        
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                "${getGoalDisplayName(goalType)} SIP Amount",
-                                style = MaterialTheme.typography.titleMedium,
+                                "${getGoalDisplayName(goalType)} Limits",
+                                style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
                                 "₹${minAmount.toInt()} - ₹${maxAmount.toInt()}",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                                fontWeight = FontWeight.Bold
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                             )
                         }
                         
@@ -205,18 +231,20 @@ fun SipAmountScreenV2(
                             chipAmounts.forEach { valOpt ->
                                 AmountChip(
                                     amount = valOpt,
-                                    isSelected = amount.toInt() == valOpt,
+                                    isSelected = !isCustomMode && amount.toInt() == valOpt,
                                     isPopular = valOpt == defaultAmount.toInt() && minAmount.toInt() != defaultAmount.toInt(),
-                                    onClick = { amount = valOpt.toFloat() }
+                                    onClick = { 
+                                        amount = valOpt.toFloat()
+                                        isCustomMode = false
+                                    }
                                 )
                             }
                             // Custom Amount Chip placeholder logic
-                            val isCustom = amount.toInt() !in chipAmounts
                             AmountChip(
-                                label = if (isCustom) "₹${amount.toInt()}" else "Custom",
-                                isSelected = isCustom,
+                                label = "Custom",
+                                isSelected = isCustomMode,
                                 isPopular = false,
-                                onClick = { /* Show custom dialog or just leave slider */ }
+                                onClick = { isCustomMode = true }
                             )
                         }
 

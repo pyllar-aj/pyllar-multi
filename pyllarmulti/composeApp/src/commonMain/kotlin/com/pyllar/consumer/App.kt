@@ -86,6 +86,10 @@ fun App() {
     MaterialTheme {
         var currentScreen by remember { mutableStateOf<Screen>(Screen.PhoneVerification) }
 
+        LaunchedEffect(currentScreen) {
+            platformLog("App: currentScreen changed to ${currentScreen::class.simpleName} - $currentScreen")
+        }
+
         platformLog("App: Rendering screen: ${currentScreen::class.simpleName}")
         when (val screen = currentScreen) {
             is Screen.PhoneVerification -> {
@@ -465,8 +469,8 @@ private fun handleNavigation(
             onNavigate(Screen.InitialDashboard(userId))
         }
         ScreenNames.SIP_AMOUNT_V2 -> {
-            platformLog("AppNav: Matched SIP_AMOUNT_V2")
-            onNavigate(Screen.SipAmountV2(userId, "", "", "", false))
+            platformLog("AppNav: Matched SIP_AMOUNT_V2 - setting fromDashboard=true")
+            onNavigate(Screen.SipAmountV2(userId, "", "", "", true))
         }
         ScreenNames.MANDATE_AUTH -> {
             platformLog("AppNav: Matched MANDATE_AUTH")

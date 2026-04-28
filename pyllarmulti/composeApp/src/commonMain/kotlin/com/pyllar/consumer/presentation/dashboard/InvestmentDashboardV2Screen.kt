@@ -49,6 +49,13 @@ import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import com.pyllar.consumer.platform.PlatformActions
 import kotlin.math.ceil
+import org.jetbrains.compose.resources.painterResource
+import pyllar.composeapp.generated.resources.Res
+import pyllar.composeapp.generated.resources.invesco
+import pyllar.composeapp.generated.resources.aditya
+import pyllar.composeapp.generated.resources.axis_lo
+import pyllar.composeapp.generated.resources.nippon
+import org.jetbrains.compose.resources.DrawableResource
 
 // --- Metal Texture Palettes & Constants ---
 private val goldMetalColors = listOf(
@@ -244,9 +251,9 @@ fun InvestmentDashboardV2Screen(
                 DashboardTrustFooter()
             }
 
-//            item {
-//                PoweredByAmcsSection()
-//            }
+            item {
+                PoweredByAmcsSection()
+            }
 
             item {
                 Text(
@@ -830,4 +837,44 @@ fun KycPendingBottomSheet(onDismiss: () -> Unit, onRetryKyc: () -> Unit, kycStat
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
+}
+@Composable
+fun PoweredByAmcsSection() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text(
+            "Powered by India's leading AMCs",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+        )
+        
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            AmcLogoItem(Res.drawable.axis_lo)
+            AmcLogoItem(Res.drawable.invesco)
+            AmcLogoItem(Res.drawable.aditya)
+            AmcLogoItem(Res.drawable.nippon)
+        }
+    }
+}
+
+@Composable
+fun AmcLogoItem(resource: DrawableResource) {
+    Image(
+        painter = painterResource(resource),
+        contentDescription = null,
+        modifier = Modifier
+            .width(70.dp)
+            .height(35.dp),
+        contentScale = ContentScale.Fit
+    )
 }
