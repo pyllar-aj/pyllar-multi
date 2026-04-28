@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pyllar.consumer.analytics.PlatformAnalyticsLogger
 import com.pyllar.consumer.util.Log
+import com.pyllar.consumer.util.platformLog
 import com.pyllar.consumer.util.Resource
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -229,6 +230,7 @@ fun InvestmentDashboardV2Screen(
                                 isSelectingGoal = true
                                 val result = viewModel.initGoalTxn(userId, goalId)
                                 if (result is Resource.Success) {
+                                    platformLog("Dashboard: Goal click success. Navigating to goal: $goalId")
                                     onNavigateToGoal(goalId)
                                 }
                                 isSelectingGoal = false

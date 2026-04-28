@@ -327,6 +327,7 @@ fun App() {
                 )
             }
             is Screen.SipAmountV2 -> {
+                platformLog("AppNav: Rendering SipAmountV2. fromDashboard=${screen.fromDashboard}")
                 SipAmountScreenV2(
                     userId = screen.userId,
                     kycAttemptId = screen.kycAttemptId,
@@ -344,6 +345,7 @@ fun App() {
                         )
                     },
                     onNavigateBack = { 
+                        platformLog("AppNav: SipAmountV2 Back clicked. fromDashboard=${screen.fromDashboard}")
                         currentScreen = if (screen.fromDashboard) {
                             Screen.InvestmentDashboard(screen.userId)
                         } else {
