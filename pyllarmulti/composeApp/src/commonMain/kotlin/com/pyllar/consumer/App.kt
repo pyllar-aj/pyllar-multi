@@ -59,7 +59,7 @@ sealed class Screen {
     data class SchemeDetails(val userId: String, val purpose: String) : Screen()
     data class Withdraw(val userId: String) : Screen()
     data class FundDetails(val isin: String, val userId: String, val goalId: String, val sipAmount: Double) : Screen()
-    data class SipAmountV2(val userId: String, val kycAttemptId: String, val investorId: String, val goalId: String) : Screen()
+    data class SipAmountV2(val userId: String, val kycAttemptId: String, val investorId: String, val goalId: String, val fromDashboard: Boolean = false) : Screen()
     data class MandateAuth(
         val userId: String,
         val kycAttemptId: String,
@@ -71,7 +71,12 @@ sealed class Screen {
     ) : Screen()
     data class Profile(val userId: String) : Screen()
     data class AccountDeletion(val userId: String) : Screen()
-    data class HelpSupport(val userId: String) : Screen()
+    data class HelpSupport(
+        val userId: String,
+        val showKycHelp: Boolean = false,
+        val showBankHelp: Boolean = false,
+        val showOnlyKycInfo: Boolean = false
+    ) : Screen()
     data class NotificationWebView(val url: String, val title: String) : Screen()
     object Home : Screen()
 }
@@ -152,7 +157,8 @@ fun App() {
                     onNavigateToScreen = { nextScreen ->
                         handleNavigation(nextScreen, screen.userId, null) { currentScreen = it }
                     },
-                    onNavigateToHelp = { /* Open Help */ }
+                    onNavigateToHelp = { currentScreen = Screen.HelpSupport(screen.userId, showKycHelp = true) },
+                    onNavigateToKycInfo = { currentScreen = Screen.HelpSupport(screen.userId, showKycHelp = true) }
                 )
             }
             is Screen.AdditionalKyc -> {
@@ -162,7 +168,7 @@ fun App() {
                     onNext = { nextScreen, attemptId ->
                         handleNavigation(nextScreen, screen.userId, null, attemptId) { currentScreen = it }
                     },
-                    onNavigateToHelp = { /* Open Help */ }
+                    onNavigateToHelp = { currentScreen = Screen.HelpSupport(screen.userId, showKycHelp = true) }
                 )
             }
             is Screen.NomineeDetails -> {
@@ -173,7 +179,7 @@ fun App() {
                     userId = screen.userId,
                     kycAttemptId = screen.kycAttemptId,
                     investorId = screen.investorId,
-                    onNavigateToHelp = { /* Open Help */ }
+                    onNavigateToHelp = { currentScreen = Screen.HelpSupport(screen.userId, showKycHelp = true) }
                 )
             }
             is Screen.BankDetails -> {
@@ -188,7 +194,7 @@ fun App() {
                             investorId = investorId
                         ) { currentScreen = it }
                     },
-                    onNavigateToHelp = { /* Open Help */ }
+                    onNavigateToHelp = { currentScreen = Screen.HelpSupport(screen.userId, showBankHelp = true) }
                 )
             }
             is Screen.KycInformation -> {
@@ -204,7 +210,7 @@ fun App() {
                     onOpenWebSignIn = {
                         if (!screen.reUrl.isNullOrBlank()) uriHandler.openUri(screen.reUrl)
                     },
-                    onNavigateToHelp = { /* Open Help */ }
+                    onNavigateToHelp = { currentScreen = Screen.HelpSupport(screen.userId, showKycHelp = true) }
                 )
             }
             is Screen.EsignInformation -> {
@@ -213,7 +219,7 @@ fun App() {
                         // Normally this would trigger the E-sign flow
                         handleNavigation("MANDATE_AUTH", screen.userId, null, null, null) { currentScreen = it }
                     },
-                    onNavigateToHelp = { /* Open Help */ }
+                    onNavigateToHelp = { currentScreen = Screen.HelpSupport(screen.userId, showKycHelp = true) }
                 )
             }
             is Screen.MinDetails -> {
@@ -284,12 +290,13 @@ fun App() {
                     },
                     onNavigateToGoal = { goalId ->
                         // Navigate to SipAmountV2 - in a real app we'd fetch kycAttemptId/investorId from session
-                        currentScreen = Screen.SipAmountV2(screen.userId, "", "", goalId)
+                        currentScreen = Screen.SipAmountV2(screen.userId, "", "", goalId, fromDashboard = true)
                     },
                     onNavigateToWithdraw = {
                         currentScreen = Screen.Withdraw(screen.userId)
                     },
-                    onNavigateToProfile = { currentScreen = Screen.Profile(screen.userId) }
+                    onNavigateToProfile = { currentScreen = Screen.Profile(screen.userId) },
+                    onNavigateToHelp = { currentScreen = Screen.HelpSupport(screen.userId) }
                 )
             }
             is Screen.SchemeDetails -> {
@@ -336,7 +343,14 @@ fun App() {
                             mandateRef = ref ?: 0L
                         )
                     },
-                    onNavigateBack = { currentScreen = Screen.InitialDashboard(screen.userId) }
+                    onNavigateBack = { 
+                        currentScreen = if (screen.fromDashboard) {
+                            Screen.InvestmentDashboard(screen.userId)
+                        } else {
+                            Screen.InitialDashboard(screen.userId)
+                        }
+                    },
+                    onNavigateToHelp = { currentScreen = Screen.HelpSupport(screen.userId) }
                 )
             }
             is Screen.MandateAuth -> {
@@ -370,6 +384,9 @@ fun App() {
             is Screen.HelpSupport -> {
                 HelpSupportScreen(
                     userId = screen.userId,
+                    showKycHelp = screen.showKycHelp,
+                    showBankHelp = screen.showBankHelp,
+                    showOnlyKycInfo = screen.showOnlyKycInfo,
                     onBack = { currentScreen = Screen.Profile(screen.userId) }
                 )
             }
@@ -447,7 +464,7 @@ private fun handleNavigation(
         }
         ScreenNames.SIP_AMOUNT_V2 -> {
             platformLog("AppNav: Matched SIP_AMOUNT_V2")
-            onNavigate(Screen.SipAmountV2(userId, "", "", ""))
+            onNavigate(Screen.SipAmountV2(userId, "", "", "", false))
         }
         ScreenNames.MANDATE_AUTH -> {
             platformLog("AppNav: Matched MANDATE_AUTH")

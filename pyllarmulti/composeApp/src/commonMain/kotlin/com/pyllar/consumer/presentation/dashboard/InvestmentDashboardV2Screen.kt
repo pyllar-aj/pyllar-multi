@@ -46,6 +46,7 @@ import com.pyllar.consumer.util.Log
 import com.pyllar.consumer.util.Resource
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import com.pyllar.consumer.platform.PlatformActions
 import kotlin.math.ceil
 
 // --- Metal Texture Palettes & Constants ---
@@ -75,7 +76,8 @@ fun InvestmentDashboardV2Screen(
     onNavigateToProfile: () -> Unit = {},
     onNavigateToHelp: () -> Unit = {},
     onRetryKyc: () -> Unit = {},
-    viewModel: InvestmentDashboardV2ViewModel = koinInject()
+    viewModel: InvestmentDashboardV2ViewModel = koinInject(),
+    platformActions: PlatformActions = koinInject()
 ) {
     Log.d("InvestmentDashboardV2", "🎨 COMPOSABLE CALLED - userId: '$userId'")
 
@@ -143,7 +145,7 @@ fun InvestmentDashboardV2Screen(
                     showMenu = showMenu,
                     onMenuClick = { showMenu = true },
                     onDismissMenu = { showMenu = false },
-                    onShareClick = { /* Handle Share */ },
+                    onShareClick = { platformActions.shareText("Start your investment journey with Pyllar! Download now: https://pyllar.in", "Share Pyllar") },
                     onLanguageClick = { /* Handle Language */ },
                     onRateUsClick = { /* Handle Rate Us */ }
                 )
@@ -198,7 +200,7 @@ fun InvestmentDashboardV2Screen(
                 
                 // Promotion Card if there are investments
                 item {
-                    PromotionShareCard(onShareClick = { /* Handle Share */ })
+                    PromotionShareCard(onShareClick = { platformActions.shareText("Join Pyllar and build your wealth! https://pyllar.in", "Share Pyllar") })
                 }
             } else if (!dashboardState.isLoading && dashboardState.primaryGoals.isEmpty()) {
                 // Show Journey Card if no goals

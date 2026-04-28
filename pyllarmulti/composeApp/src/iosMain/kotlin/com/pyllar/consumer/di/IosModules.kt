@@ -12,6 +12,8 @@ import com.pyllar.consumer.platform.IosUpdateManager
 import com.pyllar.consumer.platform.PermissionManager
 import com.pyllar.consumer.platform.PushTokenProvider
 import com.pyllar.consumer.platform.UpdateManager
+import com.pyllar.consumer.platform.PlatformActions
+import com.pyllar.consumer.platform.IosPlatformActions
 import org.koin.core.module.Module
 import org.koin.dsl.module
 
@@ -30,5 +32,6 @@ fun iosPlatformModule(): Module = module {
     single<AnalyticsTracker> { IosAnalyticsTracker() }
     single<UpdateManager> { IosUpdateManager() }
     single<PermissionManager> { IosPermissionManager() }
+    single<PlatformActions> { IosPlatformActions() }
 }
 

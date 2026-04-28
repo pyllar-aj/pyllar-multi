@@ -68,3 +68,12 @@ interface PermissionManager {
     suspend fun requestNotifications(): Boolean
     suspend fun requestLocation(): Boolean
 }
+
+/**
+ * Interface for triggering platform-specific actions like opening URLs or sharing content.
+ */
+interface PlatformActions {
+    fun openUrl(url: String)
+    fun shareText(text: String, title: String = "Share")
+    fun openWhatsApp(phoneNumber: String, message: String)
+}

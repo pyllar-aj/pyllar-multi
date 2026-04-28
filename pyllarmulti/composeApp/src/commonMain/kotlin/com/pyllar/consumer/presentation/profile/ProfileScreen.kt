@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import org.koin.compose.koinInject
+import com.pyllar.consumer.platform.PlatformActions
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -23,7 +24,8 @@ fun ProfileScreen(
     onLogout: () -> Unit = {},
     onDeleteAccount: () -> Unit = {},
     onHelpSupport: () -> Unit = {},
-    onBack: () -> Unit = {}
+    onBack: () -> Unit = {},
+    platformActions: PlatformActions = koinInject()
 ) {
     val profileState by viewModel.profileState.collectAsState()
     var showManageSheet by remember { mutableStateOf(false) }
@@ -102,7 +104,16 @@ fun ProfileScreen(
                         headlineContent = { Text("Need Help?") },
                         leadingContent = { Icon(Icons.Filled.Help, contentDescription = null) },
                         trailingContent = { Icon(Icons.Filled.ChevronRight, contentDescription = null) },
-                        modifier = Modifier.clickable { onHelpSupport() }
+                    modifier = Modifier.clickable { onHelpSupport() }
+                    )
+                    HorizontalDivider()
+                    ListItem(
+                        headlineContent = { Text("Share App") },
+                        leadingContent = { Icon(Icons.Filled.Share, contentDescription = null) },
+                        trailingContent = { Icon(Icons.Filled.ChevronRight, contentDescription = null) },
+                        modifier = Modifier.clickable { 
+                            platformActions.shareText("Build your wealth with Pyllar! https://pyllar.in", "Share Pyllar")
+                        }
                     )
                 }
             }

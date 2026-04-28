@@ -26,6 +26,7 @@ import com.pyllar.consumer.analytics.PlatformAnalyticsLogger
 import com.pyllar.consumer.data.remote.model.dto.NavigationAction
 import com.pyllar.consumer.navigation.AppRoutes
 import com.pyllar.consumer.util.Resource
+import com.pyllar.consumer.platform.PlatformActions
 import com.pyllar.consumer.util.platformLog
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -71,6 +72,7 @@ fun InitialDashboardScreen(
     onNavigateToRoute: (screen: String, preVerificationId: String?) -> Unit = { _, _ -> }
 ) {
     val viewModel: InitialDashboardViewModel = koinInject()
+    val platformActions: PlatformActions = koinInject()
     val coroutineScope = rememberCoroutineScope()
     var isSubmitting by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -103,7 +105,10 @@ fun InitialDashboardScreen(
             item {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     IconButton(
-                        onClick = { PlatformAnalyticsLogger.logEvent("share_app_clicked", mapOf("screen" to "InitialDashboard")) },
+                        onClick = { 
+                            PlatformAnalyticsLogger.logEvent("share_app_clicked", mapOf("screen" to "InitialDashboard"))
+                            platformActions.shareText("Build your wealth with Pyllar! https://pyllar.in", "Share Pyllar")
+                        },
                         modifier = Modifier.size(40.dp)
                     ) {
                         Icon(Icons.Filled.Share, contentDescription = "Share",

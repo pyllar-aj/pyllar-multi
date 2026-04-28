@@ -38,6 +38,7 @@ import com.pyllar.consumer.presentation.mutualfund.onboarding.PanKycViewModel
 import com.pyllar.consumer.presentation.mutualfund.onboarding.AdditionalKycViewModel
 import com.pyllar.consumer.presentation.mutualfund.onboarding.BankDetailsViewModel
 import com.pyllar.consumer.presentation.mutualfund.onboarding.SipAmountScreenV2ViewModel
+import com.pyllar.consumer.presentation.support.HelperCodeViewModel
 import com.pyllar.consumer.presentation.mutualfund.onboarding.PreVerificationViewModel
 import com.pyllar.consumer.domain.repository.PreVerificationRepository
 import com.pyllar.consumer.data.repository.PreVerificationRepositoryImpl
@@ -99,4 +100,5 @@ val sharedModule: Module = module {
     factoryOf(::InvestmentDashboardV2ViewModel)
     factoryOf(::SchemeDetailsViewModel)
     factoryOf(::WithdrawViewModel)
+    factoryOf(::HelperCodeViewModel)
 }

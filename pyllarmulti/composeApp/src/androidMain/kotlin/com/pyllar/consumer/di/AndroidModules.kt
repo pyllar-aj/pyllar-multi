@@ -31,5 +31,6 @@ fun androidPlatformModule(appContext: Context): Module = module {
     single<AnalyticsTracker> { AndroidAnalyticsTracker(appContext) }
     single<UpdateManager> { AndroidUpdateManager(appContext) }
     single<PermissionManager> { AndroidPermissionManager(appContext) }
+    single<PlatformActions> { AndroidPlatformActions(appContext) }
 }
 
