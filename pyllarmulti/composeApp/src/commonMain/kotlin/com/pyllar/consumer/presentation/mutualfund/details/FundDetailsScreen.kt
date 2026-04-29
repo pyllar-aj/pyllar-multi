@@ -1,5 +1,6 @@
 package com.pyllar.consumer.presentation.mutualfund.details
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -13,9 +14,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.*
 import com.pyllar.consumer.analytics.PlatformAnalyticsLogger
 import com.pyllar.consumer.util.platformLog
+import com.pyllar.consumer.presentation.dashboard.formatIndian
+import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.drawscope.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import com.pyllar.consumer.data.remote.model.dto.NavChartDataDto
+import com.pyllar.consumer.data.remote.model.dto.FundReturnsDto
 import org.koin.compose.koinInject
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -80,22 +90,20 @@ fun FundDetailsScreen(
                     ) {
                         FundHeader(details.fundName ?: "", details.category ?: "")
                         
-                        // Chart Placeholder
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(200.dp)
-                                .background(Color.LightGray.copy(alpha = 0.1f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text("NAV Chart Placeholder (KMP)", modifier = Modifier.alpha(0.5f))
-                        }
+                        FundChartSection(
+                            state = state,
+                            onPeriodSelected = { viewModel.onPeriodSelected(it) }
+                        )
+
+                        RiskometerSection(details.riskLevel ?: "MODERATE")
 
                         FundMetricsGrid(
                             expenseRatio = details.expenseRatio?.toString() ?: "-",
                             aum = details.aum?.toString() ?: "-",
                             exitLoad = details.exitLoad?.toString() ?: "-"
                         )
+
+                        FundDescriptionSection(details.fundName ?: "")
                     }
                 }
             }
@@ -168,5 +176,196 @@ fun FundDetailsBottomBar(isLoading: Boolean, sipAmount: Double, onInvestClick: (
                 }
             }
         }
+    }
+}
+@Composable
+fun FundChartSection(
+    state: FundDetailsState,
+    onPeriodSelected: (String) -> Unit
+) {
+    val positiveColor = Color(0xFF4CAF50)
+    val negativeColor = Color(0xFFF44336)
+    val lineColor = if (state.isPositiveReturn) positiveColor else negativeColor
+
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            listOf("1Y", "3Y", "5Y").forEach { period ->
+                val selected = state.selectedPeriod == period
+                FilterChip(
+                    selected = selected,
+                    onClick = { onPeriodSelected(period) },
+                    label = { 
+                        Text(
+                            text = period,
+                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+                        ) 
+                    }
+                )
+            }
+        }
+
+        val returns = state.fundDetails?.returns
+        if (returns != null) {
+            val returnVal = when (state.selectedPeriod) {
+                "1Y" -> returns.oneYear
+                "3Y" -> returns.threeYear
+                "5Y" -> returns.fiveYear
+                else -> 0.0
+            } ?: 0.0
+            val returnColor = if (returnVal >= 0) positiveColor else negativeColor
+            val sign = if (returnVal >= 0) "+" else ""
+            
+            Text(
+                text = "$sign${returnVal}% CAGR (${state.selectedPeriod})",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = returnColor
+            )
+        }
+
+        if (state.chartData.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+                    .background(Color.LightGray.copy(alpha = 0.1f), RoundedCornerShape(8.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("No chart data available", style = MaterialTheme.typography.bodyMedium)
+            }
+        } else {
+            SimpleNavChart(
+                data = state.chartData,
+                lineColor = lineColor,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun SimpleNavChart(
+    data: List<NavChartDataDto>,
+    lineColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Canvas(modifier = modifier) {
+        if (data.size < 2) return@Canvas
+
+        val minNav = data.minOf { it.nav }.toFloat()
+        val maxNav = data.maxOf { it.nav }.toFloat()
+        val navRange = maxNav - minNav
+        
+        val width = size.width
+        val height = size.height
+        val padding = 8.dp.toPx()
+        
+        val usableWidth = width - (2 * padding)
+        val usableHeight = height - (2 * padding)
+
+        val myPath = Path()
+        val fillPath = Path()
+
+        data.forEachIndexed { index, point ->
+            val x = padding + (index.toFloat() / (data.size - 1)) * usableWidth
+            val y = padding + usableHeight - ((point.nav.toFloat() - minNav) / navRange.coerceAtLeast(0.1f)) * usableHeight
+            
+            if (index == 0) {
+                myPath.moveTo(x, y)
+                fillPath.moveTo(x, height)
+                fillPath.lineTo(x, y)
+            } else {
+                myPath.lineTo(x, y)
+                fillPath.lineTo(x, y)
+            }
+            
+            if (index == data.size - 1) {
+                fillPath.lineTo(x, height)
+                fillPath.close()
+            }
+        }
+
+        drawPath(
+            path = fillPath,
+            brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                colors = listOf(lineColor.copy(alpha = 0.2f), Color.Transparent)
+            ),
+            style = Fill
+        )
+
+        val strokeWidth = 3.dp.toPx()
+        drawPath(
+            path = myPath,
+            color = lineColor,
+            style = Stroke(width = strokeWidth)
+        )
+    }
+}
+
+@Composable
+fun RiskometerSection(riskLevel: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Riskometer", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Box(
+                modifier = Modifier
+                    .size(width = 100.dp, height = 12.dp)
+                    .background(Color.LightGray.copy(alpha = 0.3f), CircleShape)
+            ) {
+                val progress = when(riskLevel.uppercase()) {
+                    "LOW" -> 0.2f
+                    "MODERATELY_LOW" -> 0.4f
+                    "MODERATE" -> 0.6f
+                    "MODERATELY_HIGH" -> 0.8f
+                    "HIGH" -> 0.9f
+                    "VERY_HIGH" -> 1.0f
+                    else -> 0.5f
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(progress)
+                        .fillMaxHeight()
+                        .background(getRiskColor(riskLevel), CircleShape)
+                )
+            }
+            Text(
+                riskLevel.replace("_", " ").lowercase().replaceFirstChar { it.uppercase() },
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = getRiskColor(riskLevel)
+            )
+        }
+        Text(
+            "This fund has ${riskLevel.lowercase().replace("_", " ")} risk",
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.alpha(0.7f)
+        )
+    }
+}
+
+fun getRiskColor(riskLevel: String): Color {
+    return when(riskLevel.uppercase()) {
+        "LOW", "MODERATELY_LOW" -> Color(0xFF4CAF50)
+        "MODERATE" -> Color(0xFFFFC107)
+        "MODERATELY_HIGH" -> Color(0xFFFF9800)
+        "HIGH", "VERY_HIGH" -> Color(0xFFF44336)
+        else -> Color.Gray
+    }
+}
+
+@Composable
+fun FundDescriptionSection(name: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("About the Fund", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Text(
+            "$name is an open-ended equity scheme that seeks to generate long-term capital appreciation by investing in a diversified portfolio of companies.",
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.alpha(0.8f)
+        )
     }
 }

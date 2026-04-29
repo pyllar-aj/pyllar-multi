@@ -58,7 +58,7 @@ sealed class Screen {
     data class InvestmentDashboard(val userId: String) : Screen()
     data class SchemeDetails(val userId: String, val purpose: String) : Screen()
     data class Withdraw(val userId: String) : Screen()
-    data class FundDetails(val isin: String, val userId: String, val goalId: String, val sipAmount: Double) : Screen()
+    data class FundDetails(val isin: String, val userId: String, val goalId: String, val sipAmount: Double, val fromSipAmount: Boolean = false) : Screen()
     data class SipAmountV2(val userId: String, val kycAttemptId: String, val investorId: String, val goalId: String, val fromDashboard: Boolean = false) : Screen()
     data class MandateAuth(
         val userId: String,
@@ -84,13 +84,30 @@ sealed class Screen {
 @Composable
 fun App() {
     MaterialTheme {
-        var currentScreen by remember { mutableStateOf<Screen>(Screen.PhoneVerification) }
+        val screenStack = remember { mutableStateListOf<Screen>(Screen.PhoneVerification) }
+        val currentScreen = screenStack.last()
+
+        fun navigateTo(screen: Screen, clearStack: Boolean = false) {
+            platformLog("AppNav: navigateTo ${screen::class.simpleName} (clearStack=$clearStack)")
+            if (clearStack) screenStack.clear()
+            screenStack.add(screen)
+        }
+
+        fun navigateBack() {
+            platformLog("AppNav: navigateBack. Stack size before: ${screenStack.size}")
+            if (screenStack.size > 1) {
+                screenStack.removeAt(screenStack.size - 1)
+            } else {
+                platformLog("AppNav: Cannot navigate back, stack size is 1")
+            }
+        }
 
         LaunchedEffect(currentScreen) {
             platformLog("App: currentScreen changed to ${currentScreen::class.simpleName} - $currentScreen")
         }
 
-        platformLog("App: Rendering screen: ${currentScreen::class.simpleName}")
+        platformLog("App: Rendering screen: ${currentScreen::class.simpleName} (Stack size: ${screenStack.size})")
+        
         when (val screen = currentScreen) {
             is Screen.PhoneVerification -> {
                 val phoneVm: PhoneVerificationViewModel = koinInject()
@@ -101,7 +118,7 @@ fun App() {
                         val ref = if (authToken is Resource.Success) {
                             authToken.data?.otpRef
                         } else null
-                        currentScreen = Screen.OtpVerification(number, ref)
+                        navigateTo(Screen.OtpVerification(number, ref))
                     }
                 )
             }
@@ -115,15 +132,13 @@ fun App() {
                     phoneNumber = screen.phoneNumber,
                     viewModel = otpVm,
                     onNavigateToPermissionScreen = { isNewUser, nextScreen, userId ->
-                        currentScreen = Screen.MinimalPermission(
+                        navigateTo(Screen.MinimalPermission(
                             userId = userId,
                             isNewUser = isNewUser,
                             nextScreen = nextScreen
-                        )
+                        ))
                     },
-                    onNavigateBack = {
-                        currentScreen = Screen.PhoneVerification
-                    }
+                    onNavigateBack = { navigateBack() }
                 )
             }
             is Screen.MinimalPermission -> {
@@ -133,7 +148,7 @@ fun App() {
                     isNewUser = screen.isNewUser,
                     viewModel = permVm,
                     onNavigateNext = { nextScreen ->
-                        handleNavigation(nextScreen, screen.userId, null) { currentScreen = it }
+                        handleNavigation(nextScreen, screen.userId, null) { navigateTo(it) }
                     }
                 )
             }
@@ -141,15 +156,13 @@ fun App() {
                 val panVm: PanKycViewModel = koinInject()
                 PanKycScreen(
                     onPanVerified = { pan, nextScreen, _, _, _ ->
-                        // In a real app, we'd fetch email/phone/token from a session or previous step
-                        // For this migration, we use placeholders if not available
-                        currentScreen = Screen.MinDetails(
+                        navigateTo(Screen.MinDetails(
                             userId = screen.userId,
                             pan = pan,
                             email = "", 
                             phone = "",
                             token = ""
-                        )
+                        ))
                     },
                     viewModel = panVm
                 )
@@ -157,12 +170,12 @@ fun App() {
             is Screen.PreVerification -> {
                 PreVerificationScreen(
                     onNavigateNext = { /* handled via screen result */ },
-                    onNavigateBack = { currentScreen = Screen.PhoneVerification },
+                    onNavigateBack = { navigateBack() },
                     onNavigateToScreen = { nextScreen ->
-                        handleNavigation(nextScreen, screen.userId, null) { currentScreen = it }
+                        handleNavigation(nextScreen, screen.userId, null) { navigateTo(it) }
                     },
-                    onNavigateToHelp = { currentScreen = Screen.HelpSupport(screen.userId, showKycHelp = true) },
-                    onNavigateToKycInfo = { currentScreen = Screen.HelpSupport(screen.userId, showKycHelp = true) }
+                    onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId, showKycHelp = true)) },
+                    onNavigateToKycInfo = { navigateTo(Screen.HelpSupport(screen.userId, showKycHelp = true)) }
                 )
             }
             is Screen.AdditionalKyc -> {
@@ -170,20 +183,20 @@ fun App() {
                     kycAttemptId = screen.kycAttemptId,
                     token = "", // Token retrieved from session in VM
                     onNext = { nextScreen, attemptId ->
-                        handleNavigation(nextScreen, screen.userId, null, attemptId) { currentScreen = it }
+                        handleNavigation(nextScreen, screen.userId, null, attemptId) { navigateTo(it) }
                     },
-                    onNavigateToHelp = { currentScreen = Screen.HelpSupport(screen.userId, showKycHelp = true) }
+                    onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId, showKycHelp = true)) }
                 )
             }
             is Screen.NomineeDetails -> {
                 NomineeDetailsScreen(
                     onNext = { nextScreen ->
-                        handleNavigation(nextScreen ?: "", screen.userId, null) { currentScreen = it }
+                        handleNavigation(nextScreen ?: "", screen.userId, null) { navigateTo(it) }
                     },
                     userId = screen.userId,
                     kycAttemptId = screen.kycAttemptId,
                     investorId = screen.investorId,
-                    onNavigateToHelp = { currentScreen = Screen.HelpSupport(screen.userId, showKycHelp = true) }
+                    onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId, showKycHelp = true)) }
                 )
             }
             is Screen.BankDetails -> {
@@ -196,9 +209,9 @@ fun App() {
                             userId = screen.userId,
                             kycAttemptId = screen.kycAttemptId,
                             investorId = investorId
-                        ) { currentScreen = it }
+                        ) { navigateTo(it) }
                     },
-                    onNavigateToHelp = { currentScreen = Screen.HelpSupport(screen.userId, showBankHelp = true) }
+                    onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId, showBankHelp = true)) }
                 )
             }
             is Screen.KycInformation -> {
@@ -208,29 +221,28 @@ fun App() {
                         if (!screen.reUrl.isNullOrBlank()) {
                             uriHandler.openUri(screen.reUrl)
                         } else {
-                            handleNavigation(ScreenNames.MIN_DETAILS, screen.userId) { currentScreen = it }
+                            handleNavigation(ScreenNames.MIN_DETAILS, screen.userId) { navigateTo(it) }
                         }
                     },
                     onOpenWebSignIn = {
                         if (!screen.reUrl.isNullOrBlank()) uriHandler.openUri(screen.reUrl)
                     },
-                    onNavigateToHelp = { currentScreen = Screen.HelpSupport(screen.userId, showKycHelp = true) }
+                    onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId, showKycHelp = true)) }
                 )
             }
             is Screen.EsignInformation -> {
                 EsignInformationScreen(
                     onProceed = {
-                        // Normally this would trigger the E-sign flow
-                        handleNavigation("MANDATE_AUTH", screen.userId, null, null, null) { currentScreen = it }
+                        handleNavigation("MANDATE_AUTH", screen.userId, null, null, null) { navigateTo(it) }
                     },
-                    onNavigateToHelp = { currentScreen = Screen.HelpSupport(screen.userId, showKycHelp = true) }
+                    onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId, showKycHelp = true)) }
                 )
             }
             is Screen.MinDetails -> {
                 val minVm: MinDetailsViewModel = koinInject()
                 MinDetailsScreen(
                     onNext = { nextScreen, kycAttemptId ->
-                        handleNavigation(nextScreen, screen.userId, kycAttemptId, null, null) { currentScreen = it }
+                        handleNavigation(nextScreen, screen.userId, kycAttemptId, null, null) { navigateTo(it) }
                     },
                     viewModel = minVm,
                     userId = screen.userId,
@@ -244,14 +256,13 @@ fun App() {
                 val nameVm: NameDobViewModel = koinInject()
                 NameDobScreen(
                     onKycSubmitted = { _, _, navInfo, data ->
-                        // Extract reUrl and nextScreen for DigiLocker flow
                         val nextAction = navInfo?.nextScreen ?: ScreenNames.INITIAL_DASHBOARD
                         val reUrl = navInfo?.getParam("reUrl")
                         handleNavigation(
                             action = nextAction,
                             userId = screen.userId,
                             reUrl = reUrl
-                        ) { currentScreen = it }
+                        ) { navigateTo(it) }
                     },
                     userId = screen.userId,
                     pan = screen.pan,
@@ -265,7 +276,7 @@ fun App() {
                 CheckPanPopulatedDetailsScreen(
                     onSubmit = { name, gender, dob, father, marital, perm, corr ->
                         checkVm.submitDetails(screen.userId, screen.preVerificationId, name, gender, dob, father, marital, perm, corr)
-                        handleNavigation(ScreenNames.INITIAL_DASHBOARD, screen.userId, null, null, screen.preVerificationId) { currentScreen = it }
+                        handleNavigation(ScreenNames.INITIAL_DASHBOARD, screen.userId, null, null, screen.preVerificationId) { navigateTo(it) }
                     }
                 )
             }
@@ -274,7 +285,7 @@ fun App() {
                     userId = screen.userId,
                     onNavigateToOnboarding = { _, _ -> /* Fallback */ },
                     onNavigateToRoute = { nextScreen, preVerificationId ->
-                        handleNavigation(nextScreen, screen.userId, null, null, preVerificationId) { currentScreen = it }
+                        handleNavigation(nextScreen, screen.userId, null, null, preVerificationId) { navigateTo(it) }
                     }
                 )
             }
@@ -283,41 +294,40 @@ fun App() {
                 UpiAccountLinkingScreen(
                     viewModel = upiVm,
                     onAccountLinked = { /* Linked */ },
-                    onNavigateBack = { /* Back */ }
+                    onNavigateBack = { navigateBack() }
                 )
             }
             is Screen.InvestmentDashboard -> {
                 InvestmentDashboardV2Screen(
                     userId = screen.userId,
                     onNavigateToSchemeDetails = { purpose ->
-                        currentScreen = Screen.SchemeDetails(screen.userId, purpose)
+                        navigateTo(Screen.SchemeDetails(screen.userId, purpose))
                     },
                     onNavigateToGoal = { goalId ->
-                        // Navigate to SipAmountV2 - in a real app we'd fetch kycAttemptId/investorId from session
-                        currentScreen = Screen.SipAmountV2(screen.userId, "", "", goalId, fromDashboard = true)
+                        navigateTo(Screen.SipAmountV2(screen.userId, "", "", goalId, fromDashboard = true))
                     },
                     onNavigateToWithdraw = {
-                        currentScreen = Screen.Withdraw(screen.userId)
+                        navigateTo(Screen.Withdraw(screen.userId))
                     },
-                    onNavigateToProfile = { currentScreen = Screen.Profile(screen.userId) },
-                    onNavigateToHelp = { currentScreen = Screen.HelpSupport(screen.userId) }
+                    onNavigateToProfile = { navigateTo(Screen.Profile(screen.userId)) },
+                    onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId)) }
                 )
             }
             is Screen.SchemeDetails -> {
                 SchemeDetailsScreen(
                     userId = screen.userId,
                     purpose = screen.purpose,
-                    onNavigateBack = { currentScreen = Screen.InvestmentDashboard(screen.userId) },
+                    onNavigateBack = { navigateBack() },
                     onNavigateToWithdraw = { params ->
                         WithdrawParamsManager.set(params)
-                        currentScreen = Screen.Withdraw(screen.userId)
+                        navigateTo(Screen.Withdraw(screen.userId))
                     }
                 )
             }
             is Screen.Withdraw -> {
                 WithdrawScreen(
                     userId = screen.userId,
-                    onNavigateBack = { currentScreen = Screen.InvestmentDashboard(screen.userId) },
+                    onNavigateBack = { navigateBack() },
                     onProceed = { _, _ -> /* Proceed */ }
                 )
             }
@@ -327,18 +337,17 @@ fun App() {
                     userId = screen.userId,
                     goalId = screen.goalId,
                     sipAmount = screen.sipAmount,
-                    onBackClick = { currentScreen = Screen.InitialDashboard(screen.userId) }
+                    onBackClick = { navigateBack() }
                 )
             }
             is Screen.SipAmountV2 -> {
-                platformLog("AppNav: Rendering SipAmountV2. fromDashboard=${screen.fromDashboard}")
                 SipAmountScreenV2(
                     userId = screen.userId,
                     kycAttemptId = screen.kycAttemptId,
                     investorId = screen.investorId,
                     goalId = screen.goalId,
                     onSipCreated = { amount, url, id, ref ->
-                        currentScreen = Screen.MandateAuth(
+                        navigateTo(Screen.MandateAuth(
                             userId = screen.userId,
                             kycAttemptId = screen.kycAttemptId,
                             investorId = screen.investorId,
@@ -346,19 +355,12 @@ fun App() {
                             mandateUrl = url ?: "",
                             mandateId = id ?: 0L,
                             mandateRef = ref ?: 0L
-                        )
+                        ))
                     },
-                    onNavigateBack = { 
-                        platformLog("AppNav: SipAmountV2 Back clicked. fromDashboard=${screen.fromDashboard}")
-                        currentScreen = if (screen.fromDashboard) {
-                            Screen.InvestmentDashboard(screen.userId)
-                        } else {
-                            Screen.InitialDashboard(screen.userId)
-                        }
-                    },
-                    onNavigateToHelp = { currentScreen = Screen.HelpSupport(screen.userId) },
+                    onNavigateBack = { navigateBack() },
+                    onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId)) },
                     onNavigateToFundDetails = { userId, goalId, amt, kycId, invId ->
-                        currentScreen = Screen.FundDetails("", userId, goalId, amt)
+                        navigateTo(Screen.FundDetails("", userId, goalId, amt, fromSipAmount = true))
                     }
                 )
             }
@@ -371,23 +373,23 @@ fun App() {
                     mandateUrl = screen.mandateUrl,
                     mandateId = screen.mandateId,
                     mandateRef = screen.mandateRef,
-                    onGoToHome = { currentScreen = Screen.InvestmentDashboard(screen.userId) },
-                    onNavigateBack = { currentScreen = Screen.SipAmountV2(screen.userId, screen.kycAttemptId, screen.investorId, "") }
+                    onGoToHome = { navigateTo(Screen.InvestmentDashboard(screen.userId), clearStack = true) },
+                    onNavigateBack = { navigateBack() }
                 )
             }
             is Screen.Profile -> {
                 ProfileScreen(
                     userId = screen.userId,
-                    onLogout = { currentScreen = Screen.PhoneVerification },
-                    onDeleteAccount = { currentScreen = Screen.AccountDeletion(screen.userId) },
-                    onHelpSupport = { currentScreen = Screen.HelpSupport(screen.userId) },
-                    onBack = { currentScreen = Screen.InvestmentDashboard(screen.userId) }
+                    onLogout = { navigateTo(Screen.PhoneVerification, clearStack = true) },
+                    onDeleteAccount = { navigateTo(Screen.AccountDeletion(screen.userId)) },
+                    onHelpSupport = { navigateTo(Screen.HelpSupport(screen.userId)) },
+                    onBack = { navigateBack() }
                 )
             }
             is Screen.AccountDeletion -> {
                 AccountDeletionScreen(
                     userId = screen.userId,
-                    onBack = { currentScreen = Screen.Profile(screen.userId) }
+                    onBack = { navigateBack() }
                 )
             }
             is Screen.HelpSupport -> {
@@ -396,19 +398,19 @@ fun App() {
                     showKycHelp = screen.showKycHelp,
                     showBankHelp = screen.showBankHelp,
                     showOnlyKycInfo = screen.showOnlyKycInfo,
-                    onBack = { currentScreen = Screen.InvestmentDashboard(screen.userId) }
+                    onBack = { navigateBack() }
                 )
             }
             is Screen.NotificationWebView -> {
                 NotificationWebViewScreen(
                     url = screen.url,
                     title = screen.title,
-                    onBack = { currentScreen = Screen.InvestmentDashboard("") } // userId might be needed
+                    onBack = { navigateBack() }
                 )
             }
             is Screen.Home -> {
                 HomeScreen(
-                    onNavigateToMutualFund = { currentScreen = Screen.InitialDashboard("") }
+                    onNavigateToMutualFund = { navigateTo(Screen.InitialDashboard(""), clearStack = true) }
                 )
             }
         }

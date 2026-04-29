@@ -58,6 +58,9 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.SpanStyle
 import pyllar.composeapp.generated.resources.*
 
 
@@ -1010,26 +1013,192 @@ fun NextGoalsSection(
     goals: List<InvestmentGoal>,
     onGoalClick: (String) -> Unit
 ) {
-    Column {
-        Text(
-            text = "Your Next Goals",
-            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-            modifier = Modifier.padding(vertical = 8.dp)
-        )
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "Your Next Goals",
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Choose a goal to start your wealth building journey",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                textAlign = TextAlign.Center
+            )
+        }
+
         goals.forEach { goal ->
-            Card(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).clickable { onGoalClick(goal.goalId) },
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5))
+            NextGoalCard(
+                goal = goal,
+                onClick = { onGoalClick(goal.goalId) },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
+}
+
+@Composable
+fun NextGoalCard(
+    goal: InvestmentGoal,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val gradientColors = getGoalGradientColors(goal.category, goal.colorTheme)
+    val borderColor = getDarkBorderColorForCategory(goal.category, goal.colorTheme)
+    val correlationColor = getCorrelationColorForCategory(goal.category, goal.colorTheme)
+    val category = goal.category.uppercase()
+
+    Card(
+        modifier = modifier
+            .padding(vertical = 4.dp)
+            .clickable { onClick() },
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    brush = Brush.verticalGradient(colors = gradientColors),
+                    shape = RoundedCornerShape(16.dp)
+                )
+                .border(2.dp, borderColor, RoundedCornerShape(16.dp))
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.Top
             ) {
-                Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(goal.iconType, fontSize = 24.sp)
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(goal.name, fontWeight = FontWeight.Bold)
-                        Text(goal.description, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val iconBgColor = getIconBackgroundColorForCategory(goal.category, goal.colorTheme)
+                    val iconDrawable = getGoalIconDrawable(goal.category)
+                    val iconText = goal.iconType.ifBlank { "🎯" }
+                    Surface(
+                        modifier = Modifier.size(32.dp),
+                        shape = CircleShape,
+                        color = iconBgColor
+                    ) {
+                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                            if (iconDrawable != null) {
+                                Image(
+                                    painter = painterResource(iconDrawable),
+                                    contentDescription = goal.name,
+                                    modifier = Modifier.size(20.dp),
+                                    contentScale = ContentScale.Fit
+                                )
+                            } else {
+                                Text(text = iconText, style = MaterialTheme.typography.titleSmall)
+                            }
+                        }
                     }
-                    Icon(imageVector = Icons.Default.ChevronRight, contentDescription = null)
+                    Text(
+                        text = formatGoalName(goal.name),
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = correlationColor,
+                        modifier = Modifier.weight(1f).padding(start = 12.dp)
+                    )
+                    
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = null,
+                        tint = correlationColor.copy(alpha = 0.6f)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color.White.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(
+                        modifier = Modifier.weight(0.4f),
+                        horizontalAlignment = Alignment.Start
+                    ) {
+                        Text(
+                            text = "Daily SIP",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color(0xFF424242)
+                        )
+                        Text(
+                            text = when (category) {
+                                "GOLD", "SAVINGS" -> "₹21 - ₹500"
+                                "FESTIVAL_SPENDS" -> "₹11 - ₹500"
+                                "GLOBAL_EXPOSURE", "ALL_IN_ONE" -> "₹101 - ₹1000"
+                                else -> "₹101 - ₹500"
+                            },
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                            color = Color(0xFF424242)
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier.width(1.dp).height(32.dp).background(Color(0xFFE0E0E0))
+                    )
+
+                    Column(
+                        modifier = Modifier.weight(0.6f).padding(start = 12.dp),
+                        horizontalAlignment = Alignment.Start
+                    ) {
+                        val annotatedText = buildAnnotatedString {
+                            when (category) {
+                                "GOLD" -> {
+                                    append("Investing ₹101 daily since Jan 2023 gives you power of ")
+                                    withStyle(SpanStyle(color = Color(0xFFB8860B), fontWeight = FontWeight.Bold)) {
+                                        append("~15.8g Gold")
+                                    }
+                                }
+                                "SILVER" -> {
+                                    append("Investing ₹101 daily since Jan 2023 yields ")
+                                    withStyle(SpanStyle(color = Color(0xFF616161), fontWeight = FontWeight.Bold)) {
+                                        append("~1.24kg Silver")
+                                    }
+                                }
+                                "SAVINGS" -> {
+                                    append("Investing ₹101 daily since Jan 2023 built a corpus of ")
+                                    withStyle(SpanStyle(color = Color(0xFF004D40), fontWeight = FontWeight.Bold)) {
+                                        append("~₹1.24 Lakhs")
+                                    }
+                                }
+                                "FESTIVAL_SPENDS" -> {
+                                    append("Investing ₹51 daily since Jan 2023 grew to ")
+                                    withStyle(SpanStyle(color = Color(0xFFFF6F00), fontWeight = FontWeight.Bold)) {
+                                        append("~₹62,408")
+                                    }
+                                }
+                                "GLOBAL_EXPOSURE" -> {
+                                    append("Investing ₹101 daily since Jan 2023 in global fund grew to ")
+                                    withStyle(SpanStyle(color = Color(0xFF00897B), fontWeight = FontWeight.Bold)) {
+                                        append("~₹1.54 Lakhs")
+                                    }
+                                }
+                                else -> append(goal.description)
+                            }
+                        }
+                        Text(
+                            text = annotatedText,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFF424242),
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
         }

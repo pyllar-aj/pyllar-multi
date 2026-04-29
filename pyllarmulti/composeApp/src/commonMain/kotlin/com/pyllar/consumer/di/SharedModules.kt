@@ -44,6 +44,7 @@ import com.pyllar.consumer.domain.repository.PreVerificationRepository
 import com.pyllar.consumer.data.repository.PreVerificationRepositoryImpl
 import com.pyllar.consumer.presentation.mutualfund.onboarding.MandateAuthModel
 import com.pyllar.consumer.presentation.mutualfund.onboarding.CheckPanPopulatedDetailsViewModel
+import com.pyllar.consumer.presentation.profile.ProfileViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import org.koin.core.module.Module
@@ -101,4 +102,5 @@ val sharedModule: Module = module {
     factoryOf(::SchemeDetailsViewModel)
     factoryOf(::WithdrawViewModel)
     factoryOf(::HelperCodeViewModel)
+    factoryOf(::ProfileViewModel)
 }

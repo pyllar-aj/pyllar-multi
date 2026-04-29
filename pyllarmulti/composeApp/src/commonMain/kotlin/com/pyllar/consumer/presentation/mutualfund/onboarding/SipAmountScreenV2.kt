@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -32,6 +33,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
@@ -153,7 +155,13 @@ fun SipAmountScreenV2(
                     IconButton(onClick = { platformActions.shareText("Start your investment journey with Pyllar! https://pyllar.in") }) {
                         Icon(Icons.Default.Share, contentDescription = "Share", tint = MaterialTheme.colorScheme.primary)
                     }
-                    TextButton(onClick = onNavigateToHelp) {
+                    TextButton(onClick = {
+                        try {
+                            onNavigateToHelp()
+                        } catch (e: Exception) {
+                            com.pyllar.consumer.util.platformLog("SipAmount: Help click failed: ${e.message}")
+                        }
+                    }) {
                         Text("Help", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                     }
                 }
@@ -192,10 +200,22 @@ fun SipAmountScreenV2(
                         )
                         
                         if (isCustomMode) {
+                            var customValue by remember(amount) { mutableStateOf(amount.toInt().toString()) }
                             OutlinedTextField(
-                                value = amount.toInt().toString(),
-                                onValueChange = { val str = it.filter { c -> c.isDigit() }; if (str.isNotEmpty()) amount = str.toFloat() },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                value = customValue,
+                                onValueChange = { 
+                                    customValue = it.filter { c -> c.isDigit() }
+                                    if (customValue.isNotEmpty()) {
+                                        amount = customValue.toFloat()
+                                    }
+                                },
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.Number,
+                                    imeAction = ImeAction.Done
+                                ),
+                                keyboardActions = KeyboardActions(
+                                    onDone = { isCustomMode = false }
+                                ),
                                 modifier = Modifier.width(150.dp),
                                 textStyle = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold, textAlign = TextAlign.Center),
                                 singleLine = true,
@@ -284,48 +304,18 @@ fun SipAmountScreenV2(
                         }
 
                         // Investing in section
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    onNavigateToFundDetails(
-                                        userId,
-                                        goalId,
-                                        amount.toDouble(),
-                                        kycAttemptId,
-                                        investorId
-                                    )
-                                },
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text("Investing in", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-                                fundDetailsState.fundDetails?.fundName?.let { fundName ->
-                                    val logo = when {
-                                        fundName.contains("Invesco", true) -> Res.drawable.invesco
-                                        fundName.contains("Aditya", true) -> Res.drawable.aditya
-                                        fundName.contains("Axis", true) -> Res.drawable.axis_lo
-                                        fundName.contains("Nippon", true) -> Res.drawable.nippon
-                                        else -> null
-                                    }
-                                    if (logo != null) {
-                                        androidx.compose.foundation.Image(
-                                            painter = painterResource(logo),
-                                            contentDescription = null,
-                                            modifier = Modifier.size(40.dp)
-                                        )
-                                    } else {
-                                        Text(fundName, style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.End)
-                                    }
-                                }
+                        InvestingInCard(
+                            fundDetailsState = fundDetailsState,
+                            onClick = {
+                                onNavigateToFundDetails(
+                                    userId,
+                                    goalId,
+                                    amount.toDouble(),
+                                    kycAttemptId,
+                                    investorId
+                                )
                             }
-                        }
+                        )
                     }
 
                     Spacer(modifier = Modifier.weight(1f))
@@ -749,5 +739,78 @@ fun formatRupeesShort(amount: Double): String {
         amount >= 10_000_000 -> "₹${(amount / 10_000_000).toInt()}Cr"
         amount >= 100_000 -> "₹${(amount / 100_000).toInt()}L"
         else -> "₹${amount.toInt()}"
+    }
+}
+
+@Composable
+fun InvestingInCard(
+    fundDetailsState: com.pyllar.consumer.presentation.mutualfund.details.FundDetailsState,
+    onClick: () -> Unit = {}
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Investing in", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                fundDetailsState.fundDetails?.fundName?.let { fundName ->
+                    val logo = when {
+                        fundName.contains("Invesco", true) -> Res.drawable.invesco
+                        fundName.contains("Aditya", true) -> Res.drawable.aditya
+                        fundName.contains("Axis", true) -> Res.drawable.axis_lo
+                        fundName.contains("Nippon", true) -> Res.drawable.nippon
+                        else -> null
+                    }
+                    if (logo != null) {
+                        androidx.compose.foundation.Image(
+                            painter = painterResource(logo),
+                            contentDescription = null,
+                            modifier = Modifier.size(40.dp)
+                        )
+                    }
+                }
+            }
+            
+            fundDetailsState.fundDetails?.let { details ->
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = details.fundName,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Text("Category", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(details.category ?: "Mutual Fund", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
+                    }
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text("Risk Level", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(details.riskLevel ?: "Moderate", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
+                    }
+                }
+            } ?: run {
+                if (fundDetailsState.isLoading) {
+                    Box(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                    }
+                } else {
+                    Text("Fund details not available", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                }
+            }
+        }
     }
 }
