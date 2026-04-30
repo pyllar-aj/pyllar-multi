@@ -37,7 +37,7 @@ sealed class Screen {
     data class AdditionalKyc(val userId: String, val kycAttemptId: String) : Screen()
     data class NomineeDetails(val userId: String, val kycAttemptId: String, val investorId: String) : Screen()
     data class BankDetails(val userId: String, val kycAttemptId: String) : Screen()
-    data class KycInformation(val userId: String, val reUrl: String? = null) : Screen()
+    data class KycInformation(val userId: String, val reUrl: String? = null, val kycAttemptId: String? = null) : Screen()
     data class EsignInformation(val userId: String) : Screen()
     data class MinDetails(
         val userId: String,
@@ -79,6 +79,7 @@ sealed class Screen {
         val showOnlyKycInfo: Boolean = false
     ) : Screen()
     data class NotificationWebView(val url: String, val title: String) : Screen()
+    data class KycWebView(val userId: String, val url: String, val kycAttemptId: String? = null) : Screen()
     object Home : Screen()
 }
 
@@ -218,19 +219,39 @@ fun App() {
                 )
             }
             is Screen.KycInformation -> {
-                val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
                 KycInformationScreen(
                     onProceed = {
                         if (!screen.reUrl.isNullOrBlank()) {
-                            uriHandler.openUri(screen.reUrl)
+                            navigateTo(Screen.KycWebView(screen.userId, screen.reUrl, screen.kycAttemptId))
                         } else {
-                            handleNavigation(ScreenNames.MIN_DETAILS, screen.userId) { navigateTo(it) }
+                            handleNavigation(ScreenNames.MIN_DETAILS, screen.userId, screen.kycAttemptId) { navigateTo(it) }
                         }
                     },
                     onOpenWebSignIn = {
-                        if (!screen.reUrl.isNullOrBlank()) uriHandler.openUri(screen.reUrl)
+                        if (!screen.reUrl.isNullOrBlank()) {
+                            navigateTo(Screen.KycWebView(screen.userId, screen.reUrl, screen.kycAttemptId))
+                        }
                     },
                     onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId, showKycHelp = true)) }
+                )
+            }
+            is Screen.KycWebView -> {
+                KycWebViewScreen(
+                    url = screen.url,
+                    onKycComplete = { status ->
+                        if (status == "successful") {
+                            // Match Android logic: Navigate to Additional KYC
+                            handleNavigation(
+                                action = ScreenNames.ADDITIONAL_KYC,
+                                userId = screen.userId,
+                                kycAttemptId = screen.kycAttemptId
+                            ) { navigateTo(it) }
+                        } else {
+                            // Match Android logic: Go back to KYC Information to retry
+                            navigateBack()
+                        }
+                    },
+                    onBack = { navigateBack() }
                 )
             }
             is Screen.EsignInformation -> {
@@ -468,7 +489,7 @@ private fun handleNavigation(
         }
         ScreenNames.KYC_INFORMATION -> {
             platformLog("AppNav: Matched KYC_INFORMATION with reUrl: ${reUrl != null}")
-            onNavigate(Screen.KycInformation(userId, reUrl))
+            onNavigate(Screen.KycInformation(userId, reUrl, kycAttemptId))
         }
         ScreenNames.ESIGN_INFORMATION -> {
             platformLog("AppNav: Matched ESIGN_INFORMATION")
