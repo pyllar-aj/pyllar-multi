@@ -360,7 +360,8 @@ class InvestmentDashboardV2ViewModel(
             unitsInGm = investment.unitsInGm,
             profit = investment.profit ?: 0.0,
             realizedProfit = investment.realizedProfit ?: 0.0,
-            unrealizedProfit = investment.unrealizedProfit ?: 0.0
+            unrealizedProfit = investment.unrealizedProfit ?: 0.0,
+            instantRedemptionValue = investment.instantRedemptionValue ?: 0.0
         )
     }
 
@@ -421,6 +422,7 @@ class InvestmentDashboardV2ViewModel(
             "gold" -> "🪙"
             "silver" -> "⚪"
             "savings" -> "💰"
+            "savings_plus" -> "⚡"
             "all_in_one" -> "🛡️"
             "global_exposure" -> "🌍"
             else -> "💡"
@@ -670,6 +672,30 @@ class InvestmentDashboardV2ViewModel(
                 recommendedDailyAmount = monthlySipAmount / 30,
                 category = "GLOBAL_EXPOSURE",
                 colorTheme = "teal",
+                actionButtonText = "Start Planning",
+                targetDate = calculateTargetDate(timeRemaining),
+                schemeName = schemeName,
+                folioNo = folioNo,
+                planNumber = planNumber,
+                createdDate = createdDate,
+                isin = isin
+            )
+            "savings_plus" -> InvestmentGoal(
+                goalId = "savings_plus",
+                name = "Savings Plus",
+                description = "Premium savings with instant liquidity",
+                iconType = "⚡",
+                targetAmount = progressiveTarget,
+                investedAmount = totalInvested,
+                cummulativeValue = cummulativeValue,
+                currentValue = totalValue,
+                returnsPercentage = returnsPercentage,
+                progressPercentage = progressPercentage,
+                timeRemainingMonths = timeRemaining,
+                recommendedMonthlyAmount = monthlySipAmount,
+                recommendedDailyAmount = monthlySipAmount / 30,
+                category = "SAVINGS_PLUS",
+                colorTheme = "green",
                 actionButtonText = "Start Planning",
                 targetDate = calculateTargetDate(timeRemaining),
                 schemeName = schemeName,

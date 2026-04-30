@@ -51,7 +51,8 @@ data class InvestmentGoal(
     val unitsInGm: Double? = null,
     val profit: Double = 0.0,
     val realizedProfit: Double = 0.0,
-    val unrealizedProfit: Double = 0.0
+    val unrealizedProfit: Double = 0.0,
+    val instantRedemptionValue: Double = 0.0
 )
 
 data class PlanSummary(

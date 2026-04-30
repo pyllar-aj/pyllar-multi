@@ -173,6 +173,24 @@ class InitialDashboardViewModel(
                 targetDate = "Jan 2040"
             ),
             InvestmentGoal(
+                goalId = "savings_plus",
+                name = "Savings Plus",
+                description = "Save for your festive budget",
+                iconType = "🎊",
+                targetAmount = 100000.0,
+                investedAmount = 0.0,
+                currentValue = 0.0,
+                returnsPercentage = 0.0,
+                progressPercentage = 0.0,
+                timeRemainingMonths = 37,
+                recommendedMonthlyAmount = 2424.0,
+                recommendedDailyAmount = 101.0,
+                category = "SAVINGS_PLUS",
+                colorTheme = "green",
+                actionButtonText = "Start Saving",
+                targetDate = "Feb 2028"
+            ),
+            InvestmentGoal(
                 goalId = "vacation",
                 name = "Vacation",
                 description = "Save for your dream getaway",

@@ -1,5 +1,6 @@
 package com.pyllar.consumer.presentation.mutualfund.onboarding
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -43,7 +44,7 @@ import org.koin.compose.koinInject
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun NomineeDetailsScreen(
     onNext: (String?) -> Unit,
@@ -361,6 +362,7 @@ fun NomineeDetailsScreen(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun NomineeFormSection(
     index: Int,

@@ -9,6 +9,10 @@ plugins {
     alias(libs.plugins.kotlinSerialization)
 }
 
+compose.resources {
+    publicResClass = true
+}
+
 kotlin {
     androidTarget {
         compilerOptions {
@@ -35,7 +39,6 @@ kotlin {
             implementation(libs.compose.material3)
             implementation(libs.compose.ui)
             implementation(libs.compose.components.resources)
-            implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(libs.kotlinx.serialization.json)
@@ -54,9 +57,11 @@ kotlin {
             implementation(libs.ktor.client.okhttp)
             implementation(libs.koin.android)
             implementation(libs.androidx.security.crypto)
+            implementation(libs.compose.uiToolingPreview)
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
+            implementation(libs.kotlinx.datetime)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

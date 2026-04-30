@@ -13,6 +13,8 @@ import com.pyllar.consumer.platform.DeviceInfoProvider
 import com.pyllar.consumer.platform.PermissionManager
 import com.pyllar.consumer.platform.PushTokenProvider
 import com.pyllar.consumer.platform.UpdateManager
+import com.pyllar.consumer.platform.PlatformActions
+import com.pyllar.consumer.platform.AndroidPlatformActions
 import org.koin.core.module.Module
 import org.koin.dsl.module
 

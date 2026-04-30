@@ -225,6 +225,12 @@ fun NameDobScreen(
         if (isSubmitting) return
         nameError = null; dobError = null; genericError = null
         isSubmitting = true
+
+        PlatformAnalyticsLogger.logEvent(
+            "kyc_minimal_submit_attempt",
+            mapOf("pan_last4" to effectivePan.takeLast(4))
+        )
+
         scope.launch {
             viewModel.createMinimalKyc(
                 userId = userId,

@@ -1,0 +1,5 @@
+<resources>
+    <string name="tag_0_gst">0% GST</string>
+    <string name="no_lock_in">No lock-in</string>
+    <string name="app_name">Pyllar</string>
+</resources>

@@ -37,6 +37,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -58,9 +61,8 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.font.FontFamily
+import org.jetbrains.compose.resources.Font
 import pyllar.composeapp.generated.resources.*
 
 
@@ -135,7 +137,13 @@ fun InvestmentDashboardV2Screen(
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-            item {
+                if (!dashboardState.isLoading && dashboardState.hasFirstMilestone && dashboardState.milestoneMessage.isNotBlank()) {
+                    item {
+                        MilestoneBanner(message = dashboardState.milestoneMessage)
+                    }
+                }
+                
+                item {
                 Spacer(modifier = Modifier.height(16.dp))
                 UserHeader(
                     userName = dashboardState.userName,
@@ -684,6 +692,10 @@ fun PrimaryGoalCard(
     onBottomCardClick: () -> Unit = {}
 ) {
     var showInfoDialog by remember { mutableStateOf(false) }
+    var showSavingsPlusInfo by remember { mutableStateOf(false) }
+    val category = goal?.category?.uppercase().orEmpty()
+    val isSavingsPlus = category == "SAVINGS_PLUS"
+    val cursiveFontFamily = FontFamily(Font(Res.font.cursive_font))
     val borderColor = if (goal != null) {
         // Use colorTheme if available, otherwise use category
         goal.colorTheme.toColor()
@@ -828,11 +840,24 @@ fun PrimaryGoalCard(
                                     }
                                 }
                                 Spacer(modifier = Modifier.width(12.dp))
-                                Text(
-                                    text = formatGoalName(goal.name),
-                                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                                    color = correlationColor
-                                )
+                                if (isSavingsPlus) {
+                                    Text(
+                                        text = buildAnnotatedString {
+                                            append("Savings ")
+                                            withStyle(SpanStyle(fontFamily = cursiveFontFamily, fontSize = 22.sp)) {
+                                                append("Plus")
+                                            }
+                                        },
+                                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                                        color = Color(0xFF1B5E20)
+                                    )
+                                } else {
+                                    Text(
+                                        text = formatGoalName(goal.name),
+                                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                                        color = correlationColor
+                                    )
+                                }
                             }
                             
                             // Units in Gram (Gold/Silver) - Top Right
@@ -843,6 +868,20 @@ fun PrimaryGoalCard(
                                     style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                                     color = correlationColor
                                 )
+                            }
+
+                            if (isSavingsPlus) {
+                                Surface(
+                                    color = Color(0xFF2E7D32),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Text(
+                                        text = "⚡ Instant Redeem",
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                        color = Color.White
+                                    )
+                                }
                             }
                         }
 
@@ -877,14 +916,17 @@ fun PrimaryGoalCard(
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     IconButton(
-                                        onClick = { showInfoDialog = true },
+                                        onClick = { 
+                                            if (isSavingsPlus) showSavingsPlusInfo = true
+                                            else showInfoDialog = true 
+                                        },
                                         modifier = Modifier.size(20.dp)
                                     ) {
                                         Icon(
                                             imageVector = Icons.Filled.Info,
                                             contentDescription = "Info",
                                             modifier = Modifier.size(16.dp),
-                                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                            tint = if (isSavingsPlus) Color(0xFF2E7D32) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                                         )
                                     }
                                 }
@@ -961,6 +1003,14 @@ fun PrimaryGoalCard(
         }
     }
     
+    // Savings Plus Info Dialog
+    if (showSavingsPlusInfo && goal != null) {
+        SavingsPlusInfoDialog(
+            instantRedemptionValue = goal.instantRedemptionValue,
+            onDismiss = { showSavingsPlusInfo = false }
+        )
+    }
+
     // Info Dialog
     if (showInfoDialog) {
         AlertDialog(
@@ -996,16 +1046,73 @@ fun PrimaryGoalCard(
 @Composable
 fun MilestoneBanner(message: String) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFE3F2FD)),
-        shape = RoundedCornerShape(12.dp)
+        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9)),
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, Color(0xFFA5D6A7))
     ) {
         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Text("🎉", fontSize = 20.sp)
             Spacer(modifier = Modifier.width(12.dp))
-            Text(message, style = MaterialTheme.typography.bodyMedium, color = Color(0xFF1565C0))
+            Text(message, style = MaterialTheme.typography.bodyMedium, color = Color(0xFF2E7D32), fontWeight = FontWeight.SemiBold)
         }
     }
+}
+
+@Composable
+fun SavingsPlusInfoDialog(
+    instantRedemptionValue: Double,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Savings Plus",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF1B5E20)
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = "Savings Plus provides higher returns than a regular savings account with the added benefit of instant liquidity.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                
+                Surface(
+                    color = Color(0xFFE8F5E9),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text(
+                            text = "Instant Redeemable Amount",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color(0xFF2E7D32)
+                        )
+                        Text(
+                            text = "₹${formatIndian(instantRedemptionValue)}",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = Color(0xFF1B5E20)
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "You can withdraw up to ₹50,000 or 90% of your investment (whichever is lower) instantly, 24/7.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFF1B5E20).copy(alpha = 0.8f)
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Understood", color = Color(0xFF2E7D32))
+            }
+        }
+    )
 }
 
 @Composable
@@ -1284,9 +1391,16 @@ fun DashboardTrustFooter() {
             Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.VerifiedUser, contentDescription = null, tint = goldColor, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("SEBI Registered Investment Platform", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                Text("AMFI Registered Mutual Fund Distributor", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
             }
         }
+        Text(
+            text = "Pyllar Fintech Private Limited is an AMFI registered Mutual Fund distributor (ARN No: 341847)",
+            style = MaterialTheme.typography.labelSmall,
+            color = darkGreenText.copy(alpha = 0.6f),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 16.dp)
+        )
     }
 }
 

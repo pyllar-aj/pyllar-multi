@@ -5,8 +5,8 @@ object Log {
         platformLog("$tag: [DEBUG] $message")
     }
 
-    fun e(tag: String, message: String) {
-        platformLog("$tag: [ERROR] $message")
+    fun e(tag: String, message: String, throwable: Throwable? = null) {
+        platformLog("$tag: [ERROR] $message ${throwable?.message ?: ""}")
     }
 
     fun w(tag: String, message: String) {

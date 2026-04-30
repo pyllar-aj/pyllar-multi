@@ -1,7 +1,7 @@
 package com.pyllar.consumer
 
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
+import kotlinx.coroutines.launch
 import com.pyllar.consumer.navigation.ScreenNames
 import com.pyllar.consumer.presentation.auth.permission.PermissionViewModel
 import com.pyllar.consumer.presentation.auth.permission.MinimalPermissionScreen
@@ -18,6 +18,7 @@ import com.pyllar.consumer.presentation.profile.*
 import com.pyllar.consumer.presentation.support.*
 import com.pyllar.consumer.presentation.mutualfund.upi.UpiAccountLinkingScreen
 import com.pyllar.consumer.presentation.mutualfund.upi.UpiAccountLinkingViewModel
+import com.pyllar.consumer.presentation.ui.theme.PyllarTheme
 import com.pyllar.consumer.data.remote.model.dto.NavigationAction
 import com.pyllar.consumer.util.Resource
 import com.pyllar.consumer.util.platformLog
@@ -83,7 +84,9 @@ sealed class Screen {
 
 @Composable
 fun App() {
-    MaterialTheme {
+    val sessionStore: com.pyllar.consumer.domain.storage.SessionStore = koinInject()
+    val scope = rememberCoroutineScope()
+    PyllarTheme {
         val screenStack = remember { mutableStateListOf<Screen>(Screen.PhoneVerification) }
         val currentScreen = screenStack.last()
 
@@ -256,13 +259,31 @@ fun App() {
                 val nameVm: NameDobViewModel = koinInject()
                 NameDobScreen(
                     onKycSubmitted = { _, _, navInfo, data ->
-                        val nextAction = navInfo?.nextScreen ?: ScreenNames.INITIAL_DASHBOARD
-                        val reUrl = navInfo?.getParam("reUrl")
-                        handleNavigation(
-                            action = nextAction,
-                            userId = screen.userId,
-                            reUrl = reUrl
-                        ) { navigateTo(it) }
+                        val reUrl = navInfo?.getParam("reUrl") ?: (data as? com.pyllar.consumer.data.remote.model.MinimalKycResponse)?.reUrl
+                        
+                        scope.launch {
+                            val kycAttemptId = navInfo?.getParam("kycAttemptId") 
+                                ?: (data as? com.pyllar.consumer.data.remote.model.MinimalKycResponse)?.kycAttemptId
+                            
+                            if (!kycAttemptId.isNullOrBlank()) {
+                                sessionStore.saveValue(com.pyllar.consumer.data.local.KeyValueConstants.KYC_ATTEMPT_ID, kycAttemptId)
+                            }
+                            if (!reUrl.isNullOrBlank()) {
+                                sessionStore.saveValue(com.pyllar.consumer.data.local.KeyValueConstants.RE_URL, reUrl)
+                            }
+
+                            val nextAction = if (!reUrl.isNullOrBlank()) {
+                                ScreenNames.KYC_INFORMATION
+                            } else {
+                                navInfo?.nextScreen ?: ScreenNames.KYC_INFORMATION
+                            }
+                            
+                            handleNavigation(
+                                action = nextAction,
+                                userId = screen.userId,
+                                reUrl = reUrl
+                            ) { navigateTo(it) }
+                        }
                     },
                     userId = screen.userId,
                     pan = screen.pan,

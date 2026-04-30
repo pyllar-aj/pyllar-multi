@@ -47,6 +47,10 @@ import com.pyllar.consumer.util.platformLog
 import com.pyllar.consumer.util.Resource
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import kotlinx.datetime.Clock.System as kClockSystem
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.DayOfWeek
 import kotlin.math.pow
 
 // Goal type identification
@@ -84,6 +88,55 @@ fun getGoalDisplayName(goalType: GoalType): String {
         GoalType.ALL_IN_ONE -> "All-in-One"
         GoalType.GLOBAL_EXPOSURE -> "Global Exposure"
         GoalType.OTHER -> "Goal"
+    }
+}
+
+/**
+ * Get the SIP start day based on the current day of the week.
+ * Returns "Tomorrow" for Monday-Thursday, or the day name for Friday-Sunday.
+ */
+fun getInvestmentStatus(): String {
+    val now = kClockSystem.now().toLocalDateTime(TimeZone.currentSystemDefault())
+    val dayOfWeek = now.dayOfWeek
+
+    return when (dayOfWeek) {
+        // Monday to Thursday - SIP starts tomorrow
+        DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY -> {
+            "Tomorrow"
+        }
+        
+        // Friday - Move to Monday
+        DayOfWeek.FRIDAY -> {
+            "Monday"
+        }
+        
+        // Saturday - Move to Monday
+        DayOfWeek.SATURDAY -> {
+            "Monday"
+        }
+        
+        // Sunday - Move to Tuesday
+        DayOfWeek.SUNDAY -> {
+            "Tuesday"
+        }
+    }
+}
+
+/**
+ * Get the next allocation day name (Monday–Friday) when SIP/order allocation happens.
+ * Used for "By [Day] 8 am: Allocation success" on mandate success.
+ */
+fun getNextAllocationDayName(): String {
+    val now = kClockSystem.now().toLocalDateTime(TimeZone.currentSystemDefault())
+    val dayOfWeek = now.dayOfWeek
+
+    return when (dayOfWeek) {
+        DayOfWeek.MONDAY -> "Tuesday"
+        DayOfWeek.TUESDAY -> "Wednesday"
+        DayOfWeek.WEDNESDAY -> "Thursday"
+        DayOfWeek.THURSDAY -> "Friday"
+        DayOfWeek.FRIDAY, DayOfWeek.SATURDAY -> "Monday"
+        DayOfWeek.SUNDAY -> "Tuesday"
     }
 }
 
@@ -130,10 +183,10 @@ fun SipAmountScreenV2(
     }
 
     // Helper to get investment status text
-    val getInvestmentStatus = {
-        if (fundDetailsState.isLoading) "Fetching..."
-        else if (fundDetailsState.error != null) "Not Available"
-        else "Active"
+    val investmentStatusText = when {
+        fundDetailsState.isLoading -> "Fetching..."
+        fundDetailsState.error != null -> "Not Available"
+        else -> getInvestmentStatus()
     }
     
     LaunchedEffect(limitsState) {
@@ -299,7 +352,7 @@ fun SipAmountScreenV2(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text("SIP starts at", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text(getInvestmentStatus(), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                                Text(investmentStatusText, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                             }
                         }
 
@@ -697,7 +750,12 @@ fun FundDetailsBottomSheet(
                             Icon(Icons.Default.VerifiedUser, contentDescription = null, tint = Color(0xFF4CAF50))
                             Column {
                                 Text("Bank Account", style = MaterialTheme.typography.labelSmall)
-                                Text("A/C: $acc", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                                val maskedAcc = if (acc.length > 4) {
+                                    acc.takeLast(4).padStart(acc.length, '*')
+                                } else {
+                                    acc
+                                }
+                                Text("A/C: $maskedAcc", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
                             }
                         }
                     }

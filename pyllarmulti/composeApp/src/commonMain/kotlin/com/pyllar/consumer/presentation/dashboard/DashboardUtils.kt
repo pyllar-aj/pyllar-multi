@@ -25,6 +25,7 @@ fun getCorrelationColorForCategory(category: String?, colorTheme: String?): Colo
         "CHILDRENS_EDUCATION" -> Color(0xFF2196F3) // Blue
         "VACATION" -> Color(0xFF9C27B0) // Purple
         "SAVINGS" -> Color(0xFF388E3C) // Green
+        "SAVINGS_PLUS" -> Color(0xFF2E7D32) // Emerald Green
         "GLOBAL_EXPOSURE" -> Color(0xFF00897B) // Teal
         "ALL_IN_ONE" -> Color(0xFFB71C1C) // Dark red
         else -> Color(0xFF4CAF50) // Default green
@@ -46,6 +47,9 @@ fun getBorderColorForCategory(category: String?): Color {
 }
 
 fun getDarkBorderColorForCategory(category: String?, colorTheme: String?): Color {
+    val cat = category?.uppercase().orEmpty()
+    if (cat == "SAVINGS_PLUS") return Color(0xFF1B5E20) // Forest Green
+    
     val baseColor = colorTheme?.toColor() ?: getBorderColorForCategory(category)
     return baseColor.copy(alpha = 0.8f)
 }
@@ -82,6 +86,11 @@ fun getGoalGradientColors(category: String?, colorTheme: String?): List<Color> {
             Color(0xFFF5FFF5), // Slightly green-beige
             Color(0xFFEBFFEB)  // Light mint-beige
         )
+        "SAVINGS_PLUS" -> listOf(
+            Color(0xFFE8F5E9), // Very light emerald
+            Color(0xFFC8E6C9), // Light emerald
+            Color(0xFFA5D6A7)  // Soft emerald
+        )
         "GLOBAL_EXPOSURE" -> listOf(
             Color(0xFFE0F2F1),
             Color(0xFFE1F5FE),
@@ -109,6 +118,7 @@ fun getIconBackgroundColorForCategory(category: String?, colorTheme: String?): C
         "CHILDRENS_EDUCATION" -> Color(0xFFBBDEFB) // Light blue
         "VACATION" -> Color(0xFFE1BEE7) // Light purple
         "SAVINGS" -> Color(0xFFC8E6C9) // Light green
+        "SAVINGS_PLUS" -> Color(0xFFA5D6A7) // Emerald tint
         "GLOBAL_EXPOSURE" -> Color(0xFFB2DFDB) // Light teal
         "ALL_IN_ONE" -> Color(0xFFE1BEE7) // Light purple
         else -> Color(0xFFC8E6C9) // Default light green
@@ -121,6 +131,7 @@ fun getGoalIconDrawable(category: String?): DrawableResource? {
         "SILVER" -> Res.drawable.silver_icon
         "FESTIVAL_SPENDS" -> Res.drawable.festivals_icon
         "SAVINGS" -> Res.drawable.savings_icon
+        "SAVINGS_PLUS" -> Res.drawable.savings_plus
         else -> null
     }
 }
@@ -133,6 +144,7 @@ fun getCorrelationText(category: String?): String {
         "CHILDRENS_EDUCATION" -> "Grows with market performance"
         "VACATION" -> "Grows with market performance"
         "SAVINGS" -> "Expected growth up to 7%"
+        "SAVINGS_PLUS" -> "Expected growth up to 7% • Instant Redeem"
         "GLOBAL_EXPOSURE" -> "Grows with global market performance"
         "ALL_IN_ONE" -> "Diversified growth across asset classes"
         else -> "Grows with market performance"
