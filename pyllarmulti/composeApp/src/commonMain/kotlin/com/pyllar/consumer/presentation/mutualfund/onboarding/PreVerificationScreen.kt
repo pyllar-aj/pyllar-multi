@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -26,9 +27,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import com.pyllar.consumer.util.platformLog
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Close
 import com.pyllar.otp.OtpField
 import com.pyllar.consumer.analytics.PlatformAnalyticsLogger
 import com.pyllar.consumer.util.Resource
@@ -42,7 +47,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import org.koin.compose.koinInject
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun PreVerificationScreen(
     onNavigateNext: () -> Unit,
@@ -62,6 +67,7 @@ fun PreVerificationScreen(
     var panNumber by remember { mutableStateOf("") }
     var panError by remember { mutableStateOf<String?>(null) }
     var autoFetchFailed by remember { mutableStateOf(false) }
+    var isPhoneMissing by remember { mutableStateOf(false) }
     var fetchedPanName by remember { mutableStateOf<String?>(null) }
 
     // Auto-fill PAN from prepopulated data
@@ -138,6 +144,18 @@ fun PreVerificationScreen(
         userPhone = sessionStore.getCurrentPhone()
     }
 
+    // Timeout handling - reset isSubmitting after 90 seconds if API doesn't complete
+    LaunchedEffect(isSubmitting) {
+        if (isSubmitting) {
+            delay(90000) // 90 seconds
+            if (isSubmitting && uiState.verificationResult !is Resource.Success && uiState.verificationResult !is Resource.Error) {
+                platformLog("PreVerificationScreen: \u26A0\uFE0F Safety timeout: API call took too long, resetting isSubmitting and triggering button timeout")
+                isSubmitting = false
+                timeoutState.triggerTimeout()
+            }
+        }
+    }
+
     // Handle PAN Fetch Result
     LaunchedEffect(uiState.panFetchResult) {
         val result = uiState.panFetchResult
@@ -206,12 +224,12 @@ fun PreVerificationScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 LanguageLetterButton(textColor = MaterialTheme.colorScheme.primary)
-                TextButton(onClick = {
-                    PlatformAnalyticsLogger.logEvent("pre_verification_help_clicked")
-                    onNavigateToHelp()
-                }) {
-                    Text("Help", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                }
+            TextButton(onClick = {
+                PlatformAnalyticsLogger.logEvent("pre_verification_help_clicked", mapOf("screen" to "pre_verification", "button_location" to "top_right"))
+                onNavigateToHelp()
+            }) {
+                Text("Help", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+            }
             }
 
             Surface(
@@ -233,7 +251,14 @@ fun PreVerificationScreen(
                     .weight(1f)
                     .fillMaxWidth()
                     .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .imePadding(),
+                    .imePadding()
+                    .clickable(
+                        indication = null,
+                        interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+                    ) {
+                        keyboardController?.hide()
+                        focusManager.clearFocus()
+                    },
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 24.dp, bottom = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Top
@@ -266,11 +291,17 @@ fun PreVerificationScreen(
 
                             Button(
                                 onClick = {
-                                    PlatformAnalyticsLogger.logEvent("pre_verification_find_my_pan_clicked")
+                                    PlatformAnalyticsLogger.logEvent("pre_verification_find_my_pan_clicked", mapOf("has_phone" to userPhone.isNotBlank()))
                                     if (userPhone.isNotBlank()) {
+                                        isPhoneMissing = false
+                                        currentPrefillId = null
+                                        otpCode = ""
+                                        viewModel.clearPanVerifyOtpResult()
                                         viewModel.initiatePanFetch(userPhone)
                                     } else {
-                                        showOtpBottomSheet = true
+                                        isPhoneMissing = true
+                                        autoFetchFailed = true
+                                        showManualEntryForm = true
                                     }
                                 },
                                 modifier = Modifier.fillMaxWidth(),
@@ -280,7 +311,7 @@ fun PreVerificationScreen(
                                 if (uiState.panFetchResult is Resource.Loading) {
                                     CircularProgressIndicator(modifier = Modifier.size(20.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp)
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Fetching...", color = MaterialTheme.colorScheme.onPrimary)
+                                    Text("Fetching...", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
                                 } else {
                                     Text("Autofetch my PAN", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
                                 }
@@ -312,9 +343,18 @@ fun PreVerificationScreen(
                                 }
                             } else {
                                 Column(modifier = Modifier.fillMaxWidth()) {
+                                    val panBringIntoViewRequester = remember { androidx.compose.foundation.relocation.BringIntoViewRequester() }
+                                    var isPanFocused by remember { mutableStateOf(false) }
+                                    
+                                    LaunchedEffect(isPanFocused) {
+                                        if (isPanFocused) {
+                                            delay(400)
+                                            panBringIntoViewRequester.bringIntoView()
+                                        }
+                                    }
                                     if (autoFetchFailed) {
                                         Text(
-                                            text = "Auto-fetch failed. Please enter manually.",
+                                            text = if (isPhoneMissing) "Phone number not found. Please enter PAN manually." else "Auto-fetch failed. Please enter manually.",
                                             color = MaterialTheme.colorScheme.error,
                                             style = MaterialTheme.typography.bodyMedium,
                                             textAlign = TextAlign.Center,
@@ -332,17 +372,36 @@ fun PreVerificationScreen(
                                         value = panNumber,
                                         onValueChange = { newValue ->
                                             val filtered = newValue.uppercase().filter { it.isLetterOrDigit() }
+                                                .filterIndexed { index, c ->
+                                                    when (index) {
+                                                        in 0..4 -> c.isLetter()
+                                                        in 5..8 -> c.isDigit()
+                                                        9 -> c.isLetter()
+                                                        else -> false
+                                                    }
+                                                }
                                             if (filtered.length <= 10) {
                                                 panNumber = filtered
                                                 panError = null
+                                                autoFetchFailed = false
+                                                isPhoneMissing = false
                                                 viewModel.clearError()
+                                                if (fetchedPanName != null) {
+                                                    fetchedPanName = null
+                                                }
                                             }
                                         },
                                         placeholder = { Text("ABCDE1234F") },
                                         singleLine = true,
-                                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                                        keyboardOptions = when (panNumber.length) {
+                                            in 0..4, 9 -> KeyboardOptions(keyboardType = KeyboardType.Ascii, imeAction = ImeAction.Done)
+                                            in 5..8 -> KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done)
+                                            else -> KeyboardOptions(keyboardType = KeyboardType.Ascii, imeAction = ImeAction.Done)
+                                        },
                                         isError = uiState.verificationResult is Resource.Error || fourthLetterError,
-                                        modifier = Modifier.fillMaxWidth(),
+                                        modifier = Modifier.fillMaxWidth()
+                                            .bringIntoViewRequester(panBringIntoViewRequester)
+                                            .onFocusChanged { isPanFocused = it.isFocused },
                                         shape = RoundedCornerShape(8.dp)
                                     )
                                     if (fourthLetterError) {
@@ -350,7 +409,7 @@ fun PreVerificationScreen(
                                     }
 
                                     fetchedPanName?.let { name ->
-                                        Text("Name: $name", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
+                                        Text("Name: $name", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp, start = 4.dp))
                                     }
 
                                     Spacer(modifier = Modifier.height(16.dp))
@@ -361,8 +420,15 @@ fun PreVerificationScreen(
                                             if (panNumber.isBlank()) {
                                                 panError = "PAN is required"
                                                 return@TimeoutButton
+                                            } else if (!panNumber.matches(Regex("^[A-Z]{3}P[A-Z]{1}[0-9]{4}[A-Z]{1}$"))) {
+                                                panError = "Invalid PAN format. Example: ABCDE1234F"
+                                                return@TimeoutButton
                                             }
                                             isSubmitting = true
+                                            PlatformAnalyticsLogger.logEvent("pre_verification_verify_pan_clicked", mapOf(
+                                                "pan_source" to if (fetchedPanName != null) "find_my_pan" else "manual",
+                                                "pan_length" to panNumber.length
+                                            ))
                                             viewModel.checkInvestorReadiness(panNumber)
                                         },
                                         enabled = isPanValid && !isSubmitting && uiState.verificationResult !is Resource.Loading && uiState.verificationStatus != VerificationStatus.IN_PROGRESS,
@@ -383,7 +449,7 @@ fun PreVerificationScreen(
                                                 Text("Checking...", fontWeight = FontWeight.Bold)
                                             }
                                         } else {
-                                            Text("Verify PAN", fontWeight = FontWeight.Bold)
+                                            Text(if (fetchedPanName != null) "Verify" else "Verify PAN", fontWeight = FontWeight.Bold)
                                         }
                                     }
 
@@ -447,12 +513,23 @@ fun PreVerificationScreen(
                     otpVerificationResult = uiState.panVerifyOtpResult,
                     onOtpCodeChange = { otpCode = it },
                     onVerifyOtp = { otpValue ->
+                        PlatformAnalyticsLogger.logEvent("find_my_pan_otp_verify_clicked", mapOf("otp_length" to otpValue.length))
                         val prefillIdStr = currentPrefillId
                         if (prefillIdStr != null && userPhone.isNotBlank()) {
                             viewModel.verifyOtpAndFetchPan(userPhone, prefillIdStr.toLong(), otpValue)
                         }
                     },
-                    onResendOtp = { viewModel.initiatePanFetch(userPhone) }
+                    onResendOtp = { 
+                        currentPrefillId = null
+                        viewModel.clearPanVerifyOtpResult()
+                        viewModel.initiatePanFetch(userPhone) 
+                    },
+                    onDismiss = {
+                        otpCode = ""
+                        currentPrefillId = null
+                        viewModel.clearPanVerifyOtpResult()
+                        showOtpBottomSheet = false
+                    }
                 )
             }
         }
@@ -477,7 +554,8 @@ private fun PreVerificationOtpBottomSheet(
     otpVerificationResult: Resource<*>?,
     onOtpCodeChange: (String) -> Unit,
     onVerifyOtp: (String) -> Unit,
-    onResendOtp: () -> Unit
+    onResendOtp: () -> Unit,
+    onDismiss: () -> Unit
 ) {
     var resendTimer by remember { mutableStateOf(30) }
     var canResend by remember { mutableStateOf(false) }
@@ -498,6 +576,14 @@ private fun PreVerificationOtpBottomSheet(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            IconButton(onClick = onDismiss) {
+                androidx.compose.material3.Icon(
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = "Close"
+                )
+            }
+        }
         Text("Enter OTP", style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold))
         Text("OTP sent to $phoneNumber", style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
 

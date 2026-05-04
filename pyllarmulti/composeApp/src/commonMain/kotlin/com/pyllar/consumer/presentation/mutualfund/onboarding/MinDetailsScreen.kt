@@ -100,6 +100,9 @@ fun MinDetailsScreen(
             if (effectiveToken.isBlank()) {
                 effectiveToken = sessionStore.getCurrentToken()
             }
+            if (preVerificationId == null) {
+                preVerificationId = sessionStore.getValue(com.pyllar.consumer.data.local.KeyValueConstants.KYC_ATTEMPT_ID)
+            }
             
             // Lock name field if PAN holder name is already known
             val storedPanHolderName = sessionStore.getValue("pan_holder_name")

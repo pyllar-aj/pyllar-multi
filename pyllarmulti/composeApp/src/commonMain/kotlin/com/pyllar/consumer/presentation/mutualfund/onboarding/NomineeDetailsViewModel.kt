@@ -80,10 +80,20 @@ class NomineeDetailsViewModel(
             _nomineeSubmissionResult.value = Resource.Loading()
             
             try {
+                val effectiveKycAttemptId = if (kycAttemptId.isBlank()) {
+                    sessionStore.getValue(com.pyllar.consumer.data.local.KeyValueConstants.KYC_ATTEMPT_ID) ?: ""
+                } else kycAttemptId
+
+                val effectiveInvestorId = if (investorId.isBlank()) {
+                    sessionStore.getValue(com.pyllar.consumer.data.local.KeyValueConstants.INVESTOR_ID) ?: ""
+                } else investorId
+
+                platformLog("NomineeDetailsViewModel: Using kycAttemptId=$effectiveKycAttemptId, investorId=$effectiveInvestorId")
+
                 val request = CreateNomineeRequest(
                     userId = userId,
-                    kycAttemptId = kycAttemptId,
-                    investorId = investorId,
+                    kycAttemptId = effectiveKycAttemptId,
+                    investorId = effectiveInvestorId,
                     wantsToAddNominee = wantsToAddNominee,
                     nomineeName = nomineeName,
                     nomineeRelationship = nomineeRelationship,
@@ -142,6 +152,16 @@ class NomineeDetailsViewModel(
             try {
                 _nomineeSubmissionResult.value = Resource.Loading()
                 
+                val effectiveKycAttemptId = if (kycAttemptId.isBlank()) {
+                    sessionStore.getValue(com.pyllar.consumer.data.local.KeyValueConstants.KYC_ATTEMPT_ID) ?: ""
+                } else kycAttemptId
+
+                val effectiveInvestorId = if (investorId.isBlank()) {
+                    sessionStore.getValue(com.pyllar.consumer.data.local.KeyValueConstants.INVESTOR_ID) ?: ""
+                } else investorId
+
+                platformLog("NomineeDetailsViewModelV2: Using kycAttemptId=$effectiveKycAttemptId, investorId=$effectiveInvestorId")
+
                 val nomineeDetailsList = if (wantsToAddNominee && nominees.isNotEmpty()) {
                     nominees.mapNotNull { nominee ->
                         if (nominee.name.isNotBlank()) {
@@ -162,8 +182,8 @@ class NomineeDetailsViewModel(
                 
                 val request = CreateNomineeRequestV2(
                     userId = userId,
-                    kycAttemptId = kycAttemptId,
-                    investorId = investorId,
+                    kycAttemptId = effectiveKycAttemptId,
+                    investorId = effectiveInvestorId,
                     wantsToAddNominee = wantsToAddNominee,
                     nomineeDetails = if (wantsToAddNominee) nomineeDetailsList else null
                 )

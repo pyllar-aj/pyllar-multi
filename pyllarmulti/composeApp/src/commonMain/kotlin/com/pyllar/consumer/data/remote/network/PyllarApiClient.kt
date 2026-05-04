@@ -31,6 +31,9 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import com.pyllar.consumer.domain.storage.SessionStore
 import com.pyllar.consumer.platform.DeviceInfoProvider
+import io.ktor.client.request.forms.MultiPartFormDataContent
+import io.ktor.client.request.forms.formData
+import io.ktor.http.Headers
 
 class PyllarApiClient(
     @PublishedApi internal val baseUrl: String,
@@ -98,6 +101,78 @@ class PyllarApiClient(
         noinline configure: HttpRequestBuilder.() -> Unit = {}
     ): Resource<T> {
         return executeRequest<T, B>(path, method = "PATCH", body = body, configure = configure)
+    }
+
+    suspend inline fun <reified T> postMultipart(
+        path: String,
+        noinline formData: io.ktor.client.request.forms.FormBuilder.() -> Unit,
+        noinline configure: HttpRequestBuilder.() -> Unit = {}
+    ): Resource<T> {
+        return try {
+            platformLog("PyllarApiClient: 🚀 Starting Multipart Request to $path (Non-Encrypted)")
+            
+            val authToken = sessionStore.getCurrentToken()
+            val sessionUserId = sessionStore.getCurrentUserId()
+            
+            val response: HttpResponse = client.post {
+                url {
+                    takeFrom(baseUrl)
+                    val cleanPath = if (path.startsWith("/")) path.substring(1) else path
+                    val baseWithTrailing = if (baseUrl.endsWith("/")) baseUrl else "$baseUrl/"
+                    takeFrom(baseWithTrailing + cleanPath)
+                }
+                
+                setBody(MultiPartFormDataContent(formData(formData)))
+                
+                // Add mandatory device and app headers
+                val appVersion = deviceInfoProvider.getAppVersion() ?: "1.0.0"
+                val osName = deviceInfoProvider.getOsName()
+                val osVersion = deviceInfoProvider.getOsVersion()
+                val deviceId = deviceInfoProvider.getDeviceId() ?: ""
+                
+                header("app_version", appVersion)
+                header("X-App-Version", appVersion)
+                header("app_name", "pyllar-consumer")
+                header("X-App-Name", "pyllar-consumer")
+                header("os", osName)
+                header("X-OS", osName)
+                header("os_version", osVersion)
+                header("X-OS-Version", osVersion)
+                header("device_id", deviceId)
+                header("X-Device-Id", deviceId)
+                header("platform", osName.lowercase())
+                header("X-Platform", osName.lowercase())
+                header("utm_source", "direct")
+                header("utm_medium", "mobile")
+                header("utm_campaign", "app")
+                
+                if (authToken.isNotBlank()) {
+                    header(HttpHeaders.Authorization, "Bearer $authToken")
+                }
+                if (sessionUserId.isNotBlank()) {
+                    header("X-User-Id", sessionUserId)
+                    header("Session-User-Id", sessionUserId)
+                }
+                
+                configure()
+                platformLog("PyllarApiClient: [Multipart] 📤 Sending request to ${this.url.buildString()}")
+            }
+            
+            val responseText = response.bodyAsText()
+            platformLog("PyllarApiClient: [Multipart] 📥 RESPONSE RAW (Status: ${response.status.value}): $responseText")
+
+            if (response.status.value == 401) {
+                handshakeCoordinator.invalidateSession()
+                return Resource.Error("Session expired (401). Please try again.")
+            }
+
+            // Multipart responses are treated as plain JSON based on user requirements
+            val parsed: StandardApiResponseDtoRaw = json.decodeFromString(responseText)
+            parseStandardResponse<T>(parsed)
+        } catch (e: Exception) {
+            platformLog("PyllarApiClient: [Multipart] ❌ FATAL ERROR: ${e::class.simpleName}: ${e.message}")
+            Resource.Error(e.message ?: "Multipart upload failed")
+        }
     }
 
     @PublishedApi

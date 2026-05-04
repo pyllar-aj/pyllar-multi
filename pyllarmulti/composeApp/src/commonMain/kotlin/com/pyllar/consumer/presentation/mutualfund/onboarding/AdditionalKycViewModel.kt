@@ -19,8 +19,8 @@ class AdditionalKycViewModel(
     private val sessionStore: SessionStore
 ) : ViewModel() {
 
-    private val _submitResult = MutableStateFlow<String?>(null)
-    val submitResult: StateFlow<String?> = _submitResult.asStateFlow()
+    private val _submitResult = MutableStateFlow<Resource<String>?>(null)
+    val submitResult: StateFlow<Resource<String>?> = _submitResult.asStateFlow()
     private val _nextScreen = MutableStateFlow<String?>(null)
     val nextScreen: StateFlow<String?> = _nextScreen.asStateFlow()
 
@@ -91,11 +91,20 @@ class AdditionalKycViewModel(
     ) {
         if (_isSubmitting.value) return
         _isSubmitting.value = true
-        platformLog("AdditionalKycViewModel: \uD83D\uDD0D [submitAdditionalKyc] Called for kycAttemptId: $kycAttemptId")
-
+        
         viewModelScope.launch {
             try {
-                _submitResult.value = null
+                // Recover kycAttemptId if blank (parity with Android)
+                var effectiveKycAttemptId = kycAttemptId
+                if (effectiveKycAttemptId.isBlank()) {
+                    platformLog("AdditionalKycViewModel: \u26a0\ufe0f kycAttemptId is blank, attempting recovery from sessionStore")
+                    effectiveKycAttemptId = sessionStore.getValue(com.pyllar.consumer.data.local.KeyValueConstants.KYC_ATTEMPT_ID) ?: ""
+                    platformLog("AdditionalKycViewModel: \ud83d\udd04 Recovered kycAttemptId: '$effectiveKycAttemptId'")
+                }
+
+                platformLog("AdditionalKycViewModel: \ud83d\udd0d [submitAdditionalKyc] Called for kycAttemptId: $effectiveKycAttemptId")
+
+                _submitResult.value = Resource.Loading()
                 val geolocation = if (longitude != null && latitude != null) "$latitude,$longitude" else null
                 val request = AdditionalKycRequest(
                     maritalStatus = maritalStatus,
@@ -114,7 +123,7 @@ class AdditionalKycViewModel(
                     geolocation = geolocation
                 )
                 
-                onboardingRepository.updateAdditionalKyc(kycAttemptId, request).collect { result ->
+                onboardingRepository.updateAdditionalKyc(effectiveKycAttemptId, request).collect { result ->
                     when (result) {
                         is Resource.Success -> {
                             val data = result.data
@@ -125,31 +134,31 @@ class AdditionalKycViewModel(
                                     
                                     val nextScr = result.navigation?.nextScreen
                                     _nextScreen.value = nextScr
-                                    _submitResult.value = "KYC details updated successfully"
+                                    _submitResult.value = Resource.Success("KYC details updated successfully", result.navigation)
                                 } catch (e: Exception) {
                                     platformLog("AdditionalKycViewModel: \u274C Failed to save data: ${e.message}")
-                                    _submitResult.value = "Failed to save KYC data"
+                                    _submitResult.value = Resource.Error("Failed to save KYC data")
                                     _nextScreen.value = null
                                 }
                             } else {
                                 platformLog("AdditionalKycViewModel: \u26A0\uFE0F Empty response data")
-                                _submitResult.value = "Empty response data"
+                                _submitResult.value = Resource.Error("Empty response data")
                                 _nextScreen.value = null
                             }
                         }
                         is Resource.Error -> {
                             platformLog("AdditionalKycViewModel: \u274C Error: ${result.message}")
-                            _submitResult.value = "Failed: ${result.message}"
+                            _submitResult.value = Resource.Error(result.message ?: "Unknown error", result.navigation)
                             _nextScreen.value = null
                         }
                         is Resource.Loading -> {
-                            // loading state if needed
+                            _submitResult.value = Resource.Loading()
                         }
                     }
                 }
             } catch (e: Exception) {
                 platformLog("AdditionalKycViewModel: \u274C [submitAdditionalKyc] Exception: ${e.message}")
-                _submitResult.value = "NETWORK_ERROR"
+                _submitResult.value = Resource.Error("NETWORK_ERROR")
             } finally {
                 _isSubmitting.value = false
             }

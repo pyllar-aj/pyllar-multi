@@ -40,6 +40,7 @@ import com.pyllar.consumer.presentation.mutualfund.onboarding.BankDetailsViewMod
 import com.pyllar.consumer.presentation.mutualfund.onboarding.SipAmountScreenV2ViewModel
 import com.pyllar.consumer.presentation.support.HelperCodeViewModel
 import com.pyllar.consumer.presentation.mutualfund.onboarding.PreVerificationViewModel
+import com.pyllar.consumer.presentation.mutualfund.onboarding.SignatureViewModel
 import com.pyllar.consumer.domain.repository.PreVerificationRepository
 import com.pyllar.consumer.data.repository.PreVerificationRepositoryImpl
 import com.pyllar.consumer.presentation.mutualfund.onboarding.MandateAuthModel
@@ -87,6 +88,7 @@ val sharedModule: Module = module {
     factoryOf(::NomineeDetailsViewModel)
     factoryOf(::PanKycViewModel)
     factoryOf(::AdditionalKycViewModel)
+    factoryOf(::SignatureViewModel)
     factoryOf(::BankDetailsViewModel)
     factoryOf(::SipAmountScreenV2ViewModel)
     factoryOf(::PreVerificationViewModel)

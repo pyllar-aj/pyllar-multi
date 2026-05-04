@@ -655,29 +655,112 @@ fun StatusInfoCard(
     mandateStatuses: List<String>,
     onRetryKyc: () -> Unit
 ) {
-    val isKycPending = kycStatus.uppercase() != "SUCCESS" && kycStatus.uppercase() != "COMPLETED"
-    if (!isKycPending) return
+    // Check if KYC is pending
+    val isKycPending = kycStatus.equals("PENDING", ignoreCase = true) ||
+            kycStatus.equals("IN_PROGRESS", ignoreCase = true) ||
+            kycStatus.equals("EXPIRED", ignoreCase = true) ||
+            kycStatus.equals("REJECTED", ignoreCase = true)
+
+    // Filter only pending mandate statuses
+    val pendingMandateStatuses = mandateStatuses.filter { status ->
+        status.contains("PENDING", ignoreCase = true) ||
+                status.contains("MANDATE_PENDING", ignoreCase = true) ||
+                status.contains("SUBMITTED", ignoreCase = true) ||
+                status.contains("MANDATE_NOT_CREATED", ignoreCase = true) ||
+                status.contains("NOT_CREATED", ignoreCase = true)
+    }
+
+    // Only show card if there's at least one pending status
+    if (!isKycPending && pendingMandateStatuses.isEmpty()) return
 
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3E0)),
-        shape = RoundedCornerShape(12.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        shape = RoundedCornerShape(16.dp)
     ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text("KYC Status", style = MaterialTheme.typography.labelMedium)
-                Text(formatKycStatus(kycStatus), fontWeight = FontWeight.Bold, color = Color(0xFFE65100))
+            // KYC Status - only show if pending
+            if (isKycPending) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "KYC Status",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    )
+                    Surface(
+                        color = Color(0xFFFFF3E0),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(
+                            text = formatKycStatus(kycStatus),
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                            color = Color(0xFFF57C00),
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                        )
+                    }
+                }
+
+                if (kycStatus.equals("EXPIRED", ignoreCase = true) || kycStatus.equals("REJECTED", ignoreCase = true)) {
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    OutlinedButton(
+                        onClick = onRetryKyc,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, Color(0xFFF57C00)),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = Color(0xFFF57C00)
+                        )
+                    ) {
+                        Text(
+                            text = "Retry KYC",
+                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                        )
+                    }
+                }
             }
-            Button(
-                onClick = onRetryKyc,
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE65100))
-            ) {
-                Text("Complete KYC")
+
+            // Mandate Statuses - only show pending ones
+            pendingMandateStatuses.forEach { _ ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Mandate Status",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    )
+                    Surface(
+                        color = Color(0xFFFFF3E0),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(
+                            text = "In Progress",
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                            color = Color(0xFFF57C00),
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                        )
+                    }
+                }
             }
+
+            // Bottom message
+            Text(
+                text = "Waiting for verification from internal team",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                modifier = Modifier.padding(top = 4.dp)
+            )
         }
     }
 }

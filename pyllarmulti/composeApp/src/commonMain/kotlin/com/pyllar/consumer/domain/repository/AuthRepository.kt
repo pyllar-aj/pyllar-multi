@@ -13,5 +13,6 @@ interface AuthRepository {
     fun sendOtp(request: OtpRegistrationRequest): Flow<Resource<AuthToken>>
     fun verifyOtp(request: OtpVerificationRequest): Flow<Resource<AuthUserDTO>>
     fun updateEmail(email: String, userId: String): Flow<Resource<UpdateEmailResponse>>
+    fun uploadSignatureFile(bytes: ByteArray, kycAttemptId: String): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.EsignCreateResponseDto>>
 }
 

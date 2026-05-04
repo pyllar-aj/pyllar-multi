@@ -13,6 +13,11 @@ import org.koin.compose.KoinContext
 
 class MainActivity : ComponentActivity() {
 
+    companion object {
+        var instance: MainActivity? = null
+            private set
+    }
+
     // Launchers must be registered before onCreate completes
     private val notifPermissionLauncher = registerForActivityResult(RequestPermission()) { granted ->
         get<AndroidPermissionManager>().onNotificationResult(granted)
@@ -22,8 +27,9 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        instance = this
+        enableEdgeToEdge()
 
         // Pass launchers to the permission manager so it can request permissions from the ViewModel
         get<AndroidPermissionManager>().setLaunchers(notifPermissionLauncher, locationPermissionLauncher)

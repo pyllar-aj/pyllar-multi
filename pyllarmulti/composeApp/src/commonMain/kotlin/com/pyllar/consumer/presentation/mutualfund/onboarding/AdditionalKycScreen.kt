@@ -399,7 +399,7 @@ fun AdditionalKycScreen(
             }
         }
 
-        if (submitResult is Resource.Loading<*>) {
+        if (submitResult?.isLoading == true) {
             Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.3f)).zIndex(10f)) {
                 LoadingScreen(text = "Submitting...", modifier = Modifier.fillMaxSize())
             }
@@ -415,9 +415,7 @@ fun AdditionalKycScreen(
     }
 
     LaunchedEffect(submitResult) {
-        if (submitResult != null && !submitResult!!.contains("Failed")) {
-            isSubmitting = false
-        } else if (submitResult != null && submitResult!!.contains("Failed")) {
+        if (submitResult is Resource.Success || submitResult is Resource.Error) {
             isSubmitting = false
         }
     }

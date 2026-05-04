@@ -183,5 +183,11 @@ class AuthRepositoryImpl(
             is Resource.Loading -> emit(Resource.Loading())
         }
     }
+
+    override fun uploadSignatureFile(bytes: ByteArray, kycAttemptId: String): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.EsignCreateResponseDto>> = flow {
+        emit(Resource.Loading())
+        val result = remote.uploadSignatureFile(bytes, kycAttemptId)
+        emit(result)
+    }
 }
 

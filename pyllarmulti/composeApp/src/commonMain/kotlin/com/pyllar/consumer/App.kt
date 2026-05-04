@@ -20,6 +20,7 @@ import com.pyllar.consumer.presentation.mutualfund.upi.UpiAccountLinkingScreen
 import com.pyllar.consumer.presentation.mutualfund.upi.UpiAccountLinkingViewModel
 import com.pyllar.consumer.presentation.ui.theme.PyllarTheme
 import com.pyllar.consumer.data.remote.model.dto.NavigationAction
+import com.pyllar.consumer.data.local.KeyValueConstants
 import com.pyllar.consumer.util.Resource
 import com.pyllar.consumer.util.platformLog
 import org.koin.compose.koinInject
@@ -36,6 +37,7 @@ sealed class Screen {
     data class PreVerification(val userId: String) : Screen()
     data class AdditionalKyc(val userId: String, val kycAttemptId: String) : Screen()
     data class NomineeDetails(val userId: String, val kycAttemptId: String, val investorId: String) : Screen()
+    data class Signature(val userId: String, val kycAttemptId: String, val investorId: String) : Screen()
     data class BankDetails(val userId: String, val kycAttemptId: String) : Screen()
     data class KycInformation(val userId: String, val reUrl: String? = null, val kycAttemptId: String? = null) : Screen()
     data class EsignInformation(val userId: String) : Screen()
@@ -80,6 +82,7 @@ sealed class Screen {
     ) : Screen()
     data class NotificationWebView(val url: String, val title: String) : Screen()
     data class KycWebView(val userId: String, val url: String, val kycAttemptId: String? = null) : Screen()
+    data class EsignWebView(val userId: String, val url: String, val kycAttemptId: String? = null) : Screen()
     object Home : Screen()
 }
 
@@ -187,7 +190,7 @@ fun App() {
                     kycAttemptId = screen.kycAttemptId,
                     token = "", // Token retrieved from session in VM
                     onNext = { nextScreen, attemptId ->
-                        handleNavigation(nextScreen, screen.userId, null, attemptId) { navigateTo(it) }
+                        handleNavigation(nextScreen, screen.userId, attemptId, null) { navigateTo(it) }
                     },
                     onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId, showKycHelp = true)) }
                 )
@@ -195,11 +198,22 @@ fun App() {
             is Screen.NomineeDetails -> {
                 NomineeDetailsScreen(
                     onNext = { nextScreen ->
-                        handleNavigation(nextScreen ?: "", screen.userId, null) { navigateTo(it) }
+                        handleNavigation(nextScreen ?: "", screen.userId, screen.kycAttemptId, screen.investorId) { navigateTo(it) }
                     },
                     userId = screen.userId,
                     kycAttemptId = screen.kycAttemptId,
                     investorId = screen.investorId,
+                    onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId, showKycHelp = true)) }
+                )
+            }
+            is Screen.Signature -> {
+                SignatureScreen(
+                    userId = screen.userId,
+                    kycAttemptId = screen.kycAttemptId,
+                    investorId = screen.investorId,
+                    onSignatureCompleted = { nextScreen, redirectUrl ->
+                        handleNavigation(nextScreen, screen.userId, screen.kycAttemptId, screen.investorId, reUrl = redirectUrl) { navigateTo(it) }
+                    },
                     onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId, showKycHelp = true)) }
                 )
             }
@@ -239,13 +253,13 @@ fun App() {
                 KycWebViewScreen(
                     url = screen.url,
                     onKycComplete = { status ->
-                        if (status == "successful") {
-                            // Match Android logic: Navigate to Additional KYC
-                            handleNavigation(
-                                action = ScreenNames.ADDITIONAL_KYC,
-                                userId = screen.userId,
-                                kycAttemptId = screen.kycAttemptId
-                            ) { navigateTo(it) }
+                        if (status == "successful" || status == "COMPLETED") {
+                            // Match Android logic: Navigate to AdditionalKyc directly
+                            scope.launch {
+                                val kycAttemptId = screen.kycAttemptId ?: sessionStore.getValue(KeyValueConstants.KYC_ATTEMPT_ID)
+                                platformLog("App: KYC Complete. Navigating to AdditionalKyc with ID: $kycAttemptId")
+                                navigateTo(Screen.AdditionalKyc(screen.userId, kycAttemptId ?: ""))
+                            }
                         } else {
                             // Match Android logic: Go back to KYC Information to retry
                             navigateBack()
@@ -254,10 +268,22 @@ fun App() {
                     onBack = { navigateBack() }
                 )
             }
+            is Screen.EsignWebView -> {
+                EsignWebViewScreen(
+                    url = screen.url,
+                    onEsignComplete = {
+                        // Match Android logic: Navigate to Investment Dashboard after successful e-sign
+                        platformLog("App: Esign Complete. Navigating to Investment Dashboard")
+                        navigateTo(Screen.InvestmentDashboard(screen.userId), clearStack = true)
+                    },
+                    onBack = { navigateBack() }
+                )
+            }
             is Screen.EsignInformation -> {
                 EsignInformationScreen(
                     onProceed = {
-                        handleNavigation("MANDATE_AUTH", screen.userId, null, null, null) { navigateTo(it) }
+                        // Refresh state by going to PreVerification, which will return the Esign URL
+                        navigateTo(Screen.PreVerification(screen.userId))
                     },
                     onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId, showKycHelp = true)) }
                 )
@@ -266,7 +292,12 @@ fun App() {
                 val minVm: MinDetailsViewModel = koinInject()
                 MinDetailsScreen(
                     onNext = { nextScreen, kycAttemptId ->
-                        handleNavigation(nextScreen, screen.userId, kycAttemptId, null, null) { navigateTo(it) }
+                        scope.launch {
+                            if (!kycAttemptId.isNullOrBlank()) {
+                                sessionStore.saveValue(com.pyllar.consumer.data.local.KeyValueConstants.KYC_ATTEMPT_ID, kycAttemptId)
+                            }
+                            handleNavigation(nextScreen, screen.userId, kycAttemptId, null, null) { navigateTo(it) }
+                        }
                     },
                     viewModel = minVm,
                     userId = screen.userId,
@@ -483,6 +514,10 @@ private fun handleNavigation(
             platformLog("AppNav: Matched NOMINEE_DETAILS")
             onNavigate(Screen.NomineeDetails(userId, kycAttemptId ?: "", investorId ?: ""))
         }
+        ScreenNames.SIGNATURE -> {
+            platformLog("AppNav: Matched SIGNATURE")
+            onNavigate(Screen.Signature(userId, kycAttemptId ?: "", investorId ?: ""))
+        }
         ScreenNames.BANK_DETAILS -> {
             platformLog("AppNav: Matched BANK_DETAILS")
             onNavigate(Screen.BankDetails(userId, kycAttemptId ?: ""))
@@ -494,6 +529,22 @@ private fun handleNavigation(
         ScreenNames.ESIGN_INFORMATION -> {
             platformLog("AppNav: Matched ESIGN_INFORMATION")
             onNavigate(Screen.EsignInformation(userId))
+        }
+        ScreenNames.WEB_VIEW -> {
+            platformLog("AppNav: Matched WEB_VIEW")
+            if (!reUrl.isNullOrBlank()) {
+                onNavigate(Screen.KycWebView(userId, reUrl, kycAttemptId))
+            } else {
+                onNavigate(Screen.PreVerification(userId))
+            }
+        }
+        ScreenNames.WEB_VIEW_ESIGN -> {
+            platformLog("AppNav: Matched WEB_VIEW_ESIGN")
+            if (!reUrl.isNullOrBlank()) {
+                onNavigate(Screen.EsignWebView(userId, reUrl, kycAttemptId))
+            } else {
+                onNavigate(Screen.PreVerification(userId))
+            }
         }
         ScreenNames.PAN_KYC -> {
             platformLog("AppNav: Matched PAN_KYC")

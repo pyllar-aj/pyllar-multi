@@ -23,7 +23,7 @@ actual fun createHttpClient(): HttpClient = HttpClient(Darwin) {
         level = LogLevel.ALL
         logger = object : Logger {
             override fun log(message: String) {
-                platform.Foundation.NSLog("HTTP(iOS): $message")
+                println("HTTP(iOS): $message")
             }
         }
     }
