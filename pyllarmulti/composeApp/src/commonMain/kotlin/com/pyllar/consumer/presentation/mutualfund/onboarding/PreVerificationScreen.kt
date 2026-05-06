@@ -142,6 +142,7 @@ fun PreVerificationScreen(
 
     LaunchedEffect(Unit) {
         userPhone = sessionStore.getCurrentPhone()
+        platformLog("PreVerificationScreen: \uD83D\uDCF1 Fetched userPhone from sessionStore: '$userPhone'")
     }
 
     // Timeout handling - reset isSubmitting after 90 seconds if API doesn't complete
@@ -291,14 +292,17 @@ fun PreVerificationScreen(
 
                             Button(
                                 onClick = {
+                                    platformLog("PreVerificationScreen: \uD83D\uDD35 Autofetch button clicked. userPhone='$userPhone'")
                                     PlatformAnalyticsLogger.logEvent("pre_verification_find_my_pan_clicked", mapOf("has_phone" to userPhone.isNotBlank()))
                                     if (userPhone.isNotBlank()) {
+                                        platformLog("PreVerificationScreen: \uD83D\uDE80 Initiating PAN fetch for $userPhone")
                                         isPhoneMissing = false
                                         currentPrefillId = null
                                         otpCode = ""
                                         viewModel.clearPanVerifyOtpResult()
                                         viewModel.initiatePanFetch(userPhone)
                                     } else {
+                                        platformLog("PreVerificationScreen: \u26A0\ufe0f Phone is blank, skipping API call and showing manual form")
                                         isPhoneMissing = true
                                         autoFetchFailed = true
                                         showManualEntryForm = true

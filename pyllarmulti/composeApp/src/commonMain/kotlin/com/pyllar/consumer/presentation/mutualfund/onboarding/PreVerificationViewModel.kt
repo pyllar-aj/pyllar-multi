@@ -465,6 +465,7 @@ class PreVerificationViewModel(
     }
 
     fun initiatePanFetch(mobileNumber: String) {
+        platformLog("PreVerificationVM: \uD83D\uDCE1 initiatePanFetch requested for $mobileNumber")
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
                 panFetchResult = Resource.Loading()
