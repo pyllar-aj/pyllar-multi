@@ -1,7 +1,9 @@
 package com.pyllar.consumer.util
 
-import platform.Foundation.NSLog
+import com.pyllar.consumer.config.IS_DEBUG
 
 actual fun platformLog(message: String) {
-    println(message)
+    if (IS_DEBUG) {
+        println(message)
+    }
 }

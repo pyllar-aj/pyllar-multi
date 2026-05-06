@@ -4,7 +4,6 @@ import com.pyllar.consumer.data.remote.model.crypto.SecurePayloadEnvelopeDto
 import com.pyllar.consumer.data.remote.model.crypto.SecureHandshakeRequestDto
 import com.pyllar.consumer.data.remote.model.crypto.SecureHandshakeResponseDto
 
-import platform.Foundation.NSUserDefaults
 import platform.Foundation.NSUUID
 import platform.posix.arc4random
 import kotlin.io.encoding.Base64
@@ -128,23 +127,22 @@ actual object Hkdf {
 @OptIn(ExperimentalEncodingApi::class)
 class IosSecureSessionStore : SecureSessionStore {
     
-    private val defaults = NSUserDefaults.standardUserDefaults
+    private val bridge get() = SwiftCryptoScope.bridge
 
     override fun saveSession(session: SecureSessionData) {
-        defaults.setObject(session.handshakeId, "secure_session_handshakeId")
-        defaults.setObject(Base64.encode(session.encryptionKey), "secure_session_encryptionKey")
-        defaults.setObject(Base64.encode(session.hmacKey), "secure_session_hmacKey")
-        defaults.setObject(session.expiresAt, "secure_session_expiresAt")
-        defaults.setObject(session.clientSessionId, "secure_session_clientSessionId")
-        defaults.synchronize()
+        bridge?.saveToKeychain("secure_session_handshakeId", session.handshakeId)
+        bridge?.saveToKeychain("secure_session_encryptionKey", Base64.encode(session.encryptionKey))
+        bridge?.saveToKeychain("secure_session_hmacKey", Base64.encode(session.hmacKey))
+        bridge?.saveToKeychain("secure_session_expiresAt", session.expiresAt)
+        bridge?.saveToKeychain("secure_session_clientSessionId", session.clientSessionId)
     }
 
     override fun getSession(): SecureSessionData? {
-        val handshakeId = defaults.stringForKey("secure_session_handshakeId") ?: return null
-        val encKeyStr = defaults.stringForKey("secure_session_encryptionKey") ?: return null
-        val hmacKeyStr = defaults.stringForKey("secure_session_hmacKey") ?: return null
-        val expiresAtStr = defaults.stringForKey("secure_session_expiresAt") ?: return null
-        val clientSessionId = defaults.stringForKey("secure_session_clientSessionId") ?: return null
+        val handshakeId = bridge?.loadFromKeychain("secure_session_handshakeId") ?: return null
+        val encKeyStr = bridge?.loadFromKeychain("secure_session_encryptionKey") ?: return null
+        val hmacKeyStr = bridge?.loadFromKeychain("secure_session_hmacKey") ?: return null
+        val expiresAtStr = bridge?.loadFromKeychain("secure_session_expiresAt") ?: return null
+        val clientSessionId = bridge?.loadFromKeychain("secure_session_clientSessionId") ?: return null
         
         return SecureSessionData(
             handshakeId = handshakeId,
@@ -156,19 +154,17 @@ class IosSecureSessionStore : SecureSessionStore {
     }
 
     override fun clear() {
-        defaults.removeObjectForKey("secure_session_handshakeId")
-        defaults.removeObjectForKey("secure_session_encryptionKey")
-        defaults.removeObjectForKey("secure_session_hmacKey")
-        defaults.removeObjectForKey("secure_session_expiresAt")
+        bridge?.deleteFromKeychain("secure_session_handshakeId")
+        bridge?.deleteFromKeychain("secure_session_encryptionKey")
+        bridge?.deleteFromKeychain("secure_session_hmacKey")
+        bridge?.deleteFromKeychain("secure_session_expiresAt")
         // Don't remove clientSessionId, it should persist across handshakes based on Android logic
-        defaults.synchronize()
     }
 
     override fun getClientSessionId(): String {
-        return defaults.stringForKey("secure_session_clientSessionId") ?: run {
+        return bridge?.loadFromKeychain("secure_session_clientSessionId") ?: run {
             val newId = NSUUID.UUID().UUIDString
-            defaults.setObject(newId, "secure_session_clientSessionId")
-            defaults.synchronize()
+            bridge?.saveToKeychain("secure_session_clientSessionId", newId)
             newId
         }
     }

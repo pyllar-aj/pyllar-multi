@@ -1,13 +1,16 @@
 package com.pyllar.consumer.domain.storage
 
 import platform.Foundation.NSUserDefaults
+import com.pyllar.consumer.data.remote.crypto.SwiftCryptoScope
 
 /**
- * iOS implementation of SessionStore using NSUserDefaults.
+ * iOS implementation of SessionStore using Keychain for sensitive data
+ * and NSUserDefaults for non-sensitive flags.
  */
 class IosSessionStore : SessionStore {
 
     private val defaults: NSUserDefaults = NSUserDefaults.standardUserDefaults
+    private val bridge get() = SwiftCryptoScope.bridge
 
     override suspend fun saveUserSession(
         userId: String,
@@ -16,76 +19,68 @@ class IosSessionStore : SessionStore {
         authToken: String,
         fullName: String
     ) {
-        if (userId.isNotBlank()) defaults.setObject(userId, forKey = KEY_USER_ID)
-        if (email.isNotBlank()) defaults.setObject(email, forKey = KEY_EMAIL)
+        if (userId.isNotBlank()) bridge?.saveToKeychain(KEY_USER_ID, userId)
+        if (email.isNotBlank()) bridge?.saveToKeychain(KEY_EMAIL, email)
         
-        // Critically: don't overwrite a good phone with a blank one
         if (phone.isNotBlank()) {
-            defaults.setObject(phone, forKey = KEY_PHONE)
-        } else {
-            val current = defaults.stringForKey(KEY_PHONE)
-            if (current.isNullOrBlank()) {
-                // Only if it's currently empty, do we allow setting it to blank (though it already is)
-            }
+            bridge?.saveToKeychain(KEY_PHONE, phone)
         }
         
-        if (authToken.isNotBlank()) defaults.setObject(authToken, forKey = KEY_AUTH_TOKEN)
-        if (fullName.isNotBlank()) defaults.setObject(fullName, forKey = KEY_FULL_NAME)
+        if (authToken.isNotBlank()) bridge?.saveToKeychain(KEY_AUTH_TOKEN, authToken)
+        if (fullName.isNotBlank()) bridge?.saveToKeychain(KEY_FULL_NAME, fullName)
         
         defaults.setBool(true, forKey = KEY_LOGGED_IN)
         defaults.synchronize()
     }
 
     override suspend fun getCurrentToken(): String =
-        defaults.stringForKey(KEY_AUTH_TOKEN) ?: ""
+        bridge?.loadFromKeychain(KEY_AUTH_TOKEN) ?: ""
 
     override suspend fun getCurrentUserId(): String =
-        defaults.stringForKey(KEY_USER_ID) ?: ""
+        bridge?.loadFromKeychain(KEY_USER_ID) ?: ""
 
     override suspend fun getCurrentEmail(): String =
-        defaults.stringForKey(KEY_EMAIL) ?: ""
+        bridge?.loadFromKeychain(KEY_EMAIL) ?: ""
 
     override suspend fun getCurrentPhone(): String =
-        defaults.stringForKey(KEY_PHONE) ?: ""
+        bridge?.loadFromKeychain(KEY_PHONE) ?: ""
 
     override suspend fun getCurrentFullName(): String =
-        defaults.stringForKey(KEY_FULL_NAME) ?: ""
+        bridge?.loadFromKeychain(KEY_FULL_NAME) ?: ""
 
     override suspend fun isLoggedIn(): Boolean =
         defaults.boolForKey(KEY_LOGGED_IN)
 
     override suspend fun logout() {
-        defaults.removeObjectForKey(KEY_USER_ID)
-        defaults.removeObjectForKey(KEY_EMAIL)
-        defaults.removeObjectForKey(KEY_PHONE)
-        defaults.removeObjectForKey(KEY_AUTH_TOKEN)
-        defaults.removeObjectForKey(KEY_FULL_NAME)
+        bridge?.deleteFromKeychain(KEY_USER_ID)
+        bridge?.deleteFromKeychain(KEY_EMAIL)
+        bridge?.deleteFromKeychain(KEY_PHONE)
+        bridge?.deleteFromKeychain(KEY_AUTH_TOKEN)
+        bridge?.deleteFromKeychain(KEY_FULL_NAME)
+        
         defaults.setBool(false, forKey = KEY_LOGGED_IN)
         defaults.synchronize()
     }
 
     override suspend fun saveToken(token: String) {
-        defaults.setObject(token, forKey = KEY_AUTH_TOKEN)
-        defaults.synchronize()
+        bridge?.saveToKeychain(KEY_AUTH_TOKEN, token)
     }
 
     override suspend fun saveUserId(userId: String) {
-        defaults.setObject(userId, forKey = KEY_USER_ID)
-        defaults.synchronize()
+        bridge?.saveToKeychain(KEY_USER_ID, userId)
     }
 
     override suspend fun savePhone(phone: String) {
-        defaults.setObject(phone, forKey = KEY_PHONE)
-        defaults.synchronize()
+        bridge?.saveToKeychain(KEY_PHONE, phone)
     }
 
     override suspend fun saveValue(key: String, value: String) {
-        defaults.setObject(value, forKey = key)
-        defaults.synchronize()
+        // For generic values, we use Keychain for safety by default
+        bridge?.saveToKeychain(key, value)
     }
 
     override suspend fun getValue(key: String): String? =
-        defaults.stringForKey(key)
+        bridge?.loadFromKeychain(key)
 
     companion object {
         private const val KEY_USER_ID = "user_id"

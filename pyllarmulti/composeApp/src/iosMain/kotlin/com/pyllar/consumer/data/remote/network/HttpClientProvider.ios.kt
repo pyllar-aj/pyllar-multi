@@ -9,6 +9,8 @@ import io.ktor.client.plugins.logging.Logging
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 
+import com.pyllar.consumer.config.IS_DEBUG
+
 actual fun createHttpClient(): HttpClient = HttpClient(Darwin) {
     install(ContentNegotiation) {
         json(
@@ -20,10 +22,12 @@ actual fun createHttpClient(): HttpClient = HttpClient(Darwin) {
         )
     }
     install(Logging) {
-        level = LogLevel.ALL
+        level = if (IS_DEBUG) LogLevel.ALL else LogLevel.NONE
         logger = object : Logger {
             override fun log(message: String) {
-                println("HTTP(iOS): $message")
+                if (IS_DEBUG) {
+                    println("HTTP(iOS): $message")
+                }
             }
         }
     }
