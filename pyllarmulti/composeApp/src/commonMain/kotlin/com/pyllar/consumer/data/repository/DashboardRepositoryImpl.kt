@@ -71,7 +71,7 @@ class DashboardRepositoryImpl(
     override fun getTransactions(request: com.pyllar.consumer.data.remote.requests.TransactionDetailsRequest): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.TransactionDetailsResponseDto>> = flow {
         emit(Resource.Loading())
         when (val result = apiClient.post<com.pyllar.consumer.data.remote.model.dto.TransactionDetailsResponseDto, com.pyllar.consumer.data.remote.requests.TransactionDetailsRequest>(
-            path = "api/invDashboard/transactions",
+            path = "api/invDashboard/transactions_uipid",
             body = request
         )) {
             is Resource.Success -> emit(Resource.Success(
