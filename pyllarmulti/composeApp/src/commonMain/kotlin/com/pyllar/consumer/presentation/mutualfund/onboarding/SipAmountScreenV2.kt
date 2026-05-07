@@ -413,7 +413,7 @@ fun SipAmountScreenV2(
                     val result = viewModel.createSip(userId, kycAttemptId, investorId, amount.toDouble())
                     when (result) {
                         is SipCreationResult.Success -> {
-                            onSipCreated(amount.toDouble(), result.mandateWrapper?.uri, result.mandateWrapper?.mandateId, null)
+                            onSipCreated(amount.toDouble(), result.mandateWrapper?.uri, result.mandateWrapper?.mandateId, result.mandateWrapper?.finMandateId)
                         }
                         is SipCreationResult.Failure -> {
                             platformLog("SIP Creation failed: ${result.error}")

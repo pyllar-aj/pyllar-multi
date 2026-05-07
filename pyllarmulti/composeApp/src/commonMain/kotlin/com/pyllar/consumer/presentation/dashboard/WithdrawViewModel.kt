@@ -3,7 +3,6 @@ package com.pyllar.consumer.presentation.dashboard
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pyllar.consumer.data.remote.model.dto.*
-import com.pyllar.consumer.data.remote.requests.GoalSelectionRequest
 import com.pyllar.consumer.data.remote.requests.TransactionDetailsRequest
 import com.pyllar.consumer.domain.repository.DashboardRepository
 import com.pyllar.consumer.util.Resource
@@ -164,41 +163,18 @@ class WithdrawViewModel(
         currentInvestments: List<CurrentInvestmentDto>
     ): List<RecentTransactionDto> {
         val allTransactions = mutableListOf<RecentTransactionDto>()
-        val purposeToIdMap = mutableMapOf<String, String>()
-        
-        for (investment in currentInvestments) {
-            val purpose = investment.purpose ?: continue
-            if (purposeToIdMap.containsKey(purpose)) continue
-            
-            try {
-                var localUserPurposeId: String? = null
-                dashboardRepository.initGoalTxn(GoalSelectionRequest(userId = userId, goal = purpose))
-                    .collectLatest { result ->
-                        if (result is Resource.Success) {
-                            localUserPurposeId = result.data?.userPurposeId
-                        }
-                    }
-                
-                localUserPurposeId?.let { userPurposeId ->
-                    if (userPurposeId.isNotBlank()) {
-                        purposeToIdMap[purpose] = userPurposeId
-                    }
-                }
-            } catch (e: Exception) {
-                platformLog("⚠️ Exception getting userInvestmentPurposeId for purpose '$purpose': ${e.message}")
-            }
-        }
-        
-        if (purposeToIdMap.isNotEmpty()) {
+        val uniquePurposes = currentInvestments.mapNotNull { it.purpose }.distinct()
+
+        if (uniquePurposes.isNotEmpty()) {
             coroutineScope {
-                val transactionResults = purposeToIdMap.values.map { userPurposeId ->
+                val transactionResults = uniquePurposes.map { purpose ->
                     async {
                         var transactionsForPurpose = emptyList<RecentTransactionDto>()
                         try {
                             dashboardRepository.getTransactions(
                                 TransactionDetailsRequest(
                                     userId = userId,
-                                    userInvestmentPurposeId = userPurposeId
+                                    userInvestmentPurposeId = purpose
                                 )
                             ).collectLatest { txResult ->
                                 if (txResult is Resource.Success) {
@@ -210,12 +186,12 @@ class WithdrawViewModel(
                                 }
                             }
                         } catch (e: Exception) {
-                            platformLog("⚠️ Exception fetching transactions for userPurposeId '$userPurposeId': ${e.message}")
+                            platformLog("⚠️ Exception fetching transactions for purpose '$purpose': ${e.message}")
                         }
                         transactionsForPurpose
                     }
                 }
-                
+
                 val results = awaitAll(*transactionResults.toTypedArray())
                 results.forEach { transactions ->
                     allTransactions.addAll(transactions)

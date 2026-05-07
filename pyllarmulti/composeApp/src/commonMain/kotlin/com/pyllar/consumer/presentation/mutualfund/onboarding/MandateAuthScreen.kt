@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pyllar.consumer.data.remote.model.dto.MandateStatus
 import com.pyllar.consumer.data.remote.model.dto.MandateWrapper
+import com.pyllar.consumer.platform.PlatformActions
 import com.pyllar.consumer.util.platformLog
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -39,7 +40,8 @@ fun MandateAuthScreen(
     onNavigateToHelp: () -> Unit = {},
     onNavigateBack: () -> Unit = {},
     onGoToHome: () -> Unit = {},
-    viewModel: MandateAuthModel = koinInject()
+    viewModel: MandateAuthModel = koinInject(),
+    platformActions: PlatformActions = koinInject()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scope = rememberCoroutineScope()
@@ -126,8 +128,9 @@ fun MandateAuthScreen(
                         onClick = {
                             upiAppClicked = true
                             platformLog("MandateAuthScreen: Launching UPI URL: $mandateUrl")
-                            // In a real app, we'd use a platform-specific launcher
-                            // For this KMP migration, we simulate the launch and start polling
+                            if (mandateUrl.isNotBlank()) {
+                                platformActions.openUrl(mandateUrl)
+                            }
                             scope.launch {
                                 viewModel.startMandateSync(userId, mandateId, mandateRef)
                             }
