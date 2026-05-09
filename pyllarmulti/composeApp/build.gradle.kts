@@ -50,7 +50,7 @@ kotlin {
             implementation(libs.koin.compose)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.datetime)
-            implementation(compose.materialIconsExtended)
+            implementation(libs.compose.material.icons)
         }
         androidMain.dependencies {
             implementation(libs.androidx.activity.compose)
