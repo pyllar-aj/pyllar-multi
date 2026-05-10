@@ -102,7 +102,7 @@ fun MandateAuthScreen(
 
     val parsedAmount = remember(mandateUrl) {
         extractAmountFromMandateUri(mandateUrl) ?: amount.takeIf { it > 0 }?.let {
-            if (it % 1.0 == 0.0) it.toInt().toString() else String.format("%.2f", it)
+            if (it % 1.0 == 0.0) it.toInt().toString() else formatTwoDecimals(it)
         }
     }
 
@@ -829,7 +829,7 @@ private fun extractAmountFromMandateUri(mandateUrl: String): String? {
         val amParam = params.find { it.startsWith("fam=") } ?: params.find { it.startsWith("am=") }
         val raw = amParam?.substringAfter("=") ?: return null
         raw.toDoubleOrNull()?.let { v ->
-            if (v % 1.0 == 0.0) v.toInt().toString() else String.format("%.2f", v)
+            if (v % 1.0 == 0.0) v.toInt().toString() else formatTwoDecimals(v)
         } ?: raw
     } catch (_: Exception) {
         null
@@ -838,4 +838,11 @@ private fun extractAmountFromMandateUri(mandateUrl: String): String? {
 
 private fun isFinalStatus(status: MandateStatus): Boolean {
     return status == MandateStatus.APPROVED || status == MandateStatus.REJECTED || status == MandateStatus.CANCELLED
+}
+
+private fun formatTwoDecimals(value: Double): String {
+    val rounded = kotlin.math.round(value * 100).toInt()
+    val intPart = rounded / 100
+    val fracPart = kotlin.math.abs(rounded % 100)
+    return "$intPart.${fracPart.toString().padStart(2, '0')}"
 }
