@@ -26,5 +26,7 @@
 	</dict>
 	<key>NSUserNotificationUsageDescription</key>
 	<string>Pyllar sends notifications to keep you updated on your investments.</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<true/>
 </dict>
 </plist>
