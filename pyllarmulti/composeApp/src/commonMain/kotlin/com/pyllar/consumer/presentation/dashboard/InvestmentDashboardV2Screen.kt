@@ -63,6 +63,7 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.text.font.FontFamily
 import org.jetbrains.compose.resources.Font
+import com.pyllar.consumer.domain.storage.SessionStore
 import pyllar.composeapp.generated.resources.*
 
 
@@ -79,7 +80,8 @@ fun InvestmentDashboardV2Screen(
     onNavigateToHelp: () -> Unit = {},
     onRetryKyc: () -> Unit = {},
     viewModel: InvestmentDashboardV2ViewModel = koinInject(),
-    platformActions: PlatformActions = koinInject()
+    platformActions: PlatformActions = koinInject(),
+    sessionStore: SessionStore = koinInject()
 ) {
     Log.d("InvestmentDashboardV2", "🎨 COMPOSABLE CALLED - userId: '$userId'")
 
@@ -226,6 +228,7 @@ fun InvestmentDashboardV2Screen(
                                             userPurposeId = response.userPurposeId
                                         )
                                         SchemeDetailsParamsManager.set(params)
+                                        sessionStore.saveValue("scheme_details_params_${goal.goalId}", SchemeDetailsParamsManager.toJson(params))
                                         onNavigateToSchemeDetails(goal.goalId)
                                     }
                                 }
@@ -259,6 +262,7 @@ fun InvestmentDashboardV2Screen(
                                             userPurposeId = response.userPurposeId
                                         )
                                         SchemeDetailsParamsManager.set(params)
+                                        sessionStore.saveValue("scheme_details_params_${goal.goalId}", SchemeDetailsParamsManager.toJson(params))
                                         onNavigateToSchemeDetails(goal.goalId)
                                     }
                                 }

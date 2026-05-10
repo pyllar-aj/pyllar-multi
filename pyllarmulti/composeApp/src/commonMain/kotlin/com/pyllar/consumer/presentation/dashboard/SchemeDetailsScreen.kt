@@ -65,9 +65,31 @@ fun SchemeDetailsScreen(
     var showCancelConfirm by remember { mutableStateOf<MandateDisplayItem?>(null) }
     var isProcessingInvestMore by remember { mutableStateOf(false) }
 
-    val schemeParams = remember { SchemeDetailsParamsManager.get() }
+    // SIP Action UI States (aligned with Android)
+    var showCancelSipScreen by remember { mutableStateOf(false) }
+    var mandateForCancelSip by remember { mutableStateOf<MandateDisplayItem?>(null) }
+    var showCancelReasonScreen by remember { mutableStateOf(false) }
+    var selectedCancelReason by remember { mutableStateOf<CancelSipReason?>(null) }
+    var showCancelSipSuccessSheet by remember { mutableStateOf(false) }
+    var showCancelSipErrorSheet by remember { mutableStateOf(false) }
+
+    var showPauseSipQuestionSheet by remember { mutableStateOf(false) }
+    var showPauseSipSuccessSheet by remember { mutableStateOf(false) }
+    var showPauseSipErrorSheet by remember { mutableStateOf(false) }
+    var mandateForPauseSip by remember { mutableStateOf<MandateDisplayItem?>(null) }
+
+    var showResumeSipQuestionSheet by remember { mutableStateOf(false) }
+    var showResumeSipSuccessSheet by remember { mutableStateOf(false) }
+    var showResumeSipErrorSheet by remember { mutableStateOf(false) }
+    var mandateForResumeSip by remember { mutableStateOf<MandateDisplayItem?>(null) }
+
+    val schemeParams = remember(purpose) { SchemeDetailsParamsManager.get() }
     val displaySchemeName = schemeParams?.schemeName?.takeIf { it.isNotBlank() } ?: state.schemeName.orEmpty()
     val displayGoalName = schemeParams?.goalName?.takeIf { it.isNotBlank() } ?: state.goalName.orEmpty()
+
+    val isSilverGoal = displaySchemeName.contains("Silver", ignoreCase = true) || displayGoalName.contains("Silver", ignoreCase = true) || state.category?.uppercase() == "SILVER"
+    val baseAccentColor = getCorrelationColorForCategory(state.category, state.colorTheme)
+    val accentColor = if (isSilverGoal && baseAccentColor == Color(0xFF818181)) Color(0xFF1A1A1A) else baseAccentColor
 
     // Info Popups state
     var showTotalValueInfo by remember { mutableStateOf(false) }
@@ -78,25 +100,52 @@ fun SchemeDetailsScreen(
         PlatformAnalyticsLogger.logScreenView("SchemeDetails")
     }
 
+    LaunchedEffect(purpose) {
+        if (schemeParams == null && purpose.isNotBlank()) {
+            try {
+                platformLog("🔍 Attempting to restore SchemeDetailsParams from storage for purpose=$purpose")
+                val stored = sessionStore.getValue("scheme_details_params_$purpose")
+                val restored = SchemeDetailsParamsManager.fromJson(stored)
+                if (restored != null) {
+                    platformLog("✅ Restored SchemeDetailsParams from storage for purpose=$purpose")
+                    SchemeDetailsParamsManager.set(restored)
+                    // We don't have a mutable state for schemeParams here, but SchemeDetailsParamsManager.get() 
+                    // will now return the restored value on next recomposition.
+                    // To trigger recomposition, we can use a local state if needed.
+                }
+            } catch (e: Exception) {
+                platformLog("❌ Failed to restore SchemeDetailsParams: ${e.message}")
+            }
+        }
+    }
+
     LaunchedEffect(userId, purpose) {
         if (userId.isNotBlank() && purpose.isNotBlank()) {
-            val uipid = schemeParams?.userPurposeId ?: purpose
-            viewModel.loadTransactions(userId, uipid, schemeParams)
+            platformLog("🔄 Initial load for userId: $userId, purpose: $purpose")
+            val currentParams = schemeParams ?: SchemeDetailsParamsManager.get()
+            val uipid = currentParams?.userPurposeId ?: purpose
+            viewModel.loadTransactions(userId, uipid, currentParams)
+            
+            // Save params for future restoration
+            currentParams?.let {
+                sessionStore.saveValue("scheme_details_params_$purpose", SchemeDetailsParamsManager.toJson(it))
+            }
         }
     }
 
     // Handle SIP Action Results
-    var errorMessage by remember { mutableStateOf<String?>(null) }
-
     LaunchedEffect(cancelSipResult) {
         when (cancelSipResult) {
             is CancelSipResult.Success -> {
-                showCancelConfirm = null
-                viewModel.loadTransactions(userId, purpose, schemeParams)
+                showCancelSipScreen = false
+                showCancelReasonScreen = false
+                showCancelSipSuccessSheet = true
                 viewModel.clearCancelSipResult()
             }
             is CancelSipResult.Error -> {
-                errorMessage = (cancelSipResult as CancelSipResult.Error).message
+                showCancelSipScreen = false
+                showCancelReasonScreen = false
+                showCancelSipErrorSheet = true
                 viewModel.clearCancelSipResult()
             }
             else -> {}
@@ -105,12 +154,15 @@ fun SchemeDetailsScreen(
     LaunchedEffect(pauseSipResult) {
         when (pauseSipResult) {
             is PauseSipResult.Success -> {
-                showPauseConfirm = null
-                viewModel.loadTransactions(userId, purpose, schemeParams)
+                showPauseSipQuestionSheet = false
+                mandateForPauseSip = null
+                showPauseSipSuccessSheet = true
                 viewModel.clearPauseSipResult()
             }
             is PauseSipResult.Error -> {
-                errorMessage = (pauseSipResult as PauseSipResult.Error).message
+                showPauseSipQuestionSheet = false
+                mandateForPauseSip = null
+                showPauseSipErrorSheet = true
                 viewModel.clearPauseSipResult()
             }
             else -> {}
@@ -119,15 +171,27 @@ fun SchemeDetailsScreen(
     LaunchedEffect(resumeSipResult) {
         when (resumeSipResult) {
             is ResumeSipResult.Success -> {
-                showResumeConfirm = null
-                viewModel.loadTransactions(userId, purpose, schemeParams)
+                showResumeSipQuestionSheet = false
+                mandateForResumeSip = null
+                showResumeSipSuccessSheet = true
                 viewModel.clearResumeSipResult()
             }
             is ResumeSipResult.Error -> {
-                errorMessage = (resumeSipResult as ResumeSipResult.Error).message
+                showResumeSipQuestionSheet = false
+                mandateForResumeSip = null
+                showResumeSipErrorSheet = true
                 viewModel.clearResumeSipResult()
             }
             else -> {}
+        }
+    }
+
+    val reloadTransactions = {
+        if (userId.isNotBlank() && purpose.isNotBlank()) {
+            platformLog("🔄 Reloading transactions for userId: $userId, purpose: $purpose")
+            val currentParams = schemeParams ?: SchemeDetailsParamsManager.get()
+            val uipid = currentParams?.userPurposeId ?: purpose
+            viewModel.loadTransactions(userId, uipid, currentParams)
         }
     }
 
@@ -170,7 +234,7 @@ fun SchemeDetailsScreen(
                         Text(
                             text = if (!displayGoalName.isNullOrBlank()) formatGoalName(displayGoalName) else "Scheme Details",
                             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                            color = getCorrelationColorForCategory(state.category, state.colorTheme)
+                            color = accentColor
                         )
                         Text(
                             text = formatSchemeName(displaySchemeName),
@@ -197,7 +261,7 @@ fun SchemeDetailsScreen(
                             text = displaySchemeName.firstOrNull()?.toString() ?: "P",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = getCorrelationColorForCategory(state.category, state.colorTheme)
+                            color = accentColor
                         )
                     }
                 },
@@ -239,7 +303,7 @@ fun SchemeDetailsScreen(
                         }
 
                         item {
-                            val goalColor = getCorrelationColorForCategory(state.category, state.colorTheme)
+                            val goalColor = accentColor
                             TabRow(
                                 selectedTabIndex = selectedTabIndex,
                                 containerColor = Color.Transparent,
@@ -314,10 +378,19 @@ fun SchemeDetailsScreen(
                                     items(paused) { mandate ->
                                         MandateRowRefined(
                                             mandate = mandate,
-                                            onPause = { showPauseConfirm = mandate },
-                                            onResume = { showResumeConfirm = mandate },
-                                            onCancel = { showCancelConfirm = mandate },
-                                            accentColor = getCorrelationColorForCategory(state.category, state.colorTheme)
+                                            onPause = { 
+                                                mandateForPauseSip = mandate
+                                                showPauseSipQuestionSheet = true 
+                                            },
+                                            onResume = { 
+                                                mandateForResumeSip = mandate
+                                                showResumeSipQuestionSheet = true
+                                            },
+                                            onCancel = { 
+                                                mandateForCancelSip = mandate
+                                                showCancelSipScreen = true 
+                                            },
+                                            accentColor = accentColor
                                         )
                                     }
                                 }
@@ -327,10 +400,19 @@ fun SchemeDetailsScreen(
                                     items(approved) { mandate ->
                                         MandateRowRefined(
                                             mandate = mandate,
-                                            onPause = { showPauseConfirm = mandate },
-                                            onResume = { showResumeConfirm = mandate },
-                                            onCancel = { showCancelConfirm = mandate },
-                                            accentColor = getCorrelationColorForCategory(state.category, state.colorTheme)
+                                            onPause = { 
+                                                mandateForPauseSip = mandate
+                                                showPauseSipQuestionSheet = true 
+                                            },
+                                            onResume = { 
+                                                mandateForResumeSip = mandate
+                                                showResumeSipQuestionSheet = true
+                                            },
+                                            onCancel = { 
+                                                mandateForCancelSip = mandate
+                                                showCancelSipScreen = true 
+                                            },
+                                            accentColor = accentColor
                                         )
                                     }
                                 }
@@ -340,10 +422,19 @@ fun SchemeDetailsScreen(
                                     items(other) { mandate ->
                                         MandateRowRefined(
                                             mandate = mandate,
-                                            onPause = { showPauseConfirm = mandate },
-                                            onResume = { showResumeConfirm = mandate },
-                                            onCancel = { showCancelConfirm = mandate },
-                                            accentColor = getCorrelationColorForCategory(state.category, state.colorTheme)
+                                            onPause = { 
+                                                mandateForPauseSip = mandate
+                                                showPauseSipQuestionSheet = true 
+                                            },
+                                            onResume = { 
+                                                mandateForResumeSip = mandate
+                                                showResumeSipQuestionSheet = true
+                                            },
+                                            onCancel = { 
+                                                mandateForCancelSip = mandate
+                                                showCancelSipScreen = true 
+                                            },
+                                            accentColor = accentColor
                                         )
                                     }
                                 }
@@ -359,7 +450,7 @@ fun SchemeDetailsScreen(
                             onClick = { handleAddFunds(purpose) },
                             modifier = Modifier.weight(1f).height(50.dp),
                             shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = getCorrelationColorForCategory(state.category, state.colorTheme))
+                            colors = ButtonDefaults.buttonColors(containerColor = accentColor)
                         ) {
                             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.width(8.dp))
@@ -380,69 +471,110 @@ fun SchemeDetailsScreen(
                             },
                             modifier = Modifier.weight(1f).height(50.dp),
                             shape = RoundedCornerShape(12.dp),
-                            border = BorderStroke(1.dp, getCorrelationColorForCategory(state.category, state.colorTheme))
+                            border = BorderStroke(1.dp, accentColor)
                         ) {
-                            Icon(Icons.Default.CallReceived, contentDescription = null, modifier = Modifier.size(20.dp), tint = getCorrelationColorForCategory(state.category, state.colorTheme))
+                            Icon(Icons.Default.CallReceived, contentDescription = null, modifier = Modifier.size(20.dp), tint = accentColor)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Withdraw", color = getCorrelationColorForCategory(state.category, state.colorTheme), fontWeight = FontWeight.Bold)
+                            Text("Withdraw", color = accentColor, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
             }
 
-            // Action Dialogs
-            showPauseConfirm?.let { mandate ->
-                AlertDialog(
-                    onDismissRequest = { showPauseConfirm = null },
-                    title = { Text("Pause SIP") },
-                    text = { Text("Are you sure you want to pause this SIP of ₹${formatIndian(mandate.amount)}?") },
-                    confirmButton = {
-                        Button(
-                            onClick = { viewModel.pauseSip(userId, mandate.planId, mandate.mandateId) },
-                            enabled = !pauseSipLoading
-                        ) {
-                            if (pauseSipLoading) CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
-                            else Text("Pause")
-                        }
-                    },
-                    dismissButton = { TextButton(onClick = { showPauseConfirm = null }) { Text("Cancel") } }
+            // SIP Action Overlays (aligned with Android)
+            if (showCancelSipScreen && mandateForCancelSip != null) {
+                CancelSipInfoScreen(
+                    schemeName = displaySchemeName,
+                    dailyAmount = mandateForCancelSip?.amount ?: 0.0,
+                    onCancelSip = { showCancelReasonScreen = true },
+                    onGoBack = { 
+                        showCancelSipScreen = false
+                        mandateForCancelSip = null
+                    }
                 )
             }
 
-            showResumeConfirm?.let { mandate ->
-                AlertDialog(
-                    onDismissRequest = { showResumeConfirm = null },
-                    title = { Text("Resume SIP") },
-                    text = { Text("Do you want to resume your SIP of ₹${formatIndian(mandate.amount)}?") },
-                    confirmButton = {
-                        Button(
-                            onClick = { viewModel.resumeSip(userId, mandate.planId, mandate.mandateId) },
-                            enabled = !resumeSipLoading
-                        ) {
-                            if (resumeSipLoading) CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
-                            else Text("Resume")
+            if (showCancelReasonScreen && mandateForCancelSip != null) {
+                CancelSipReasonScreen(
+                    selectedReason = selectedCancelReason,
+                    onReasonSelected = { selectedCancelReason = it },
+                    onContinue = {
+                        selectedCancelReason?.let { reason ->
+                            viewModel.cancelSip(userId, mandateForCancelSip?.planId, mandateForCancelSip?.mandateId, reason.keyword)
                         }
                     },
-                    dismissButton = { TextButton(onClick = { showResumeConfirm = null }) { Text("Cancel") } }
+                    onGoBack = { showCancelReasonScreen = false }
                 )
             }
 
-            showCancelConfirm?.let { mandate ->
-                AlertDialog(
-                    onDismissRequest = { showCancelConfirm = null },
-                    title = { Text("Cancel SIP") },
-                    text = { Text("Cancelling your SIP will stop future investments. Are you sure?") },
-                    confirmButton = {
-                        Button(
-                            onClick = { viewModel.cancelSip(userId, mandate.planId, mandate.mandateId, "User Request") },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
-                            enabled = !cancelSipLoading
-                        ) {
-                            if (cancelSipLoading) CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
-                            else Text("Cancel SIP", color = Color.White)
-                        }
+            if (showCancelSipSuccessSheet) {
+                CancelSipSuccessBottomSheet(
+                    onDone = {
+                        showCancelSipSuccessSheet = false
+                        reloadTransactions()
+                    }
+                )
+            }
+
+            if (showCancelSipErrorSheet) {
+                CancelSipErrorBottomSheet(
+                    onDone = { showCancelSipErrorSheet = false }
+                )
+            }
+
+            if (showPauseSipQuestionSheet && mandateForPauseSip != null) {
+                PauseSipConfirmBottomSheet(
+                    isLoading = pauseSipLoading,
+                    onCancel = { 
+                        showPauseSipQuestionSheet = false
+                        mandateForPauseSip = null
                     },
-                    dismissButton = { TextButton(onClick = { showCancelConfirm = null }) { Text("Close") } }
+                    onConfirm = {
+                        viewModel.pauseSip(userId, mandateForPauseSip?.planId, mandateForPauseSip?.mandateId)
+                    }
+                )
+            }
+
+            if (showPauseSipSuccessSheet) {
+                PauseSipSuccessBottomSheet(
+                    onDone = {
+                        showPauseSipSuccessSheet = false
+                        reloadTransactions()
+                    }
+                )
+            }
+
+            if (showPauseSipErrorSheet) {
+                PauseSipErrorBottomSheet(
+                    onDone = { showPauseSipErrorSheet = false }
+                )
+            }
+
+            if (showResumeSipQuestionSheet && mandateForResumeSip != null) {
+                ResumeSipConfirmBottomSheet(
+                    isLoading = resumeSipLoading,
+                    onCancel = {
+                        showResumeSipQuestionSheet = false
+                        mandateForResumeSip = null
+                    },
+                    onConfirm = {
+                        viewModel.resumeSip(userId, mandateForResumeSip?.planId, mandateForResumeSip?.mandateId)
+                    }
+                )
+            }
+
+            if (showResumeSipSuccessSheet) {
+                ResumeSipSuccessBottomSheet(
+                    onDone = {
+                        showResumeSipSuccessSheet = false
+                        reloadTransactions()
+                    }
+                )
+            }
+
+            if (showResumeSipErrorSheet) {
+                ResumeSipErrorBottomSheet(
+                    onDone = { showResumeSipErrorSheet = false }
                 )
             }
 
@@ -468,17 +600,6 @@ fun SchemeDetailsScreen(
             }
             if (showSilverInfo) {
                 InfoDialog(title = "Estimated Silver", text = "This value represents the estimated silver grams based on current market rates. For representational purposes only.", onDismiss = { showSilverInfo = false })
-            }
-
-            errorMessage?.let { msg ->
-                AlertDialog(
-                    onDismissRequest = { errorMessage = null },
-                    title = { Text("Error") },
-                    text = { Text(msg) },
-                    confirmButton = {
-                        TextButton(onClick = { errorMessage = null }) { Text("OK") }
-                    }
-                )
             }
         }
     }
@@ -531,7 +652,8 @@ fun SchemeDetailsCard(
         else -> "₹${formatIndian(state.cummulativeValue)}"
     }
 
-    val goalColor = getCorrelationColorForCategory(state.category, state.colorTheme)
+    val baseGoalColor = getCorrelationColorForCategory(state.category, state.colorTheme)
+    val goalColor = if (isSilver && baseGoalColor == Color(0xFF818181)) Color(0xFF1A1A1A) else baseGoalColor
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -764,7 +886,9 @@ fun SchemeDetailsPopup(
     onDismiss: () -> Unit,
     onInvestMore: () -> Unit
 ) {
-    val goalColor = getCorrelationColorForCategory(state.category, state.colorTheme)
+    val isSilver = schemeName.contains("Silver", ignoreCase = true) || goalName.contains("Silver", ignoreCase = true)
+    val baseGoalColor = getCorrelationColorForCategory(state.category, state.colorTheme)
+    val goalColor = if (isSilver && baseGoalColor == Color(0xFF818181)) Color(0xFF1A1A1A) else baseGoalColor
     
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -849,5 +973,300 @@ fun DetailRow(label: String, value: String, valueColor: Color = Color.Black) {
     ) {
         Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.alpha(0.6f))
         Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = valueColor)
+    }
+}
+@Composable
+fun CancelSipInfoScreen(
+    schemeName: String,
+    dailyAmount: Double,
+    onCancelSip: () -> Unit,
+    onGoBack: () -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.height(40.dp))
+            Icon(
+                Icons.Default.Warning,
+                contentDescription = null,
+                tint = Color(0xFFFF9800),
+                modifier = Modifier.size(48.dp)
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+            Text(
+                text = "Think before you cancel!",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "Did you know?",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "Continuing your daily SIP of ₹${formatIndian(dailyAmount)} could help you reach your goals faster due to compounding.",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            Text(
+                text = "Are you sure you want to cancel your SIP in $schemeName?",
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.Center,
+                color = Color.Red
+            )
+            
+            Spacer(modifier = Modifier.weight(1f))
+            
+            Button(
+                onClick = onCancelSip,
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+            ) {
+                Text("Cancel SIP", fontWeight = FontWeight.Bold)
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            OutlinedButton(
+                onClick = onGoBack,
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("Go Back", fontWeight = FontWeight.Bold)
+            }
+            
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+    }
+}
+
+@Composable
+fun CancelSipReasonScreen(
+    selectedReason: CancelSipReason?,
+    onReasonSelected: (CancelSipReason) -> Unit,
+    onContinue: () -> Unit,
+    onGoBack: () -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.height(40.dp))
+            Text(
+                text = "Why are you cancelling?",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            val reasons = CancelSipReason.values()
+            reasons.forEach { reason ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onReasonSelected(reason) }
+                        .padding(vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(
+                        selected = selectedReason == reason,
+                        onClick = { onReasonSelected(reason) }
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(text = reason.label, style = MaterialTheme.typography.bodyLarge)
+                }
+            }
+            
+            Spacer(modifier = Modifier.weight(1f))
+            
+            Button(
+                onClick = onContinue,
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape = RoundedCornerShape(12.dp),
+                enabled = selectedReason != null
+            ) {
+                Text("Continue", fontWeight = FontWeight.Bold)
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            OutlinedButton(
+                onClick = onGoBack,
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("Go Back", fontWeight = FontWeight.Bold)
+            }
+            
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CancelSipSuccessBottomSheet(onDone: () -> Unit) {
+    ModalBottomSheet(onDismissRequest = {}, dragHandle = null) {
+        Column(modifier = Modifier.padding(24.dp).padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text("SIP Cancelled", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text("Your SIP has been cancelled successfully. It might take up to 24-48 hours to reflect in all records.", style = MaterialTheme.typography.bodyLarge)
+            Button(onClick = onDone, modifier = Modifier.fillMaxWidth().height(56.dp), shape = RoundedCornerShape(12.dp)) {
+                Text("OK", fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CancelSipErrorBottomSheet(onDone: () -> Unit) {
+    ModalBottomSheet(onDismissRequest = {}, dragHandle = null) {
+        Column(modifier = Modifier.padding(24.dp).padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text("Cancellation Failed", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.Red)
+            Text("We were unable to cancel your SIP at this moment. Please try again later or contact support.", style = MaterialTheme.typography.bodyLarge)
+            Button(onClick = onDone, modifier = Modifier.fillMaxWidth().height(56.dp), shape = RoundedCornerShape(12.dp)) {
+                Text("Got It", fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PauseSipConfirmBottomSheet(isLoading: Boolean, onCancel: () -> Unit, onConfirm: () -> Unit) {
+    ModalBottomSheet(onDismissRequest = if (isLoading) ({}) else onCancel, dragHandle = null) {
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier.padding(24.dp).padding(bottom = 16.dp).alpha(if (isLoading) 0.3f else 1f),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text("Pause SIP", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text("Are you sure you want to pause your daily SIP? You can resume it anytime later.", style = MaterialTheme.typography.bodyLarge)
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f).height(56.dp), shape = RoundedCornerShape(12.dp), enabled = !isLoading) {
+                        Text("Go Back")
+                    }
+                    Button(onClick = onConfirm, modifier = Modifier.weight(1f).height(56.dp), shape = RoundedCornerShape(12.dp), enabled = !isLoading) {
+                        Text("Pause")
+                    }
+                }
+            }
+            if (isLoading) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PauseSipSuccessBottomSheet(onDone: () -> Unit) {
+    ModalBottomSheet(onDismissRequest = {}, dragHandle = null) {
+        Column(modifier = Modifier.padding(24.dp).padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text("SIP Paused", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text("Your SIP has been paused successfully. You will not be charged until you resume it.", style = MaterialTheme.typography.bodyLarge)
+            Button(onClick = onDone, modifier = Modifier.fillMaxWidth().height(56.dp), shape = RoundedCornerShape(12.dp)) {
+                Text("OK", fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PauseSipErrorBottomSheet(onDone: () -> Unit) {
+    ModalBottomSheet(onDismissRequest = {}, dragHandle = null) {
+        Column(modifier = Modifier.padding(24.dp).padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text("Pause Failed", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.Red)
+            Text("We were unable to pause your SIP. Please check your connection and try again.", style = MaterialTheme.typography.bodyLarge)
+            Button(onClick = onDone, modifier = Modifier.fillMaxWidth().height(56.dp), shape = RoundedCornerShape(12.dp)) {
+                Text("OK", fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ResumeSipConfirmBottomSheet(isLoading: Boolean, onCancel: () -> Unit, onConfirm: () -> Unit) {
+    ModalBottomSheet(onDismissRequest = if (isLoading) ({}) else onCancel, dragHandle = null) {
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier.padding(24.dp).padding(bottom = 16.dp).alpha(if (isLoading) 0.3f else 1f),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text("Resume SIP", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text("Do you want to resume your daily SIP now?", style = MaterialTheme.typography.bodyLarge)
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f).height(56.dp), shape = RoundedCornerShape(12.dp), enabled = !isLoading) {
+                        Text("Cancel")
+                    }
+                    Button(onClick = onConfirm, modifier = Modifier.weight(1f).height(56.dp), shape = RoundedCornerShape(12.dp), enabled = !isLoading) {
+                        Text("Resume")
+                    }
+                }
+            }
+            if (isLoading) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ResumeSipSuccessBottomSheet(onDone: () -> Unit) {
+    ModalBottomSheet(onDismissRequest = {}, dragHandle = null) {
+        Column(modifier = Modifier.padding(24.dp).padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text("SIP Resumed", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text("Your SIP has been resumed successfully. Your next installment will be processed as scheduled.", style = MaterialTheme.typography.bodyLarge)
+            Button(onClick = onDone, modifier = Modifier.fillMaxWidth().height(56.dp), shape = RoundedCornerShape(12.dp)) {
+                Text("OK", fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ResumeSipErrorBottomSheet(onDone: () -> Unit) {
+    ModalBottomSheet(onDismissRequest = {}, dragHandle = null) {
+        Column(modifier = Modifier.padding(24.dp).padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text("Resume Failed", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.Red)
+            Text("We were unable to resume your SIP. Please try again later.", style = MaterialTheme.typography.bodyLarge)
+            Button(onClick = onDone, modifier = Modifier.fillMaxWidth().height(56.dp), shape = RoundedCornerShape(12.dp)) {
+                Text("OK", fontWeight = FontWeight.Bold)
+            }
+        }
     }
 }

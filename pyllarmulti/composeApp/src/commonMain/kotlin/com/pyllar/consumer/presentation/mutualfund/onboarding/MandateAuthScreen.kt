@@ -194,7 +194,7 @@ fun MandateAuthScreen(
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text("Total Amount", style = MaterialTheme.typography.bodyLarge)
                             Text(
-                                "₹$amount",
+                                "₹1.00",
                                 style = MaterialTheme.typography.headlineLarge,
                                 fontWeight = FontWeight.Bold
                             )

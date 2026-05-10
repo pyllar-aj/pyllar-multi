@@ -3,6 +3,7 @@ package com.pyllar.consumer.presentation.auth.permission
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pyllar.consumer.data.remote.model.dto.NavigationAction
+import com.pyllar.consumer.data.remote.model.dto.NavigationInfo
 import com.pyllar.consumer.domain.models.UpdateEmailResponse
 import com.pyllar.consumer.domain.repository.AuthRepository
 import com.pyllar.consumer.platform.PermissionManager
@@ -134,10 +135,23 @@ class PermissionViewModel(
                         _state.value = _state.value.copy(updateEmailResult = result)
                     }
                     is Resource.Success -> {
-                        _state.value = _state.value.copy(
-                            updateEmailResult = result,
-                            isProcessing = false
-                        )
+                        val response = result.data
+                        val navigation = result.navigation
+                        
+                        if (response?.isMismatch == true || navigation?.action == NavigationAction.STAY || navigation?.action == NavigationAction.RETRY) {
+                             val errorMsg = navigation?.getMessage() ?: response?.message ?: "The mobile number and email you entered do not belong to the same account. Please try again with a different email."
+                             _state.value = _state.value.copy(
+                                 updateEmailResult = result,
+                                 isProcessing = false,
+                                 serverErrorMessage = errorMsg
+                             )
+                        } else {
+                            _state.value = _state.value.copy(
+                                updateEmailResult = result,
+                                isProcessing = false,
+                                serverErrorMessage = null
+                            )
+                        }
                     }
                     is Resource.Error -> {
                         _state.value = _state.value.copy(
@@ -169,5 +183,9 @@ class PermissionViewModel(
             updateEmailResult = null,
             permissionFlow = PermissionFlowState.Idle
         )
+    }
+
+    fun setServerErrorMessage(message: String?) {
+        _state.value = _state.value.copy(serverErrorMessage = message)
     }
 }

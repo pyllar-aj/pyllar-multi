@@ -258,10 +258,6 @@ fun SipAmountScreenV2(
                                     val fetchedUserPurposeId = response.userPurposeId
                                     platformLog("SipAmountScreenV2: Fetched and stored userPurposeId: $fetchedUserPurposeId")
                                     
-                                    // RE-LOAD fund details using the specific userPurposeId
-                                    platformLog("SipAmountScreenV2: Re-loading fund details using userPurposeId: $fetchedUserPurposeId")
-                                    fundDetailsViewModel.loadFundDetailsByGoal(effectiveUserId, fetchedUserPurposeId)
-
                                     // Now fetch investment limits
                                     viewModel.fetchInvestmentLimits(fetchedUserPurposeId)
                                 }

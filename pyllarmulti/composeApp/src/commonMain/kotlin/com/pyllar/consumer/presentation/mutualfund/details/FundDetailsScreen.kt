@@ -39,7 +39,7 @@ fun FundDetailsScreen(
     kycAttemptId: String = "",
     investorId: String = "",
     onBackClick: () -> Unit = {},
-    onSipCreated: (Double, String?) -> Unit = { _, _ -> },
+    onSipCreated: (Double, String?, com.pyllar.consumer.data.remote.model.dto.MandateWrapper?) -> Unit = { _, _, _ -> },
     viewModel: FundDetailsViewModel = koinInject()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -98,7 +98,7 @@ fun FundDetailsScreen(
                             amount = sipAmount
                         )
                         if (result is SipCreationResult.Success) {
-                            onSipCreated(sipAmount, result.nextScreen)
+                            onSipCreated(sipAmount, result.nextScreen, result.mandateWrapper)
                         }
                     }
                 }
@@ -145,7 +145,7 @@ fun FundDetailsScreen(
 @Composable
 fun FundHeader(name: String, category: String) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(name, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        // Name removed as it is displayed in the TopAppBar
         Surface(
             color = MaterialTheme.colorScheme.primaryContainer,
             shape = androidx.compose.foundation.shape.RoundedCornerShape(4.dp)

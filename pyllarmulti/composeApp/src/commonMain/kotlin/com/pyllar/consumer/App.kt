@@ -464,9 +464,20 @@ fun App() {
                     kycAttemptId = screen.kycAttemptId,
                     investorId = screen.investorId,
                     onBackClick = { navigateBack() },
-                    onSipCreated = { amount, nextScreen ->
+                    onSipCreated = { amount, nextScreen, mandate ->
                         // Refresh or navigate forward after SIP creation
-                        if (nextScreen != null) {
+                        if (nextScreen == com.pyllar.consumer.navigation.ScreenNames.MANDATE_AUTH && mandate != null) {
+                            navigateTo(Screen.MandateAuth(
+                                userId = screen.userId,
+                                kycAttemptId = screen.kycAttemptId,
+                                investorId = screen.investorId,
+                                amount = amount,
+                                mandateUrl = mandate.uri ?: "",
+                                mandateId = mandate.mandateId ?: 0L,
+                                mandateRef = mandate.finMandateId ?: 0L,
+                                goalId = screen.goalId
+                            ))
+                        } else if (nextScreen != null) {
                             handleNavigation(nextScreen, screen.userId, screen.kycAttemptId, screen.investorId) { navigateTo(it) }
                         } else {
                             navigateTo(Screen.InvestmentDashboard(screen.userId), clearStack = true)
