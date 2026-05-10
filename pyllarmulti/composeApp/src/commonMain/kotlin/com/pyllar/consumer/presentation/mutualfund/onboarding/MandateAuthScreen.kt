@@ -1,9 +1,16 @@
 package com.pyllar.consumer.presentation.mutualfund.onboarding
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -15,15 +22,25 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.alexzhirkevich.compottie.*
+import io.github.alexzhirkevich.qrose.*
+import pyllar.composeapp.generated.resources.Res
 import com.pyllar.consumer.data.remote.model.dto.MandateStatus
 import com.pyllar.consumer.data.remote.model.dto.MandateWrapper
 import com.pyllar.consumer.platform.PlatformActions
+import com.pyllar.consumer.platform.UpiAppInfo
+import com.pyllar.consumer.util.BackHandler
 import com.pyllar.consumer.util.platformLog
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
@@ -37,6 +54,7 @@ fun MandateAuthScreen(
     mandateUrl: String = "",
     mandateId: Long = 0L,
     mandateRef: Long = 0L,
+    goalId: String = "",
     onNavigateToHelp: () -> Unit = {},
     onNavigateBack: () -> Unit = {},
     onGoToHome: () -> Unit = {},
@@ -45,22 +63,60 @@ fun MandateAuthScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scope = rememberCoroutineScope()
+    
+    var selectedTabIndex by remember { mutableIntStateOf(0) }
     var upiAppClicked by remember { mutableStateOf(false) }
+    
+    // Disable back button during active transaction
+    BackHandler(enabled = upiAppClicked || (uiState.mandateStatus != null && uiState.mandateStatus != MandateStatus.APPROVED)) {
+        // Do nothing or show a toast "Please wait while we verify your mandate"
+    }
+    var availableUpiApps by remember { mutableStateOf<List<UpiAppInfo>>(emptyList()) }
+    var showMoreUpiAppsSheet by remember { mutableStateOf(false) }
+    var is30SecondsPassed by remember { mutableStateOf(false) }
+
+    val goalType = remember(goalId) { identifyGoalType(goalId) }
 
     LaunchedEffect(Unit) {
         platformLog("MandateAuthScreen: \uD83D\uDCCB Received Parameters - mandateId: $mandateId, mandateRef: $mandateRef")
-        if (mandateUrl.isNotBlank()) {
-            platformLog("MandateAuthScreen: ✅ Received UPI mandate URL")
+        availableUpiApps = platformActions.getInstalledUpiApps()
+    }
+
+    LaunchedEffect(selectedTabIndex) {
+        if (selectedTabIndex == 1 && mandateId > 0L && mandateRef > 0L) {
+            viewModel.startMandateSync(userId, mandateId, mandateRef)
+        } else if (selectedTabIndex == 0 && !upiAppClicked) {
+            viewModel.resetPollingState()
         }
     }
+
+    LaunchedEffect(uiState.mandateStatus) {
+        if (uiState.mandateStatus == MandateStatus.APPROVED) {
+            delay(30_000L)
+            is30SecondsPassed = true
+        }
+    }
+
+    LaunchedEffect(uiState.mandateStatus, mandateRef, userId) {
+        if (uiState.mandateStatus == MandateStatus.APPROVED && mandateRef > 0L) {
+            viewModel.startPlanPollingAfterApproval(userId = userId, mandateRef = mandateRef)
+        }
+    }
+
+    val isFinalStatus = uiState.mandateStatus != null && 
+        (uiState.mandateStatus == MandateStatus.APPROVED || 
+         uiState.mandateStatus == MandateStatus.REJECTED || 
+         uiState.mandateStatus == MandateStatus.CANCELLED)
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Mandate Setup", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    if (!isFinalStatus) {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        }
                     }
                 },
                 actions = {
@@ -71,193 +127,394 @@ fun MandateAuthScreen(
             )
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(24.dp)
-        ) {
-            when {
-                uiState.error != null -> {
-                    StatusDisplay(
-                        icon = Icons.Default.Error,
-                        iconTint = Color.Red,
-                        title = "Verification Timeout",
-                        description = uiState.error ?: "An error occurred. Please try again.",
-                        actionText = "Go to Home",
-                        onAction = onGoToHome
-                    )
-                }
-
-                uiState.mandateStatus != null -> {
-                    val status = uiState.mandateStatus!!
-                    val isSuccess = status == MandateStatus.APPROVED
-                    
-                    StatusDisplay(
-                        icon = if (isSuccess) Icons.Default.CheckCircle else Icons.Default.Error,
-                        iconTint = if (isSuccess) Color(0xFF4CAF50) else Color.Red,
-                        title = if (isSuccess) "Mandate Approved" else "Mandate ${status.name}",
-                        description = if (isSuccess) "Your daily SIP is now set up successfully." else "Please try again or contact support.",
-                        actionText = "Go to Home",
-                        onAction = onGoToHome
-                    )
-                    
-                    if (isSuccess) {
-                        WhatsNextSection()
+        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
+                when {
+                    uiState.error != null -> {
+                        StatusDisplay(
+                            icon = Icons.Default.Error,
+                            iconTint = Color.Red,
+                            title = "Verification Timeout",
+                            description = uiState.error ?: "An error occurred. Please try again.",
+                            actionText = "Go to Home",
+                            onAction = onGoToHome
+                        )
                     }
-                }
 
-                upiAppClicked || uiState.isLoading -> {
-                    LoadingDisplay()
-                }
-
-                else -> {
-                    MandateDetailsCard(amount = amount)
-                    
-                    Text(
-                        "Choose a UPI app to complete the setup",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center
-                    )
-
-                    Button(
-                        onClick = {
-                            upiAppClicked = true
-                            platformLog("MandateAuthScreen: Launching UPI URL: $mandateUrl")
-                            if (mandateUrl.isNotBlank()) {
-                                platformActions.openUrl(mandateUrl)
-                            }
-                            scope.launch {
-                                viewModel.startMandateSync(userId, mandateId, mandateRef)
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth().height(56.dp),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
-                            Icon(Icons.Default.Payment, contentDescription = null)
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text("Open UPI App", fontWeight = FontWeight.Bold)
+                    uiState.mandateStatus != null && isFinalStatus -> {
+                        val status = uiState.mandateStatus!!
+                        if (status == MandateStatus.APPROVED) {
+                            MandateApprovedWaitingContent(
+                                mandateUrl = mandateUrl,
+                                progress = uiState.planSetupProgress,
+                                isPlanReady = uiState.isPlanReady,
+                                isPlanResponseResolved = uiState.planPollingResolved,
+                                goalType = goalType
+                            )
+                        } else {
+                            StatusDisplay(
+                                icon = Icons.Default.Error,
+                                iconTint = Color.Red,
+                                title = "Mandate ${status.name}",
+                                description = "Please try again or contact support.",
+                                actionText = "Go to Home",
+                                onAction = onGoToHome
+                            )
                         }
                     }
-                    
-                    Text(
-                        "Ensure you use the same bank account linked with Pyllar.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                        textAlign = TextAlign.Center
-                    )
+
+                    upiAppClicked || (selectedTabIndex == 0 && uiState.isLoading) -> {
+                        LoadingDisplay()
+                    }
+
+                    else -> {
+                        // Pyllar Logo & Brand
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                Icons.Default.Security, 
+                                contentDescription = null, 
+                                modifier = Modifier.size(80.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                "Pyllar",
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        // Amount section
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("Total Amount", style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                "₹$amount",
+                                style = MaterialTheme.typography.headlineLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                "Refunded within 2 days",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            )
+                        }
+                    }
                 }
+            }
+
+            // Bottom Buttons for Final State
+            if (isFinalStatus || uiState.error != null) {
+                val status = uiState.mandateStatus
+                val isBtnEnabled = if (status == MandateStatus.APPROVED) {
+                    uiState.planPollingResolved || uiState.planPollingTimedOut || is30SecondsPassed
+                } else true
+
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    if (status == MandateStatus.APPROVED && isBtnEnabled) {
+                        Button(
+                            onClick = { /* Share Logic */ },
+                            modifier = Modifier.fillMaxWidth().height(56.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                        ) {
+                            Text("Share with Family", fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    Button(
+                        onClick = onGoToHome,
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        enabled = isBtnEnabled
+                    ) {
+                        Text("Go to Home", fontWeight = FontWeight.Bold)
+                    }
+                }
+            } else if (!upiAppClicked && uiState.error == null) {
+                // Tabbed Bottom Panel
+                Surface(
+                    color = MaterialTheme.colorScheme.surface,
+                    shadowElevation = 8.dp,
+                    shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        TabRow(selectedTabIndex = selectedTabIndex) {
+                            Tab(selected = selectedTabIndex == 0, onClick = { selectedTabIndex = 0 }) {
+                                Text("Choose UPI App", modifier = Modifier.padding(16.dp), fontWeight = FontWeight.Bold)
+                            }
+                            Tab(selected = selectedTabIndex == 1, onClick = { selectedTabIndex = 1 }) {
+                                Text("Scan QR Code", modifier = Modifier.padding(16.dp), fontWeight = FontWeight.Bold)
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        if (selectedTabIndex == 0) {
+                            UpiAppGrid(
+                                apps = availableUpiApps,
+                                onAppClick = { app ->
+                                    upiAppClicked = true
+                                    platformActions.openUrl(mandateUrl)
+                                    scope.launch {
+                                        delay(10000L)
+                                        viewModel.startMandateSync(userId, mandateId, mandateRef)
+                                    }
+                                },
+                                onMoreClick = { showMoreUpiAppsSheet = true }
+                            )
+                        } else {
+                            QrPlaceholder(mandateUrl)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (showMoreUpiAppsSheet) {
+        MoreUpiAppsBottomSheet(
+            apps = availableUpiApps,
+            onDismiss = { showMoreUpiAppsSheet = false },
+            onAppClick = { app ->
+                showMoreUpiAppsSheet = false
+                upiAppClicked = true
+                platformActions.openUrl(mandateUrl)
+                scope.launch {
+                    delay(10000L)
+                    viewModel.startMandateSync(userId, mandateId, mandateRef)
+                }
+            }
+        )
+    }
+}
+
+@Composable
+fun UpiAppGrid(
+    apps: List<UpiAppInfo>,
+    onAppClick: (UpiAppInfo) -> Unit,
+    onMoreClick: () -> Unit
+) {
+    val hasMoreApps = apps.size > 6
+    val appsToShow = if (hasMoreApps) apps.take(5) else apps.take(6)
+
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(3),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier.fillMaxWidth().heightIn(max = 200.dp)
+    ) {
+        items(appsToShow) { app ->
+            UpiAppCard(app = app, onClick = { onAppClick(app) })
+        }
+        if (hasMoreApps) {
+            item {
+                MoreUpiAppsCard(onClick = onMoreClick)
             }
         }
     }
 }
 
 @Composable
-fun StatusDisplay(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    iconTint: Color,
-    title: String,
-    description: String,
-    actionText: String,
-    onAction: () -> Unit
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+fun UpiAppCard(app: UpiAppInfo, onClick: () -> Unit) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.height(80.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        shape = RoundedCornerShape(12.dp)
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = iconTint,
-            modifier = Modifier.size(80.dp)
-        )
+        Column(
+            modifier = Modifier.fillMaxSize().padding(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            if (app.icon != null) {
+                Image(bitmap = app.icon, contentDescription = app.displayName, modifier = Modifier.size(32.dp).clip(RoundedCornerShape(8.dp)))
+            } else {
+                Box(modifier = Modifier.size(32.dp).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.primary), contentAlignment = Alignment.Center) {
+                    Text(app.displayName.take(1), color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(app.displayName, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+    }
+}
+
+@Composable
+fun MoreUpiAppsCard(onClick: () -> Unit) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.height(80.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text("More...", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MoreUpiAppsBottomSheet(apps: List<UpiAppInfo>, onDismiss: () -> Unit, onAppClick: (UpiAppInfo) -> Unit) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(modifier = Modifier.fillMaxWidth().padding(24.dp)) {
+            Text("Choose UPI App", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(16.dp))
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(3),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(max = 400.dp)
+            ) {
+                items(apps) { app ->
+                    UpiAppCard(app = app, onClick = { onAppClick(app) })
+                }
+            }
+            Spacer(modifier = Modifier.height(32.dp))
+        }
+    }
+}
+
+@Composable
+fun QrPlaceholder(url: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+        if (url.isNotBlank()) {
+            Box(
+                modifier = Modifier
+                    .size(220.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color.White)
+                    .border(1.dp, Color.LightGray, RoundedCornerShape(16.dp))
+                    .padding(12.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = rememberQrCodePainter(url),
+                    contentDescription = "Mandate QR Code",
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+        } else {
+            Box(modifier = Modifier.size(200.dp).border(1.dp, Color.LightGray, RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Default.QrCode, contentDescription = null, modifier = Modifier.size(64.dp), tint = Color.Gray)
+                    Text("Invalid QR Data", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        Text("Scan this QR with any UPI app", style = MaterialTheme.typography.bodyMedium)
+    }
+}
+@Composable
+fun StatusDisplay(icon: androidx.compose.ui.graphics.vector.ImageVector, iconTint: Color, title: String, description: String, actionText: String, onAction: () -> Unit) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Icon(imageVector = icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(80.dp))
         Text(title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
         Text(description, style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center)
         Spacer(modifier = Modifier.height(24.dp))
-        Button(
-            onClick = onAction,
-            modifier = Modifier.fillMaxWidth().height(52.dp)
-        ) {
+        Button(onClick = onAction, modifier = Modifier.fillMaxWidth().height(56.dp), shape = RoundedCornerShape(12.dp)) {
             Text(actionText, fontWeight = FontWeight.Bold)
         }
     }
 }
 
+@OptIn(org.jetbrains.compose.resources.ExperimentalResourceApi::class)
 @Composable
 fun LoadingDisplay() {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Box(
-            modifier = Modifier.size(150.dp),
-            contentAlignment = Alignment.Center
+    val composition by rememberLottieComposition {
+        val json = Res.readBytes("files/secure.json").decodeToString()
+        LottieCompositionSpec.JsonString(json)
+    }
+    
+    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Box(modifier = Modifier.size(200.dp), contentAlignment = Alignment.Center) {
+            LottieAnimation(
+                composition = composition,
+                iterations = LottieConstants.IterateForever,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+        Text("Verifying Mandate...", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Text("Please do not close the app or go back.", style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+    }
+}
+
+@Composable
+fun MandateApprovedWaitingContent(mandateUrl: String, progress: Int, isPlanReady: Boolean, isPlanResponseResolved: Boolean, goalType: GoalType) {
+    val accentColor = when (goalType) {
+        GoalType.GOLD -> Color(0xFFC8860A)
+        GoalType.SILVER -> Color(0xFF6B7280)
+        GoalType.SAVINGS -> Color(0xFF4CAF50)
+        GoalType.FESTIVAL_SPENDS -> Color(0xFFFF9800)
+        GoalType.ALL_IN_ONE -> Color(0xFF7B1FA2)
+        GoalType.GLOBAL_EXPOSURE -> Color(0xFF2196F3)
+        else -> MaterialTheme.colorScheme.primary
+    }
+    val lightBackground = accentColor.copy(alpha = 0.1f)
+    
+    val sipStartDay = remember { getInvestmentStatus() }
+
+    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
         ) {
-            CircularProgressIndicator(modifier = Modifier.fillMaxSize(), strokeWidth = 8.dp)
-            Text("\uD83D\uDE80", fontSize = 48.sp)
-        }
-        Text(
-            "Verifying Mandate...",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold
-        )
-        Text(
-            "Please do not close the app or go back. This may take a moment.",
-            style = MaterialTheme.typography.bodyMedium,
-            textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-        )
-    }
-}
+            Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Text("Setup in Progress...", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                
+                LinearProgressIndicator(
+                    progress = { progress / 100f },
+                    modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
+                    color = accentColor,
+                    trackColor = lightBackground
+                )
 
-@Composable
-fun MandateDetailsCard(amount: Double) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-    ) {
-        Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Mandate Details", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("SIP Amount", style = MaterialTheme.typography.bodyLarge)
-                Text("₹$amount", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            }
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Frequency", style = MaterialTheme.typography.bodyLarge)
-                Text("Daily", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                Text(
+                    text = if (isPlanReady) "Your investment plan is ready!" else "Allocating units to your portfolio...",
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Divider()
+
+                WaitingStepRow("Mandate Approved", "Your daily SIP is authorized.", true, true, accentColor)
+                WaitingStepRow("Order Placed", "Sent to the fund house.", isPlanReady, true, accentColor)
+                WaitingStepRow("SIP Starts", "Expected by $sipStartDay.", isPlanReady, false, accentColor)
             }
         }
     }
 }
 
 @Composable
-fun WhatsNextSection() {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f))
-    ) {
-        Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("What's Next?", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            HorizontalDivider()
-            WhatsNextItem("\u2705", "Order Placed", "Your investment order has been sent to the fund house.")
-            WhatsNextItem("\uD83D\uDCC8", "Allocation", "Units will be allocated to your portfolio by tomorrow 8 AM.")
+fun WaitingStepRow(title: String, subtitle: String, isDone: Boolean, showConnector: Boolean, accentColor: Color) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(
+                imageVector = if (isDone) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
+                contentDescription = null,
+                tint = if (isDone) Color(0xFF4CAF50) else accentColor
+            )
+            if (showConnector) {
+                Box(modifier = Modifier.width(2.dp).height(20.dp).background(accentColor.copy(alpha = 0.3f)))
+            }
         }
-    }
-}
-
-@Composable
-fun WhatsNextItem(icon: String, title: String, description: String) {
-    Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(icon, fontSize = 20.sp)
         Column {
-            Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-            Text(description, style = MaterialTheme.typography.bodySmall)
+            Text(title, fontWeight = FontWeight.Bold)
+            Text(subtitle, style = MaterialTheme.typography.bodySmall)
         }
     }
 }

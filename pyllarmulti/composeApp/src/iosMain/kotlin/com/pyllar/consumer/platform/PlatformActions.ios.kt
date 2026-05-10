@@ -38,6 +38,27 @@ class IosPlatformActions : PlatformActions {
         }
     }
 
+    override fun getInstalledUpiApps(): List<UpiAppInfo> {
+        val upiSchemes = mapOf(
+            "tez://" to "Google Pay",
+            "phonepe://" to "PhonePe",
+            "paytmmp://" to "Paytm",
+            "amazonpay://" to "Amazon Pay",
+            "bhim://" to "BHIM"
+        )
+        
+        return upiSchemes.filter { (scheme, _) ->
+            val nsUrl = NSURL.URLWithString(scheme)
+            nsUrl != null && UIApplication.sharedApplication.canOpenURL(nsUrl)
+        }.map { (scheme, name) ->
+            UpiAppInfo(
+                packageName = scheme,
+                displayName = name,
+                icon = null
+            )
+        }
+    }
+
     private fun getRootViewController(): UIViewController? {
         val window = UIApplication.sharedApplication.windows.first() as? UIWindow
         return window?.rootViewController

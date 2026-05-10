@@ -70,10 +70,20 @@ interface PermissionManager {
 }
 
 /**
+ * Data class for UPI app information
+ */
+data class UpiAppInfo(
+    val packageName: String,
+    val displayName: String,
+    val icon: androidx.compose.ui.graphics.ImageBitmap? = null
+)
+
+/**
  * Interface for triggering platform-specific actions like opening URLs or sharing content.
  */
 interface PlatformActions {
     fun openUrl(url: String)
     fun shareText(text: String, title: String = "Share")
     fun openWhatsApp(phoneNumber: String, message: String)
+    fun getInstalledUpiApps(): List<UpiAppInfo>
 }

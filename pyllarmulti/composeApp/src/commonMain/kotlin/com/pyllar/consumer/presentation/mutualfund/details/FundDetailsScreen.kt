@@ -27,6 +27,7 @@ import androidx.compose.material3.FilterChipDefaults
 import com.pyllar.consumer.data.remote.model.dto.NavChartDataDto
 import com.pyllar.consumer.data.remote.model.dto.FundReturnsDto
 import org.koin.compose.koinInject
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,11 +36,14 @@ fun FundDetailsScreen(
     userId: String = "",
     goalId: String = "",
     sipAmount: Double = 0.0,
+    kycAttemptId: String = "",
+    investorId: String = "",
     onBackClick: () -> Unit = {},
     onSipCreated: (Double, String?) -> Unit = { _, _ -> },
     viewModel: FundDetailsViewModel = koinInject()
 ) {
     val state by viewModel.uiState.collectAsState()
+    val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         PlatformAnalyticsLogger.logScreenView("FundDetails")
@@ -51,6 +55,21 @@ fun FundDetailsScreen(
         } else if (userId.isNotBlank() && goalId.isNotBlank()) {
             viewModel.loadFundDetailsByGoal(userId, goalId)
         }
+    }
+
+    if (state.sipError != null) {
+        AlertDialog(
+            onDismissRequest = { /* Clear error in VM if needed, but for now just hide */ },
+            title = { Text("Error") },
+            text = { Text(state.sipError!!) },
+            confirmButton = {
+                TextButton(onClick = { 
+                    viewModel.clearSipError()
+                }) {
+                    Text("OK")
+                }
+            }
+        )
     }
 
     Scaffold(
@@ -69,7 +88,19 @@ fun FundDetailsScreen(
                 isLoading = state.isSipCreating,
                 sipAmount = sipAmount,
                 onInvestClick = {
-                    // Implementation for Invest button
+                    if (sipAmount <= 0) return@FundDetailsBottomBar
+                    
+                    coroutineScope.launch {
+                        val result = viewModel.createSip(
+                            userId = userId,
+                            kycAttemptId = kycAttemptId,
+                            investorId = investorId,
+                            amount = sipAmount
+                        )
+                        if (result is SipCreationResult.Success) {
+                            onSipCreated(sipAmount, result.nextScreen)
+                        }
+                    }
                 }
             )
         }

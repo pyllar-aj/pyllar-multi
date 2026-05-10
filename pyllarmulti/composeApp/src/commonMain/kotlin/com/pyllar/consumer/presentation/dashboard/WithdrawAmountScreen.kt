@@ -132,8 +132,27 @@ fun WithdrawAmountScreen(
 
     LaunchedEffect(redemptionResult) {
         if (redemptionResult is Resource.Success) {
+            val response = (redemptionResult as Resource.Success).data
             isVerifyingOtp = false
             showOtpScreen = false
+            
+            // Populate WithdrawalDataManager for the success screen
+            WithdrawalDataManager.setWithdrawalData(
+                WithdrawalData(
+                    amount = effectiveRedemptionAmount,
+                    schemeName = selectedScheme?.schemeName ?: "Investment",
+                    bankName = bankName,
+                    bankAccountLast4 = bankAccountLast4,
+                    bankAccountNumber = "", // Not needed for success screen display usually
+                    bankAccountIfscCode = "",
+                    transactionId = response?.transactionId ?: "Pending",
+                    userId = userId,
+                    schemeId = selectedSchemeId ?: "",
+                    isin = selectedScheme?.isin ?: "",
+                    folio = selectedScheme?.folioNo
+                )
+            )
+            
             onSubmit(selectedSchemeId ?: "", effectiveRedemptionAmount)
         } else if (redemptionResult is Resource.Error) {
             isVerifyingOtp = false
@@ -209,7 +228,7 @@ fun WithdrawAmountScreen(
                     ) {
                         Text("Available to withdraw", style = MaterialTheme.typography.bodyMedium)
                         Text(
-                            "₹${withdrawableAmount.toString()}", 
+                            "₹${formatIndian(withdrawableAmount)}", 
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                             color = Color(0xFF2E7D32)
                         )
@@ -235,7 +254,7 @@ fun WithdrawAmountScreen(
 
                 // Bank Info Placeholder
                 Text(
-                    "Money will be credited to $bankName (**$bankAccountLast4) in 1-2 business days.",
+                    "Money will be credited to $bankName in 1-2 business days.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -272,9 +291,9 @@ fun WithdrawAmountScreen(
                     ) {
                         Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                             Text("Confirm Withdrawal", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                            Text("Amount: ₹$effectiveRedemptionAmount")
+                            Text("Amount: ₹${formatIndian(effectiveRedemptionAmount)}")
                             Text("Fund: ${selectedScheme?.schemeName ?: "Unknown"}")
-                            Text("Bank: $bankName (**$bankAccountLast4)")
+                         //   Text("Bank: $bankName (**$bankAccountLast4)")
                             
                             Button(
                                 onClick = {

@@ -289,6 +289,7 @@ class InvestmentDashboardV2ViewModel(
         successfulRedemptions: List<RecentTransactionDto>
     ): InvestmentGoal {
         val purposeCode = investment.purpose?.lowercase() ?: "saving"
+        Log.d(TAG, "Mapping investment: purpose='$purposeCode', currentValue=${investment.currentValue}")
         val folioFundNames = investment.folioDetails.orEmpty().mapNotNull { it.fundName }.toSet()
 
         val purposeTransactions = emptyList<RecentTransactionDto>()
@@ -361,6 +362,8 @@ class InvestmentDashboardV2ViewModel(
             profit = investment.profit ?: 0.0,
             realizedProfit = investment.realizedProfit ?: 0.0,
             unrealizedProfit = investment.unrealizedProfit ?: 0.0,
+            redeemableAmount = investment.redeemableAmount ?: 0.0,
+            redemptionInProgress = investment.redemptionInProgress ?: 0.0,
             instantRedemptionValue = investment.instantRedemptionValue ?: 0.0
         )
     }

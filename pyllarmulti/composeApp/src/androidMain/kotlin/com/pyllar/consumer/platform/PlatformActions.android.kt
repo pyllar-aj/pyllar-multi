@@ -53,4 +53,50 @@ class AndroidPlatformActions(private val context: Context) : PlatformActions {
             openUrl(whatsappUrl)
         }
     }
+
+    override fun getInstalledUpiApps(): List<UpiAppInfo> {
+        val packageManager = context.packageManager
+        val upiIntents = listOf(
+            Intent(Intent.ACTION_VIEW, Uri.parse("upi://pay")),
+            Intent(Intent.ACTION_VIEW, Uri.parse("upi://mandate"))
+        )
+        
+        val upiAppsSet = mutableSetOf<String>()
+        val upiAppsList = mutableListOf<UpiAppInfo>()
+        val blacklist = setOf("com.pyllar.consumer", "com.pyllar.consumer.debug")
+
+        upiIntents.forEach { intent ->
+            try {
+                val activities = packageManager.queryIntentActivities(intent, android.content.pm.PackageManager.MATCH_DEFAULT_ONLY)
+                activities.forEach { resolveInfo ->
+                    val packageName = resolveInfo.activityInfo.packageName
+                    if (packageName in blacklist) return@forEach
+                    
+                    if (!upiAppsSet.contains(packageName)) {
+                        upiAppsSet.add(packageName)
+                        val displayName = try {
+                            resolveInfo.loadLabel(packageManager).toString()
+                        } catch (e: Exception) {
+                            packageName
+                        }
+                        
+                        try {
+                            val appIcon = packageManager.getApplicationIcon(packageName)
+                            // Use bit manipulation to convert drawable to bitmap if toBitmap extension is not available
+                            // But we can try to use the extension if we add the import
+                            val bitmap = androidx.core.graphics.drawable.toBitmap(appIcon, 64, 64)
+                            val iconBitmap = androidx.compose.ui.graphics.asImageBitmap(bitmap)
+                            
+                            upiAppsList.add(UpiAppInfo(packageName, displayName, iconBitmap))
+                        } catch (e: Exception) {
+                            upiAppsList.add(UpiAppInfo(packageName, displayName, null))
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("AndroidPlatformActions", "Error querying UPI apps", e)
+            }
+        }
+        return upiAppsList.sortedBy { it.displayName }
+    }
 }

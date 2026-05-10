@@ -8,6 +8,7 @@ import com.pyllar.consumer.domain.repository.FundDetailsRepository
 import com.pyllar.consumer.util.Resource
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import io.ktor.client.request.header
 
 class FundDetailsRepositoryImpl(
     private val apiClient: PyllarApiClient
@@ -98,9 +99,22 @@ class FundDetailsRepositoryImpl(
     ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.MandateStatus>> = flow {
         emit(Resource.Loading())
         val result = apiClient.post<com.pyllar.consumer.data.remote.model.dto.MandateStatus, com.pyllar.consumer.data.remote.requests.PollMandateRequest>(
-            path = "api/mandates/sync-mandate",
+            path = "api/mf-purchase-plans/sync-mandate",
             body = request
         )
+        emit(result)
+    }
+
+    override fun pollPurchasePlanStatus(
+        request: com.pyllar.consumer.data.remote.requests.PlanPollRequest
+    ): Flow<Resource<Boolean>> = flow {
+        emit(Resource.Loading())
+        val result = apiClient.post<Boolean, com.pyllar.consumer.data.remote.requests.PlanPollRequest>(
+            path = "api/mf-purchase-plans/poll-ps",
+            body = request
+        ) {
+            header("X-Current-Screen", "planpoll")
+        }
         emit(result)
     }
 }

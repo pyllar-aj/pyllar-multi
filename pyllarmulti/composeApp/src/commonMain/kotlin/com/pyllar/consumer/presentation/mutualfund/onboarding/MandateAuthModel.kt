@@ -23,7 +23,12 @@ data class MandateAuthUiState(
     val requiresPolling: Boolean = false,
     val shouldNavigateToDashboard: Boolean = false,
     val error: String? = null,
-    val mandateWrapper: MandateWrapper? = null
+    val mandateWrapper: MandateWrapper? = null,
+    val planSetupProgress: Int = 20,
+    val planPollingStarted: Boolean = false,
+    val planPollingResolved: Boolean = false,
+    val planPollingTimedOut: Boolean = false,
+    val isPlanReady: Boolean = false
 )
 
 /**
@@ -68,6 +73,7 @@ class MandateAuthModel(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
                 isLoading = true,
+                requiresPolling = true,
                 error = null
             )
 
@@ -133,7 +139,7 @@ class MandateAuthModel(
                         }
                     }
 
-                    if (!_uiState.value.requiresPolling) {
+                    if (!_uiState.value.requiresPolling || secondsElapsed >= maxSeconds) {
                         break
                     }
 
@@ -194,6 +200,73 @@ class MandateAuthModel(
      */
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
+    }
+
+    fun startPlanPollingAfterApproval(userId: String, mandateRef: Long) {
+        if (mandateRef <= 0L || _uiState.value.planPollingStarted) return
+        _uiState.value = _uiState.value.copy(
+            planPollingStarted = true,
+            planPollingResolved = false,
+            planPollingTimedOut = false,
+            planSetupProgress = 20,
+            isPlanReady = false
+        )
+
+        viewModelScope.launch {
+            val startTime = com.pyllar.consumer.util.currentTimeMillis()
+            val timeoutMillis = 3 * 60 * 1000L
+            val progressSteps = listOf(20, 40, 60, 80, 100)
+            var progressIndex = 1 // 20 already set
+
+            while (true) {
+                val elapsed = com.pyllar.consumer.util.currentTimeMillis() - startTime
+                if (elapsed >= timeoutMillis) {
+                    _uiState.value = _uiState.value.copy(
+                        planPollingTimedOut = true,
+                        planPollingResolved = true,
+                        isPlanReady = false
+                    )
+                    break
+                }
+
+                if (progressIndex < progressSteps.size - 1) {
+                    _uiState.value = _uiState.value.copy(planSetupProgress = progressSteps[progressIndex])
+                    progressIndex++
+                }
+
+                val request = com.pyllar.consumer.data.remote.requests.PlanPollRequest(
+                    userId = userId,
+                    mandateRef = mandateRef,
+                    mfppId = null
+                )
+
+                var shouldBreak = false
+                repository.pollPurchasePlanStatus(request).collect { result ->
+                    when (result) {
+                        is Resource.Success -> {
+                            // In KMP, we don't have the same navigation action logic in the repository level yet
+                            // but the Android version checks NavigationAction.STAY.
+                            // For now, if result.data is true, we consider it ready.
+                            if (result.data == true || result.navigation?.action == com.pyllar.consumer.data.remote.model.dto.NavigationAction.STAY) {
+                                _uiState.value = _uiState.value.copy(
+                                    planSetupProgress = 100,
+                                    isPlanReady = result.data == true,
+                                    planPollingResolved = true
+                                )
+                                shouldBreak = true
+                            }
+                        }
+                        is Resource.Error -> {
+                            // Keep polling on transient failures until timeout
+                        }
+                        is Resource.Loading -> Unit
+                    }
+                }
+
+                if (shouldBreak) break
+                delay(5000L)
+            }
+        }
     }
 
     /**

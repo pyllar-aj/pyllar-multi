@@ -27,7 +27,9 @@ data class SchemeDetailsParams(
     val colorTheme: String? = null,
     val profit: Double = 0.0,
     val realizedProfit: Double = 0.0,
-    val unrealizedProfit: Double = 0.0
+    val unrealizedProfit: Double = 0.0,
+    val redeemableAmount: Double = 0.0,
+    val redemptionInProgress: Double = 0.0
 )
 
 object SchemeDetailsParamsManager {
@@ -90,6 +92,7 @@ data class SchemeDetailsState(
     val totalGain: Double = 0.0,
     val withdrawnGain: Double = 0.0,
     val availableGain: Double = 0.0,
+    val redeemableAmount: Double = 0.0,
     val redemptionInProgress: Double = 0.0,
     val transactions: List<TransactionDisplayItem> = emptyList(),
     val mandates: List<MandateDisplayItem> = emptyList(),
@@ -326,6 +329,8 @@ class SchemeDetailsViewModel(
             totalGain = schemeParams?.profit ?: 0.0,
             withdrawnGain = schemeParams?.realizedProfit ?: 0.0,
             availableGain = schemeParams?.unrealizedProfit ?: 0.0,
+            redeemableAmount = schemeParams?.redeemableAmount ?: 0.0,
+            redemptionInProgress = schemeParams?.redemptionInProgress ?: 0.0,
             transactions = displayTransactions,
             mandates = displayMandates,
             isLoading = false,

@@ -25,5 +25,9 @@ interface FundDetailsRepository {
     fun syncMandate(
         request: com.pyllar.consumer.data.remote.requests.PollMandateRequest
     ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.MandateStatus>>
+
+    fun pollPurchasePlanStatus(
+        request: com.pyllar.consumer.data.remote.requests.PlanPollRequest
+    ): Flow<Resource<Boolean>>
 }
 

@@ -28,6 +28,7 @@ data class MandateSyncResponseDto(
     val nextPollInSeconds: Int? = null
 )
 
+@Serializable
 enum class MandateStatus {
     CREATED,
     RECEIVED,

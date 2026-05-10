@@ -108,9 +108,48 @@ class FundDetailsViewModel(
         investorId: String,
         amount: Double
     ): SipCreationResult {
-        // Implementation simplified for KMP
-        // In a real scenario, this would call a repository method that uses ApiClient
-        return SipCreationResult.Failure("Not implemented in KMP yet")
+        _uiState.value = _uiState.value.copy(isSipCreating = true, sipError = null)
+        
+        val userPurposeId = try {
+            sessionStore.getValue(com.pyllar.consumer.data.local.KeyValueConstants.USER_PURPOSE_ID)
+        } catch (e: Exception) {
+            null
+        }
+        
+        val request = CreateDailySipRequestDto(
+            userId = userId,
+            kycAttemptId = kycAttemptId,
+            investorId = investorId,
+            amount = amount,
+            userInvPurpose = userPurposeId ?: ""
+        )
+        
+        var finalResult: SipCreationResult = SipCreationResult.Failure("Failed to create SIP")
+        
+        repository.createDailySip(request).collect { resource ->
+            when (resource) {
+                is Resource.Success -> {
+                    _uiState.value = _uiState.value.copy(isSipCreating = false)
+                    finalResult = SipCreationResult.Success(
+                        message = "SIP created successfully!",
+                        nextScreen = resource.navigation?.nextScreen,
+                        mandateWrapper = resource.data
+                    )
+                }
+                is Resource.Error -> {
+                    _uiState.value = _uiState.value.copy(isSipCreating = false, sipError = resource.message)
+                    finalResult = SipCreationResult.Failure(resource.message ?: "Failed to create SIP")
+                }
+                is Resource.Loading -> {
+                    _uiState.value = _uiState.value.copy(isSipCreating = true)
+                }
+            }
+        }
+        return finalResult
+    }
+
+    fun clearSipError() {
+        _uiState.value = _uiState.value.copy(sipError = null)
     }
 
     private fun mapPeriodToKey(period: String): String {

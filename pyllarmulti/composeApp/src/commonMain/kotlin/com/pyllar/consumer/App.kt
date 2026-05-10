@@ -61,8 +61,17 @@ sealed class Screen {
     data class InvestmentDashboard(val userId: String) : Screen()
     data class SchemeDetails(val userId: String, val purpose: String) : Screen()
     data class Withdraw(val userId: String) : Screen()
-    data class FundDetails(val isin: String, val userId: String, val goalId: String, val sipAmount: Double, val fromSipAmount: Boolean = false) : Screen()
-    data class SipAmountV2(val userId: String, val kycAttemptId: String, val investorId: String, val goalId: String, val fromDashboard: Boolean = false) : Screen()
+    data class WithdrawAmount(val userId: String, val schemeId: String) : Screen()
+    data class WithdrawSuccess(
+        val amount: Double,
+        val schemeName: String,
+        val bankName: String,
+        val bankAccountLast4: String,
+        val transactionId: String,
+        val folio: String?
+    ) : Screen()
+    data class FundDetails(val isin: String, val userId: String, val goalId: String, val sipAmount: Double, val kycAttemptId: String = "", val investorId: String = "", val fromSipAmount: Boolean = false) : Screen()
+    data class SipAmountV2(val userId: String, val kycAttemptId: String, val investorId: String, val goalId: String, val fromDashboard: Boolean = false, val isExistingInvestment: Boolean = false) : Screen()
     data class MandateAuth(
         val userId: String,
         val kycAttemptId: String,
@@ -70,7 +79,8 @@ sealed class Screen {
         val amount: Double,
         val mandateUrl: String,
         val mandateId: Long,
-        val mandateRef: Long
+        val mandateRef: Long,
+        val goalId: String = ""
     ) : Screen()
     data class Profile(val userId: String) : Screen()
     data class AccountDeletion(val userId: String) : Screen()
@@ -377,7 +387,7 @@ fun App() {
                         navigateTo(Screen.SchemeDetails(screen.userId, purpose))
                     },
                     onNavigateToGoal = { goalId ->
-                        navigateTo(Screen.SipAmountV2(screen.userId, "", "", goalId, fromDashboard = true))
+                        navigateTo(Screen.SipAmountV2(screen.userId, "", "", goalId, fromDashboard = true, isExistingInvestment = false))
                     },
                     onNavigateToWithdraw = {
                         navigateTo(Screen.Withdraw(screen.userId))
@@ -394,6 +404,9 @@ fun App() {
                     onNavigateToWithdraw = { params ->
                         WithdrawParamsManager.set(params)
                         navigateTo(Screen.Withdraw(screen.userId))
+                    },
+                    onNavigateToAddFunds = { uid, kycId, invId, gid, isExisting ->
+                        navigateTo(Screen.SipAmountV2(uid, kycId, invId, gid, fromDashboard = true, isExistingInvestment = isExisting))
                     }
                 )
             }
@@ -401,7 +414,45 @@ fun App() {
                 WithdrawScreen(
                     userId = screen.userId,
                     onNavigateBack = { navigateBack() },
-                    onProceed = { _, _ -> /* Proceed */ }
+                    onProceed = { schemeId, _ ->
+                        navigateTo(Screen.WithdrawAmount(screen.userId, schemeId ?: ""))
+                    }
+                )
+            }
+            is Screen.WithdrawAmount -> {
+                WithdrawAmountScreen(
+                    userId = screen.userId,
+                    selectedSchemeId = screen.schemeId,
+                    onNavigateBack = { navigateBack() },
+                    onSubmit = { _, amount ->
+                        val data = WithdrawalDataManager.getWithdrawalData()
+                        if (data != null) {
+                            navigateTo(Screen.WithdrawSuccess(
+                                amount = data.amount,
+                                schemeName = data.schemeName,
+                                bankName = data.bankName,
+                                bankAccountLast4 = data.bankAccountLast4,
+                                transactionId = data.transactionId,
+                                folio = data.folio
+                            ))
+                        } else {
+                            // Fallback if data is missing
+                            navigateTo(Screen.InvestmentDashboard(screen.userId), clearStack = true)
+                        }
+                    }
+                )
+            }
+            is Screen.WithdrawSuccess -> {
+                WithdrawSuccessScreen(
+                    withdrawalAmount = screen.amount,
+                    schemeName = screen.schemeName,
+                    bankName = screen.bankName,
+                    bankAccountLast4 = screen.bankAccountLast4,
+                    transactionId = screen.transactionId,
+                    folio = screen.folio,
+                    onNavigateToHome = {
+                        navigateTo(Screen.InvestmentDashboard(""), clearStack = true)
+                    }
                 )
             }
             is Screen.FundDetails -> {
@@ -410,7 +461,17 @@ fun App() {
                     userId = screen.userId,
                     goalId = screen.goalId,
                     sipAmount = screen.sipAmount,
-                    onBackClick = { navigateBack() }
+                    kycAttemptId = screen.kycAttemptId,
+                    investorId = screen.investorId,
+                    onBackClick = { navigateBack() },
+                    onSipCreated = { amount, nextScreen ->
+                        // Refresh or navigate forward after SIP creation
+                        if (nextScreen != null) {
+                            handleNavigation(nextScreen, screen.userId, screen.kycAttemptId, screen.investorId) { navigateTo(it) }
+                        } else {
+                            navigateTo(Screen.InvestmentDashboard(screen.userId), clearStack = true)
+                        }
+                    }
                 )
             }
             is Screen.SipAmountV2 -> {
@@ -419,6 +480,7 @@ fun App() {
                     kycAttemptId = screen.kycAttemptId,
                     investorId = screen.investorId,
                     goalId = screen.goalId,
+                    isExistingInvestment = screen.isExistingInvestment,
                     onSipCreated = { amount, url, id, ref ->
                         navigateTo(Screen.MandateAuth(
                             userId = screen.userId,
@@ -427,13 +489,14 @@ fun App() {
                             amount = amount,
                             mandateUrl = url ?: "",
                             mandateId = id ?: 0L,
-                            mandateRef = ref ?: 0L
+                            mandateRef = ref ?: 0L,
+                            goalId = screen.goalId
                         ))
                     },
                     onNavigateBack = { navigateBack() },
                     onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId)) },
                     onNavigateToFundDetails = { userId, goalId, amt, kycId, invId ->
-                        navigateTo(Screen.FundDetails("", userId, goalId, amt, fromSipAmount = true))
+                        navigateTo(Screen.FundDetails("", userId, goalId, amt, kycAttemptId = kycId, investorId = invId, fromSipAmount = true))
                     }
                 )
             }
@@ -446,6 +509,7 @@ fun App() {
                     mandateUrl = screen.mandateUrl,
                     mandateId = screen.mandateId,
                     mandateRef = screen.mandateRef,
+                    goalId = screen.goalId,
                     onGoToHome = { navigateTo(Screen.InvestmentDashboard(screen.userId), clearStack = true) },
                     onNavigateBack = { navigateBack() }
                 )
@@ -572,7 +636,7 @@ private fun handleNavigation(
         }
         ScreenNames.MANDATE_AUTH -> {
             platformLog("AppNav: Matched MANDATE_AUTH")
-            onNavigate(Screen.MandateAuth(userId, "", "", 0.0, "", 0L, 0L))
+            onNavigate(Screen.MandateAuth(userId, "", "", 0.0, "", 0L, 0L, ""))
         }
         ScreenNames.DASHBOARD, ScreenNames.INVESTMENT_DASHBOARD -> {
             platformLog("AppNav: Matched DASHBOARD/INVESTMENT_DASHBOARD")

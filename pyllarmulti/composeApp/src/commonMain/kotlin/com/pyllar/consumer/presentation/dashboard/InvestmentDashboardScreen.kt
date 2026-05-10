@@ -178,7 +178,7 @@ fun PortfolioSummaryCard(
                 CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
             } else {
                 Text(
-                    text = "\u20B9${formatCurrency(currentValue)}",
+                    text = "\u20B9${formatIndian(currentValue)}",
                     style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
                     color = Color.White
                 )
@@ -189,7 +189,7 @@ fun PortfolioSummaryCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Total Invested: \u20B9${formatCurrency(totalInvested)}",
+                        text = "Total Invested: \u20B9${formatIndian(totalInvested)}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.White.copy(alpha = 0.7f)
                     )
@@ -210,7 +210,7 @@ fun PortfolioSummaryCard(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "\u20B9${formatCurrency(totalReturns)}",
+                            text = "\u20B9${formatIndian(totalReturns)}",
                             style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
                             color = Color.White
                         )
@@ -340,7 +340,7 @@ fun RecentTransactionsSection(transactions: List<DailyTrend>) {
                         Text(text = t.date, style = MaterialTheme.typography.bodyMedium)
                         Text(text = "Invested", style = MaterialTheme.typography.bodySmall, modifier = Modifier.alpha(0.7f))
                     }
-                    Text(text = "\u20B9${formatCurrency(t.amount)}", style = MaterialTheme.typography.bodyMedium)
+                    Text(text = "\u20B9${formatIndian(t.amount)}", style = MaterialTheme.typography.bodyMedium)
                 }
             }
         }
@@ -365,7 +365,7 @@ fun GoalSection(onInvestMore: () -> Unit, dailySipAmount: Double = 100.0) {
                 color = MaterialTheme.colorScheme.onSurface
             )
             Text(
-                text = "Target by next year: \u20B9${formatCurrency(achievable)}",
+                text = "Target by next year: \u20B9${formatIndian(achievable)}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
             )
@@ -418,19 +418,6 @@ private fun StatusChip(text: String) {
     }
 }
 
-private fun formatCurrency(amount: Double): String {
-    val s = amount.toLong().toString()
-    if (s.length <= 3) return s
-    val last3 = s.takeLast(3)
-    val rest = s.dropLast(3)
-    val grouped = buildString {
-        for ((i, c) in rest.reversed().withIndex()) {
-            if (i > 0 && i % 2 == 0) append(',')
-            append(c)
-        }
-    }.reversed()
-    return "$grouped,$last3"
-}
 
 private fun formatDouble(value: Double): String {
     val s = value.toString()

@@ -220,7 +220,9 @@ fun InvestmentDashboardV2Screen(
                                             colorTheme = goal.colorTheme,
                                             profit = goal.profit,
                                             realizedProfit = goal.realizedProfit,
-                                            unrealizedProfit = goal.unrealizedProfit
+                                            unrealizedProfit = goal.unrealizedProfit,
+                                            redeemableAmount = goal.redeemableAmount,
+                                            redemptionInProgress = goal.redemptionInProgress
                                         )
                                         SchemeDetailsParamsManager.set(params)
                                         onNavigateToSchemeDetails(response.userPurposeId ?: goal.goalId)
@@ -250,6 +252,8 @@ fun InvestmentDashboardV2Screen(
                                             profit = goal.profit,
                                             realizedProfit = goal.realizedProfit,
                                             unrealizedProfit = goal.unrealizedProfit,
+                                            redeemableAmount = goal.redeemableAmount,
+                                            redemptionInProgress = goal.redemptionInProgress,
                                             selectedTab = 1 // Open Active Plans tab
                                         )
                                         SchemeDetailsParamsManager.set(params)

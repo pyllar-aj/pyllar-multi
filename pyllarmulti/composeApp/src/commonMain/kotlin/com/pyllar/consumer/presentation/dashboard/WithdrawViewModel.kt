@@ -22,7 +22,9 @@ data class WithdrawInitParams(
     val investmentInProgress: Double,
     val isin: String,
     val folio: String?,
-    val schemeName: String?
+    val schemeName: String?,
+    val redemptionInProgress: Double = 0.0,
+    val redeemableAmount: Double = 0.0
 )
 
 data class WithdrawState(
@@ -75,7 +77,7 @@ class WithdrawViewModel(
     private val _withdrawState = MutableStateFlow(WithdrawState())
     val withdrawState: StateFlow<WithdrawState> = _withdrawState.asStateFlow()
 
-    fun loadWithdrawData(userId: String, selectedGoal: InvestmentGoal? = null) {
+    fun loadWithdrawData(userId: String) {
         viewModelScope.launch {
             platformLog("Loading withdraw data for userId: $userId")
             _withdrawState.value = _withdrawState.value.copy(isLoading = true)
@@ -88,7 +90,7 @@ class WithdrawViewModel(
                             if (response != null) {
                                 val transactions = fetchAllTransactions(userId, response.currentInvestments.orEmpty())
                                 val withdrawalInProgress = 0.0
-                                val state = mapResponseToWithdrawState(response, transactions, selectedGoal)
+                                val state = mapResponseToWithdrawState(response, transactions)
                                 val adjustedAvailableToWithdraw = (state.availableToWithdraw - withdrawalInProgress)
                                     .let { if (it > 0) it else 0.0 }
                                 
@@ -122,8 +124,8 @@ class WithdrawViewModel(
 
                 val currentValue = params?.amount ?: 0.0
                 val investmentInProgress = params?.investmentInProgress ?: 0.0
-                val withdrawalInProgress = 0.0
-                val availableToWithdraw = (currentValue - withdrawalInProgress).let { if (it > 0) it else 0.0 }
+                val withdrawalInProgress = params?.redemptionInProgress ?: 0.0
+                val availableToWithdraw = ((params?.redeemableAmount ?: 0.0) - withdrawalInProgress).coerceAtLeast(0.0)
 
                 val state = WithdrawState(
                     currentBalance = currentValue,
@@ -138,7 +140,9 @@ class WithdrawViewModel(
                             isin = params?.isin ?: "",
                             investedAmount = currentValue,
                             currentValue = currentValue,
-                            canWithdraw = true
+                            canWithdraw = true,
+                            redemptionInProgress = withdrawalInProgress,
+                            redeemableAmount = params?.redeemableAmount ?: 0.0
                         )
                     ),
                     isLoading = false,
@@ -255,45 +259,38 @@ class WithdrawViewModel(
 
     private fun mapResponseToWithdrawState(
         response: InvestorDashboardResponseV2Dto,
-        transactions: List<RecentTransactionDto>?,
-        selectedGoal: InvestmentGoal? = null,
-        params: WithdrawInitParams? = null
+        transactions: List<RecentTransactionDto>
     ): WithdrawState {
         val investments = response.currentInvestments.orEmpty()
 
-        val successfulCredits = transactions?.filter {
+        val successfulCredits = transactions.filter {
             it.transactionType?.equals("PURCHASE", ignoreCase = true) == true &&
                     it.status?.equals("COMPLETED", ignoreCase = true) == true
-        } ?: emptyList()
-
-        val totalInvestedFromTransactions = successfulCredits.sumOf { it.amount?.toDouble() ?: 0.0 }
-        val totalInvestedFromResponse = investments.sumOf { it.investedAmount ?: 0.0 }
-        val totalCurrentValueFromResponse = investments.sumOf { it.currentValue ?: it.investedAmount ?: 0.0 }
-
-        val totalValue = when {
-            totalInvestedFromTransactions > 0 -> totalInvestedFromTransactions
-            totalCurrentValueFromResponse > 0 -> totalCurrentValueFromResponse
-            else -> totalInvestedFromResponse
         }
 
+        val totalInvestedFromTransactions = successfulCredits.sumOf { it.amount ?: 0.0 }
+        val totalInvestedFromResponse = investments.sumOf { it.investedAmount ?: 0.0 }
+        val totalValue = investments.sumOf { it.currentValue ?: 0.0 }
+        val withdrawalInProgress = investments.sumOf { it.redemptionInProgress ?: 0.0 }
+        val availableToWithdraw = investments.sumOf { (it.redeemableAmount ?: 0.0) - (it.redemptionInProgress ?: 0.0) }.coerceAtLeast(0.0)
+
         val investmentInProgress = investments.sumOf { it.amountUnderProcessing ?: 0.0 }
-        val availableToWithdraw = totalValue
 
         val schemes = investments.flatMap { investment ->
             val canWithdraw = investment.canWithdraw ?: true
             val folioSchemes = investment.folioDetails.orEmpty().map { folio ->
                 val investedAmountFromTransactions = successfulCredits
                     .filter { tx -> tx.fundName?.equals(folio.fundName, ignoreCase = true) == true }
-                    .sumOf { it.amount?.toDouble() ?: 0.0 }
+                    .sumOf { it.amount ?: 0.0 }
 
                 val investedAmount = when {
                     investedAmountFromTransactions > 0 -> investedAmountFromTransactions
                     folio.investmentAmount != null -> folio.investmentAmount
                     investment.investedAmount != null -> investment.investedAmount
                     else -> 0.0
-                }
+                } ?: 0.0
 
-                val currentValue = folio.currentValue ?: investment.currentValue ?: investedAmount
+                val currentValue = folio.currentValue ?: investment.currentValue ?: investedAmount ?: 0.0
 
                 WithdrawScheme(
                     id = folio.isin ?: "${investment.purpose}-${folio.folioNumber ?: folio.fundName}",
@@ -302,7 +299,9 @@ class WithdrawViewModel(
                     isin = folio.isin ?: "",
                     investedAmount = investedAmount,
                     currentValue = currentValue,
-                    canWithdraw = canWithdraw
+                    canWithdraw = canWithdraw,
+                    redemptionInProgress = investment.redemptionInProgress ?: 0.0,
+                    redeemableAmount = investment.redeemableAmount ?: 0.0
                 )
             }
 
@@ -312,7 +311,13 @@ class WithdrawViewModel(
                 val investedAmountFallback = investment.investedAmount ?: 0.0
                 val currentValueFallback = investment.currentValue ?: investedAmountFallback
                 if (investedAmountFallback > 0 || currentValueFallback > 0) {
-                    val displayName = investment.purpose ?: "Investment"
+                    val displayName = investment.purpose
+                        ?.replace("_", " ")
+                        ?.split(" ")
+                        ?.joinToString(" ") { word ->
+                            word.lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+                        } ?: "Investment"
+
                     listOf(
                         WithdrawScheme(
                             id = investment.purpose ?: "investment-${investment.hashCode()}",
@@ -321,7 +326,9 @@ class WithdrawViewModel(
                             isin = "",
                             investedAmount = investedAmountFallback,
                             currentValue = currentValueFallback,
-                            canWithdraw = canWithdraw
+                            canWithdraw = canWithdraw,
+                            redemptionInProgress = investment.redemptionInProgress ?: 0.0,
+                            redeemableAmount = investment.redeemableAmount ?: 0.0
                         )
                     )
                 } else {
@@ -330,37 +337,12 @@ class WithdrawViewModel(
             }
         }.filter { it.investedAmount > 0 || it.currentValue > 0 }
 
-        val filteredSchemes = if (params != null) {
-            schemes.filter { scheme ->
-                (params.isin.isNotBlank() && scheme.isin == params.isin) ||
-                        (params.folio != null && scheme.folioNo == params.folio)
-            }.map { it.copy(currentValue = params.amount) }
-        } else if (selectedGoal != null) {
-            schemes.filter { scheme ->
-                scheme.schemeName == selectedGoal.name // Adjusted to match InvestmentGoal field
-            }
-        } else {
-            schemes
-        }
-
-        val filteredTotalValue = if (selectedGoal != null) {
-            filteredSchemes.sumOf { it.currentValue }
-        } else {
-            totalValue
-        }
-
-        val filteredAvailableToWithdraw = if (selectedGoal != null) {
-            filteredSchemes.sumOf { it.currentValue }
-        } else {
-            availableToWithdraw
-        }
-
         return WithdrawState(
-            currentBalance = filteredTotalValue,
-            investmentInProgress = if (selectedGoal != null) 0.0 else investmentInProgress,
-            withdrawalInProgress = 0.0,
-            availableToWithdraw = filteredAvailableToWithdraw,
-            schemes = filteredSchemes,
+            currentBalance = totalValue,
+            investmentInProgress = investmentInProgress,
+            withdrawalInProgress = withdrawalInProgress,
+            availableToWithdraw = availableToWithdraw,
+            schemes = schemes,
             isLoading = false
         )
     }

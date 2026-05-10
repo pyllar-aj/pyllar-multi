@@ -43,6 +43,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.zIndex
 import com.pyllar.consumer.platform.PlatformActions
 import com.pyllar.consumer.presentation.mutualfund.details.FundDetailsViewModel
+import com.pyllar.consumer.presentation.dashboard.InvestmentDashboardV2ViewModel
+import com.pyllar.consumer.domain.storage.SessionStore
+import com.pyllar.consumer.data.local.KeyValueConstants
 import com.pyllar.consumer.util.platformLog
 import com.pyllar.consumer.util.Resource
 import kotlinx.coroutines.launch
@@ -147,18 +150,61 @@ fun SipAmountScreenV2(
     kycAttemptId: String = "",
     investorId: String = "",
     goalId: String = "",
+    isExistingInvestment: Boolean = false,
     onSipCreated: (amount: Double, mandateUrl: String?, mandateId: Long?, mandateRef: Long?) -> Unit = { _, _, _, _ -> },
     onNavigateBack: () -> Unit = {},
     onNavigateToHelp: () -> Unit = {},
     onNavigateToFundDetails: (userId: String, goalId: String, amount: Double, kycAttemptId: String, investorId: String) -> Unit = { _, _, _, _, _ -> },
     viewModel: SipAmountScreenV2ViewModel = koinInject(),
     fundDetailsViewModel: FundDetailsViewModel = koinInject(),
+    dashboardViewModel: InvestmentDashboardV2ViewModel = koinInject(),
+    sessionStore: SessionStore = koinInject(),
     platformActions: PlatformActions = koinInject()
 ) {
     val limitsState by viewModel.limitsState.collectAsState()
     val fundDetailsState by fundDetailsViewModel.uiState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
     
+    // Effective userId and goalId states - fetch from repository when params are empty
+    var effectiveUserId by remember(userId) { mutableStateOf(userId) }
+    var effectiveGoalId by remember(goalId) { mutableStateOf(goalId) }
+    var isInitTxnLoading by remember { mutableStateOf(false) }
+
+    LaunchedEffect(userId, goalId) {
+        platformLog("SipAmountScreenV2: Received params - userId: '$userId', goalId: '$goalId'")
+        if (userId.isNotBlank()) effectiveUserId = userId
+        if (goalId.isNotBlank()) effectiveGoalId = goalId
+    }
+
+    // Fetch effective values from repository on composition
+    LaunchedEffect(Unit) {
+        // Fetch userId from repository if param is empty
+        if (userId.isBlank()) {
+            try {
+                val storedUserId = sessionStore.getCurrentUserId()
+                if (storedUserId.isNotBlank()) {
+                    effectiveUserId = storedUserId
+                    platformLog("SipAmountScreenV2: Restored userId from storage: '$storedUserId'")
+                }
+            } catch (e: Exception) {
+                platformLog("SipAmountScreenV2: Error fetching userId from storage: ${e.message}")
+            }
+        }
+
+        // Fetch goalId from repository if param is empty
+        if (goalId.isBlank()) {
+            try {
+                val storedGoalId = sessionStore.getValue(KeyValueConstants.SELECTED_GOAL_ID) ?: ""
+                if (storedGoalId.isNotBlank()) {
+                    effectiveGoalId = storedGoalId
+                    platformLog("SipAmountScreenV2: Restored goalId from storage: '$storedGoalId'")
+                }
+            } catch (e: Exception) {
+                platformLog("SipAmountScreenV2: Error fetching goalId from storage: ${e.message}")
+            }
+        }
+    }
+
     val minAmount = limitsState.minAmount.toFloat()
     val maxAmount = limitsState.maxAmount.toFloat()
     val defaultAmount = limitsState.defaultAmount?.toFloat() ?: minAmount
@@ -174,12 +220,69 @@ fun SipAmountScreenV2(
     var savingsGrowthSelectedYears by remember { mutableStateOf(7) }
     var showDetailsBottomSheet by remember { mutableStateOf(false) }
 
-    val goalType = remember(goalId) { identifyGoalType(goalId) }
 
-    LaunchedEffect(userId, goalId) {
-        platformLog("SipAmountScreenV2: Loading limits and fund details for user $userId, goal $goalId")
-        viewModel.fetchInvestmentLimits(goalId.ifBlank { "default_purpose" })
-        fundDetailsViewModel.loadFundDetailsByGoal(userId, goalId)
+    // Track resolved goal type - update it when initGoalTxn returns the real purpose
+    var resolvedGoalType by remember(effectiveGoalId) { mutableStateOf(identifyGoalType(effectiveGoalId)) }
+
+    // Load fund details when effectiveUserId and effectiveGoalId are available
+    LaunchedEffect(effectiveUserId, effectiveGoalId) {
+        if (effectiveUserId.isNotBlank() && effectiveGoalId.isNotBlank()) {
+            platformLog("SipAmountScreenV2: Triggering initial fund details load - userId: '$effectiveUserId', goalId: '$effectiveGoalId'")
+            fundDetailsViewModel.loadFundDetailsByGoal(effectiveUserId, effectiveGoalId)
+        }
+    }
+
+    // Log fund details state changes
+    LaunchedEffect(fundDetailsState) {
+        platformLog("SipAmountScreenV2: Fund Details State Updated - fundName: '${fundDetailsState.fundDetails?.fundName ?: "null"}', isLoading: ${fundDetailsState.isLoading}")
+    }
+
+    // Fetch userPurposeId and get investment limits - depends on effective values
+    LaunchedEffect(effectiveUserId, effectiveGoalId) {
+        if (effectiveUserId.isNotBlank() && effectiveGoalId.isNotBlank()) {
+            isInitTxnLoading = true
+            coroutineScope.launch {
+                try {
+                    platformLog("SipAmountScreenV2: Fetching userPurposeId for goalId ('$effectiveGoalId') via initGoalTxn")
+                    when (val result = dashboardViewModel.initGoalTxn(effectiveUserId, effectiveGoalId)) {
+                        is Resource.Success -> {
+                            result.data?.let { response ->
+                                // Update goal type from response if available
+                                if (response.investmentPurpose.isNotBlank()) {
+                                    val newGoalType = identifyGoalType(response.investmentPurpose)
+                                    platformLog("SipAmountScreenV2: Updating resolvedGoalType from '${response.investmentPurpose}' -> $newGoalType")
+                                    resolvedGoalType = newGoalType
+                                }
+                                if (response.userPurposeId.isNotBlank()) {
+                                    sessionStore.saveValue(KeyValueConstants.USER_PURPOSE_ID, response.userPurposeId)
+                                    val fetchedUserPurposeId = response.userPurposeId
+                                    platformLog("SipAmountScreenV2: Fetched and stored userPurposeId: $fetchedUserPurposeId")
+                                    
+                                    // RE-LOAD fund details using the specific userPurposeId
+                                    platformLog("SipAmountScreenV2: Re-loading fund details using userPurposeId: $fetchedUserPurposeId")
+                                    fundDetailsViewModel.loadFundDetailsByGoal(effectiveUserId, fetchedUserPurposeId)
+
+                                    // Now fetch investment limits
+                                    viewModel.fetchInvestmentLimits(fetchedUserPurposeId)
+                                }
+                            }
+                        }
+                        is Resource.Error -> {
+                            platformLog("SipAmountScreenV2: Failed to fetch userPurposeId: ${result.message}")
+                            // Fallback to goalId if initGoalTxn fails
+                            viewModel.fetchInvestmentLimits(effectiveGoalId)
+                        }
+                        else -> {}
+                    }
+                } catch (e: Exception) {
+                    platformLog("SipAmountScreenV2: Exception calling initGoalTxn: ${e.message}")
+                } finally {
+                    isInitTxnLoading = false
+                }
+            }
+        } else if (effectiveGoalId.isNotBlank()) {
+            viewModel.fetchInvestmentLimits(effectiveGoalId)
+        }
     }
 
     // Helper to get investment status text
@@ -237,7 +340,7 @@ fun SipAmountScreenV2(
                     // Projection Card
                     ProjectionCard(
                         amount = amount.toDouble(),
-                        goalType = goalType,
+                        goalType = resolvedGoalType,
                         onShowDetails = { years ->
                             savingsGrowthSelectedYears = years
                             showSavingsGrowthBottomSheet = true
@@ -292,7 +395,7 @@ fun SipAmountScreenV2(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                "${getGoalDisplayName(goalType)} Limits",
+                                "${getGoalDisplayName(resolvedGoalType)} Limits",
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold
                             )
@@ -361,8 +464,8 @@ fun SipAmountScreenV2(
                             fundDetailsState = fundDetailsState,
                             onClick = {
                                 onNavigateToFundDetails(
-                                    userId,
-                                    goalId,
+                                    effectiveUserId,
+                                    effectiveGoalId,
                                     amount.toDouble(),
                                     kycAttemptId,
                                     investorId
@@ -396,7 +499,7 @@ fun SipAmountScreenV2(
         SavingsGrowthBottomSheet(
             dailyAmount = amount.toDouble(),
             years = savingsGrowthSelectedYears,
-            goalType = goalType,
+            goalType = resolvedGoalType,
             onDismiss = { showSavingsGrowthBottomSheet = false }
         )
     }
@@ -404,13 +507,13 @@ fun SipAmountScreenV2(
     if (showDetailsBottomSheet) {
         FundDetailsBottomSheet(
             amount = amount.toDouble(),
-            goalType = goalType,
+            goalType = resolvedGoalType,
             fundDetailsState = fundDetailsState,
             onConfirm = {
                 isLoading = true
                 showDetailsBottomSheet = false
                 coroutineScope.launch {
-                    val result = viewModel.createSip(userId, kycAttemptId, investorId, amount.toDouble())
+                    val result = viewModel.createSip(effectiveUserId, kycAttemptId, investorId, amount.toDouble())
                     when (result) {
                         is SipCreationResult.Success -> {
                             onSipCreated(amount.toDouble(), result.mandateWrapper?.uri, result.mandateWrapper?.mandateId, result.mandateWrapper?.finMandateId)
