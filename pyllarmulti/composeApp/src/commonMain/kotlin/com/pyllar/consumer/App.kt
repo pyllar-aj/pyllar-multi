@@ -63,6 +63,7 @@ sealed class Screen {
     data class Withdraw(val userId: String) : Screen()
     data class WithdrawAmount(val userId: String, val schemeId: String) : Screen()
     data class WithdrawSuccess(
+        val userId: String,
         val amount: Double,
         val schemeName: String,
         val bankName: String,
@@ -428,6 +429,7 @@ fun App() {
                         val data = WithdrawalDataManager.getWithdrawalData()
                         if (data != null) {
                             navigateTo(Screen.WithdrawSuccess(
+                                userId = screen.userId,
                                 amount = data.amount,
                                 schemeName = data.schemeName,
                                 bankName = data.bankName,
@@ -451,7 +453,7 @@ fun App() {
                     transactionId = screen.transactionId,
                     folio = screen.folio,
                     onNavigateToHome = {
-                        navigateTo(Screen.InvestmentDashboard(""), clearStack = true)
+                        navigateTo(Screen.InvestmentDashboard(screen.userId), clearStack = true)
                     }
                 )
             }

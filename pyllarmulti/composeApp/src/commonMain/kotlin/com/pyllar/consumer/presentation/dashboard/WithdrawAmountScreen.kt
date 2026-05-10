@@ -333,6 +333,7 @@ fun WithdrawAmountScreen(
                             
                             OtpField(
                                 length = 6,
+                                modifier = Modifier.fillMaxWidth(),
                                 otpText = otpCode,
                                 onOtpChange = { otpCode = it; otpValidationError = null },
                                 onOtpComplete = {},

@@ -40,9 +40,11 @@ fun OtpField(
         singleLine = true,
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = Color(0xFF0A5C36),
-            unfocusedBorderColor = Color(0xFFE0E0E0),
+            unfocusedBorderColor = Color(0xFF9E9E9E), // Darker grey
             errorBorderColor = Color(0xFFB00020),
             cursorColor = Color(0xFF0A5C36),
+            unfocusedContainerColor = Color(0xFFF5F5F5), // Subtle background
+            focusedContainerColor = Color.White,
         ),
     )
 }
