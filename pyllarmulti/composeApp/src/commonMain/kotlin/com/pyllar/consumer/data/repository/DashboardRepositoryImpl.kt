@@ -110,22 +110,62 @@ class DashboardRepositoryImpl(
         }
     }
 
-    override fun pauseSip(userId: String, planId: String?, mandateId: Long?): Flow<Resource<Unit>> = flow {
+    override fun pauseSip(userId: String, planId: String?, mandateId: Long): Flow<Resource<String>> = flow {
         emit(Resource.Loading())
-        val result = apiClient.get<Unit>(path = "api/invDashboard/pauseSip/$userId?planId=$planId&mandateId=$mandateId")
-        emit(result)
+        val request = com.pyllar.consumer.data.remote.requests.SipActionRequest(
+            userId = userId,
+            planId = planId,
+            mandateId = mandateId,
+            action = "PAUSE",
+            reason = "pause"
+        )
+        emit(apiClient.post<String, com.pyllar.consumer.data.remote.requests.SipActionRequest>(
+            path = "api/invDashboard/sipActV2",
+            body = request
+        ))
     }
 
-    override fun resumeSip(userId: String, planId: String?, mandateId: Long?): Flow<Resource<Unit>> = flow {
+    override fun resumeSip(userId: String, planId: String?, mandateId: Long): Flow<Resource<String>> = flow {
         emit(Resource.Loading())
-        val result = apiClient.get<Unit>(path = "api/invDashboard/resumeSip/$userId?planId=$planId&mandateId=$mandateId")
-        emit(result)
+        val request = com.pyllar.consumer.data.remote.requests.SipActionRequest(
+            userId = userId,
+            planId = planId,
+            mandateId = mandateId,
+            action = "RESUME",
+            reason = "resume"
+        )
+        emit(apiClient.post<String, com.pyllar.consumer.data.remote.requests.SipActionRequest>(
+            path = "api/invDashboard/sipActV2",
+            body = request
+        ))
     }
 
-    override fun cancelSip(userId: String, planId: String?, mandateId: Long?, reason: String?): Flow<Resource<Unit>> = flow {
+    override fun cancelSip(userId: String, planId: String?, mandateId: Long, reason: String): Flow<Resource<String>> = flow {
         emit(Resource.Loading())
-        val result = apiClient.get<Unit>(path = "api/invDashboard/cancelSip/$userId?planId=$planId&mandateId=$mandateId&reason=$reason")
-        emit(result)
+        val request = com.pyllar.consumer.data.remote.requests.SipActionRequest(
+            userId = userId,
+            planId = planId,
+            mandateId = mandateId,
+            action = "CANCEL",
+            reason = reason
+        )
+        emit(apiClient.post<String, com.pyllar.consumer.data.remote.requests.SipActionRequest>(
+            path = "api/invDashboard/sipActV2",
+            body = request
+        ))
+    }
+
+    override fun pollActionStatus(userId: String, actionId: String, action: String): Flow<Resource<Map<String, String>>> = flow {
+        emit(Resource.Loading())
+        val request = com.pyllar.consumer.data.remote.requests.ActionPollRequest(
+            userId = userId,
+            actionId = actionId,
+            action = action
+        )
+        emit(apiClient.post<Map<String, String>, com.pyllar.consumer.data.remote.requests.ActionPollRequest>(
+            path = "api/invDashboard/poll-as",
+            body = request
+        ))
     }
 }
 

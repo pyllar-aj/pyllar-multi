@@ -70,7 +70,8 @@ sealed class Screen {
         val amount: Double,
         val mandateUrl: String,
         val mandateId: Long,
-        val mandateRef: Long
+        val mandateRef: Long,
+        val goalId: String = ""
     ) : Screen()
     data class Profile(val userId: String) : Screen()
     data class AccountDeletion(val userId: String) : Screen()
@@ -387,13 +388,16 @@ fun App() {
                 )
             }
             is Screen.SchemeDetails -> {
-                SchemeDetailsScreen(
+                SchemeDetailsV2Screen(
                     userId = screen.userId,
                     purpose = screen.purpose,
                     onNavigateBack = { navigateBack() },
                     onNavigateToWithdraw = { params ->
                         WithdrawParamsManager.set(params)
                         navigateTo(Screen.Withdraw(screen.userId))
+                    },
+                    onNavigateToAddFunds = { goalId ->
+                        navigateTo(Screen.SipAmountV2(screen.userId, "", "", goalId, fromDashboard = true))
                     }
                 )
             }
@@ -427,7 +431,8 @@ fun App() {
                             amount = amount,
                             mandateUrl = url ?: "",
                             mandateId = id ?: 0L,
-                            mandateRef = ref ?: 0L
+                            mandateRef = ref ?: 0L,
+                            goalId = screen.goalId
                         ))
                     },
                     onNavigateBack = { navigateBack() },
@@ -446,6 +451,7 @@ fun App() {
                     mandateUrl = screen.mandateUrl,
                     mandateId = screen.mandateId,
                     mandateRef = screen.mandateRef,
+                    goalId = screen.goalId,
                     onGoToHome = { navigateTo(Screen.InvestmentDashboard(screen.userId), clearStack = true) },
                     onNavigateBack = { navigateBack() }
                 )

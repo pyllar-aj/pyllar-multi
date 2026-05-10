@@ -22,7 +22,10 @@ data class WithdrawInitParams(
     val investmentInProgress: Double,
     val isin: String,
     val folio: String?,
-    val schemeName: String?
+    val schemeName: String?,
+    val canWithdraw: Boolean = true,
+    val redemptionInProgress: Double = 0.0,
+    val redeemableAmount: Double = 0.0
 )
 
 data class WithdrawState(

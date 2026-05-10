@@ -1,0 +1,75 @@
+Reusing configuration cache.
+> Task :composeApp:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :composeApp:convertXmlValueResourcesForIosSimulatorArm64Main NO-SOURCE
+> Task :composeApp:convertXmlValueResourcesForAppleMain NO-SOURCE
+> Task :composeApp:convertXmlValueResourcesForIosMain NO-SOURCE
+> Task :composeApp:copyNonXmlValueResourcesForNativeMain NO-SOURCE
+> Task :composeApp:copyNonXmlValueResourcesForIosSimulatorArm64Main NO-SOURCE
+> Task :composeApp:copyNonXmlValueResourcesForIosMain NO-SOURCE
+> Task :composeApp:convertXmlValueResourcesForNativeMain NO-SOURCE
+> Task :composeApp:generateExpectResourceCollectorsForCommonMain UP-TO-DATE
+> Task :composeApp:generateComposeResClass UP-TO-DATE
+> Task :composeApp:prepareComposeResourcesTaskForIosSimulatorArm64Main NO-SOURCE
+> Task :composeApp:prepareComposeResourcesTaskForIosMain NO-SOURCE
+> Task :composeApp:copyNonXmlValueResourcesForAppleMain NO-SOURCE
+> Task :composeApp:prepareComposeResourcesTaskForNativeMain NO-SOURCE
+> Task :composeApp:generateIosBuildConfig UP-TO-DATE
+> Task :composeApp:generateResourceAccessorsForIosSimulatorArm64Main NO-SOURCE
+> Task :composeApp:generateResourceAccessorsForIosMain NO-SOURCE
+> Task :composeApp:copyNonXmlValueResourcesForCommonMain UP-TO-DATE
+> Task :composeApp:prepareComposeResourcesTaskForAppleMain NO-SOURCE
+> Task :composeApp:generateResourceAccessorsForNativeMain NO-SOURCE
+> Task :composeApp:generateResourceAccessorsForAppleMain NO-SOURCE
+> Task :composeApp:convertXmlValueResourcesForCommonMain UP-TO-DATE
+> Task :composeApp:prepareComposeResourcesTaskForCommonMain UP-TO-DATE
+> Task :composeApp:generateResourceAccessorsForCommonMain UP-TO-DATE
+> Task :composeApp:generateActualResourceCollectorsForIosSimulatorArm64Main UP-TO-DATE
+
+> Task :composeApp:compileKotlinIosSimulatorArm64 FAILED
+e: file:///Users/aj/Projects/pyllar-multi/pyllarmulti/composeApp/src/commonMain/kotlin/com/pyllar/consumer/data/remote/datasource/AuthRemoteDataSource.kt:45:13 No value passed for parameter 'formData'.
+e: file:///Users/aj/Projects/pyllar-multi/pyllarmulti/composeApp/src/commonMain/kotlin/com/pyllar/consumer/data/remote/datasource/AuthRemoteDataSource.kt:47:13 None of the following candidates is applicable:
+fun StringBuilder.append(value: Byte): StringBuilder
+fun StringBuilder.append(value: Short): StringBuilder
+fun <T : Appendable> T.append(vararg value: CharSequence?): T
+fun StringBuilder.append(obj: Any?): StringBuilder
+fun StringBuilder.append(vararg value: String?): StringBuilder
+fun StringBuilder.append(vararg value: Any?): StringBuilder
+fun StringBuilder.append(str: CharArray, offset: Int, len: Int): StringBuilder
+e: file:///Users/aj/Projects/pyllar-multi/pyllarmulti/composeApp/src/commonMain/kotlin/com/pyllar/consumer/data/remote/datasource/AuthRemoteDataSource.kt:48:13 None of the following candidates is applicable:
+fun StringBuilder.append(value: Byte): StringBuilder
+fun StringBuilder.append(value: Short): StringBuilder
+fun <T : Appendable> T.append(vararg value: CharSequence?): T
+fun StringBuilder.append(obj: Any?): StringBuilder
+fun StringBuilder.append(vararg value: String?): StringBuilder
+fun StringBuilder.append(vararg value: Any?): StringBuilder
+fun StringBuilder.append(str: CharArray, offset: Int, len: Int): StringBuilder
+e: file:///Users/aj/Projects/pyllar-multi/pyllarmulti/composeApp/src/commonMain/kotlin/com/pyllar/consumer/data/remote/network/PyllarApiClient.kt:15:21 Conflicting import: imported name 'HttpHeaders' is ambiguous.
+e: file:///Users/aj/Projects/pyllar-multi/pyllarmulti/composeApp/src/commonMain/kotlin/com/pyllar/consumer/data/remote/network/PyllarApiClient.kt:37:21 Conflicting import: imported name 'HttpHeaders' is ambiguous.
+e: file:///Users/aj/Projects/pyllar-multi/pyllarmulti/composeApp/src/commonMain/kotlin/com/pyllar/consumer/data/remote/network/PyllarApiClient.kt:125:59 Illegal usage of inline parameter 'formData: FormBuilder.() -> Unit'. Add 'noinline' modifier to the parameter declaration.
+e: file:///Users/aj/Projects/pyllar-multi/pyllarmulti/composeApp/src/iosMain/kotlin/com/pyllar/consumer/platform/PlatformImage.ios.kt:20:9 This declaration needs opt-in. Its usage must be marked with '@kotlinx.cinterop.ExperimentalForeignApi' or '@OptIn(kotlinx.cinterop.ExperimentalForeignApi::class)'
+e: file:///Users/aj/Projects/pyllar-multi/pyllarmulti/composeApp/src/iosMain/kotlin/com/pyllar/consumer/platform/PlatformImage.ios.kt:21:13 This declaration needs opt-in. Its usage must be marked with '@kotlinx.cinterop.ExperimentalForeignApi' or '@OptIn(kotlinx.cinterop.ExperimentalForeignApi::class)'
+e: file:///Users/aj/Projects/pyllar-multi/pyllarmulti/composeApp/src/iosMain/kotlin/com/pyllar/consumer/platform/PlatformImage.ios.kt:26:23 This declaration needs opt-in. Its usage must be marked with '@kotlinx.cinterop.ExperimentalForeignApi' or '@OptIn(kotlinx.cinterop.ExperimentalForeignApi::class)'
+e: file:///Users/aj/Projects/pyllar-multi/pyllarmulti/composeApp/src/iosMain/kotlin/com/pyllar/consumer/platform/PlatformImage.ios.kt:29:9 This declaration needs opt-in. Its usage must be marked with '@kotlinx.cinterop.ExperimentalForeignApi' or '@OptIn(kotlinx.cinterop.ExperimentalForeignApi::class)'
+e: file:///Users/aj/Projects/pyllar-multi/pyllarmulti/composeApp/src/iosMain/kotlin/com/pyllar/consumer/platform/PlatformImage.ios.kt:29:31 This declaration needs opt-in. Its usage must be marked with '@kotlinx.cinterop.ExperimentalForeignApi' or '@OptIn(kotlinx.cinterop.ExperimentalForeignApi::class)'
+e: file:///Users/aj/Projects/pyllar-multi/pyllarmulti/composeApp/src/iosMain/kotlin/com/pyllar/consumer/platform/PlatformImage.ios.kt:31:14 Unresolved reference 'drawHierarchy'.
+e: file:///Users/aj/Projects/pyllar-multi/pyllarmulti/composeApp/src/iosMain/kotlin/com/pyllar/consumer/platform/PlatformImage.ios.kt:31:33 This declaration needs opt-in. Its usage must be marked with '@kotlinx.cinterop.ExperimentalForeignApi' or '@OptIn(kotlinx.cinterop.ExperimentalForeignApi::class)'
+e: file:///Users/aj/Projects/pyllar-multi/pyllarmulti/composeApp/src/iosMain/kotlin/com/pyllar/consumer/platform/PlatformImage.ios.kt:40:15 This declaration needs opt-in. Its usage must be marked with '@kotlinx.cinterop.ExperimentalForeignApi' or '@OptIn(kotlinx.cinterop.ExperimentalForeignApi::class)'
+e: file:///Users/aj/Projects/pyllar-multi/pyllarmulti/composeApp/src/iosMain/kotlin/com/pyllar/consumer/platform/PlatformImage.ios.kt:41:18 This declaration needs opt-in. Its usage must be marked with '@kotlinx.cinterop.ExperimentalForeignApi' or '@OptIn(kotlinx.cinterop.ExperimentalForeignApi::class)'
+e: file:///Users/aj/Projects/pyllar-multi/pyllarmulti/composeApp/src/iosMain/kotlin/com/pyllar/consumer/platform/PlatformImage.ios.kt:41:27 This declaration needs opt-in. Its usage must be marked with '@kotlinx.cinterop.ExperimentalForeignApi' or '@OptIn(kotlinx.cinterop.ExperimentalForeignApi::class)'
+e: file:///Users/aj/Projects/pyllar-multi/pyllarmulti/composeApp/src/iosMain/kotlin/com/pyllar/consumer/platform/PlatformImage.ios.kt:41:34 This declaration needs opt-in. Its usage must be marked with '@kotlinx.cinterop.ExperimentalForeignApi' or '@OptIn(kotlinx.cinterop.ExperimentalForeignApi::class)'
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':composeApp:compileKotlinIosSimulatorArm64'.
+> Compilation finished with errors
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 2s
+9 actionable tasks: 1 executed, 8 up-to-date
+Configuration cache entry reused.

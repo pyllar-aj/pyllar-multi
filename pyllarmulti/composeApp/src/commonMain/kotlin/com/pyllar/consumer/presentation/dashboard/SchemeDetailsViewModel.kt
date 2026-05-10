@@ -11,7 +11,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
 
 data class SchemeDetailsParams(
     val isin: String?,
@@ -27,7 +29,10 @@ data class SchemeDetailsParams(
     val colorTheme: String? = null,
     val profit: Double = 0.0,
     val realizedProfit: Double = 0.0,
-    val unrealizedProfit: Double = 0.0
+    val unrealizedProfit: Double = 0.0,
+    val canWithdraw: Boolean? = true,
+    val redemptionInProgress: Double = 0.0,
+    val redeemableAmount: Double = 0.0
 )
 
 object SchemeDetailsParamsManager {
@@ -91,6 +96,8 @@ data class SchemeDetailsState(
     val withdrawnGain: Double = 0.0,
     val availableGain: Double = 0.0,
     val redemptionInProgress: Double = 0.0,
+    val redeemableAmount: Double = 0.0,
+    val canWithdraw: Boolean = true,
     val transactions: List<TransactionDisplayItem> = emptyList(),
     val mandates: List<MandateDisplayItem> = emptyList(),
     val isLoading: Boolean = true,
@@ -159,7 +166,9 @@ class SchemeDetailsViewModel(
                             val response = result.data
                             if (response != null) {
                                 val state = mapResponseToState(response, schemeParams)
-                                _uiState.value = state.copy(isLoading = false)
+                                _uiState.value = state.copy(
+                                    isLoading = false
+                                )
                                 platformLog("✅ Transactions loaded successfully")
                             } else {
                                 platformLog("⚠️ Response data is null")
@@ -257,57 +266,41 @@ class SchemeDetailsViewModel(
                 
                 val mappedState = when {
                     tx.state != null -> {
-                        when (tx.state.uppercase()) {
-                            "SUCCESSFUL", "COMPLETED", "SUCCESS" -> "SUCCESS"
-                            "SUBMITTED", "CONFIRMED", "PENDING", "IN_PROGRESS" -> "SUBMITTED"
-                            "FAILED", "CANCELLED", "REVERSED" -> "FAILED"
-                            else -> tx.state.uppercase()
-                        }
+                        val s = tx.state.uppercase()
+                        if (s == "SUCCESS" || s == "SUCCESSFUL") "Completed"
+                        else if (s == "PENDING" || s == "IN_PROGRESS" || s == "SUBMITTED") "Processing"
+                        else tx.state
                     }
-                    !isCredit -> "FAILED"
-                    else -> "UNKNOWN"
+                    else -> "Processing"
                 }
-                
-                val originalDateString = tx.scheduledOn ?: tx.tradedOn
-                val finalDate = if (!isCredit && originalDateString == null) {
-                    null 
-                } else {
-                    formatDate(originalDateString)
-                }
-                
-                val units = tx.units?.toDouble() ?: tx.allottedUnits?.toDouble() ?: 0.0
-                
+
                 TransactionDisplayItem(
                     transactionId = tx.transactionId,
                     transactionType = tx.transactionType,
-                    amount = kotlin.math.abs(amount),
-                    date = finalDate,
+                    amount = amount,
+                    date = tx.tradedOn ?: tx.scheduledOn,
                     state = mappedState,
                     isCredit = isCredit,
-                    allottedUnits = units,
-                    sortDate = originalDateString
+                    allottedUnits = tx.allottedUnits?.toDouble() ?: 0.0,
+                    sortDate = tx.tradedOn ?: tx.scheduledOn
                 )
             }
-        }.sortedByDescending { transaction ->
-            transaction.sortDate ?: ""
-        }
-        
-        val displayMandates = response.planSummaryDtos?.map { planSummary ->
+        }.sortedByDescending { it.sortDate }
+
+        val displayMandates = response.planSummaryDtos.orEmpty().map { summary ->
             MandateDisplayItem(
-                mandateId = planSummary.mandateId,
-                amount = planSummary.amount?.toDouble() ?: 0.0,
-                nextSipDate = planSummary.nextSipDate,
-                status = planSummary.status,
-                frequency = planSummary.frequency,
-                planId = planSummary.planId,
-                mandateApprovedDate = planSummary.mandateApprovedDate,
-                mandateCancelledDate = planSummary.mandateCancelledDate,
-                mandateCreatedDate = planSummary.mandateCreatedDate,
-                firstUnitAllocationDate = planSummary.firstUnitAllocationDate
+                mandateId = summary.mandateId,
+                amount = summary.amount ?: 0.0,
+                nextSipDate = summary.nextSipDate,
+                status = summary.status,
+                frequency = summary.frequency,
+                planId = summary.planId,
+                mandateApprovedDate = summary.mandateApprovedDate,
+                mandateCancelledDate = summary.mandateCancelledDate,
+                mandateCreatedDate = summary.mandateCreatedDate,
+                firstUnitAllocationDate = summary.firstUnitAllocationDate
             )
-        }?.sortedByDescending { it.mandateCreatedDate ?: "" } ?: emptyList()
-        
-        val cummulativeValue = calculatedCurrentValue + calculatedInvestmentInProgress
+        }
         
         return SchemeDetailsState(
             schemeName = schemeName,
@@ -322,31 +315,46 @@ class SchemeDetailsViewModel(
             investedAmount = calculatedInvestedAmount,
             totalUnitsAllotted = totalUnitsAllotted,
             totalValue = totalValue,
-            cummulativeValue = cummulativeValue,
+            cummulativeValue = calculatedCurrentValue + calculatedInvestmentInProgress,
             totalGain = schemeParams?.profit ?: 0.0,
             withdrawnGain = schemeParams?.realizedProfit ?: 0.0,
             availableGain = schemeParams?.unrealizedProfit ?: 0.0,
+            redemptionInProgress = schemeParams?.redemptionInProgress ?: 0.0,
+            redeemableAmount = schemeParams?.redeemableAmount ?: 0.0,
+            canWithdraw = schemeParams?.canWithdraw ?: true,
             transactions = displayTransactions,
             mandates = displayMandates,
-            isLoading = false,
-            errorMessage = null
+            isLoading = false
         )
     }
 
     fun cancelSip(userId: String, planId: String?, mandateId: Long?, reason: String?) {
         viewModelScope.launch {
+            if (mandateId == null) {
+                platformLog("⚠️ Cannot cancel SIP: mandateId is null")
+                _cancelSipResult.value = CancelSipResult.Error("SIP cancellation failed")
+                return@launch
+            }
             _cancelSipLoading.value = true
             try {
                 platformLog("🛑 Cancelling SIP for user: $userId, planId: $planId, mandateId: $mandateId")
-                dashboardRepository.cancelSip(userId, planId, mandateId, reason).collectLatest { result ->
+                dashboardRepository.cancelSip(userId, planId, mandateId, reason ?: "other").collectLatest { result ->
                     when (result) {
                         is Resource.Success -> {
-                            platformLog("✅ SIP cancelled successfully")
-                            _cancelSipResult.value = CancelSipResult.Success
+                            val actionId = result.data
+                            if (!actionId.isNullOrBlank()) {
+                                platformLog("✅ SIP cancel initiated, starting polling for actionId: $actionId")
+                                startPollingActionStatus(userId, actionId, "CANCEL")
+                            } else {
+                                platformLog("✅ SIP cancelled immediately (no actionId)")
+                                _cancelSipResult.value = CancelSipResult.Success
+                                _cancelSipLoading.value = false
+                            }
                         }
                         is Resource.Error<*> -> {
                             platformLog("❌ SIP cancellation failed: ${result.message}")
                             _cancelSipResult.value = CancelSipResult.Error(result.message ?: "Failed to cancel SIP")
+                            _cancelSipLoading.value = false
                         }
                         is Resource.Loading<*> -> { }
                     }
@@ -354,7 +362,6 @@ class SchemeDetailsViewModel(
             } catch (e: Exception) {
                 platformLog("❌ Exception cancelling SIP: ${e.message}")
                 _cancelSipResult.value = CancelSipResult.Error(e.message ?: "Something went wrong")
-            } finally {
                 _cancelSipLoading.value = false
             }
         }
@@ -362,18 +369,31 @@ class SchemeDetailsViewModel(
 
     fun pauseSip(userId: String, planId: String?, mandateId: Long? = null) {
         viewModelScope.launch {
+            if (mandateId == null) {
+                platformLog("⚠️ Cannot pause SIP: mandateId is null")
+                _pauseSipResult.value = PauseSipResult.Error("SIP pause failed")
+                return@launch
+            }
             _pauseSipLoading.value = true
             try {
                 platformLog("⏸️ Pausing SIP for user: $userId, planId: $planId")
                 dashboardRepository.pauseSip(userId, planId, mandateId).collectLatest { result ->
                     when (result) {
                         is Resource.Success -> {
-                            platformLog("✅ SIP paused successfully")
-                            _pauseSipResult.value = PauseSipResult.Success
+                            val actionId = result.data
+                            if (!actionId.isNullOrBlank()) {
+                                platformLog("✅ SIP pause initiated, starting polling for actionId: $actionId")
+                                startPollingActionStatus(userId, actionId, "PAUSE")
+                            } else {
+                                platformLog("✅ SIP paused immediately (no actionId)")
+                                _pauseSipResult.value = PauseSipResult.Success
+                                _pauseSipLoading.value = false
+                            }
                         }
                         is Resource.Error<*> -> {
                             platformLog("❌ SIP pause failed: ${result.message}")
                             _pauseSipResult.value = PauseSipResult.Error(result.message ?: "Failed to pause SIP")
+                            _pauseSipLoading.value = false
                         }
                         is Resource.Loading<*> -> { }
                     }
@@ -381,7 +401,6 @@ class SchemeDetailsViewModel(
             } catch (e: Exception) {
                 platformLog("❌ Exception pausing SIP: ${e.message}")
                 _pauseSipResult.value = PauseSipResult.Error(e.message ?: "Something went wrong")
-            } finally {
                 _pauseSipLoading.value = false
             }
         }
@@ -389,18 +408,31 @@ class SchemeDetailsViewModel(
 
     fun resumeSip(userId: String, planId: String?, mandateId: Long?) {
         viewModelScope.launch {
+            if (mandateId == null) {
+                platformLog("⚠️ Cannot resume SIP: mandateId is null")
+                _resumeSipResult.value = ResumeSipResult.Error("SIP resume failed")
+                return@launch
+            }
             _resumeSipLoading.value = true
             try {
                 platformLog("▶️ Resuming SIP for user: $userId, planId: $planId, mandateId: $mandateId")
                 dashboardRepository.resumeSip(userId, planId, mandateId).collectLatest { result ->
                     when (result) {
                         is Resource.Success -> {
-                            platformLog("✅ SIP resumed successfully")
-                            _resumeSipResult.value = ResumeSipResult.Success
+                            val actionId = result.data
+                            if (!actionId.isNullOrBlank()) {
+                                platformLog("✅ SIP resume initiated, starting polling for actionId: $actionId")
+                                startPollingActionStatus(userId, actionId, "RESUME")
+                            } else {
+                                platformLog("✅ SIP resumed immediately (no actionId)")
+                                _resumeSipResult.value = ResumeSipResult.Success
+                                _resumeSipLoading.value = false
+                            }
                         }
                         is Resource.Error<*> -> {
                             platformLog("❌ SIP resume failed: ${result.message}")
                             _resumeSipResult.value = ResumeSipResult.Error(result.message ?: "Failed to resume SIP")
+                            _resumeSipLoading.value = false
                         }
                         is Resource.Loading<*> -> { }
                     }
@@ -408,8 +440,74 @@ class SchemeDetailsViewModel(
             } catch (e: Exception) {
                 platformLog("❌ Exception resuming SIP: ${e.message}")
                 _resumeSipResult.value = ResumeSipResult.Error(e.message ?: "Something went wrong")
-            } finally {
                 _resumeSipLoading.value = false
+            }
+        }
+    }
+
+    private suspend fun startPollingActionStatus(userId: String, actionId: String, action: String) {
+        val startTime = Clock.System.now().toEpochMilliseconds()
+        val timeoutMillis = 3 * 60 * 1000L // 3 minutes
+        
+        while (Clock.System.now().toEpochMilliseconds() - startTime < timeoutMillis) {
+            try {
+                platformLog("📡 Polling status for $action... (elapsed: ${(Clock.System.now().toEpochMilliseconds() - startTime) / 1000}s)")
+                
+                var shouldStop = false
+                dashboardRepository.pollActionStatus(userId, actionId, action).collectLatest { result ->
+                    when (result) {
+                        is Resource.Success -> {
+                            val navAction = result.navigation?.action
+                            platformLog("📥 Poll response action: $navAction")
+                            
+                            if (navAction == com.pyllar.consumer.data.remote.model.dto.NavigationAction.STAY) {
+                                platformLog("✅ Polling finished with STAY for $action")
+                                finalizePollingInternal(action, true)
+                                shouldStop = true
+                            } else if (navAction == com.pyllar.consumer.data.remote.model.dto.NavigationAction.POLL) {
+                                // Continue polling
+                            } else {
+                                platformLog("⚠️ Unexpected action during poll: $navAction")
+                                finalizePollingInternal(action, true)
+                                shouldStop = true
+                            }
+                        }
+                        is Resource.Error<*> -> {
+                            platformLog("❌ Poll API error: ${result.message}")
+                            // Stop polling and show success screen anyway as per requirements (reserves for backend latency)
+                            finalizePollingInternal(action, true)
+                            shouldStop = true
+                        }
+                        is Resource.Loading<*> -> { }
+                    }
+                }
+                
+                if (shouldStop) return
+                delay(2000)
+            } catch (e: Exception) {
+                platformLog("❌ Exception during polling: ${e.message}")
+                finalizePollingInternal(action, true)
+                return
+            }
+        }
+        
+        platformLog("⏱ Polling timed out after 3 minutes for $action")
+        finalizePollingInternal(action, true)
+    }
+
+    private fun finalizePollingInternal(action: String, isSuccess: Boolean) {
+        when (action) {
+            "PAUSE" -> {
+                _pauseSipLoading.value = false
+                _pauseSipResult.value = if (isSuccess) PauseSipResult.Success else PauseSipResult.Error("SIP pause failed")
+            }
+            "RESUME" -> {
+                _resumeSipLoading.value = false
+                _resumeSipResult.value = if (isSuccess) ResumeSipResult.Success else ResumeSipResult.Error("SIP resume failed")
+            }
+            "CANCEL" -> {
+                _cancelSipLoading.value = false
+                _cancelSipResult.value = if (isSuccess) CancelSipResult.Success else CancelSipResult.Error("SIP cancellation failed")
             }
         }
     }

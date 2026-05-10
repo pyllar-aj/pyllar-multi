@@ -101,6 +101,10 @@ data class CurrentInvestmentDto(
     val realizedProfit: Double?,
     @SerialName("unrealizedProfit")
     val unrealizedProfit: Double?,
+    @SerialName("redemptionInProgress")
+    val redemptionInProgress: Double?,
+    @SerialName("redeemableAmount")
+    val redeemableAmount: Double?,
     @SerialName("instantRedemptionValue")
     val instantRedemptionValue: Double?
 )

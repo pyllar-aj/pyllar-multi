@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.CoroutineScope
+import com.pyllar.consumer.util.currentTimeMillis
 
 /**
  * UI state for MandateAuthScreen
@@ -23,7 +24,12 @@ data class MandateAuthUiState(
     val requiresPolling: Boolean = false,
     val shouldNavigateToDashboard: Boolean = false,
     val error: String? = null,
-    val mandateWrapper: MandateWrapper? = null
+    val mandateWrapper: MandateWrapper? = null,
+    val planSetupProgress: Int = 20,
+    val planPollingStarted: Boolean = false,
+    val planPollingResolved: Boolean = false,
+    val planPollingTimedOut: Boolean = false,
+    val isPlanReady: Boolean = false
 )
 
 /**
@@ -194,6 +200,67 @@ class MandateAuthModel(
      */
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
+    }
+
+    fun startPlanPollingAfterApproval(userId: String, mandateRef: Long) {
+        if (mandateRef <= 0L || _uiState.value.planPollingStarted) return
+        _uiState.value = _uiState.value.copy(
+            planPollingStarted = true,
+            planPollingResolved = false,
+            planPollingTimedOut = false,
+            planSetupProgress = 20,
+            isPlanReady = false
+        )
+
+        viewModelScope.launch {
+            val startTime = com.pyllar.consumer.util.currentTimeMillis()
+            val timeoutMillis = 3 * 60 * 1000L
+            val progressSteps = listOf(20, 40, 60, 80, 100)
+            var progressIndex = 1 // 20 already set
+
+            while (true) {
+                val elapsed = com.pyllar.consumer.util.currentTimeMillis() - startTime
+                if (elapsed >= timeoutMillis) {
+                    _uiState.value = _uiState.value.copy(
+                        planPollingTimedOut = true,
+                        planPollingResolved = true,
+                        isPlanReady = false
+                    )
+                    break
+                }
+
+                if (progressIndex < progressSteps.size - 1) {
+                    _uiState.value = _uiState.value.copy(planSetupProgress = progressSteps[progressIndex])
+                    progressIndex++
+                }
+
+                try {
+                    repository.pollPurchasePlanStatus(userId, mandateRef).collect { result ->
+                        when (result) {
+                            is Resource.Success -> {
+                                val isDataTrue = result.data == true
+                                // In KMP, we'll assume STAY if we get a success result for now or handle navigation separately
+                                _uiState.value = _uiState.value.copy(
+                                    planSetupProgress = 100,
+                                    isPlanReady = isDataTrue,
+                                    planPollingResolved = true
+                                )
+                            }
+                            is Resource.Error -> {
+                                // Keep polling on transient failures
+                            }
+                            is Resource.Loading -> Unit
+                        }
+                    }
+                } catch (e: Exception) {
+                    platformLog("MandateAuthModel: Exception in plan polling: ${e.message}")
+                }
+
+                if (_uiState.value.planPollingResolved) break
+                
+                delay(5000L)
+            }
+        }
     }
 
     /**

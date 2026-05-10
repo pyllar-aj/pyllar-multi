@@ -108,6 +108,10 @@ class DashboardViewModel(
         loadDashboardData(userId)
     }
 
+    fun initGoalTxn(userId: String, purpose: String) = dashboardRepository.initGoalTxn(
+        com.pyllar.consumer.data.remote.requests.GoalSelectionRequest(userId, purpose)
+    )
+
     private fun convertApiResponseToDashboardState(
         dashboardData: DashboardResponseDto
     ): DashboardState {

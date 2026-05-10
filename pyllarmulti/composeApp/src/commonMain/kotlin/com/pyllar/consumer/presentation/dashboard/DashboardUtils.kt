@@ -125,6 +125,17 @@ fun getIconBackgroundColorForCategory(category: String?, colorTheme: String?): C
     }
 }
 
+fun getFundLogo(fundName: String?): DrawableResource {
+    val name = fundName?.lowercase() ?: return Res.drawable.axis_lo
+    return when {
+        name.contains("axis") -> Res.drawable.axis_lo
+        name.contains("aditya") -> Res.drawable.aditya
+        name.contains("nippon") -> Res.drawable.nippon
+        name.contains("invesco") -> Res.drawable.invesco
+        else -> Res.drawable.axis_lo
+    }
+}
+
 fun getGoalIconDrawable(category: String?): DrawableResource? {
     return when (category?.uppercase()) {
         "GOLD" -> Res.drawable.gold_icon

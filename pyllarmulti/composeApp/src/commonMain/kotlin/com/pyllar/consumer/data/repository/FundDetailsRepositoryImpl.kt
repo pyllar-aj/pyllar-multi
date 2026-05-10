@@ -103,4 +103,20 @@ class FundDetailsRepositoryImpl(
         )
         emit(result)
     }
+
+    override fun pollPurchasePlanStatus(
+        userId: String,
+        mandateRef: Long
+    ): Flow<Resource<Boolean>> = flow {
+        emit(Resource.Loading())
+        val result = apiClient.post<Boolean, com.pyllar.consumer.data.remote.requests.PlanPollRequest>(
+            path = "api/mf-purchase-plans/poll-purchase-plan-status",
+            body = com.pyllar.consumer.data.remote.requests.PlanPollRequest(
+                userId = userId,
+                mandateRef = mandateRef,
+                mfppId = null
+            )
+        )
+        emit(result)
+    }
 }

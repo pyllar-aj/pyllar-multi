@@ -30,3 +30,15 @@ data class MandateSyncRequest(
     @SerialName("mandateId")
     val mandateId: Long
 )
+
+@Serializable
+data class PlanPollRequest(
+    @SerialName("userId")
+    val userId: String,
+
+    @SerialName("mandateRef")
+    val mandateRef: Long,
+
+    @SerialName("mfppId")
+    val mfppId: String? = null
+)
