@@ -29,7 +29,8 @@ data class SchemeDetailsParams(
     val realizedProfit: Double = 0.0,
     val unrealizedProfit: Double = 0.0,
     val redeemableAmount: Double = 0.0,
-    val redemptionInProgress: Double = 0.0
+    val redemptionInProgress: Double = 0.0,
+    val userPurposeId: String? = null
 )
 
 object SchemeDetailsParamsManager {

@@ -222,10 +222,11 @@ fun InvestmentDashboardV2Screen(
                                             realizedProfit = goal.realizedProfit,
                                             unrealizedProfit = goal.unrealizedProfit,
                                             redeemableAmount = goal.redeemableAmount,
-                                            redemptionInProgress = goal.redemptionInProgress
+                                            redemptionInProgress = goal.redemptionInProgress,
+                                            userPurposeId = response.userPurposeId
                                         )
                                         SchemeDetailsParamsManager.set(params)
-                                        onNavigateToSchemeDetails(response.userPurposeId ?: goal.goalId)
+                                        onNavigateToSchemeDetails(goal.goalId)
                                     }
                                 }
                                 isSelectingGoal = false
@@ -254,10 +255,11 @@ fun InvestmentDashboardV2Screen(
                                             unrealizedProfit = goal.unrealizedProfit,
                                             redeemableAmount = goal.redeemableAmount,
                                             redemptionInProgress = goal.redemptionInProgress,
-                                            selectedTab = 1 // Open Active Plans tab
+                                            selectedTab = 1, // Open Active Plans tab
+                                            userPurposeId = response.userPurposeId
                                         )
                                         SchemeDetailsParamsManager.set(params)
-                                        onNavigateToSchemeDetails(response.userPurposeId ?: goal.goalId)
+                                        onNavigateToSchemeDetails(goal.goalId)
                                     }
                                 }
                                 isSelectingGoal = false

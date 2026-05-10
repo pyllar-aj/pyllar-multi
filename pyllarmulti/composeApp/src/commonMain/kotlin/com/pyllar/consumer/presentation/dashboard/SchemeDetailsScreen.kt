@@ -80,7 +80,8 @@ fun SchemeDetailsScreen(
 
     LaunchedEffect(userId, purpose) {
         if (userId.isNotBlank() && purpose.isNotBlank()) {
-            viewModel.loadTransactions(userId, purpose, schemeParams)
+            val uipid = schemeParams?.userPurposeId ?: purpose
+            viewModel.loadTransactions(userId, uipid, schemeParams)
         }
     }
 
