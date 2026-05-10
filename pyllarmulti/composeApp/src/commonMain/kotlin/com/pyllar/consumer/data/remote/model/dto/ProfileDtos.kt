@@ -1,9 +1,13 @@
 package com.pyllar.consumer.data.remote.model.dto
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class ProfileRequestDto(
     val userId: String
 )
 
+@Serializable
 data class ProfileResponseDto(
     val name: String?,
     val email: String?,

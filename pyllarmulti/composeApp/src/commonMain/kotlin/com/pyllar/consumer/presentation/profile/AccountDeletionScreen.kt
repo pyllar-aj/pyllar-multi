@@ -24,7 +24,11 @@ fun AccountDeletionScreen(
     val requestAlreadySubmitted = profileState.hasPendingDeletionRequest || profileState.lastDeletionRequest != null
 
     LaunchedEffect(userId) {
-        if (userId.isBlank()) viewModel.clearDeletionMessages()
+        if (userId.isBlank()) {
+            viewModel.clearDeletionMessages()
+        } else {
+            viewModel.loadProfile(userId)
+        }
     }
 
     Scaffold(

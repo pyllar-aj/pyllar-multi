@@ -20,6 +20,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import org.koin.compose.koinInject
 import com.pyllar.consumer.platform.PlatformActions
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.plus
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,6 +73,30 @@ fun ProfileScreen(
                 phoneNumber = profileState.phoneNumber,
                 isLoading = profileState.isLoading
             )
+
+            // Deletion Status Section
+            val deletionCompletionDate = profileState.lastDeletionRequest?.requestedAt?.let { requestedAt ->
+                try {
+                    val instant = Instant.parse(requestedAt)
+                    val completionInstant = instant.plus(30, DateTimeUnit.DAY, TimeZone.UTC)
+                    val localDateTime = completionInstant.toLocalDateTime(TimeZone.currentSystemDefault())
+                    val monthName = when (localDateTime.monthNumber) {
+                        1 -> "Jan"; 2 -> "Feb"; 3 -> "Mar"; 4 -> "Apr"; 5 -> "May"; 6 -> "Jun"
+                        7 -> "Jul"; 8 -> "Aug"; 9 -> "Sep"; 10 -> "Oct"; 11 -> "Nov"; 12 -> "Dec"
+                        else -> localDateTime.month.name.take(3).lowercase().replaceFirstChar { it.uppercase() }
+                    }
+                    "${localDateTime.dayOfMonth} $monthName ${localDateTime.year}"
+                } catch (e: Exception) {
+                    null
+                }
+            }
+
+            if (profileState.hasPendingDeletionRequest || profileState.lastDeletionRequest != null) {
+                DeletionStatusCard(
+                    message = profileState.deletionRequestMessage ?: "Your account deletion request is being processed.",
+                    completionDate = deletionCompletionDate
+                )
+            }
 
             Column(
                 modifier = Modifier.padding(horizontal = 16.dp),
@@ -336,6 +365,61 @@ fun ManageAccountBottomSheet(
             }
 
             Spacer(modifier = Modifier.height(16.dp))
+        }
+    }
+}
+
+@Composable
+fun DeletionStatusCard(
+    message: String,
+    completionDate: String?
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3E0)),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(20.dp),
+            horizontalAlignment = Alignment.Start,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Surface(
+                    modifier = Modifier.size(28.dp),
+                    shape = CircleShape,
+                    color = Color(0xFFFFA726)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Filled.Info,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+                Text(
+                    text = "Account Deletion Status",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = Color(0xFFE65100)
+                )
+            }
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color(0xFF5D4037)
+            )
+            completionDate?.let { date ->
+                Text(
+                    text = "Expected completion by $date",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFF6D4C41)
+                )
+            }
         }
     }
 }

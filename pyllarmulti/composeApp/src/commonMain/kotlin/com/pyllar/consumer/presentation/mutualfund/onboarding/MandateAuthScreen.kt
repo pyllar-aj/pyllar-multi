@@ -111,7 +111,7 @@ fun MandateAuthScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Mandate Setup", fontWeight = FontWeight.Bold) },
+                title = { Text("SIP Setup", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     if (!isFinalStatus) {
                         IconButton(onClick = onNavigateBack) {
@@ -162,7 +162,7 @@ fun MandateAuthScreen(
                             StatusDisplay(
                                 icon = Icons.Default.Error,
                                 iconTint = Color.Red,
-                                title = "Mandate ${status.name}",
+                                title = "SIP ${status.name}",
                                 description = "Please try again or contact support.",
                                 actionText = "Go to Home",
                                 onAction = onGoToHome
@@ -401,7 +401,7 @@ fun QrPlaceholder(url: String) {
             ) {
                 Image(
                     painter = rememberQrCodePainter(url),
-                    contentDescription = "Mandate QR Code",
+                    contentDescription = "QR Code",
                     modifier = Modifier.fillMaxSize()
                 )
             }
@@ -446,7 +446,7 @@ fun LoadingDisplay() {
                 modifier = Modifier.fillMaxSize()
             )
         }
-        Text("Verifying Mandate...", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Text("Verifying...", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         Text("Please do not close the app or go back.", style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
     }
 }
@@ -491,7 +491,7 @@ fun MandateApprovedWaitingContent(mandateUrl: String, progress: Int, isPlanReady
 
                 Divider()
 
-                WaitingStepRow("Mandate Approved", "Your daily SIP is authorized.", true, true, accentColor)
+                WaitingStepRow("SIP Approved", "Your daily SIP is authorized.", true, true, accentColor)
                 WaitingStepRow("Order Placed", "Sent to the fund house.", isPlanReady, true, accentColor)
                 WaitingStepRow("SIP Starts", "Expected by $sipStartDay.", isPlanReady, false, accentColor)
             }

@@ -3,7 +3,7 @@ package com.pyllar.consumer.data.repository
 import com.pyllar.consumer.data.remote.model.DigiLinkRequest
 import com.pyllar.consumer.data.remote.model.MinimalKycRequest
 import com.pyllar.consumer.data.remote.model.MinimalKycResponse
-import com.pyllar.consumer.data.remote.model.dto.AccountDeletionRequestDto
+import com.pyllar.consumer.data.remote.requests.AccountDeletionRequestDto
 import com.pyllar.consumer.data.remote.model.dto.AccountDeletionResponseDto
 import com.pyllar.consumer.data.remote.model.dto.DigiLinkResponseDto
 import com.pyllar.consumer.data.remote.model.dto.HelperCodeResponseDto
@@ -255,12 +255,13 @@ class OnboardingRepositoryImpl(
     }
 
     override fun requestAccountDeletion(
-        userId: String
+        userId: String,
+        notes: String?
     ): Flow<Resource<AccountDeletionResponseDto>> = flow {
         emit(Resource.Loading())
         when (val result = apiClient.post<AccountDeletionResponseDto, AccountDeletionRequestDto>(
             path = "api/profile/request-deletion",
-            body = AccountDeletionRequestDto(userId = userId)
+            body = AccountDeletionRequestDto(userId = userId, notes = notes)
         )) {
             is Resource.Success -> emit(Resource.Success(data = result.data, navigation = result.navigation, fieldErrors = result.fieldErrors))
             is Resource.Error -> emit(Resource.Error(message = result.message ?: "", navigation = result.navigation, fieldErrors = result.fieldErrors, errorType = result.errorType))
@@ -339,6 +340,17 @@ class OnboardingRepositoryImpl(
         }
         val result = apiClient.get<com.pyllar.consumer.data.remote.model.dto.VerificationStatusResponseDto>(
             path = "api/bank-verification/status/$verificationId"
+        )
+        emit(result)
+    }
+
+    override fun getProfileDetails(
+        userId: String
+    ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.ProfileResponseDto>> = flow {
+        emit(Resource.Loading())
+        val result = apiClient.post<com.pyllar.consumer.data.remote.model.dto.ProfileResponseDto, com.pyllar.consumer.data.remote.model.dto.ProfileRequestDto>(
+            path = "api/profile/details",
+            body = com.pyllar.consumer.data.remote.model.dto.ProfileRequestDto(userId = userId)
         )
         emit(result)
     }

@@ -49,6 +49,8 @@ class ProfileViewModel(
     fun loadProfile(userId: String) {
         viewModelScope.launch {
             _profileState.value = _profileState.value.copy(isLoading = true, error = null)
+            
+            // 1. Initial load from local store for immediate UI
             try {
                 val name = localStore.getCurrentFullName()
                 val email = localStore.getCurrentEmail()
@@ -56,17 +58,55 @@ class ProfileViewModel(
                 _profileState.value = _profileState.value.copy(
                     name = name,
                     email = email,
-                    phoneNumber = phone,
-                    isLoading = false
+                    phoneNumber = phone
                 )
             } catch (e: Exception) {
-                Log.e("ProfileViewModel", "Error loading profile: ${e.message}")
-                _profileState.value = _profileState.value.copy(isLoading = false, error = e.message)
+                Log.e("ProfileViewModel", "Error loading local profile: ${e.message}")
+            }
+
+            // 2. Fetch full details from server (including deletion status)
+            if (userId.isNotBlank()) {
+                onboardingRepository.getProfileDetails(userId).collect { result ->
+                    when (result) {
+                        is Resource.Success -> {
+                            val data = result.data
+                            val latestDeletion = data?.let {
+                                if (it.deletionRequestId != null || it.deletionStatus != null || it.deletionRequestedAt != null) {
+                                    AccountDeletionResponseDto(
+                                        requestId = it.deletionRequestId,
+                                        userId = userId,
+                                        status = it.deletionStatus,
+                                        requestedAt = it.deletionRequestedAt,
+                                        message = it.deletionMessage
+                                    )
+                                } else null
+                            }
+                            _profileState.value = _profileState.value.copy(
+                                name = data?.name ?: _profileState.value.name,
+                                email = data?.email ?: _profileState.value.email,
+                                phoneNumber = data?.phoneNumber ?: _profileState.value.phoneNumber,
+                                hasPendingDeletionRequest = data?.deletionRequested == true,
+                                deletionRequestMessage = data?.deletionMessage,
+                                lastDeletionRequest = latestDeletion,
+                                isLoading = false
+                            )
+                        }
+                        is Resource.Error -> {
+                            _profileState.value = _profileState.value.copy(
+                                isLoading = false,
+                                error = result.message
+                            )
+                        }
+                        is Resource.Loading -> Unit
+                    }
+                }
+            } else {
+                _profileState.value = _profileState.value.copy(isLoading = false)
             }
         }
     }
 
-    fun requestAccountDeletion(userId: String) {
+    fun requestAccountDeletion(userId: String, notes: String? = null) {
         viewModelScope.launch {
             _profileState.value = _profileState.value.copy(
                 isDeletionRequestInProgress = true,
@@ -74,14 +114,15 @@ class ProfileViewModel(
                 deletionRequestError = null
             )
             try {
-                onboardingRepository.requestAccountDeletion(userId).collect { result ->
+                onboardingRepository.requestAccountDeletion(userId, notes).collect { result ->
                     when (result) {
                         is Resource.Success -> {
+                            val response = result.data
                             _profileState.value = _profileState.value.copy(
                                 isDeletionRequestInProgress = false,
-                                hasPendingDeletionRequest = true,
-                                lastDeletionRequest = result.data,
-                                deletionRequestMessage = "Your account deletion request has been submitted."
+                                hasPendingDeletionRequest = response?.status?.equals("PENDING", ignoreCase = true) == true || response?.status?.equals("SUCCESS", ignoreCase = true) == true,
+                                lastDeletionRequest = response,
+                                deletionRequestMessage = response?.message ?: "Your account deletion request has been submitted."
                             )
                         }
                         is Resource.Error -> {

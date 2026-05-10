@@ -48,7 +48,8 @@ interface OnboardingRepository {
     ): Flow<Resource<MinimalKycResponse>>
 
     fun requestAccountDeletion(
-        userId: String
+        userId: String,
+        notes: String? = null
     ): Flow<Resource<AccountDeletionResponseDto>>
 
     fun getHelperCode(
@@ -79,5 +80,9 @@ interface OnboardingRepository {
         verificationId: String,
         userId: String
     ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.VerificationStatusResponseDto>>
+
+    fun getProfileDetails(
+        userId: String
+    ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.ProfileResponseDto>>
 }
 

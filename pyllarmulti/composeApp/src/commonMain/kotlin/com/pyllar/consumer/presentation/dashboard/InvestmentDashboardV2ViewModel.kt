@@ -181,7 +181,11 @@ class InvestmentDashboardV2ViewModel(
         val allInOneGoal = presetGoals.find { it.goalId == "all_in_one" }
         val globalExposureGoal = presetGoals.find { it.goalId == "global_exposure" }
         val otherPresetGoals = presetGoals.filter {
-            it.goalId != "all_in_one" && it.goalId != "global_exposure"
+            it.goalId != "all_in_one" && 
+            it.goalId != "global_exposure" &&
+            it.goalId != "festival_spends" &&
+            it.goalId != "childrens_education" &&
+            it.goalId != "vacation"
         }
 
         val allRecommendedGoals = if (recommendedGoalsFromApi.isEmpty()) {
@@ -378,6 +382,11 @@ class InvestmentDashboardV2ViewModel(
             val rawPurpose = recommendation.purpose ?: return@mapNotNull null
             val goalId = rawPurpose.lowercase()
             if (goalId in activeGoalIds) return@mapNotNull null
+            
+            // Filter out specific goals from recommendations as per user request
+            if (goalId == "festival_spends" || goalId == "childrens_education" || goalId == "vacation") {
+                return@mapNotNull null
+            }
 
             val monthly = recommendation.sipAmount ?: 0.0
             val target = recommendation.totalInvestmentAmount ?: (monthly * 12)
