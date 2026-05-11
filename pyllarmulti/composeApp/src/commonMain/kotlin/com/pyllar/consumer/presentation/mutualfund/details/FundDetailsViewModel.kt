@@ -19,6 +19,7 @@ import kotlinx.coroutines.launch
 
 sealed class SipCreationResult {
     data class Success(val message: String, val nextScreen: String?, val mandateWrapper: MandateWrapper?) : SipCreationResult()
+    data class LumpsumSuccess(val message: String, val nextScreen: String?, val lumpsumData: com.pyllar.consumer.data.remote.model.dto.LumpsumPurchaseResponseData?) : SipCreationResult()
     data class Failure(val message: String) : SipCreationResult()
     object SecureChannelError : SipCreationResult()
 }
@@ -139,6 +140,48 @@ class FundDetailsViewModel(
                 is Resource.Error -> {
                     _uiState.value = _uiState.value.copy(isSipCreating = false, sipError = resource.message)
                     finalResult = SipCreationResult.Failure(resource.message ?: "Failed to create SIP")
+                }
+                is Resource.Loading -> {
+                    _uiState.value = _uiState.value.copy(isSipCreating = true)
+                }
+            }
+        }
+        return finalResult
+    }
+
+    suspend fun createLumpsumPurchase(
+        userId: String,
+        amount: Double
+    ): SipCreationResult {
+        _uiState.value = _uiState.value.copy(isSipCreating = true, sipError = null)
+        
+        val userPurposeId = try {
+            sessionStore.getValue(com.pyllar.consumer.data.local.KeyValueConstants.USER_PURPOSE_ID)
+        } catch (e: Exception) {
+            null
+        }
+        
+        val request = com.pyllar.consumer.data.remote.model.dto.CreateLumpsumPurchaseRequestDto(
+            userId = userId,
+            amount = amount,
+            userInvPurpose = userPurposeId ?: ""
+        )
+        
+        var finalResult: SipCreationResult = SipCreationResult.Failure("Failed to create purchase")
+        
+        repository.createLumpsumPurchase(request).collect { resource ->
+            when (resource) {
+                is Resource.Success -> {
+                    _uiState.value = _uiState.value.copy(isSipCreating = false)
+                    finalResult = SipCreationResult.LumpsumSuccess(
+                        message = "Purchase created successfully!",
+                        nextScreen = resource.navigation?.nextScreen,
+                        lumpsumData = resource.data
+                    )
+                }
+                is Resource.Error -> {
+                    _uiState.value = _uiState.value.copy(isSipCreating = false, sipError = resource.message)
+                    finalResult = SipCreationResult.Failure(resource.message ?: "Failed to create purchase")
                 }
                 is Resource.Loading -> {
                     _uiState.value = _uiState.value.copy(isSipCreating = true)

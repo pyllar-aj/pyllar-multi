@@ -14,5 +14,16 @@ interface AuthRepository {
     fun verifyOtp(request: OtpVerificationRequest): Flow<Resource<AuthUserDTO>>
     fun updateEmail(email: String, userId: String): Flow<Resource<UpdateEmailResponse>>
     fun uploadSignatureFile(bytes: ByteArray, kycAttemptId: String): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.EsignCreateResponseDto>>
+    fun getDigiLink(
+        userId: String,
+        name: String,
+        emailAddress: String,
+        dateOfBirth: String,
+        mobileCountryCode: String,
+        mobileNumber: String,
+        preVerificationId: String? = null,
+        docId: String? = null,
+        kycRequestId: String? = null
+    ): Flow<Resource<com.pyllar.consumer.data.remote.model.MinimalKycResponse>>
 }
 

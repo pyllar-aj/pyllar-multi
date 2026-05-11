@@ -116,6 +116,41 @@ sealed class AppRoutes(val route: String) {
             return "sip_amount_v2/$safeUserId/$safeKycAttemptId/$safeInvestorId/$safeGoalId$queryParam"
         }
     }
+    object LumpsumAmountV2 : AppRoutes("lumpsum_amount_v2/{userId}/{kycAttemptId}/{investorId}/{goalId}?isExistingInvestment={isExistingInvestment}") {
+        fun createRoute(
+            userId: String,
+            kycAttemptId: String,
+            investorId: String,
+            goalId: String = "",
+            isExistingInvestment: Boolean = false
+        ): String {
+            val safeUserId = if (userId.isBlank()) "" else userId
+            val safeKycAttemptId = if (kycAttemptId.isBlank()) "" else kycAttemptId
+            val safeInvestorId = if (investorId.isBlank()) "" else investorId
+            val safeGoalId = if (goalId.isBlank()) "" else goalId
+            val queryParam = if (isExistingInvestment) "?isExistingInvestment=true" else ""
+            return "lumpsum_amount_v2/$safeUserId/$safeKycAttemptId/$safeInvestorId/$safeGoalId$queryParam"
+        }
+    }
+    object LumpsumPurchaseAuth : AppRoutes("lumpsum_purchase_auth/{userId}/{kycAttemptId}/{investorId}/{amount}/{paymentUrl}/{paymentId}/{paymentRef}/{goalId}") {
+        fun createRoute(
+            userId: String,
+            kycAttemptId: String,
+            investorId: String,
+            amount: Double,
+            paymentUrl: String,
+            paymentId: Long,
+            paymentRef: Long,
+            goalId: String = ""
+        ): String {
+            val safeUserId = if (userId.isBlank()) "" else userId
+            val safeKycAttemptId = if (kycAttemptId.isBlank()) "" else kycAttemptId
+            val safeInvestorId = if (investorId.isBlank()) "" else investorId
+            val safeGoalId = if (goalId.isBlank()) "" else goalId
+            val encodedUrl = encodeUrl(paymentUrl)
+            return "lumpsum_purchase_auth/$safeUserId/$safeKycAttemptId/$safeInvestorId/$amount/$encodedUrl/$paymentId/$paymentRef/$safeGoalId"
+        }
+    }
     object MandateAuth : AppRoutes("mandate_auth/{userId}/{kycAttemptId}/{investorId}/{amount}/{mandateUrl}/{mandateId}/{mandateRef}") {
         fun createRoute(
             userId: String,

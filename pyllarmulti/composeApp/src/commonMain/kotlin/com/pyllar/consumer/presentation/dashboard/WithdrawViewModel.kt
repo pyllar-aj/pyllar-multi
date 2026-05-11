@@ -16,16 +16,28 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.encodeToString
 
+@Serializable
 data class WithdrawInitParams(
     val amount: Double,
-    val investmentInProgress: Double,
+    val investmentInProgress: Double = 0.0,
     val isin: String,
     val folio: String?,
-    val schemeName: String?,
+    val bankAccountNumber: String = "",
+    val bankAccountIfscCode: String = "",
+    val schemeName: String? = null,
+    val canWithdraw: Boolean? = true,
     val redemptionInProgress: Double = 0.0,
-    val redeemableAmount: Double = 0.0
+    val redeemableAmount: Double = 0.0,
+    val instantRedemptionValue: Double? = null
 )
+
+enum class WithdrawMode {
+    REGULAR, INSTANT
+}
 
 data class WithdrawState(
     val currentBalance: Double = 0.0,
@@ -34,6 +46,10 @@ data class WithdrawState(
     val availableToWithdraw: Double = 0.0,
     val schemes: List<WithdrawScheme> = emptyList(),
     val selectedSchemeId: String? = null,
+    val selectedWithdrawMode: WithdrawMode = WithdrawMode.REGULAR,
+    val isInstantAvailable: Boolean = false,
+    val instantRedemptionValue: Double? = null,
+    val errorMessage: String? = null,
     val isLoading: Boolean = true
 )
 
@@ -55,18 +71,35 @@ object WithdrawParamsManager {
     fun set(p: WithdrawInitParams) { params = p }
     fun get(): WithdrawInitParams? = params
     fun clear() { params = null }
+
+    fun toJson(params: WithdrawInitParams): String {
+        return try {
+            Json.encodeToString(params)
+        } catch (e: Exception) {
+            ""
+        }
+    }
+
+    fun fromJson(json: String?): WithdrawInitParams? {
+        if (json.isNullOrBlank()) return null
+        return try {
+            Json.decodeFromString<WithdrawInitParams>(json)
+        } catch (e: Exception) {
+            null
+        }
+    }
 }
 
 object WithdrawSchemeManager {
     private var scheme: WithdrawScheme? = null
-    private var mode: String = "NORMAL"
+    private var mode: String? = null
     fun set(s: WithdrawScheme) { scheme = s }
     fun get(): WithdrawScheme? = scheme
-    fun setMode(m: String) { mode = m }
-    fun getMode(): String = mode
+    fun setMode(m: String?) { mode = m }
+    fun getMode(): String? = mode
     fun clear() { 
         scheme = null 
-        mode = "NORMAL"
+        mode = null
     }
 }
 
@@ -77,7 +110,7 @@ class WithdrawViewModel(
     private val _withdrawState = MutableStateFlow(WithdrawState())
     val withdrawState: StateFlow<WithdrawState> = _withdrawState.asStateFlow()
 
-    fun loadWithdrawData(userId: String) {
+    fun loadWithdrawData(userId: String, selectedGoal: InvestmentGoal? = null) {
         viewModelScope.launch {
             platformLog("Loading withdraw data for userId: $userId")
             _withdrawState.value = _withdrawState.value.copy(isLoading = true)
@@ -90,7 +123,7 @@ class WithdrawViewModel(
                             if (response != null) {
                                 val transactions = fetchAllTransactions(userId, response.currentInvestments.orEmpty())
                                 val withdrawalInProgress = 0.0
-                                val state = mapResponseToWithdrawState(response, transactions)
+                                val state = mapResponseToWithdrawState(response, transactions, selectedGoal)
                                 val adjustedAvailableToWithdraw = (state.availableToWithdraw - withdrawalInProgress)
                                     .let { if (it > 0) it else 0.0 }
                                 
@@ -105,14 +138,17 @@ class WithdrawViewModel(
                         }
                         is Resource.Error -> {
                             platformLog("Error loading withdraw data: ${result.message}")
-                            _withdrawState.value = _withdrawState.value.copy(isLoading = false)
+                            _withdrawState.value = _withdrawState.value.copy(
+                                isLoading = false,
+                                errorMessage = result.message ?: "Error loading data"
+                            )
                         }
                         is Resource.Loading -> { }
                     }
                 }
             } catch (e: Exception) {
                 platformLog("Exception loading withdraw data: ${e.message}")
-                _withdrawState.value = _withdrawState.value.copy(isLoading = false)
+                _withdrawState.value = _withdrawState.value.copy(isLoading = false, errorMessage = e.message)
             }
         }
     }
@@ -146,7 +182,9 @@ class WithdrawViewModel(
                         )
                     ),
                     isLoading = false,
-                    selectedSchemeId = "default"
+                    selectedSchemeId = "default",
+                    isInstantAvailable = (params?.instantRedemptionValue ?: 0.0) > 0.0,
+                    instantRedemptionValue = params?.instantRedemptionValue
                 )
 
                 _withdrawState.value = state
@@ -161,6 +199,14 @@ class WithdrawViewModel(
         _withdrawState.value = _withdrawState.value.copy(
             selectedSchemeId = schemeId
         )
+    }
+
+    fun selectWithdrawMode(mode: WithdrawMode) {
+        _withdrawState.value = _withdrawState.value.copy(selectedWithdrawMode = mode)
+    }
+
+    fun clearErrorMessage() {
+        _withdrawState.value = _withdrawState.value.copy(errorMessage = null)
     }
 
     private suspend fun fetchAllTransactions(
@@ -259,7 +305,8 @@ class WithdrawViewModel(
 
     private fun mapResponseToWithdrawState(
         response: InvestorDashboardResponseV2Dto,
-        transactions: List<RecentTransactionDto>
+        transactions: List<RecentTransactionDto>,
+        selectedGoal: InvestmentGoal? = null
     ): WithdrawState {
         val investments = response.currentInvestments.orEmpty()
 
@@ -337,12 +384,30 @@ class WithdrawViewModel(
             }
         }.filter { it.investedAmount > 0 || it.currentValue > 0 }
 
+        val filteredSchemes = if (selectedGoal != null) {
+            schemes.filter { scheme ->
+                scheme.schemeName == selectedGoal.name ||
+                        scheme.folioNo == selectedGoal.folioNo
+            }
+        } else {
+            schemes
+        }
+
+        val instantRedemptionValue = if (selectedGoal != null) {
+            selectedGoal.instantRedemptionValue ?: 0.0
+        } else {
+            investments.sumOf { it.instantRedemptionValue ?: 0.0 }
+        }
+        val isInstantAvailable = instantRedemptionValue > 0.0
+
         return WithdrawState(
-            currentBalance = totalValue,
-            investmentInProgress = investmentInProgress,
+            currentBalance = if (selectedGoal != null) selectedGoal.currentValue else totalValue,
+            investmentInProgress = if (selectedGoal != null) 0.0 else investmentInProgress,
             withdrawalInProgress = withdrawalInProgress,
-            availableToWithdraw = availableToWithdraw,
-            schemes = schemes,
+            availableToWithdraw = if (selectedGoal != null) (selectedGoal.redeemableAmount - selectedGoal.redemptionInProgress).coerceAtLeast(0.0) else availableToWithdraw,
+            schemes = filteredSchemes,
+            isInstantAvailable = isInstantAvailable,
+            instantRedemptionValue = instantRedemptionValue,
             isLoading = false
         )
     }

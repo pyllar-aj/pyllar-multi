@@ -4,6 +4,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import pyllar.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.DrawableResource
+import kotlin.math.pow
+
 
 fun formatGoalName(name: String): String {
     return name.replace("_", " ").split(" ").joinToString(" ") { word ->
@@ -131,6 +133,17 @@ fun getGoalIconDrawable(category: String?): DrawableResource? {
         "SAVINGS" -> Res.drawable.savings_icon
         "SAVINGS_PLUS" -> Res.drawable.savings_plus
         else -> null
+    }
+}
+
+fun getFundLogo(fundName: String?): DrawableResource {
+    val name = fundName?.lowercase() ?: return Res.drawable.axis_lo
+    return when {
+        name.contains("axis") -> Res.drawable.axis_lo
+        name.contains("aditya") -> Res.drawable.aditya
+        name.contains("invesco") -> Res.drawable.invesco
+        name.contains("nippon") -> Res.drawable.nippon
+        else -> Res.drawable.axis_lo
     }
 }
 
@@ -271,3 +284,92 @@ fun formatNextSipDate(dateString: String?): String? {
     }
 }
 
+
+enum class GoalType {
+    GOLD,
+    SILVER,
+    SAVINGS,
+    SAVINGS_PLUS,
+    FESTIVAL_SPENDS,
+    VACATION,
+    CHILDRENS_EDUCATION,
+    GLOBAL_EXPOSURE,
+    ALL_IN_ONE,
+    OTHER
+}
+
+fun identifyGoalType(category: String?, schemeName: String?): GoalType {
+    val cat = category?.uppercase() ?: ""
+    val name = schemeName?.uppercase() ?: ""
+    
+    return when {
+        cat == "GOLD" || name.contains("GOLD") -> GoalType.GOLD
+        cat == "SILVER" || name.contains("SILVER") -> GoalType.SILVER
+        cat == "SAVINGS_PLUS" -> GoalType.SAVINGS_PLUS
+        cat == "SAVINGS" -> GoalType.SAVINGS
+        cat == "FESTIVAL_SPENDS" -> GoalType.FESTIVAL_SPENDS
+        cat == "VACATION" -> GoalType.VACATION
+        cat == "CHILDRENS_EDUCATION" -> GoalType.CHILDRENS_EDUCATION
+        cat == "GLOBAL_EXPOSURE" -> GoalType.GLOBAL_EXPOSURE
+        cat == "ALL_IN_ONE" -> GoalType.ALL_IN_ONE
+        else -> GoalType.OTHER
+    }
+}
+
+fun getAnnualisedReturnPercent(goalType: GoalType, years: Int = 3): Double {
+    return when (goalType) {
+        GoalType.GOLD -> when (years) {
+            1 -> 75.4
+            3 -> 34.2
+            5 -> 22.1
+            7 -> 21.5
+            else -> 21.5
+        }
+        GoalType.SILVER -> when (years) {
+            1 -> 158.2
+            3 -> 43.5
+            5 -> 34.1
+            7 -> 29.5
+            else -> 29.5
+        }
+        GoalType.SAVINGS, GoalType.SAVINGS_PLUS -> 7.5
+        GoalType.FESTIVAL_SPENDS -> 12.5
+        GoalType.GLOBAL_EXPOSURE -> 23.0
+        GoalType.ALL_IN_ONE -> 17.5
+        else -> 12.0
+    }
+}
+
+fun calculateProjectedValue(dailyAmount: Double, years: Int, goalType: GoalType): Double {
+    val days = years * 365
+    val annualRate = getAnnualisedReturnPercent(goalType, years) / 100.0
+    val dailyRate = (1.0 + annualRate).pow(1.0 / 365.0) - 1.0
+    
+    return if (dailyRate > 0) {
+        dailyAmount * ((((1.0 + dailyRate).pow(days.toDouble()) - 1.0) / dailyRate) * (1.0 + dailyRate))
+    } else {
+        dailyAmount * days
+    }
+}
+
+fun formatRupeesShort(amount: Double): String {
+    return when {
+        amount >= 10_000_000 -> {
+            val crores = amount / 10_000_000
+            "${formatDecimal(crores, 2)}Cr"
+        }
+        amount >= 100_000 -> {
+            val lakhs = amount / 100_000
+            "${formatDecimal(lakhs, 2)}L"
+        }
+        else -> {
+            "₹${amount.toInt()}"
+        }
+    }
+}
+
+fun formatDecimal(value: Double, decimals: Int): String {
+    val factor = 10.0.pow(decimals)
+    val rounded = (value * factor).toLong() / factor
+    return rounded.toString()
+}

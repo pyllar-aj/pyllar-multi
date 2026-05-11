@@ -39,7 +39,7 @@ sealed class Screen {
     data class NomineeDetails(val userId: String, val kycAttemptId: String, val investorId: String) : Screen()
     data class Signature(val userId: String, val kycAttemptId: String, val investorId: String) : Screen()
     data class BankDetails(val userId: String, val kycAttemptId: String) : Screen()
-    data class KycInformation(val userId: String, val reUrl: String? = null, val kycAttemptId: String? = null) : Screen()
+    data class KycInformation(val userId: String, val reUrl: String? = null, val kycAttemptId: String? = null, val errorMessage: String? = null) : Screen()
     data class EsignInformation(val userId: String) : Screen()
     data class MinDetails(
         val userId: String,
@@ -73,6 +73,17 @@ sealed class Screen {
     ) : Screen()
     data class FundDetails(val isin: String, val userId: String, val goalId: String, val sipAmount: Double, val kycAttemptId: String = "", val investorId: String = "", val fromSipAmount: Boolean = false) : Screen()
     data class SipAmountV2(val userId: String, val kycAttemptId: String, val investorId: String, val goalId: String, val fromDashboard: Boolean = false, val isExistingInvestment: Boolean = false) : Screen()
+    data class LumpsumAmountV2(val userId: String, val kycAttemptId: String, val investorId: String, val goalId: String, val isExistingInvestment: Boolean = false) : Screen()
+    data class LumpsumPurchaseAuth(
+        val userId: String,
+        val kycAttemptId: String,
+        val investorId: String,
+        val amount: Double,
+        val paymentUrl: String,
+        val paymentId: Long,
+        val paymentRef: Long,
+        val goalId: String = ""
+    ) : Screen()
     data class MandateAuth(
         val userId: String,
         val kycAttemptId: String,
@@ -100,15 +111,74 @@ sealed class Screen {
 @Composable
 fun App() {
     val sessionStore: com.pyllar.consumer.domain.storage.SessionStore = koinInject()
+    val authRepository: com.pyllar.consumer.domain.repository.AuthRepository = koinInject()
+    val onboardingRepository: com.pyllar.consumer.domain.repository.OnboardingRepository = koinInject()
     val scope = rememberCoroutineScope()
     PyllarTheme {
-        val screenStack = remember { mutableStateListOf<Screen>(Screen.PhoneVerification) }
-        val currentScreen = screenStack.last()
+        val screenStack = remember { mutableStateListOf<Screen>() }
+        val currentScreen = if (screenStack.isNotEmpty()) screenStack.last() else null
+        var isInitializing by remember { mutableStateOf(true) }
 
         fun navigateTo(screen: Screen, clearStack: Boolean = false) {
             platformLog("AppNav: navigateTo ${screen::class.simpleName} (clearStack=$clearStack)")
             if (clearStack) screenStack.clear()
             screenStack.add(screen)
+            
+            // Persist last screen for resume
+            scope.launch {
+                val action = when (screen) {
+                    is Screen.PreVerification -> ScreenNames.PRE_VERIFICATION
+                    is Screen.PanKyc -> ScreenNames.PAN_KYC
+                    is Screen.AdditionalKyc -> ScreenNames.ADDITIONAL_KYC
+                    is Screen.NomineeDetails -> ScreenNames.NOMINEE_DETAILS
+                    is Screen.Signature -> ScreenNames.SIGNATURE
+                    is Screen.BankDetails -> ScreenNames.BANK_DETAILS
+                    is Screen.KycInformation -> ScreenNames.KYC_INFORMATION
+                    is Screen.EsignInformation -> ScreenNames.ESIGN_INFORMATION
+                    is Screen.InvestmentDashboard -> ScreenNames.INVESTMENT_DASHBOARD
+                    is Screen.InitialDashboard -> ScreenNames.INITIAL_DASHBOARD
+                    is Screen.NameDob -> ScreenNames.NAME_DOB
+                    is Screen.MinDetails -> ScreenNames.MIN_DETAILS
+                    is Screen.CheckPanPopulatedDetails -> ScreenNames.CHECK_PAN_POPULATED_DETAILS
+                    is Screen.UpiAccountLinking -> ScreenNames.MANDATE_AUTH // Fallback
+                    else -> null
+                }
+                if (action != null) {
+                    sessionStore.saveValue(KeyValueConstants.LAST_SCREEN, action)
+                }
+
+                // Proactively persist IDs for resume
+                when (screen) {
+                    is Screen.AdditionalKyc -> sessionStore.saveValue(KeyValueConstants.KYC_ATTEMPT_ID, screen.kycAttemptId)
+                    is Screen.NomineeDetails -> {
+                        sessionStore.saveValue(KeyValueConstants.KYC_ATTEMPT_ID, screen.kycAttemptId)
+                        sessionStore.saveValue(KeyValueConstants.INVESTOR_ID, screen.investorId)
+                    }
+                    is Screen.Signature -> {
+                        sessionStore.saveValue(KeyValueConstants.KYC_ATTEMPT_ID, screen.kycAttemptId)
+                        sessionStore.saveValue(KeyValueConstants.INVESTOR_ID, screen.investorId)
+                    }
+                    is Screen.BankDetails -> sessionStore.saveValue(KeyValueConstants.KYC_ATTEMPT_ID, screen.kycAttemptId)
+                    is Screen.KycInformation -> screen.kycAttemptId?.let { sessionStore.saveValue(KeyValueConstants.KYC_ATTEMPT_ID, it) }
+                    is Screen.SipAmountV2 -> {
+                        sessionStore.saveValue(KeyValueConstants.KYC_ATTEMPT_ID, screen.kycAttemptId)
+                        sessionStore.saveValue(KeyValueConstants.INVESTOR_ID, screen.investorId)
+                    }
+                    is Screen.MandateAuth -> {
+                        sessionStore.saveValue(KeyValueConstants.KYC_ATTEMPT_ID, screen.kycAttemptId)
+                        sessionStore.saveValue(KeyValueConstants.INVESTOR_ID, screen.investorId)
+                    }
+                    is Screen.LumpsumAmountV2 -> {
+                        sessionStore.saveValue(KeyValueConstants.KYC_ATTEMPT_ID, screen.kycAttemptId)
+                        sessionStore.saveValue(KeyValueConstants.INVESTOR_ID, screen.investorId)
+                    }
+                    is Screen.LumpsumPurchaseAuth -> {
+                        sessionStore.saveValue(KeyValueConstants.KYC_ATTEMPT_ID, screen.kycAttemptId)
+                        sessionStore.saveValue(KeyValueConstants.INVESTOR_ID, screen.investorId)
+                    }
+                    else -> {}
+                }
+            }
         }
 
         fun navigateBack() {
@@ -120,13 +190,42 @@ fun App() {
             }
         }
 
-        LaunchedEffect(currentScreen) {
-            platformLog("App: currentScreen changed to ${currentScreen::class.simpleName} - $currentScreen")
+        LaunchedEffect(Unit) {
+            val isLoggedIn = sessionStore.isLoggedIn()
+            platformLog("App: Initializing. isLoggedIn=$isLoggedIn")
+            if (isLoggedIn) {
+                val userId = sessionStore.getCurrentUserId()
+                val lastScreen = sessionStore.getValue(KeyValueConstants.LAST_SCREEN)
+                platformLog("App: Resuming. userId=$userId, lastScreen=$lastScreen")
+                if (lastScreen != null && lastScreen != ScreenNames.HOME) {
+                    handleNavigation(lastScreen, userId, sessionStore = sessionStore) { 
+                        navigateTo(it, clearStack = true)
+                        isInitializing = false
+                    }
+                } else {
+                    // Default to PreVerification if no last screen saved
+                    navigateTo(Screen.PreVerification(userId), clearStack = true)
+                    isInitializing = false
+                }
+            } else {
+                navigateTo(Screen.PhoneVerification, clearStack = true)
+                isInitializing = false
+            }
         }
 
-        platformLog("App: Rendering screen: ${currentScreen::class.simpleName} (Stack size: ${screenStack.size})")
+        if (isInitializing) {
+            com.pyllar.consumer.presentation.components.LoadingScreen(text = "Initializing...")
+            return@PyllarTheme
+        }
+
+        LaunchedEffect(currentScreen) {
+            platformLog("App: currentScreen changed to ${currentScreen?.let { it::class.simpleName } ?: "null"} - $currentScreen")
+        }
+
+        platformLog("App: Rendering screen: ${currentScreen?.let { it::class.simpleName } ?: "null"} (Stack size: ${screenStack.size})")
         
         when (val screen = currentScreen) {
+            null -> { /* Handled by isInitializing */ }
             is Screen.PhoneVerification -> {
                 val phoneVm: PhoneVerificationViewModel = koinInject()
                 PhoneVerificationScreen(
@@ -166,7 +265,9 @@ fun App() {
                     isNewUser = screen.isNewUser,
                     viewModel = permVm,
                     onNavigateNext = { nextScreen ->
-                        handleNavigation(nextScreen, screen.userId, null) { navigateTo(it) }
+                        scope.launch {
+                            handleNavigation(nextScreen, screen.userId, sessionStore = sessionStore) { navigateTo(it) }
+                        }
                     }
                 )
             }
@@ -190,7 +291,9 @@ fun App() {
                     onNavigateNext = { /* handled via screen result */ },
                     onNavigateBack = { navigateBack() },
                     onNavigateToScreen = { nextScreen ->
-                        handleNavigation(nextScreen, screen.userId, null) { navigateTo(it) }
+                        scope.launch {
+                            handleNavigation(nextScreen, screen.userId, sessionStore = sessionStore) { navigateTo(it) }
+                        }
                     },
                     onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId, showKycHelp = true)) },
                     onNavigateToKycInfo = { navigateTo(Screen.HelpSupport(screen.userId, showKycHelp = true)) }
@@ -201,7 +304,9 @@ fun App() {
                     kycAttemptId = screen.kycAttemptId,
                     token = "", // Token retrieved from session in VM
                     onNext = { nextScreen, attemptId ->
-                        handleNavigation(nextScreen, screen.userId, attemptId, null) { navigateTo(it) }
+                        scope.launch {
+                            handleNavigation(nextScreen, screen.userId, attemptId, sessionStore = sessionStore) { navigateTo(it) }
+                        }
                     },
                     onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId, showKycHelp = true)) }
                 )
@@ -209,7 +314,9 @@ fun App() {
             is Screen.NomineeDetails -> {
                 NomineeDetailsScreen(
                     onNext = { nextScreen ->
-                        handleNavigation(nextScreen ?: "", screen.userId, screen.kycAttemptId, screen.investorId) { navigateTo(it) }
+                        scope.launch {
+                            handleNavigation(nextScreen ?: "", screen.userId, screen.kycAttemptId, screen.investorId, sessionStore = sessionStore) { navigateTo(it) }
+                        }
                     },
                     userId = screen.userId,
                     kycAttemptId = screen.kycAttemptId,
@@ -223,7 +330,9 @@ fun App() {
                     kycAttemptId = screen.kycAttemptId,
                     investorId = screen.investorId,
                     onSignatureCompleted = { nextScreen, redirectUrl ->
-                        handleNavigation(nextScreen, screen.userId, screen.kycAttemptId, screen.investorId, reUrl = redirectUrl) { navigateTo(it) }
+                        scope.launch {
+                            handleNavigation(nextScreen, screen.userId, screen.kycAttemptId, screen.investorId, reUrl = redirectUrl, sessionStore = sessionStore) { navigateTo(it) }
+                        }
                     },
                     onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId, showKycHelp = true)) }
                 )
@@ -233,23 +342,73 @@ fun App() {
                     userId = screen.userId,
                     kycAttemptId = screen.kycAttemptId,
                     onNext = { nextScreen, investorId ->
-                        handleNavigation(
-                            action = nextScreen ?: "",
-                            userId = screen.userId,
-                            kycAttemptId = screen.kycAttemptId,
-                            investorId = investorId
-                        ) { navigateTo(it) }
+                        scope.launch {
+                            handleNavigation(
+                                action = nextScreen ?: "",
+                                userId = screen.userId,
+                                kycAttemptId = screen.kycAttemptId,
+                                investorId = investorId,
+                                sessionStore = sessionStore
+                            ) { navigateTo(it) }
+                        }
                     },
                     onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId, showBankHelp = true)) }
                 )
             }
             is Screen.KycInformation -> {
+                var isDigiLinkLoading by remember { mutableStateOf(false) }
+                var currentErrorMessage by remember { mutableStateOf(screen.errorMessage) }
+
+                LaunchedEffect(screen.errorMessage) {
+                    currentErrorMessage = screen.errorMessage
+                }
+
                 KycInformationScreen(
+                    errorMessage = currentErrorMessage,
                     onProceed = {
-                        if (!screen.reUrl.isNullOrBlank()) {
+                        if (!screen.reUrl.isNullOrBlank() && currentErrorMessage == null) {
                             navigateTo(Screen.KycWebView(screen.userId, screen.reUrl, screen.kycAttemptId))
                         } else {
-                            handleNavigation(ScreenNames.MIN_DETAILS, screen.userId, screen.kycAttemptId) { navigateTo(it) }
+                            // Retry or fresh DigiLink fetch
+                            scope.launch {
+                                isDigiLinkLoading = true
+                                currentErrorMessage = null
+                                
+                                val name = sessionStore.getValue(com.pyllar.consumer.data.local.KeyValueConstants.FULL_NAME) ?: ""
+                                val email = sessionStore.getCurrentEmail()
+                                val phone = sessionStore.getCurrentPhone()
+                                val dob = sessionStore.getValue(com.pyllar.consumer.data.local.KeyValueConstants.DOB) ?: ""
+                                
+                                platformLog("App: Retrying DigiLink for user ${screen.userId} with name=$name, dob=$dob")
+                                authRepository.getDigiLink(
+                                    userId = screen.userId,
+                                    name = name,
+                                    emailAddress = email,
+                                    dateOfBirth = dob,
+                                    mobileCountryCode = "+91",
+                                    mobileNumber = phone.filter { it.isDigit() }.takeLast(10)
+                                ).collect { result ->
+                                    when (result) {
+                                        is Resource.Success -> {
+                                            isDigiLinkLoading = false
+                                            val newReUrl = result.data?.reUrl
+                                            val newAttemptId = result.data?.kycAttemptId
+                                            if (!newReUrl.isNullOrBlank()) {
+                                                navigateTo(Screen.KycWebView(screen.userId, newReUrl, newAttemptId))
+                                            } else {
+                                                currentErrorMessage = "Failed to get DigiLocker URL. Please try again."
+                                            }
+                                        }
+                                        is Resource.Error -> {
+                                            isDigiLinkLoading = false
+                                            currentErrorMessage = result.message ?: "Failed to initiate DigiLocker. Please try again."
+                                        }
+                                        is Resource.Loading -> {
+                                            isDigiLinkLoading = true
+                                        }
+                                    }
+                                }
+                            }
                         }
                     },
                     onOpenWebSignIn = {
@@ -259,6 +418,10 @@ fun App() {
                     },
                     onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId, showKycHelp = true)) }
                 )
+                
+                if (isDigiLinkLoading) {
+                    com.pyllar.consumer.presentation.components.LoadingScreen(text = "Initiating DigiLocker...")
+                }
             }
             is Screen.KycWebView -> {
                 KycWebViewScreen(
@@ -272,7 +435,16 @@ fun App() {
                                 navigateTo(Screen.AdditionalKyc(screen.userId, kycAttemptId ?: ""))
                             }
                         } else {
-                            // Match Android logic: Go back to KYC Information to retry
+                            // Match Android logic: Go back to KYC Information to retry with an error message
+                            if (screenStack.size > 1) {
+                                val prevIndex = screenStack.size - 2
+                                val prevScreen = screenStack[prevIndex]
+                                if (prevScreen is Screen.KycInformation) {
+                                    // Always show the specific Aadhaar sharing error message as requested
+                                    val aadhaarShareError = "KYC verification failed. Please ensure you allow sharing your Aadhaar details with Fintech Primitives during the DigiLocker verification process. You can try again by clicking the button below."
+                                    screenStack[prevIndex] = prevScreen.copy(errorMessage = aadhaarShareError)
+                                }
+                            }
                             navigateBack()
                         }
                     },
@@ -307,7 +479,7 @@ fun App() {
                             if (!kycAttemptId.isNullOrBlank()) {
                                 sessionStore.saveValue(com.pyllar.consumer.data.local.KeyValueConstants.KYC_ATTEMPT_ID, kycAttemptId)
                             }
-                            handleNavigation(nextScreen, screen.userId, kycAttemptId, null, null) { navigateTo(it) }
+                            handleNavigation(nextScreen, screen.userId, kycAttemptId, null, null, sessionStore = sessionStore) { navigateTo(it) }
                         }
                     },
                     viewModel = minVm,
@@ -321,7 +493,7 @@ fun App() {
             is Screen.NameDob -> {
                 val nameVm: NameDobViewModel = koinInject()
                 NameDobScreen(
-                    onKycSubmitted = { _, _, navInfo, data ->
+                    onKycSubmitted = { name, dob, navInfo, data ->
                         val reUrl = navInfo?.getParam("reUrl") ?: (data as? com.pyllar.consumer.data.remote.model.MinimalKycResponse)?.reUrl
                         
                         scope.launch {
@@ -334,6 +506,10 @@ fun App() {
                             if (!reUrl.isNullOrBlank()) {
                                 sessionStore.saveValue(com.pyllar.consumer.data.local.KeyValueConstants.RE_URL, reUrl)
                             }
+                            
+                            // Save name and dob for potential DigiLink retry
+                            sessionStore.saveValue(com.pyllar.consumer.data.local.KeyValueConstants.FULL_NAME, name)
+                            sessionStore.saveValue(com.pyllar.consumer.data.local.KeyValueConstants.DOB, dob)
 
                             val nextAction = if (!reUrl.isNullOrBlank()) {
                                 ScreenNames.KYC_INFORMATION
@@ -344,7 +520,8 @@ fun App() {
                             handleNavigation(
                                 action = nextAction,
                                 userId = screen.userId,
-                                reUrl = reUrl
+                                reUrl = reUrl,
+                                sessionStore = sessionStore
                             ) { navigateTo(it) }
                         }
                     },
@@ -360,7 +537,9 @@ fun App() {
                 CheckPanPopulatedDetailsScreen(
                     onSubmit = { name, gender, dob, father, marital, perm, corr ->
                         checkVm.submitDetails(screen.userId, screen.preVerificationId, name, gender, dob, father, marital, perm, corr)
-                        handleNavigation(ScreenNames.INITIAL_DASHBOARD, screen.userId, null, null, screen.preVerificationId) { navigateTo(it) }
+                        scope.launch {
+                            handleNavigation(ScreenNames.INITIAL_DASHBOARD, screen.userId, null, null, screen.preVerificationId, sessionStore = sessionStore) { navigateTo(it) }
+                        }
                     }
                 )
             }
@@ -369,7 +548,9 @@ fun App() {
                     userId = screen.userId,
                     onNavigateToOnboarding = { _, _ -> /* Fallback */ },
                     onNavigateToRoute = { nextScreen, preVerificationId ->
-                        handleNavigation(nextScreen, screen.userId, null, null, preVerificationId) { navigateTo(it) }
+                        scope.launch {
+                            handleNavigation(nextScreen, screen.userId, null, null, preVerificationId, sessionStore = sessionStore) { navigateTo(it) }
+                        }
                     }
                 )
             }
@@ -398,7 +579,7 @@ fun App() {
                 )
             }
             is Screen.SchemeDetails -> {
-                SchemeDetailsScreen(
+                SchemeDetailsV2Screen(
                     userId = screen.userId,
                     purpose = screen.purpose,
                     onNavigateBack = { navigateBack() },
@@ -408,6 +589,12 @@ fun App() {
                     },
                     onNavigateToAddFunds = { uid, kycId, invId, gid, isExisting ->
                         navigateTo(Screen.SipAmountV2(uid, kycId, invId, gid, fromDashboard = true, isExistingInvestment = isExisting))
+                    },
+                    onNavigateToLumpsum = { uid, kycId, invId, gid, isExisting ->
+                        navigateTo(Screen.LumpsumAmountV2(uid, kycId, invId, gid, isExistingInvestment = isExisting))
+                    },
+                    onNavigateToFundDetails = { isin, uid, gid, sipAmt, kycId, invId, fromSip ->
+                        navigateTo(Screen.FundDetails(isin, uid, gid, sipAmt, kycAttemptId = kycId, investorId = invId, fromSipAmount = fromSip))
                     }
                 )
             }
@@ -465,6 +652,7 @@ fun App() {
                     sipAmount = screen.sipAmount,
                     kycAttemptId = screen.kycAttemptId,
                     investorId = screen.investorId,
+                    fromSipAmount = screen.fromSipAmount,
                     onBackClick = { navigateBack() },
                     onSipCreated = { amount, nextScreen, mandate ->
                         // Refresh or navigate forward after SIP creation
@@ -480,7 +668,9 @@ fun App() {
                                 goalId = screen.goalId
                             ))
                         } else if (nextScreen != null) {
-                            handleNavigation(nextScreen, screen.userId, screen.kycAttemptId, screen.investorId) { navigateTo(it) }
+                            scope.launch {
+                                handleNavigation(nextScreen, screen.userId, screen.kycAttemptId, screen.investorId, sessionStore = sessionStore) { navigateTo(it) }
+                            }
                         } else {
                             navigateTo(Screen.InvestmentDashboard(screen.userId), clearStack = true)
                         }
@@ -513,6 +703,49 @@ fun App() {
                     }
                 )
             }
+            is Screen.LumpsumAmountV2 -> {
+                LumpsumAmountScreenV2(
+                    userId = screen.userId,
+                    kycAttemptId = screen.kycAttemptId,
+                    investorId = screen.investorId,
+                    goalId = screen.goalId,
+                    isExistingInvestment = screen.isExistingInvestment,
+                    onLumpsumCreated = { amount, nextScreen, mandate ->
+                        if (mandate != null) {
+                            navigateTo(Screen.LumpsumPurchaseAuth(
+                                userId = screen.userId,
+                                kycAttemptId = screen.kycAttemptId,
+                                investorId = screen.investorId,
+                                amount = amount,
+                                paymentUrl = mandate.uri ?: "",
+                                paymentId = mandate.mandateId ?: 0L,
+                                paymentRef = mandate.finMandateId ?: 0L,
+                                goalId = screen.goalId
+                            ))
+                        } else {
+                            navigateTo(Screen.InvestmentDashboard(screen.userId), clearStack = true)
+                        }
+                    },
+                    onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId)) },
+                    onNavigateToFundDetails = { userId, goalId, amt, kycId, invId ->
+                         navigateTo(Screen.FundDetails("", userId, goalId, amt, kycAttemptId = kycId, investorId = invId, fromSipAmount = true))
+                    }
+                )
+            }
+            is Screen.LumpsumPurchaseAuth -> {
+                LumpsumPurchaseAuthScreen(
+                    userId = screen.userId,
+                    kycAttemptId = screen.kycAttemptId,
+                    investorId = screen.investorId,
+                    amount = screen.amount,
+                    paymentUrl = screen.paymentUrl,
+                    paymentId = screen.paymentId,
+                    paymentRef = screen.paymentRef,
+                    goalId = screen.goalId,
+                    onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId)) },
+                    onGoToHome = { navigateTo(Screen.InvestmentDashboard(screen.userId), clearStack = true) }
+                )
+            }
             is Screen.MandateAuth -> {
                 MandateAuthScreen(
                     userId = screen.userId,
@@ -530,7 +763,13 @@ fun App() {
             is Screen.Profile -> {
                 ProfileScreen(
                     userId = screen.userId,
-                    onLogout = { navigateTo(Screen.PhoneVerification, clearStack = true) },
+                    onLogout = { 
+                        scope.launch {
+                            sessionStore.saveValue(KeyValueConstants.LAST_SCREEN, "") // Clear last screen on logout
+                            sessionStore.logout()
+                            navigateTo(Screen.PhoneVerification, clearStack = true) 
+                        }
+                    },
                     onDeleteAccount = { navigateTo(Screen.AccountDeletion(screen.userId)) },
                     onHelpSupport = { navigateTo(Screen.HelpSupport(screen.userId)) },
                     onBack = { navigateBack() }
@@ -567,41 +806,49 @@ fun App() {
     }
 }
 
-private fun handleNavigation(
+private suspend fun handleNavigation(
     action: String?,
     userId: String,
     kycAttemptId: String? = null,
     investorId: String? = null,
     preVerificationId: String? = null,
     reUrl: String? = null,
+    sessionStore: com.pyllar.consumer.domain.storage.SessionStore,
     onNavigate: (Screen) -> Unit
 ) {
     platformLog("AppNav: handleNavigation: action='$action', userId='$userId'")
     com.pyllar.consumer.util.Log.d("AppNav", "handleNavigation: action=$action, userId=$userId")
+    
+    // Fetch missing values from session if not provided
+    val effectiveKycId = kycAttemptId ?: sessionStore.getValue(KeyValueConstants.KYC_ATTEMPT_ID)
+    val effectiveInvestorId = investorId ?: sessionStore.getValue(KeyValueConstants.INVESTOR_ID)
+    val effectiveReUrl = reUrl ?: sessionStore.getValue(KeyValueConstants.RE_URL)
+    val effectivePreVerificationId = preVerificationId ?: sessionStore.getValue("pre_verification_id")
+
     when (action) {
         ScreenNames.PRE_VERIFICATION -> {
             platformLog("AppNav: Matched PRE_VERIFICATION")
             onNavigate(Screen.PreVerification(userId))
         }
         ScreenNames.ADDITIONAL_KYC -> {
-            platformLog("AppNav: Matched ADDITIONAL_KYC with kycAttemptId: $kycAttemptId")
-            onNavigate(Screen.AdditionalKyc(userId, kycAttemptId ?: ""))
+            platformLog("AppNav: Matched ADDITIONAL_KYC with kycAttemptId: $effectiveKycId")
+            onNavigate(Screen.AdditionalKyc(userId, effectiveKycId ?: ""))
         }
         ScreenNames.NOMINEE_DETAILS -> {
             platformLog("AppNav: Matched NOMINEE_DETAILS")
-            onNavigate(Screen.NomineeDetails(userId, kycAttemptId ?: "", investorId ?: ""))
+            onNavigate(Screen.NomineeDetails(userId, effectiveKycId ?: "", effectiveInvestorId ?: ""))
         }
         ScreenNames.SIGNATURE -> {
             platformLog("AppNav: Matched SIGNATURE")
-            onNavigate(Screen.Signature(userId, kycAttemptId ?: "", investorId ?: ""))
+            onNavigate(Screen.Signature(userId, effectiveKycId ?: "", effectiveInvestorId ?: ""))
         }
         ScreenNames.BANK_DETAILS -> {
             platformLog("AppNav: Matched BANK_DETAILS")
-            onNavigate(Screen.BankDetails(userId, kycAttemptId ?: ""))
+            onNavigate(Screen.BankDetails(userId, effectiveKycId ?: ""))
         }
         ScreenNames.KYC_INFORMATION -> {
-            platformLog("AppNav: Matched KYC_INFORMATION with reUrl: ${reUrl != null}")
-            onNavigate(Screen.KycInformation(userId, reUrl, kycAttemptId))
+            platformLog("AppNav: Matched KYC_INFORMATION with reUrl: ${effectiveReUrl != null}")
+            onNavigate(Screen.KycInformation(userId, effectiveReUrl, effectiveKycId))
         }
         ScreenNames.ESIGN_INFORMATION -> {
             platformLog("AppNav: Matched ESIGN_INFORMATION")
@@ -609,23 +856,23 @@ private fun handleNavigation(
         }
         ScreenNames.WEB_VIEW -> {
             platformLog("AppNav: Matched WEB_VIEW")
-            if (!reUrl.isNullOrBlank()) {
-                onNavigate(Screen.KycWebView(userId, reUrl, kycAttemptId))
+            if (!effectiveReUrl.isNullOrBlank()) {
+                onNavigate(Screen.KycWebView(userId, effectiveReUrl, effectiveKycId))
             } else {
-                onNavigate(Screen.PreVerification(userId))
+                onNavigate(Screen.KycInformation(userId, null, effectiveKycId))
             }
         }
         ScreenNames.WEB_VIEW_ESIGN -> {
             platformLog("AppNav: Matched WEB_VIEW_ESIGN")
-            if (!reUrl.isNullOrBlank()) {
-                onNavigate(Screen.EsignWebView(userId, reUrl, kycAttemptId))
+            if (!effectiveReUrl.isNullOrBlank()) {
+                onNavigate(Screen.EsignWebView(userId, effectiveReUrl, effectiveKycId))
             } else {
                 onNavigate(Screen.PreVerification(userId))
             }
         }
         ScreenNames.PAN_KYC -> {
             platformLog("AppNav: Matched PAN_KYC")
-            onNavigate(Screen.PanKyc(userId, preVerificationId))
+            onNavigate(Screen.PanKyc(userId, effectivePreVerificationId))
         }
         ScreenNames.MIN_DETAILS -> {
             platformLog("AppNav: Matched MIN_DETAILS")
@@ -637,7 +884,7 @@ private fun handleNavigation(
         }
         ScreenNames.CHECK_PAN_POPULATED_DETAILS -> {
             platformLog("AppNav: Matched CHECK_PAN_POPULATED_DETAILS")
-            onNavigate(Screen.CheckPanPopulatedDetails(userId, preVerificationId))
+            onNavigate(Screen.CheckPanPopulatedDetails(userId, effectivePreVerificationId))
         }
         ScreenNames.INITIAL_DASHBOARD -> {
             platformLog("AppNav: Matched INITIAL_DASHBOARD")
@@ -645,11 +892,11 @@ private fun handleNavigation(
         }
         ScreenNames.SIP_AMOUNT_V2 -> {
             platformLog("AppNav: Matched SIP_AMOUNT_V2 - setting fromDashboard=true")
-            onNavigate(Screen.SipAmountV2(userId, "", "", "", true))
+            onNavigate(Screen.SipAmountV2(userId, effectiveKycId ?: "", effectiveInvestorId ?: "", "", true))
         }
         ScreenNames.MANDATE_AUTH -> {
             platformLog("AppNav: Matched MANDATE_AUTH")
-            onNavigate(Screen.MandateAuth(userId, "", "", 0.0, "", 0L, 0L, ""))
+            onNavigate(Screen.MandateAuth(userId, effectiveKycId ?: "", effectiveInvestorId ?: "", 0.0, "", 0L, 0L, ""))
         }
         ScreenNames.DASHBOARD, ScreenNames.INVESTMENT_DASHBOARD -> {
             platformLog("AppNav: Matched DASHBOARD/INVESTMENT_DASHBOARD")

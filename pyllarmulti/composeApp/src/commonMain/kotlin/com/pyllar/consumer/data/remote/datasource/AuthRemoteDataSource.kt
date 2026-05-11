@@ -18,6 +18,7 @@ interface AuthRemoteDataSource {
     suspend fun verifyOtp(request: OtpVerificationRequest): Resource<AuthUserResponseDto>
     suspend fun updateEmail(request: UpdateEmailRequest): Resource<UpdateEmailResponseDto>
     suspend fun uploadSignatureFile(bytes: ByteArray, kycAttemptId: String): Resource<EsignCreateResponseDto>
+    suspend fun getDigiLink(request: com.pyllar.consumer.data.remote.model.DigiLinkRequest): Resource<com.pyllar.consumer.data.remote.model.MinimalKycResponse>
 }
 
 class AuthRemoteDataSourceImpl(
@@ -51,6 +52,10 @@ class AuthRemoteDataSourceImpl(
                 })
             }
         )
+    }
+
+    override suspend fun getDigiLink(request: com.pyllar.consumer.data.remote.model.DigiLinkRequest): Resource<com.pyllar.consumer.data.remote.model.MinimalKycResponse> {
+        return apiClient.post("api/kyc/onboarding/digi-link", request)
     }
 }
 

@@ -30,6 +30,7 @@ import org.koin.compose.koinInject
 @Composable
 fun WithdrawScreen(
     userId: String,
+    selectedGoal: InvestmentGoal? = null,
     onNavigateBack: () -> Unit,
     onProceed: (String?, WithdrawScheme?) -> Unit,
     viewModel: WithdrawViewModel = koinInject()
@@ -51,7 +52,7 @@ fun WithdrawScreen(
                 platformLog("WithdrawScreen: ✅ Loading withdraw data WITH params")
                 viewModel.loadWithdrawDataWithParams(userId, params)
             } else {
-                viewModel.loadWithdrawData(userId)
+                viewModel.loadWithdrawData(userId, selectedGoal)
             }
             
             // Mark initial load as complete
@@ -64,6 +65,22 @@ fun WithdrawScreen(
     }
 
     val state by viewModel.withdrawState.collectAsState()
+    
+    // Error Dialog
+    state.errorMessage?.let { errorMsg ->
+        AlertDialog(
+            onDismissRequest = { viewModel.clearErrorMessage() },
+            title = { Text(if (errorMsg.contains("connect", true) || errorMsg.contains("Internet", true)) "Network Error" else "Error", fontWeight = FontWeight.Bold) },
+            text = { Text(errorMsg) },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.clearErrorMessage()
+                    if (userId.isNotBlank()) viewModel.loadWithdrawData(userId)
+                }) { Text("Retry") }
+            },
+            dismissButton = { TextButton(onClick = { viewModel.clearErrorMessage() }) { Text("OK") } }
+        )
+    }
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
     
@@ -123,7 +140,15 @@ fun WithdrawScreen(
                 ) {
                     item { Spacer(modifier = Modifier.height(16.dp)) }
 
-
+                    // Selected Goal Info Card
+                    if (selectedGoal != null) {
+                        item {
+                            SelectedGoalCard(
+                                goal = selectedGoal,
+                                isLoading = state.isLoading
+                            )
+                        }
+                    }
                     // Balance Summary Card
                     item {
                         BalanceSummaryCard(
@@ -133,6 +158,7 @@ fun WithdrawScreen(
                         )
                     }
 
+                    // Select withdrawal mode header
                     item {
                         Text(
                             text = "Select withdrawal mode",
@@ -140,17 +166,23 @@ fun WithdrawScreen(
                         )
                     }
 
+                    // Instant withdrawal option
+                    if (state.isInstantAvailable) {
+                        item {
+                            InstantWithdrawalCard(
+                                amount = state.instantRedemptionValue ?: 0.0,
+                                isSelected = state.selectedWithdrawMode == WithdrawMode.INSTANT,
+                                onSelect = { viewModel.selectWithdrawMode(WithdrawMode.INSTANT) }
+                            )
+                        }
+                    }
+
                     // Regular withdrawal option
                     item {
                         RegularWithdrawalCard(
                             amount = state.availableToWithdraw,
-                            onClick = {
-                                if (state.selectedSchemeId != null) {
-                                    val selectedScheme = state.schemes.find { it.id == state.selectedSchemeId }
-                                    selectedScheme?.let { WithdrawSchemeManager.set(it) }
-                                    onProceed(state.selectedSchemeId, selectedScheme)
-                                }
-                            }
+                            isSelected = state.selectedWithdrawMode == WithdrawMode.REGULAR,
+                            onSelect = { viewModel.selectWithdrawMode(WithdrawMode.REGULAR) }
                         )
                     }
 
@@ -160,6 +192,7 @@ fun WithdrawScreen(
                             SchemeSelectionItem(
                                 scheme = scheme,
                                 isSelected = state.selectedSchemeId == scheme.id,
+                                selectedWithdrawMode = state.selectedWithdrawMode,
                                 onSelect = { viewModel.selectScheme(scheme.id) }
                             )
                         }
@@ -188,8 +221,12 @@ fun WithdrawScreen(
                     Button(
                         onClick = {
                             val selected = state.schemes.find { it.id == state.selectedSchemeId }
-                            selected?.let { WithdrawSchemeManager.set(it) }
-                            onProceed(state.selectedSchemeId, selected)
+                            selected?.let { 
+                                WithdrawSchemeManager.set(it) 
+                                val modeString = if (state.selectedWithdrawMode == WithdrawMode.INSTANT) "INSTANT" else null
+                                WithdrawSchemeManager.setMode(modeString)
+                                onProceed(modeString, it)
+                            }
                         },
                         enabled = state.selectedSchemeId != null,
                         modifier = Modifier.fillMaxWidth().height(56.dp),
@@ -212,6 +249,51 @@ fun WithdrawScreen(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun SelectedGoalCard(
+    goal: InvestmentGoal,
+    isLoading: Boolean
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = goal.name,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = Color(0xFF2E7D32)
+                    )
+                    Text(
+                        text = goal.schemeName ?: "Scheme",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    )
+                }
+            }
+            
+            if (goal.folioNo != null) {
+                Text(
+                    text = "Folio: ${goal.folioNo}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
             }
         }
     }
@@ -264,32 +346,164 @@ fun BalanceRow(label: String, amount: Double, isHighlighted: Boolean = false) {
 }
 
 @Composable
-fun RegularWithdrawalCard(amount: Double, onClick: () -> Unit) {
+fun InstantWithdrawalCard(
+    amount: Double,
+    isSelected: Boolean,
+    onSelect: () -> Unit
+) {
     Card(
-        modifier = Modifier.fillMaxWidth().clickable(
-            indication = null,
-            interactionSource = remember { MutableInteractionSource() }
-        ) { onClick() },
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
-        shape = RoundedCornerShape(12.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() }
+            ) { onSelect() }
+            .then(
+                if (isSelected) {
+                    Modifier.border(1.5.dp, Color(0xFF4CAF50), RoundedCornerShape(16.dp))
+                } else {
+                    Modifier.border(1.dp, Color(0xFFEEEEEE), RoundedCornerShape(16.dp))
+                }
+            ),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        shape = RoundedCornerShape(16.dp)
     ) {
-        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Surface(color = Color(0xFF4CAF50), shape = CircleShape, modifier = Modifier.size(40.dp)) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text("\u2192", color = Color.White, style = MaterialTheme.typography.titleLarge)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Surface(
+                        color = Color(0xFF2E7D32),
+                        shape = CircleShape,
+                        modifier = Modifier.size(34.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.Bolt, // Using Bolt as fallback for FlashOn
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                    
+                    Column {
+                        Text(
+                            text = "Instant Withdrawal",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "Money in your bank in seconds",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
+                    }
+                }
+                
+                RadioButton(
+                    selected = isSelected,
+                    onClick = onSelect,
+                    colors = RadioButtonDefaults.colors(selectedColor = Color(0xFF4CAF50))
+                )
+            }
+            
+            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color(0xFFF5F5F5))
+            
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "Up to \u20B9${formatIndian(amount)}",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Surface(
+                    color = Color(0xFFE8F5E9),
+                    shape = RoundedCornerShape(100.dp)
+                ) {
+                    Text(
+                        text = "80% of balance",
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                        color = Color(0xFF2E7D32),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
                 }
             }
-            Column {
-                Text("Regular Withdrawal", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold))
-                Text("Takes up to 2 business days", style = MaterialTheme.typography.bodySmall, modifier = Modifier.alpha(0.7f))
-                Text("\u20B9${formatIndian(amount)}", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), color = Color(0xFF2E7D32))
-            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Text(
+                text = "Up to 80% can be withdrawn instantly. Transfers may take up to 30 minutes.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            )
         }
     }
 }
 
 @Composable
-fun SchemeSelectionItem(scheme: WithdrawScheme, isSelected: Boolean, onSelect: () -> Unit) {
+fun RegularWithdrawalCard(amount: Double, isSelected: Boolean, onSelect: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth().clickable(
+            indication = null,
+            interactionSource = remember { MutableInteractionSource() }
+        ) { onSelect() }
+        .then(
+            if (isSelected) {
+                Modifier.border(1.5.dp, Color(0xFF4CAF50), RoundedCornerShape(16.dp))
+            } else {
+                Modifier.border(1.dp, Color(0xFFEEEEEE), RoundedCornerShape(16.dp))
+            }
+        ),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Surface(color = Color(0xFFF5F5F5), shape = CircleShape, modifier = Modifier.size(40.dp)) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(Icons.Default.DateRange, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(20.dp))
+                        }
+                    }
+                    Column {
+                        Text("Regular Withdrawal", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                        Text("Credited in 1-2 business days", style = MaterialTheme.typography.bodySmall, modifier = Modifier.alpha(0.7f))
+                    }
+                }
+                RadioButton(
+                    selected = isSelected,
+                    onClick = onSelect,
+                    colors = RadioButtonDefaults.colors(selectedColor = Color(0xFF4CAF50))
+                )
+            }
+            
+            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color(0xFFF5F5F5))
+            
+            Text(
+                text = "Up to \u20B9${formatIndian(amount)}", 
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), 
+                color = Color(0xFF2E7D32)
+            )
+        }
+    }
+}
+
+@Composable
+fun SchemeSelectionItem(scheme: WithdrawScheme, isSelected: Boolean, selectedWithdrawMode: WithdrawMode = WithdrawMode.REGULAR, onSelect: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -313,7 +527,11 @@ fun SchemeSelectionItem(scheme: WithdrawScheme, isSelected: Boolean, onSelect: (
                 }
             }
             Column(horizontalAlignment = Alignment.End) {
-                val available = (scheme.redeemableAmount - scheme.redemptionInProgress).coerceAtLeast(0.0)
+                val available = if (selectedWithdrawMode == WithdrawMode.INSTANT) {
+                    ((scheme.instantRedemptionValue ?: 0.0) - scheme.redemptionInProgress).coerceAtLeast(0.0)
+                } else {
+                    (scheme.redeemableAmount - scheme.redemptionInProgress).coerceAtLeast(0.0)
+                }
                 Text("\u20B9${formatIndian(available)}", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), color = Color(0xFF2E7D32))
                 Text("Available", style = MaterialTheme.typography.bodySmall, modifier = Modifier.alpha(0.6f))
             }

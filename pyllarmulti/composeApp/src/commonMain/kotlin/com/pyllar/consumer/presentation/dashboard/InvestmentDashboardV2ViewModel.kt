@@ -185,7 +185,8 @@ class InvestmentDashboardV2ViewModel(
             it.goalId != "global_exposure" &&
             it.goalId != "festival_spends" &&
             it.goalId != "childrens_education" &&
-            it.goalId != "vacation"
+            it.goalId != "vacation" &&
+            it.goalId != "savings"
         }
 
         val allRecommendedGoals = if (recommendedGoalsFromApi.isEmpty()) {
@@ -200,8 +201,9 @@ class InvestmentDashboardV2ViewModel(
             when (goal.category.uppercase()) {
                 "GOLD" -> 1
                 "SILVER" -> 2
-                "SAVINGS" -> 3
-                "FESTIVAL_SPENDS" -> 4
+                "SAVINGS_PLUS" -> 3
+                "SAVINGS" -> 4
+                "FESTIVAL_SPENDS" -> 5
                 else -> 7
             }
         }

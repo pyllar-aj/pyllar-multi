@@ -189,5 +189,34 @@ class AuthRepositoryImpl(
         val result = remote.uploadSignatureFile(bytes, kycAttemptId)
         emit(result)
     }
+
+    override fun getDigiLink(
+        userId: String,
+        name: String,
+        emailAddress: String,
+        dateOfBirth: String,
+        mobileCountryCode: String,
+        mobileNumber: String,
+        preVerificationId: String?,
+        docId: String?,
+        kycRequestId: String?
+    ): Flow<Resource<com.pyllar.consumer.data.remote.model.MinimalKycResponse>> = flow {
+        emit(Resource.Loading())
+        val request = com.pyllar.consumer.data.remote.model.DigiLinkRequest(
+            userId = userId,
+            name = name,
+            mobile = com.pyllar.consumer.data.remote.model.Mobile(
+                countryCode = mobileCountryCode,
+                number = mobileNumber
+            ),
+            emailAddress = emailAddress,
+            dateOfBirth = dateOfBirth,
+            preVerificationId = preVerificationId,
+            docId = docId,
+            kycRequestId = kycRequestId
+        )
+        val result = remote.getDigiLink(request)
+        emit(result)
+    }
 }
 

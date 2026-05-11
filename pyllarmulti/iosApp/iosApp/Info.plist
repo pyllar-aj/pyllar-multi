@@ -27,6 +27,24 @@
 	<key>NSUserNotificationUsageDescription</key>
 	<string>Pyllar sends notifications to keep you updated on your investments.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
-	<true/>
+	<false/>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>phonepe</string>
+		<string>tez</string>
+		<string>paytmmp</string>
+		<string>bhim</string>
+		<string>amazonpay</string>
+		<string>mobikwik</string>
+		<string>payzapp</string>
+		<string>sbiyono</string>
+		<string>imobile</string>
+		<string>axispay</string>
+		<string>kotakmobile</string>
+		<string>idbibank</string>
+		<string>bobworld</string>
+		<string>indusmobile</string>
+		<string>credpay</string>
+	</array>
 </dict>
 </plist>

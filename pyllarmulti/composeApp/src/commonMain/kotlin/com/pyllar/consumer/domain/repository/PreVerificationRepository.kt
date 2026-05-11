@@ -1,9 +1,9 @@
 package com.pyllar.consumer.domain.repository
 
 import com.pyllar.consumer.data.remote.dto.PanFetchRequestDto
-import com.pyllar.consumer.data.remote.dto.PanFetchResponseDto
+import com.pyllar.consumer.data.remote.dto.PanFetchDataDto
 import com.pyllar.consumer.data.remote.dto.PanVerifyOtpRequestDto
-import com.pyllar.consumer.data.remote.dto.PanVerifyOtpResponseDto
+import com.pyllar.consumer.data.remote.dto.PanVerifyOtpDataDto
 import com.pyllar.consumer.data.remote.dto.PreVerificationRequestDto
 import com.pyllar.consumer.data.remote.dto.PreVerificationResponseDto
 import com.pyllar.consumer.util.Resource
@@ -44,11 +44,11 @@ interface PreVerificationRepository {
 
     fun initiatePanFetch(
         mobileNumber: String
-    ): Flow<Resource<PanFetchResponseDto>>
+    ): Flow<Resource<PanFetchDataDto>>
 
     fun verifyOtpAndFetchPan(
         mobileNumber: String,
         prefillId: Long,
         otp: String
-    ): Flow<Resource<PanVerifyOtpResponseDto>>
+    ): Flow<Resource<PanVerifyOtpDataDto>>
 }

@@ -18,6 +18,14 @@ interface FundDetailsRepository {
         request: CreateDailySipRequestDto
     ): Flow<Resource<MandateWrapper>>
 
+    fun createLumpsumPurchase(
+        request: com.pyllar.consumer.data.remote.model.dto.CreateLumpsumPurchaseRequestDto
+    ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.LumpsumPurchaseResponseData>>
+
+    fun syncLumpsumPayment(
+        request: com.pyllar.consumer.data.remote.model.dto.LumpsumPaymentStatusRequest
+    ): Flow<Resource<Map<String, String>>>
+
     fun getInvestmentLimits(
         userInvestmentPurposeId: String
     ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.InvestmentLimitsResponseDto>>

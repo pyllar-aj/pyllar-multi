@@ -40,11 +40,21 @@ class IosPlatformActions : PlatformActions {
 
     override fun getInstalledUpiApps(): List<UpiAppInfo> {
         val upiSchemes = mapOf(
-            "tez://" to "Google Pay",
             "phonepe://" to "PhonePe",
+            "tez://" to "Google Pay",
             "paytmmp://" to "Paytm",
+            "bhim://" to "BHIM",
             "amazonpay://" to "Amazon Pay",
-            "bhim://" to "BHIM"
+            "mobikwik://" to "MobiKwik",
+            "payzapp://" to "HDFC PayZapp",
+            "sbiyono://" to "SBI YONO",
+            "imobile://" to "ICICI iMobile Pay",
+            "axispay://" to "Axis Pay",
+            "kotakmobile://" to "Kotak Mobile",
+            "idbibank://" to "IDBI Bank GO",
+            "bobworld://" to "BOB World",
+            "indusmobile://" to "IndusMobile",
+            "credpay://" to "Cred"
         )
         
         return upiSchemes.filter { (scheme, _) ->

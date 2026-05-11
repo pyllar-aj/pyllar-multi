@@ -38,6 +38,7 @@ fun FundDetailsScreen(
     sipAmount: Double = 0.0,
     kycAttemptId: String = "",
     investorId: String = "",
+    fromSipAmount: Boolean = false,
     onBackClick: () -> Unit = {},
     onSipCreated: (Double, String?, com.pyllar.consumer.data.remote.model.dto.MandateWrapper?) -> Unit = { _, _, _ -> },
     viewModel: FundDetailsViewModel = koinInject()
@@ -84,25 +85,27 @@ fun FundDetailsScreen(
             )
         },
         bottomBar = {
-            FundDetailsBottomBar(
-                isLoading = state.isSipCreating,
-                sipAmount = sipAmount,
-                onInvestClick = {
-                    if (sipAmount <= 0) return@FundDetailsBottomBar
-                    
-                    coroutineScope.launch {
-                        val result = viewModel.createSip(
-                            userId = userId,
-                            kycAttemptId = kycAttemptId,
-                            investorId = investorId,
-                            amount = sipAmount
-                        )
-                        if (result is SipCreationResult.Success) {
-                            onSipCreated(sipAmount, result.nextScreen, result.mandateWrapper)
+            if (fromSipAmount) {
+                FundDetailsBottomBar(
+                    isLoading = state.isSipCreating,
+                    sipAmount = sipAmount,
+                    onInvestClick = {
+                        if (sipAmount <= 0) return@FundDetailsBottomBar
+                        
+                        coroutineScope.launch {
+                            val result = viewModel.createSip(
+                                userId = userId,
+                                kycAttemptId = kycAttemptId,
+                                investorId = investorId,
+                                amount = sipAmount
+                            )
+                            if (result is SipCreationResult.Success) {
+                                onSipCreated(sipAmount, result.nextScreen, result.mandateWrapper)
+                            }
                         }
                     }
-                }
-            )
+                )
+            }
         }
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {

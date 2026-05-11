@@ -44,6 +44,7 @@ import com.pyllar.consumer.presentation.mutualfund.onboarding.SignatureViewModel
 import com.pyllar.consumer.domain.repository.PreVerificationRepository
 import com.pyllar.consumer.data.repository.PreVerificationRepositoryImpl
 import com.pyllar.consumer.presentation.mutualfund.onboarding.MandateAuthModel
+import com.pyllar.consumer.presentation.mutualfund.onboarding.LumpsumPurchaseAuthViewModel
 import com.pyllar.consumer.presentation.mutualfund.onboarding.CheckPanPopulatedDetailsViewModel
 import com.pyllar.consumer.presentation.profile.ProfileViewModel
 import kotlinx.coroutines.CoroutineScope
@@ -94,6 +95,7 @@ val sharedModule: Module = module {
     factoryOf(::PreVerificationViewModel)
     factoryOf(::CheckPanPopulatedDetailsViewModel)
     factory { MandateAuthModel(get(), CoroutineScope(Dispatchers.Main)) }
+    factoryOf(::LumpsumPurchaseAuthViewModel)
     factory { WithdrawAmountViewModel(get(), get()) }
     factory { com.pyllar.consumer.presentation.mutualfund.upi.UpiAccountLinkingViewModel(get()) }
 

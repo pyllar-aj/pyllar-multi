@@ -254,7 +254,8 @@ fun WithdrawAmountScreen(
 
                 // Bank Info Placeholder
                 Text(
-                    "Money will be credited to $bankName in 1-2 business days.",
+                    if (withdrawMode == "INSTANT") "Money will be credited to $bankName within 30 mins."
+                    else "Money will be credited to $bankName in 1-2 business days.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,

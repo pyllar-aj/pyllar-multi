@@ -161,7 +161,7 @@ fun PreVerificationScreen(
     LaunchedEffect(uiState.panFetchResult) {
         val result = uiState.panFetchResult
         if (result is Resource.Success) {
-            val data = result.data?.data
+            val data = result.data
             if (data != null) {
                 if (data.status == "OTP_GENERATED") {
                     currentPrefillId = data.prefillId.toString()
@@ -188,7 +188,7 @@ fun PreVerificationScreen(
     LaunchedEffect(uiState.panVerifyOtpResult) {
         val result = uiState.panVerifyOtpResult
         if (result is Resource.Success) {
-            val data = result.data?.data
+            val data = result.data
             if (data != null && data.status == "SUCCESS") {
                 showOtpBottomSheet = false
                 val panDetails = data.panDetails
@@ -292,23 +292,35 @@ fun PreVerificationScreen(
 
                             Button(
                                 onClick = {
-                                    platformLog("PreVerificationScreen: \uD83D\uDD35 Autofetch button clicked. userPhone='$userPhone'")
-                                    PlatformAnalyticsLogger.logEvent("pre_verification_find_my_pan_clicked", mapOf("has_phone" to userPhone.isNotBlank()))
-                                    if (userPhone.isNotBlank()) {
-                                        platformLog("PreVerificationScreen: \uD83D\uDE80 Initiating PAN fetch for $userPhone")
-                                        isPhoneMissing = false
-                                        currentPrefillId = null
-                                        otpCode = ""
-                                        viewModel.clearPanVerifyOtpResult()
-                                        viewModel.initiatePanFetch(userPhone)
-                                    } else {
-                                        platformLog("PreVerificationScreen: \u26A0\ufe0f Phone is blank, skipping API call and showing manual form")
-                                        isPhoneMissing = true
-                                        autoFetchFailed = true
-                                        showManualEntryForm = true
+                                    platformLog("PreVerificationScreen: 🔵 Autofetch button clicked. current state userPhone='$userPhone'")
+                                    scope.launch {
+                                        // Fetch latest phone from session store in case LaunchedEffect hasn't completed or state is stale
+                                        val latestPhone = if (userPhone.isNotBlank()) userPhone else {
+                                            val fetched = sessionStore.getCurrentPhone()
+                                            platformLog("PreVerificationScreen: 📱 Real-time phone fetch from sessionStore: '$fetched'")
+                                            if (fetched.isNotBlank()) userPhone = fetched
+                                            fetched
+                                        }
+
+                                        PlatformAnalyticsLogger.logEvent("pre_verification_find_my_pan_clicked", mapOf("has_phone" to latestPhone.isNotBlank()))
+                                        
+                                        if (latestPhone.isNotBlank()) {
+                                            platformLog("PreVerificationScreen: 🚀 Initiating PAN fetch for $latestPhone")
+                                            isPhoneMissing = false
+                                            currentPrefillId = null
+                                            otpCode = ""
+                                            viewModel.clearPanVerifyOtpResult()
+                                            viewModel.initiatePanFetch(latestPhone)
+                                        } else {
+                                            platformLog("PreVerificationScreen: ⚠️ Phone is blank in both state and sessionStore, showing manual form")
+                                            isPhoneMissing = true
+                                            autoFetchFailed = true
+                                            showManualEntryForm = true
+                                        }
                                     }
                                 },
                                 modifier = Modifier.fillMaxWidth(),
+                                enabled = uiState.panFetchResult !is Resource.Loading,
                                 shape = RoundedCornerShape(8.dp),
                                 contentPadding = PaddingValues(vertical = 16.dp)
                             ) {
@@ -597,6 +609,14 @@ private fun PreVerificationOtpBottomSheet(
             otpText = otpCode,
             onOtpChange = onOtpCodeChange,
             onOtpComplete = {}
+        )
+
+        Text(
+            text = "By entering this OTP, I authorise Pyllar Fintech Private Limited to fetch my PAN details.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
         )
 
         TextButton(

@@ -1,9 +1,14 @@
 package com.pyllar.consumer.presentation.mutualfund.onboarding
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -11,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.pyllar.consumer.presentation.ui.components.HierarchicalDatePicker
 
 @Composable
 fun CheckPanPopulatedDetailsScreen(
@@ -34,6 +40,13 @@ fun CheckPanPopulatedDetailsScreen(
     var maritalStatus by remember { mutableStateOf(initialMaritalStatus) }
     var permanentAddress by remember { mutableStateOf(initialPermanentAddress) }
     var correspondenceAddress by remember { mutableStateOf(initialCorrespondenceAddress) }
+    
+    // Date picker state
+    var showDatePicker by remember { mutableStateOf(false) }
+    var datePickerStep by remember { mutableStateOf(0) }
+    var selectedYear by remember { mutableStateOf<Int?>(null) }
+    var selectedMonth by remember { mutableStateOf<Int?>(null) }
+    var selectedDay by remember { mutableStateOf<Int?>(null) }
     
     // Helper to check if form is valid
     val isFormValid = remember(name, gender, dateOfBirth, maritalStatus) {
@@ -132,9 +145,40 @@ fun CheckPanPopulatedDetailsScreen(
                 .fillMaxWidth()
                 .padding(bottom = 16.dp),
             singleLine = true,
+            readOnly = true,
+            trailingIcon = {
+                IconButton(onClick = { showDatePicker = true }) {
+                    Icon(Icons.Filled.DateRange, contentDescription = "Pick date")
+                }
+            },
+            interactionSource = remember { MutableInteractionSource() }.also { src ->
+                LaunchedEffect(src) {
+                    src.interactions.collect { if (it is PressInteraction.Release) showDatePicker = true }
+                }
+            },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             isError = dateOfBirth.isBlank()
         )
+        
+        if (showDatePicker) {
+            HierarchicalDatePicker(
+                onDateSelected = { y: Int, m: Int, d: Int ->
+                    dateOfBirth = "$y-${m.toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}"
+                    showDatePicker = false
+                    datePickerStep = 0; selectedYear = null; selectedMonth = null; selectedDay = null
+                },
+                onDismiss = {
+                    showDatePicker = false
+                    datePickerStep = 0; selectedYear = null; selectedMonth = null; selectedDay = null
+                },
+                currentStep = datePickerStep,
+                selectedYear = selectedYear, selectedMonth = selectedMonth, selectedDay = selectedDay,
+                onStepChange = { step: Int -> datePickerStep = step },
+                onYearSelected = { year: Int -> selectedYear = year },
+                onMonthSelected = { month: Int -> selectedMonth = month },
+                onDaySelected = { day: Int -> selectedDay = day }
+            )
+        }
         
         OutlinedTextField(
             value = fatherName,

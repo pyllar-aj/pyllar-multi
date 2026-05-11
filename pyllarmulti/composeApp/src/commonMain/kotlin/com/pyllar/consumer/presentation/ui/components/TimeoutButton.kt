@@ -108,6 +108,9 @@ fun TimeoutButton(
     enabled: Boolean = true,
     timeoutState: TimeoutState,
     modifier: Modifier = Modifier,
+    colors: ButtonColors = ButtonDefaults.buttonColors(),
+    shape: androidx.compose.ui.graphics.Shape = ButtonDefaults.shape,
+    contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
     content: @Composable RowScope.() -> Unit
 ) {
     var wasEnabled by remember { mutableStateOf(enabled) }
@@ -148,7 +151,10 @@ fun TimeoutButton(
     Button(
         onClick = onClick,
         enabled = finalEnabled,
-        modifier = modifier
+        modifier = modifier,
+        colors = colors,
+        shape = shape,
+        contentPadding = contentPadding
     ) {
         when {
             // Show "Retry" text when timeout is active (button is enabled for retry)

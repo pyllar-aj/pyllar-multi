@@ -35,6 +35,8 @@ data class SchemeDetailsParams(
     val unrealizedProfit: Double = 0.0,
     val redeemableAmount: Double = 0.0,
     val redemptionInProgress: Double = 0.0,
+    val canWithdraw: Boolean? = true,
+    val instantRedemptionValue: Double? = null,
     val userPurposeId: String? = null
 )
 
@@ -115,8 +117,10 @@ data class SchemeDetailsState(
     val totalGain: Double = 0.0,
     val withdrawnGain: Double = 0.0,
     val availableGain: Double = 0.0,
-    val redeemableAmount: Double = 0.0,
+    val canWithdraw: Boolean = true,
     val redemptionInProgress: Double = 0.0,
+    val redeemableAmount: Double = 0.0,
+    val instantRedemptionValue: Double? = null,
     val transactions: List<TransactionDisplayItem> = emptyList(),
     val mandates: List<MandateDisplayItem> = emptyList(),
     val isLoading: Boolean = true,
@@ -144,6 +148,7 @@ enum class CancelSipReason(val keyword: String, val label: String) {
     INVEST_LATER("invest_later", "I'll invest later"),
     CUSTOMER_SUPPORT_NOT_SATISFACTORY("customer_support_not_satisfactory", "Customer support not satisfactory"),
     AMC_SUPPORT_NOT_SATISFACTORY("amc_support_not_satisfactory", "AMC support not satisfactory"),
+    OTHER("other", "Other reason")
 }
 
 sealed class ResumeSipResult {
@@ -244,8 +249,10 @@ class SchemeDetailsViewModel(
             totalGain = schemeParams.profit,
             withdrawnGain = schemeParams.realizedProfit,
             availableGain = schemeParams.unrealizedProfit,
+            canWithdraw = schemeParams.canWithdraw ?: state.canWithdraw,
             redemptionInProgress = schemeParams.redemptionInProgress,
-            redeemableAmount = schemeParams.redeemableAmount
+            redeemableAmount = schemeParams.redeemableAmount,
+            instantRedemptionValue = schemeParams.instantRedemptionValue
         )
     }
 
@@ -386,8 +393,10 @@ class SchemeDetailsViewModel(
             totalGain = schemeParams?.profit ?: 0.0,
             withdrawnGain = schemeParams?.realizedProfit ?: 0.0,
             availableGain = schemeParams?.unrealizedProfit ?: 0.0,
+            canWithdraw = schemeParams?.canWithdraw ?: true,
             redeemableAmount = schemeParams?.redeemableAmount ?: 0.0,
             redemptionInProgress = schemeParams?.redemptionInProgress ?: 0.0,
+            instantRedemptionValue = schemeParams?.instantRedemptionValue,
             transactions = displayTransactions,
             mandates = displayMandates,
             isLoading = false,

@@ -32,8 +32,8 @@ data class PreVerificationUiState(
     val nextScreen: String? = null,
     val serverMessage: String? = null,
     val prepopulatedData: Map<String, String?> = emptyMap(),
-    val panFetchResult: Resource<com.pyllar.consumer.data.remote.dto.PanFetchResponseDto>? = null,
-    val panVerifyOtpResult: Resource<com.pyllar.consumer.data.remote.dto.PanVerifyOtpResponseDto>? = null
+    val panFetchResult: Resource<com.pyllar.consumer.data.remote.dto.PanFetchDataDto>? = null,
+    val panVerifyOtpResult: Resource<com.pyllar.consumer.data.remote.dto.PanVerifyOtpDataDto>? = null
 )
 
 class PreVerificationViewModel(
@@ -475,6 +475,7 @@ class PreVerificationViewModel(
                     _uiState.value = _uiState.value.copy(panFetchResult = result)
                 }
             } catch (e: Exception) {
+                platformLog("PreVerificationVM: ❌ Exception in initiatePanFetch: ${e.message}")
                 _uiState.value = _uiState.value.copy(
                     panFetchResult = Resource.Error(e.message ?: "Failed to initiate PAN fetch")
                 )
@@ -496,6 +497,7 @@ class PreVerificationViewModel(
                     _uiState.value = _uiState.value.copy(panVerifyOtpResult = result)
                 }
             } catch (e: Exception) {
+                platformLog("PreVerificationVM: ❌ Exception in verifyOtpAndFetchPan: ${e.message}")
                 _uiState.value = _uiState.value.copy(
                     panVerifyOtpResult = Resource.Error(e.message ?: "Failed to verify OTP")
                 )

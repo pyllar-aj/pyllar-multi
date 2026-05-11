@@ -2,9 +2,9 @@ package com.pyllar.consumer.data.repository
 
 import com.pyllar.consumer.data.remote.network.PyllarApiClient
 import com.pyllar.consumer.data.remote.dto.PanFetchRequestDto
-import com.pyllar.consumer.data.remote.dto.PanFetchResponseDto
+import com.pyllar.consumer.data.remote.dto.PanFetchDataDto
 import com.pyllar.consumer.data.remote.dto.PanVerifyOtpRequestDto
-import com.pyllar.consumer.data.remote.dto.PanVerifyOtpResponseDto
+import com.pyllar.consumer.data.remote.dto.PanVerifyOtpDataDto
 import com.pyllar.consumer.data.remote.dto.PreVerificationRequestDto
 import com.pyllar.consumer.data.remote.dto.PreVerificationRequestHelper
 import com.pyllar.consumer.data.remote.dto.PreVerificationResponseDto
@@ -121,9 +121,9 @@ class PreVerificationRepositoryImpl(
 
     override fun initiatePanFetch(
         mobileNumber: String
-    ): Flow<Resource<PanFetchResponseDto>> = flow {
+    ): Flow<Resource<PanFetchDataDto>> = flow {
         emit(Resource.Loading())
-        val result = apiClient.post<PanFetchResponseDto, PanFetchRequestDto>(
+        val result = apiClient.post<PanFetchDataDto, PanFetchRequestDto>(
             path = "api/userprefill/consent/initiate",
             body = PanFetchRequestDto(mobileNumber)
         )
@@ -134,9 +134,9 @@ class PreVerificationRepositoryImpl(
         mobileNumber: String,
         prefillId: Long,
         otp: String
-    ): Flow<Resource<PanVerifyOtpResponseDto>> = flow {
+    ): Flow<Resource<PanVerifyOtpDataDto>> = flow {
         emit(Resource.Loading())
-        val result = apiClient.post<PanVerifyOtpResponseDto, PanVerifyOtpRequestDto>(
+        val result = apiClient.post<PanVerifyOtpDataDto, PanVerifyOtpRequestDto>(
             path = "api/userprefill/consent/verify",
             body = PanVerifyOtpRequestDto(
                 mobileNumber = mobileNumber,

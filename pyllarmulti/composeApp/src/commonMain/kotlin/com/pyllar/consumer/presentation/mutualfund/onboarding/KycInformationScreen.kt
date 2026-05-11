@@ -47,9 +47,10 @@ fun KycInformationScreen(
         PlatformAnalyticsLogger.logScreenView("KycInformation")
     }
 
-    if (showLoading) {
-        LoadingScreen(text = "Connecting to DigiLocker...")
-        return
+    LaunchedEffect(errorMessage) {
+        if (errorMessage != null) {
+            showLoading = false
+        }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -267,6 +268,18 @@ fun KycInformationScreen(
                 }
 
                 Spacer(modifier = Modifier.height(32.dp))
+            }
+        }
+
+        if (showLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.3f))
+                    .zIndex(100f),
+                contentAlignment = Alignment.Center
+            ) {
+                LoadingScreen(text = "Connecting to DigiLocker...")
             }
         }
     }

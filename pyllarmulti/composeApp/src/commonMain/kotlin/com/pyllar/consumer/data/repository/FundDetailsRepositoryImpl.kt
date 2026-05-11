@@ -84,6 +84,28 @@ class FundDetailsRepositoryImpl(
         emit(result)
     }
 
+    override fun createLumpsumPurchase(
+        request: com.pyllar.consumer.data.remote.model.dto.CreateLumpsumPurchaseRequestDto
+    ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.LumpsumPurchaseResponseData>> = flow {
+        emit(Resource.Loading())
+        val result = apiClient.post<com.pyllar.consumer.data.remote.model.dto.LumpsumPurchaseResponseData, com.pyllar.consumer.data.remote.model.dto.CreateLumpsumPurchaseRequestDto>(
+            path = "api/invDashboard/lump-sum-purchase",
+            body = request
+        )
+        emit(result)
+    }
+
+    override fun syncLumpsumPayment(
+        request: com.pyllar.consumer.data.remote.model.dto.LumpsumPaymentStatusRequest
+    ): Flow<Resource<Map<String, String>>> = flow {
+        emit(Resource.Loading())
+        val result = apiClient.post<Map<String, String>, com.pyllar.consumer.data.remote.model.dto.LumpsumPaymentStatusRequest>(
+            path = "api/invDashboard/lump-sum-payment-status",
+            body = request
+        )
+        emit(result)
+    }
+
     override fun getInvestmentLimits(
         userInvestmentPurposeId: String
     ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.InvestmentLimitsResponseDto>> = flow {

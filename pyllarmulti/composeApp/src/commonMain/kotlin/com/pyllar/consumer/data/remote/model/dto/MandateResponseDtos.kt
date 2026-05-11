@@ -10,6 +10,14 @@ data class MandateWrapper(
 )
 
 @Serializable
+data class LumpsumPurchaseResponseData(
+    val id: String?,
+    val old_id: Long?,
+    val payment_id: Long?,
+    val token_url: String?
+)
+
+@Serializable
 data class MandateStatusResponseDto(
     val status: String,
     val message: String?,

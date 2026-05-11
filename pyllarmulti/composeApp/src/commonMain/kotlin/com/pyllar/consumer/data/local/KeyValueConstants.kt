@@ -62,4 +62,6 @@ object KeyValueConstants {
 
     // User preferences (metadata)
     const val LANGUAGE_PREFERENCE = "language_preference"
+    // Persistence
+    const val LAST_SCREEN = "last_screen"
 }

@@ -60,6 +60,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.text.font.FontFamily
 import org.jetbrains.compose.resources.Font
@@ -294,22 +295,27 @@ fun InvestmentDashboardV2Screen(
                 }
             }
 
-            if (!dashboardState.isLoading && dashboardState.recommendedGoals.isNotEmpty()) {
-                item {
-                    NextGoalsSection(
-                        goals = dashboardState.recommendedGoals + dashboardState.allGoals,
-                        onGoalClick = { goalId ->
-                            coroutineScope.launch {
-                                isSelectingGoal = true
-                                val result = viewModel.initGoalTxn(userId, goalId)
-                                if (result is Resource.Success) {
-                                    platformLog("Dashboard: Goal click success. Navigating to goal: $goalId")
-                                    onNavigateToGoal(goalId)
+            if (!dashboardState.isLoading && (dashboardState.recommendedGoals.isNotEmpty() || dashboardState.allGoals.isNotEmpty())) {
+                val nextGoals = (dashboardState.recommendedGoals + dashboardState.allGoals).filter { 
+                    it.category.uppercase() !in listOf("RETIREMENT", "CHILDRENS_EDUCATION", "VACATION", "FESTIVAL_SPENDS", "SAVINGS") 
+                }
+                if (nextGoals.isNotEmpty()) {
+                    item {
+                        NextGoalsSection(
+                            goals = nextGoals,
+                            onGoalClick = { goalId ->
+                                coroutineScope.launch {
+                                    isSelectingGoal = true
+                                    val result = viewModel.initGoalTxn(userId, goalId)
+                                    if (result is Resource.Success) {
+                                        platformLog("Dashboard: Goal click success. Navigating to goal: $goalId")
+                                        onNavigateToGoal(goalId)
+                                    }
+                                    isSelectingGoal = false
                                 }
-                                isSelectingGoal = false
                             }
-                        }
-                    )
+                        )
+                    }
                 }
             }
 
@@ -1291,7 +1297,14 @@ fun NextGoalCard(
                         color = iconBgColor
                     ) {
                         Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                            if (iconDrawable != null) {
+                            if (category == "SAVINGS_PLUS") {
+                                Image(
+                                    painter = painterResource(Res.drawable.savings_plus),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp),
+                                    contentScale = ContentScale.Fit
+                                )
+                            } else if (iconDrawable != null) {
                                 Image(
                                     painter = painterResource(iconDrawable),
                                     contentDescription = goal.name,
@@ -1303,12 +1316,75 @@ fun NextGoalCard(
                             }
                         }
                     }
-                    Text(
-                        text = formatGoalName(goal.name),
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = correlationColor,
-                        modifier = Modifier.weight(1f).padding(start = 12.dp)
-                    )
+                    
+                    val cursiveFontFamily = FontFamily(Font(Res.font.cursive_font))
+                    Row(
+                        modifier = Modifier.weight(1f).padding(start = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (category == "SAVINGS_PLUS") {
+                            Text(
+                                text = buildAnnotatedString {
+                                    append("Savings ")
+                                    withStyle(style = SpanStyle(fontFamily = cursiveFontFamily, fontWeight = FontWeight.Bold)) {
+                                        append("Plus")
+                                    }
+                                },
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = correlationColor
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            var showSavingsPlusInfo by remember { mutableStateOf(false) }
+                            IconButton(
+                                onClick = { showSavingsPlusInfo = true },
+                                modifier = Modifier.size(20.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Info,
+                                    contentDescription = "Info",
+                                    tint = correlationColor.copy(alpha = 0.7f),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                            if (showSavingsPlusInfo) {
+                                SavingsPlusInfoDialog(
+                                    instantRedemptionValue = goal.instantRedemptionValue,
+                                    onDismiss = { showSavingsPlusInfo = false }
+                                )
+                            }
+                            Spacer(modifier = Modifier.weight(1f))
+                            // Instant Pill
+                            Surface(
+                                color = Color(0xFFE8F5E9),
+                                shape = RoundedCornerShape(12.dp),
+                                border = BorderStroke(1.dp, Color(0xFF4CAF50).copy(alpha = 0.3f))
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Bolt,
+                                        contentDescription = null,
+                                        tint = Color(0xFFFFC107),
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Text(
+                                        text = "Instant Redeem",
+                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                        color = Color(0xFF2E7D32)
+                                    )
+                                }
+                            }
+                        } else {
+                            Text(
+                                text = formatGoalName(goal.name),
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = correlationColor
+                            )
+                        }
+                    }
                     
                     Icon(
                         imageVector = Icons.Default.ChevronRight,
@@ -1386,6 +1462,12 @@ fun NextGoalCard(
                                     append("Investing ₹101 daily since Jan 2023 in global fund grew to ")
                                     withStyle(SpanStyle(color = Color(0xFF00897B), fontWeight = FontWeight.Bold)) {
                                         append("~₹1.54 Lakhs")
+                                    }
+                                }
+                                "SAVINGS_PLUS" -> {
+                                    append("Investing ₹101 daily since Jan 2023 in Savings Plus grew to ")
+                                    withStyle(SpanStyle(color = Color(0xFF2E7D32), fontWeight = FontWeight.Bold)) {
+                                        append("~₹1.28 Lakhs")
                                     }
                                 }
                                 else -> append(goal.description)

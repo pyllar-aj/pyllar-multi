@@ -1,9 +1,13 @@
 package com.pyllar.consumer.data.remote.dto
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class PanFetchRequestDto(
     val mobileNumber: String
 )
 
+@Serializable
 data class PanFetchResponseDto(
     val success: Boolean,
     val status: String,
@@ -11,6 +15,7 @@ data class PanFetchResponseDto(
     val data: PanFetchDataDto?
 )
 
+@Serializable
 data class PanFetchDataDto(
     val prefillId: Long,
     val status: String, // OTP_GENERATED, ALREADY_VERIFIED
@@ -20,12 +25,14 @@ data class PanFetchDataDto(
     val panNumber: String? = null
 )
 
+@Serializable
 data class PanVerifyOtpRequestDto(
     val mobileNumber: String,
     val prefillId: Long,
     val otp: String // Change variable name to match JSON payload "otp" not "otpCode"
 )
 
+@Serializable
 data class PanVerifyOtpResponseDto(
     val success: Boolean,
     val status: String,
@@ -33,6 +40,7 @@ data class PanVerifyOtpResponseDto(
     val data: PanVerifyOtpDataDto?
 )
 
+@Serializable
 data class PanVerifyOtpDataDto(
     val status: String,
     val providerId: String?,
@@ -40,12 +48,14 @@ data class PanVerifyOtpDataDto(
     val panDetails: PanDetailsDto?
 )
 
+@Serializable
 data class PersonalDetailsDto(
     val fullName: String?,
     val gender: String?,
     val dateOfBirth: String?
 )
 
+@Serializable
 data class PanDetailsDto(
     val panNumber: String?,
     val status: String?

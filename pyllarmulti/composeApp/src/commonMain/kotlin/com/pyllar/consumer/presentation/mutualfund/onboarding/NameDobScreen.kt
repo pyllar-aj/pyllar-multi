@@ -354,7 +354,7 @@ fun NameDobScreen(
                             label = { Text("Date of Birth") },
                             singleLine = true, readOnly = true,
                             isError = dobError != null,
-                            modifier = Modifier.weight(1f).clickable { showDatePicker = true },
+                            modifier = Modifier.weight(1f),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = MaterialTheme.colorScheme.primary,
                                 focusedLabelColor = MaterialTheme.colorScheme.primary,
