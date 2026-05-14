@@ -279,7 +279,7 @@ fun LumpsumAmountScreenV2(
                     ),
                     prefix = { Text("₹") },
                     keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Number,
+                        keyboardType = KeyboardType.Decimal,
                         imeAction = ImeAction.Done
                     ),
                     keyboardActions = KeyboardActions(

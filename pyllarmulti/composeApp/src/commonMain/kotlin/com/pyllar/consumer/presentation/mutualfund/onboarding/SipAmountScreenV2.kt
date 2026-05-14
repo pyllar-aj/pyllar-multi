@@ -41,6 +41,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.zIndex
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import com.pyllar.consumer.platform.PlatformActions
 import com.pyllar.consumer.presentation.mutualfund.details.FundDetailsViewModel
 import com.pyllar.consumer.presentation.dashboard.InvestmentDashboardV2ViewModel
@@ -90,6 +93,7 @@ fun SipAmountScreenV2(
     val limitsState by viewModel.limitsState.collectAsState()
     val fundDetailsState by fundDetailsViewModel.uiState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
+    val focusManager = LocalFocusManager.current
     
     // Effective userId and goalId states - fetch from repository when params are empty
     var effectiveUserId by remember(userId) { mutableStateOf(userId) }
@@ -276,12 +280,19 @@ fun SipAmountScreenV2(
             if (limitsState.isLoading) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             } else {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
+                    // Amount Selection
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .pointerInput(Unit) {
+                                detectTapGestures(onTap = { 
+                                    focusManager.clearFocus()
+                                    isCustomMode = false 
+                                })
+                            }
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
                     // Projection Card
@@ -313,7 +324,7 @@ fun SipAmountScreenV2(
                                     }
                                 },
                                 keyboardOptions = KeyboardOptions(
-                                    keyboardType = KeyboardType.Number,
+                                    keyboardType = KeyboardType.Decimal,
                                     imeAction = ImeAction.Done
                                 ),
                                 keyboardActions = KeyboardActions(

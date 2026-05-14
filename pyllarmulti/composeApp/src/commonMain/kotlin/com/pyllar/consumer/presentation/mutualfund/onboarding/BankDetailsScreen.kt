@@ -227,7 +227,8 @@ fun BankDetailsScreen(
                                 showPaymentSheet = true
                             },
                             modifier = Modifier.fillMaxWidth(),
-                            enabled = initiateResult !is Resource.Loading
+                            //enabled = initiateResult !is Resource.Loading
+                            enabled = false
                         ) {
                             if (initiateResult is Resource.Loading) {
                                 CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White)
