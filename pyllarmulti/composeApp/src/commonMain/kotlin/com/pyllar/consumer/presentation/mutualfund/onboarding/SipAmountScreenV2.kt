@@ -222,7 +222,7 @@ fun SipAmountScreenV2(
     Scaffold(
         topBar = {
             TopAppBar(
-                modifier = Modifier.padding(top = 32.dp),
+                modifier = Modifier.padding(top = 25.dp),
                 title = { Text("Set SIP Amount", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {

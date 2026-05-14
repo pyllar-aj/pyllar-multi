@@ -437,10 +437,11 @@ fun LumpsumAmountScreenV2(
                         }
                     }
                 ) {
-                    if (isLoading) {
+                    val isFetching = isInitTxnLoading || fundDetailsState.isLoading || dashboardState.isLoading
+                    if (isLoading || isFetching) {
                         CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Submitting...")
+                        Text(if (isLoading) "Submitting..." else "Loading...")
                     } else {
                         Text("Invest One-time", fontWeight = FontWeight.Bold)
                     }
