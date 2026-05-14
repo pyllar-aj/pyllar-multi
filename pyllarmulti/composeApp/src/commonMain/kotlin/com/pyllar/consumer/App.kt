@@ -73,6 +73,8 @@ sealed class Screen {
         val redemptionMode: String = "NORMAL"
     ) : Screen()
     data class FundDetails(val isin: String, val userId: String, val goalId: String, val sipAmount: Double, val kycAttemptId: String = "", val investorId: String = "", val fromSipAmount: Boolean = false) : Screen()
+    data class FundDetailsViewOnly(val isin: String, val userId: String, val goalId: String) : Screen()
+    data class LumpsumFundDetails(val isin: String, val userId: String, val goalId: String, val lumpsumAmount: Double, val kycAttemptId: String = "", val investorId: String = "") : Screen()
     data class SipAmountV2(val userId: String, val kycAttemptId: String, val investorId: String, val goalId: String, val fromDashboard: Boolean = false, val isExistingInvestment: Boolean = false) : Screen()
     data class LumpsumAmountV2(val userId: String, val kycAttemptId: String, val investorId: String, val goalId: String, val isExistingInvestment: Boolean = false) : Screen()
     data class LumpsumPurchaseAuth(
@@ -595,7 +597,13 @@ fun App() {
                         navigateTo(Screen.LumpsumAmountV2(uid, kycId, invId, gid, isExistingInvestment = isExisting))
                     },
                     onNavigateToFundDetails = { isin, uid, gid, sipAmt, kycId, invId, fromSip ->
-                        navigateTo(Screen.FundDetails(isin, uid, gid, sipAmt, kycAttemptId = kycId, investorId = invId, fromSipAmount = fromSip))
+                        if (fromSip) {
+                            navigateTo(Screen.FundDetails(isin, uid, gid, sipAmt, kycAttemptId = kycId, investorId = invId, fromSipAmount = fromSip))
+                        } else if (sipAmt > 0.0) {
+                            navigateTo(Screen.LumpsumFundDetails(isin, uid, gid, sipAmt, kycAttemptId = kycId, investorId = invId))
+                        } else {
+                            navigateTo(Screen.FundDetailsViewOnly(isin, uid, gid))
+                        }
                     }
                 )
             }
@@ -680,6 +688,37 @@ fun App() {
                     }
                 )
             }
+            is Screen.LumpsumFundDetails -> {
+                LumpsumFundDetailsScreen(
+                    isin = screen.isin,
+                    userId = screen.userId,
+                    goalId = screen.goalId,
+                    lumpsumAmount = screen.lumpsumAmount,
+                    kycAttemptId = screen.kycAttemptId,
+                    investorId = screen.investorId,
+                    onBackClick = { navigateBack() },
+                    onLumpsumCreated = { amount, nextScreen, mandate ->
+                        if (mandate != null) {
+                            navigateTo(Screen.LumpsumPurchaseAuth(
+                                userId = screen.userId,
+                                kycAttemptId = screen.kycAttemptId,
+                                investorId = screen.investorId,
+                                amount = amount,
+                                paymentUrl = mandate.uri ?: "",
+                                paymentId = mandate.mandateId ?: 0L,
+                                paymentRef = mandate.finMandateId ?: 0L,
+                                goalId = if (!nextScreen.isNullOrBlank()) nextScreen else screen.goalId
+                            ))
+                        } else if (nextScreen != null) {
+                            scope.launch {
+                                handleNavigation(nextScreen, screen.userId, screen.kycAttemptId, screen.investorId, sessionStore = sessionStore) { navigateTo(it) }
+                            }
+                        } else {
+                            navigateTo(Screen.InvestmentDashboard(screen.userId), clearStack = true)
+                        }
+                    }
+                )
+            }
             is Screen.SipAmountV2 -> {
                 SipAmountScreenV2(
                     userId = screen.userId,
@@ -723,7 +762,7 @@ fun App() {
                                 paymentUrl = mandate.uri ?: "",
                                 paymentId = mandate.mandateId ?: 0L,
                                 paymentRef = mandate.finMandateId ?: 0L,
-                                goalId = screen.goalId
+                                goalId = if (!nextScreen.isNullOrBlank()) nextScreen else screen.goalId
                             ))
                         } else {
                             navigateTo(Screen.InvestmentDashboard(screen.userId), clearStack = true)
@@ -731,8 +770,9 @@ fun App() {
                     },
                     onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId)) },
                     onNavigateToFundDetails = { userId, goalId, amt, kycId, invId ->
-                         navigateTo(Screen.FundDetails("", userId, goalId, amt, kycAttemptId = kycId, investorId = invId, fromSipAmount = true))
-                    }
+                         navigateTo(Screen.LumpsumFundDetails("", userId, goalId, amt, kycAttemptId = kycId, investorId = invId))
+                    },
+                    onNavigateBack = { navigateTo(Screen.SchemeDetails(screen.userId, screen.goalId)) }
                 )
             }
             is Screen.LumpsumPurchaseAuth -> {
@@ -745,8 +785,18 @@ fun App() {
                     paymentId = screen.paymentId,
                     paymentRef = screen.paymentRef,
                     goalId = screen.goalId,
-                    onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId)) },
-                    onGoToHome = { navigateTo(Screen.InvestmentDashboard(screen.userId), clearStack = true) }
+                    onGoToHome = { navigateTo(Screen.InvestmentDashboard(screen.userId), clearStack = true) },
+                    onNavigateBack = { navigateBack() }
+                )
+            }
+            is Screen.FundDetailsViewOnly -> {
+                val fundDetailsVm: FundDetailsViewModel = koinInject()
+                FundDetailsViewOnlyScreen(
+                    isin = screen.isin,
+                    userId = screen.userId,
+                    goalId = screen.goalId,
+                    onBackClick = { navigateBack() },
+                    viewModel = fundDetailsVm
                 )
             }
             is Screen.MandateAuth -> {

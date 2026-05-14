@@ -46,6 +46,7 @@ import com.pyllar.consumer.domain.storage.SessionStore
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import org.koin.compose.koinInject
+import pyllar.composeapp.generated.resources.*
 
 @OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
@@ -216,6 +217,7 @@ fun PreVerificationScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
+            Spacer(modifier = Modifier.height(32.dp))
             // Top Bar
             Row(
                 modifier = Modifier
@@ -612,7 +614,7 @@ private fun PreVerificationOtpBottomSheet(
         )
 
         Text(
-            text = "By entering this OTP, I authorise Pyllar Fintech Private Limited to fetch my PAN details.",
+            text = org.jetbrains.compose.resources.stringResource(Res.string.pan_fetch_otp_consent_message),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,

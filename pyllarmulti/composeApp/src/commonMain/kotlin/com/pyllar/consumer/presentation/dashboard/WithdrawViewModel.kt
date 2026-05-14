@@ -178,14 +178,18 @@ class WithdrawViewModel(
                             currentValue = currentValue,
                             canWithdraw = true,
                             redemptionInProgress = withdrawalInProgress,
-                            redeemableAmount = params?.redeemableAmount ?: 0.0
+                            redeemableAmount = params?.redeemableAmount ?: 0.0,
+                            instantRedemptionValue = params?.instantRedemptionValue
                         )
                     ),
                     isLoading = false,
                     selectedSchemeId = "default",
                     isInstantAvailable = (params?.instantRedemptionValue ?: 0.0) > 0.0,
-                    instantRedemptionValue = params?.instantRedemptionValue
+                    instantRedemptionValue = params?.instantRedemptionValue,
+                    selectedWithdrawMode = if ((params?.instantRedemptionValue ?: 0.0) > 0.0) WithdrawMode.INSTANT else WithdrawMode.REGULAR
                 )
+                platformLog("WithdrawViewModel: 📊 State from params. isInstantAvailable=${state.isInstantAvailable}, value=${state.instantRedemptionValue}")
+
 
                 _withdrawState.value = state
             } catch (e: Exception) {
@@ -348,7 +352,8 @@ class WithdrawViewModel(
                     currentValue = currentValue,
                     canWithdraw = canWithdraw,
                     redemptionInProgress = investment.redemptionInProgress ?: 0.0,
-                    redeemableAmount = investment.redeemableAmount ?: 0.0
+                    redeemableAmount = investment.redeemableAmount ?: 0.0,
+                    instantRedemptionValue = investment.instantRedemptionValue
                 )
             }
 
@@ -375,7 +380,8 @@ class WithdrawViewModel(
                             currentValue = currentValueFallback,
                             canWithdraw = canWithdraw,
                             redemptionInProgress = investment.redemptionInProgress ?: 0.0,
-                            redeemableAmount = investment.redeemableAmount ?: 0.0
+                            redeemableAmount = investment.redeemableAmount ?: 0.0,
+                            instantRedemptionValue = investment.instantRedemptionValue
                         )
                     )
                 } else {
@@ -408,6 +414,7 @@ class WithdrawViewModel(
             schemes = filteredSchemes,
             isInstantAvailable = isInstantAvailable,
             instantRedemptionValue = instantRedemptionValue,
+            selectedWithdrawMode = if (isInstantAvailable) WithdrawMode.INSTANT else WithdrawMode.REGULAR,
             isLoading = false
         )
     }

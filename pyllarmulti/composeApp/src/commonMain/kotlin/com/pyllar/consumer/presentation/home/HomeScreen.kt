@@ -20,6 +20,7 @@ fun HomeScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+        Spacer(modifier = Modifier.height(32.dp))
         Text(
             text = "Welcome to Pyllar!",
             style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),

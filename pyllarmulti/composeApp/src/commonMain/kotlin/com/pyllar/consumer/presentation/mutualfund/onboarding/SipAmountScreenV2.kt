@@ -48,6 +48,7 @@ import com.pyllar.consumer.domain.storage.SessionStore
 import com.pyllar.consumer.data.local.KeyValueConstants
 import com.pyllar.consumer.util.platformLog
 import com.pyllar.consumer.util.Resource
+import com.pyllar.consumer.presentation.mutualfund.details.SipCreationResult
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import kotlinx.datetime.Clock.System as kClockSystem
@@ -64,83 +65,8 @@ enum class GoalType {
     FESTIVAL_SPENDS,
     ALL_IN_ONE,
     GLOBAL_EXPOSURE,
+    SAVINGS_PLUS,
     OTHER
-}
-
-fun identifyGoalType(goalId: String): GoalType {
-    if (goalId.isBlank()) return GoalType.OTHER
-
-    val lowerGoalId = goalId.lowercase()
-    return when {
-        lowerGoalId == "gold" || lowerGoalId.contains("gold") -> GoalType.GOLD
-        lowerGoalId == "silver" || lowerGoalId.contains("silver") -> GoalType.SILVER
-        lowerGoalId == "savings" || lowerGoalId == "saving" || lowerGoalId.contains("saving") -> GoalType.SAVINGS
-        lowerGoalId == "festival_spends" || lowerGoalId.contains("festival") -> GoalType.FESTIVAL_SPENDS
-        lowerGoalId == "all_in_one" || lowerGoalId.contains("all_in_one") || lowerGoalId.contains("all-in-one") -> GoalType.ALL_IN_ONE
-        lowerGoalId == "global_exposure" || lowerGoalId.contains("global_exposure") || lowerGoalId.contains("global-exposure") -> GoalType.GLOBAL_EXPOSURE
-        else -> GoalType.OTHER
-    }
-}
-
-fun getGoalDisplayName(goalType: GoalType): String {
-    return when (goalType) {
-        GoalType.GOLD -> "Gold"
-        GoalType.SILVER -> "Silver"
-        GoalType.SAVINGS -> "Savings"
-        GoalType.FESTIVAL_SPENDS -> "Festivals"
-        GoalType.ALL_IN_ONE -> "All-in-One"
-        GoalType.GLOBAL_EXPOSURE -> "Global Exposure"
-        GoalType.OTHER -> "Goal"
-    }
-}
-
-/**
- * Get the SIP start day based on the current day of the week.
- * Returns "Tomorrow" for Monday-Thursday, or the day name for Friday-Sunday.
- */
-fun getInvestmentStatus(): String {
-    val now = kClockSystem.now().toLocalDateTime(TimeZone.currentSystemDefault())
-    val dayOfWeek = now.dayOfWeek
-
-    return when (dayOfWeek) {
-        // Monday to Thursday - SIP starts tomorrow
-        DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY -> {
-            "Tomorrow"
-        }
-        
-        // Friday - Move to Monday
-        DayOfWeek.FRIDAY -> {
-            "Monday"
-        }
-        
-        // Saturday - Move to Monday
-        DayOfWeek.SATURDAY -> {
-            "Monday"
-        }
-        
-        // Sunday - Move to Tuesday
-        DayOfWeek.SUNDAY -> {
-            "Tuesday"
-        }
-    }
-}
-
-/**
- * Get the next allocation day name (Monday–Friday) when SIP/order allocation happens.
- * Used for "By [Day] 8 am: Allocation success" on mandate success.
- */
-fun getNextAllocationDayName(): String {
-    val now = kClockSystem.now().toLocalDateTime(TimeZone.currentSystemDefault())
-    val dayOfWeek = now.dayOfWeek
-
-    return when (dayOfWeek) {
-        DayOfWeek.MONDAY -> "Tuesday"
-        DayOfWeek.TUESDAY -> "Wednesday"
-        DayOfWeek.WEDNESDAY -> "Thursday"
-        DayOfWeek.THURSDAY -> "Friday"
-        DayOfWeek.FRIDAY, DayOfWeek.SATURDAY -> "Monday"
-        DayOfWeek.SUNDAY -> "Tuesday"
-    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -232,11 +158,6 @@ fun SipAmountScreenV2(
         }
     }
 
-    // Log fund details state changes
-    LaunchedEffect(fundDetailsState) {
-        platformLog("SipAmountScreenV2: Fund Details State Updated - fundName: '${fundDetailsState.fundDetails?.fundName ?: "null"}', isLoading: ${fundDetailsState.isLoading}")
-    }
-
     // Fetch userPurposeId and get investment limits - depends on effective values
     LaunchedEffect(effectiveUserId, effectiveGoalId) {
         if (effectiveUserId.isNotBlank() && effectiveGoalId.isNotBlank()) {
@@ -294,9 +215,14 @@ fun SipAmountScreenV2(
         }
     }
 
+    com.pyllar.consumer.util.BackHandler {
+        onNavigateBack()
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
+                modifier = Modifier.padding(top = 32.dp),
                 title = { Text("Set SIP Amount", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
@@ -318,16 +244,41 @@ fun SipAmountScreenV2(
                     }
                 }
             )
+        },
+        bottomBar = {
+            if (!limitsState.isLoading) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = { showDetailsBottomSheet = true },
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                        enabled = !isLoading,
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("Continue", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    }
+
+                    Text(
+                        "You can change or stop your SIP anytime.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+                }
+            }
         }
     ) { padding ->
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             if (limitsState.isLoading) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             } else {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(padding)
                         .verticalScroll(rememberScrollState())
                         .padding(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -469,23 +420,6 @@ fun SipAmountScreenV2(
                             }
                         )
                     }
-
-                    Spacer(modifier = Modifier.weight(1f))
-
-                    Button(
-                        onClick = { showDetailsBottomSheet = true },
-                        modifier = Modifier.fillMaxWidth().height(56.dp),
-                        enabled = !isLoading,
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text("Continue", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                    }
-                    
-                    Text(
-                        "You can change or stop your SIP anytime.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    )
                 }
             }
         }
@@ -515,7 +449,7 @@ fun SipAmountScreenV2(
                             onSipCreated(amount.toDouble(), result.mandateWrapper?.uri, result.mandateWrapper?.mandateId, result.mandateWrapper?.finMandateId)
                         }
                         is SipCreationResult.Failure -> {
-                            platformLog("SIP Creation failed: ${result.error}")
+                            platformLog("SIP Creation failed: ${result.message}")
                         }
                         else -> {}
                     }
@@ -880,6 +814,7 @@ fun calculateGoldReturns(dailyAmount: Double, years: Int, goalType: GoalType): D
         GoalType.GOLD -> 0.215
         GoalType.SILVER -> 0.295
         GoalType.SAVINGS -> 0.075
+        GoalType.SAVINGS_PLUS -> 0.075
         GoalType.GLOBAL_EXPOSURE -> 0.23
         else -> 0.10
     }
@@ -969,5 +904,45 @@ fun InvestingInCard(
                 }
             }
         }
+    }
+}
+
+fun identifyGoalType(goalId: String): GoalType {
+    if (goalId.isBlank()) return GoalType.OTHER
+
+    val lowerGoalId = goalId.lowercase()
+    return when {
+        lowerGoalId == "gold" || lowerGoalId.contains("gold") -> GoalType.GOLD
+        lowerGoalId == "silver" || lowerGoalId.contains("silver") -> GoalType.SILVER
+        lowerGoalId == "savings" || lowerGoalId == "saving" || lowerGoalId.contains("saving") -> GoalType.SAVINGS
+        lowerGoalId == "festival_spends" || lowerGoalId.contains("festival") -> GoalType.FESTIVAL_SPENDS
+        lowerGoalId == "all_in_one" || lowerGoalId.contains("all_in_one") || lowerGoalId.contains("all-in-one") -> GoalType.ALL_IN_ONE
+        lowerGoalId == "global_exposure" || lowerGoalId.contains("global_exposure") || lowerGoalId.contains("global-exposure") -> GoalType.GLOBAL_EXPOSURE
+        lowerGoalId == "savings_plus" || lowerGoalId.contains("savings_plus") || lowerGoalId.contains("savings-plus") -> GoalType.SAVINGS_PLUS
+        else -> GoalType.OTHER
+    }
+}
+
+fun getGoalDisplayName(goalType: GoalType): String {
+    return when (goalType) {
+        GoalType.GOLD -> "Gold"
+        GoalType.SILVER -> "Silver"
+        GoalType.SAVINGS -> "Savings"
+        GoalType.FESTIVAL_SPENDS -> "Festivals"
+        GoalType.ALL_IN_ONE -> "All-in-One"
+        GoalType.GLOBAL_EXPOSURE -> "Global Exposure"
+        GoalType.SAVINGS_PLUS -> "Savings Plus"
+        GoalType.OTHER -> "Goal"
+    }
+}
+
+fun getInvestmentStatus(): String {
+    val now = kClockSystem.now().toLocalDateTime(TimeZone.currentSystemDefault())
+    val dayOfWeek = now.dayOfWeek
+
+    return when (dayOfWeek) {
+        DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY -> "Tomorrow"
+        DayOfWeek.FRIDAY, DayOfWeek.SATURDAY -> "Monday"
+        DayOfWeek.SUNDAY -> "Tuesday"
     }
 }

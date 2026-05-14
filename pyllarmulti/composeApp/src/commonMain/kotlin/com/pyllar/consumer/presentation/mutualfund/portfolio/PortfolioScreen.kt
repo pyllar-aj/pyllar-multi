@@ -98,6 +98,7 @@ private fun PortfolioContent(portfolio: PortfolioResponse?) {
         verticalArrangement = Arrangement.spacedBy(12.dp),
         contentPadding = PaddingValues(vertical = 16.dp)
     ) {
+        item { Spacer(modifier = Modifier.height(32.dp)) }
         item {
             // Summary cards row
             Row(

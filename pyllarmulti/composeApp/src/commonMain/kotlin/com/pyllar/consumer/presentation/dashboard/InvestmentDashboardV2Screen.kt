@@ -93,6 +93,84 @@ fun InvestmentDashboardV2Screen(
     var showKycPendingBottomSheet by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
+    val scrollOffsetPx = with(androidx.compose.ui.platform.LocalDensity.current) { 100.dp.roundToPx() }
+
+    val hasMilestone = !dashboardState.isLoading && dashboardState.hasFirstMilestone && dashboardState.milestoneMessage.isNotBlank()
+    val isKycPending = dashboardState.kycStatus.equals("PENDING", ignoreCase = true) ||
+            dashboardState.kycStatus.equals("IN_PROGRESS", ignoreCase = true) ||
+            dashboardState.kycStatus.equals("EXPIRED", ignoreCase = true) ||
+            dashboardState.kycStatus.equals("REJECTED", ignoreCase = true)
+    val hasPendingMandates = dashboardState.fundDetails.any { 
+        it.mandateStatus?.contains("PENDING", ignoreCase = true) == true ||
+        it.mandateStatus?.contains("SUBMITTED", ignoreCase = true) == true
+    }
+    val hasStatusCard = !dashboardState.isLoading && (isKycPending || hasPendingMandates)
+
+    var scrollIndex = 2 // 0: UserHeader, 1: CombinedDashboardCard
+    if (hasMilestone) scrollIndex++
+    if (!dashboardState.isLoading) scrollIndex++ // StatusInfoCard slot
+    
+    val activeGoalsIndex = scrollIndex
+    
+    if (!dashboardState.isLoading && dashboardState.primaryGoals.isNotEmpty()) {
+        scrollIndex += 1 // Header text
+        scrollIndex += dashboardState.primaryGoals.size
+        scrollIndex += 1 // Promotion card
+    } else if (!dashboardState.isLoading) {
+        scrollIndex += 1 // Journey card
+    }
+    val nextGoalsIndex = scrollIndex
+
+    val nextGoals = (dashboardState.recommendedGoals + dashboardState.allGoals).filter { 
+        it.category.uppercase() !in listOf("RETIREMENT", "CHILDRENS_EDUCATION", "VACATION", "FESTIVAL_SPENDS", "SAVINGS") 
+    }
+
+    val handleGoalSelection: (String) -> Unit = { goalId ->
+        coroutineScope.launch {
+            isSelectingGoal = true
+            val result = viewModel.initGoalTxn(userId, goalId)
+            if (result is Resource.Success) {
+                onNavigateToGoal(goalId)
+            }
+            isSelectingGoal = false
+        }
+    }
+
+    val handleActiveGoalClick: (InvestmentGoal, Int) -> Unit = { goal, tabIndex ->
+        coroutineScope.launch {
+            isSelectingGoal = true
+            val result = viewModel.initGoalTxn(userId, goal.goalId)
+            if (result is Resource.Success) {
+                val response = result.data
+                if (response != null) {
+                    val params = SchemeDetailsParams(
+                        isin = goal.isin,
+                        folioNumber = goal.folioNo,
+                        schemeName = goal.schemeName,
+                        currentValue = goal.currentValue,
+                        investmentInProgress = goal.investmentInProgressValue,
+                        investedAmount = goal.investedAmount,
+                        goalName = goal.name,
+                        unitsInGm = goal.unitsInGm,
+                        category = goal.category,
+                        colorTheme = goal.colorTheme,
+                        profit = goal.profit,
+                        realizedProfit = goal.realizedProfit,
+                        unrealizedProfit = goal.unrealizedProfit,
+                        redeemableAmount = goal.redeemableAmount,
+                        redemptionInProgress = goal.redemptionInProgress,
+                        instantRedemptionValue = goal.instantRedemptionValue,
+                        selectedTab = tabIndex,
+                        userPurposeId = response.userPurposeId
+                    )
+                    SchemeDetailsParamsManager.set(params)
+                    sessionStore.saveValue("scheme_details_params_${goal.goalId}", SchemeDetailsParamsManager.toJson(params))
+                    onNavigateToSchemeDetails(goal.goalId)
+                }
+            }
+            isSelectingGoal = false
+        }
+    }
 
     LaunchedEffect(Unit) {
         PlatformAnalyticsLogger.logScreenView("InvestmentDashboardV2")
@@ -140,10 +218,8 @@ fun InvestmentDashboardV2Screen(
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                if (!dashboardState.isLoading && dashboardState.hasFirstMilestone && dashboardState.milestoneMessage.isNotBlank()) {
-                    item {
-                        MilestoneBanner(message = dashboardState.milestoneMessage)
-                    }
+                item {
+                    Spacer(modifier = Modifier.height(32.dp))
                 }
                 
                 item {
@@ -176,7 +252,21 @@ fun InvestmentDashboardV2Screen(
                     profitLossPercentage = dashboardState.profitLossPercentage,
                     goldUnitsInGm = goldGoal?.unitsInGm,
                     silverUnitsInGm = silverGoal?.unitsInGm,
-                    isLoading = dashboardState.isLoading
+                    isLoading = dashboardState.isLoading,
+                    onTotalClick = {
+                        coroutineScope.launch {
+                            val target = if (nextGoals.isNotEmpty()) nextGoalsIndex else if (dashboardState.primaryGoals.isNotEmpty()) activeGoalsIndex else 0
+                            if (target > 0) listState.animateScrollToItem(target, scrollOffset = scrollOffsetPx)
+                        }
+                    },
+                    onGoldClick = {
+                        if (goldGoal != null) handleActiveGoalClick(goldGoal, 0)
+                        else handleGoalSelection("gold")
+                    },
+                    onSilverClick = {
+                        if (silverGoal != null) handleActiveGoalClick(silverGoal, 0)
+                        else handleGoalSelection("silver")
+                    }
                 )
             }
 
@@ -203,73 +293,8 @@ fun InvestmentDashboardV2Screen(
                     PrimaryGoalCard(
                         goal = goal,
                         isLoading = false,
-                        onTopCardClick = {
-                            coroutineScope.launch {
-                                isSelectingGoal = true
-                                val result = viewModel.initGoalTxn(userId, goal.goalId)
-                                if (result is Resource.Success) {
-                                    val response = result.data
-                                    if (response != null) {
-                                        val params = SchemeDetailsParams(
-                                            isin = goal.isin,
-                                            folioNumber = goal.folioNo,
-                                            schemeName = goal.schemeName,
-                                            currentValue = goal.currentValue,
-                                            investmentInProgress = goal.investmentInProgressValue,
-                                            investedAmount = goal.investedAmount,
-                                            goalName = goal.name,
-                                            unitsInGm = goal.unitsInGm,
-                                            category = goal.category,
-                                            colorTheme = goal.colorTheme,
-                                            profit = goal.profit,
-                                            realizedProfit = goal.realizedProfit,
-                                            unrealizedProfit = goal.unrealizedProfit,
-                                            redeemableAmount = goal.redeemableAmount,
-                                            redemptionInProgress = goal.redemptionInProgress,
-                                            userPurposeId = response.userPurposeId
-                                        )
-                                        SchemeDetailsParamsManager.set(params)
-                                        sessionStore.saveValue("scheme_details_params_${goal.goalId}", SchemeDetailsParamsManager.toJson(params))
-                                        onNavigateToSchemeDetails(goal.goalId)
-                                    }
-                                }
-                                isSelectingGoal = false
-                            }
-                        },
-                        onBottomCardClick = {
-                            coroutineScope.launch {
-                                isSelectingGoal = true
-                                val result = viewModel.initGoalTxn(userId, goal.goalId)
-                                if (result is Resource.Success) {
-                                    val response = result.data
-                                    if (response != null) {
-                                        val params = SchemeDetailsParams(
-                                            isin = goal.isin,
-                                            folioNumber = goal.folioNo,
-                                            schemeName = goal.schemeName,
-                                            currentValue = goal.currentValue,
-                                            investmentInProgress = goal.investmentInProgressValue,
-                                            investedAmount = goal.investedAmount,
-                                            goalName = goal.name,
-                                            unitsInGm = goal.unitsInGm,
-                                            category = goal.category,
-                                            colorTheme = goal.colorTheme,
-                                            profit = goal.profit,
-                                            realizedProfit = goal.realizedProfit,
-                                            unrealizedProfit = goal.unrealizedProfit,
-                                            redeemableAmount = goal.redeemableAmount,
-                                            redemptionInProgress = goal.redemptionInProgress,
-                                            selectedTab = 1, // Open Active Plans tab
-                                            userPurposeId = response.userPurposeId
-                                        )
-                                        SchemeDetailsParamsManager.set(params)
-                                        sessionStore.saveValue("scheme_details_params_${goal.goalId}", SchemeDetailsParamsManager.toJson(params))
-                                        onNavigateToSchemeDetails(goal.goalId)
-                                    }
-                                }
-                                isSelectingGoal = false
-                            }
-                        }
+                        onTopCardClick = { handleActiveGoalClick(goal, 0) },
+                        onBottomCardClick = { handleActiveGoalClick(goal, 1) }
                     )
                 }
                 
@@ -281,9 +306,11 @@ fun InvestmentDashboardV2Screen(
                 // Show Journey Card if no goals
                 item {
                     StartInvestmentJourneyCard(
-                        onNeedHelpClick = { /* Handle WhatsApp */ },
+                        onNeedHelpClick = { platformActions.openWhatsApp("917676596301", "Hello, I need assistance with starting my investment journey.") },
                         onExploreClick = { 
-                            // Scroll to recommended goals or handle explore
+                            coroutineScope.launch {
+                                listState.animateScrollToItem(nextGoalsIndex, scrollOffset = scrollOffsetPx)
+                            }
                         }
                     )
                 }
@@ -303,17 +330,7 @@ fun InvestmentDashboardV2Screen(
                     item {
                         NextGoalsSection(
                             goals = nextGoals,
-                            onGoalClick = { goalId ->
-                                coroutineScope.launch {
-                                    isSelectingGoal = true
-                                    val result = viewModel.initGoalTxn(userId, goalId)
-                                    if (result is Resource.Success) {
-                                        platformLog("Dashboard: Goal click success. Navigating to goal: $goalId")
-                                        onNavigateToGoal(goalId)
-                                    }
-                                    isSelectingGoal = false
-                                }
-                            }
+                            onGoalClick = { goalId -> handleGoalSelection(goalId) }
                         )
                     }
                 }
@@ -490,7 +507,10 @@ fun CombinedDashboardCard(
     profitLossPercentage: Double,
     goldUnitsInGm: Double?,
     silverUnitsInGm: Double?,
-    isLoading: Boolean
+    isLoading: Boolean,
+    onTotalClick: () -> Unit = {},
+    onGoldClick: () -> Unit = {},
+    onSilverClick: () -> Unit = {}
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -510,6 +530,7 @@ fun CombinedDashboardCard(
                     modifier = Modifier
                         .weight(1f)
                         .background(Color(0xFFFFF9E6))
+                        .clickable { onGoldClick() }
                         .padding(vertical = 16.dp, horizontal = 8.dp),
                     contentAlignment = Alignment.Center
                 ) {
@@ -571,6 +592,7 @@ fun CombinedDashboardCard(
                     modifier = Modifier
                         .weight(1f)
                         .background(Color(0xFFFAFAFA))
+                        .clickable { onSilverClick() }
                         .padding(vertical = 16.dp, horizontal = 8.dp),
                     contentAlignment = Alignment.Center
                 ) {
@@ -633,6 +655,7 @@ fun CombinedDashboardCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(Color(0xFFC8E6C9))
+                    .clickable { onTotalClick() }
                     .padding(20.dp)
             ) {
                 Column(
@@ -1198,7 +1221,7 @@ fun SavingsPlusInfoDialog(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "You can withdraw up to ₹50,000 or 90% of your investment (whichever is lower) instantly, 24/7.",
+                            text = "You can withdraw up to ₹50,000 or 80% of your investment (whichever is lower) instantly, 24/7.",
                             style = MaterialTheme.typography.bodySmall,
                             color = Color(0xFF1B5E20).copy(alpha = 0.8f)
                         )
@@ -1468,6 +1491,12 @@ fun NextGoalCard(
                                     append("Investing ₹101 daily since Jan 2023 in Savings Plus grew to ")
                                     withStyle(SpanStyle(color = Color(0xFF2E7D32), fontWeight = FontWeight.Bold)) {
                                         append("~₹1.28 Lakhs")
+                                    }
+                                }
+                                "ALL_IN_ONE" -> {
+                                    append("Investing ₹101 daily since Jan 2023 in a multi-asset fund grew to ")
+                                    withStyle(SpanStyle(color = Color(0xFF2C4C9C), fontWeight = FontWeight.Bold)) {
+                                        append("~₹1.41 Lakhs")
                                     }
                                 }
                                 else -> append(goal.description)

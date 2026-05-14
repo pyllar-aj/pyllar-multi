@@ -101,7 +101,7 @@ fun SchemeDetailsV2Screen(
     val colorTheme = state.colorTheme ?: schemeParams?.colorTheme
 
     val goalType = identifyGoalType(category, displaySchemeName)
-    val accentColor = getCorrelationColorForCategory(category, colorTheme)
+    val accentColor = if (category?.uppercase() == "SILVER") Color.Black else getCorrelationColorForCategory(category, colorTheme)
 
     LaunchedEffect(Unit) {
         PlatformAnalyticsLogger.logScreenView("SchemeDetailsV2")
@@ -192,7 +192,68 @@ fun SchemeDetailsV2Screen(
     }
 
     Scaffold(
-        containerColor = Color.White
+        containerColor = Color.White,
+        bottomBar = {
+            if (!state.isLoading) {
+                Surface(
+                    color = Color.White,
+                    tonalElevation = 4.dp,
+                    shadowElevation = 8.dp
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        ActionButtonModuleV2(
+                            modifier = Modifier.weight(1f),
+                            text = stringResource(Res.string.add_money),
+                            icon = Icons.Default.Add,
+                            containerColor = accentColor,
+                            onClick = { handleAddFunds(purpose, true) }
+                        )
+                        ActionButtonModuleV2(
+                            modifier = Modifier.weight(1f),
+                            text = stringResource(Res.string.new_plan),
+                            icon = Icons.Default.FlashOn,
+                            containerColor = accentColor,
+                            onClick = { handleAddFunds(purpose, false) }
+                        )
+                        ActionButtonModuleV2(
+                            modifier = Modifier.weight(1f),
+                            text = stringResource(Res.string.withdraw),
+                            icon = if ((state.instantRedemptionValue ?: 0.0) > 0.0) Icons.Default.Bolt else Icons.Default.CallReceived,
+                            containerColor = accentColor,
+                            onClick = {
+                                val instantVal = state.instantRedemptionValue 
+                                    ?: schemeParams?.instantRedemptionValue 
+                                    ?: SchemeDetailsParamsManager.get()?.instantRedemptionValue
+
+                                val params = WithdrawInitParams(
+                                    isin = state.isin ?: "",
+                                    folio = state.folioNumber,
+                                    amount = state.currentValue,
+                                    investmentInProgress = state.investmentInProgress,
+                                    bankAccountNumber = "",
+                                    bankAccountIfscCode = "",
+                                    schemeName = displaySchemeName,
+                                    canWithdraw = state.canWithdraw,
+                                    redemptionInProgress = state.redemptionInProgress,
+                                    redeemableAmount = state.redeemableAmount,
+                                    instantRedemptionValue = instantVal
+                                )
+                                WithdrawParamsManager.set(params)
+                                scope.launch {
+                                    sessionStore.saveValue("withdraw_init_params", WithdrawParamsManager.toJson(params))
+                                }
+                                onNavigateToWithdraw(params)
+                            }
+                        )
+                    }
+                }
+            }
+        }
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
             if (state.isLoading) {
@@ -208,8 +269,8 @@ fun SchemeDetailsV2Screen(
                     onShowPlans = { showPlansView = true },
                     onShowTransactions = { showTransactionsView = true },
                     onShowDetails = { showDetailsPopup = true },
-                    onAddFunds = { handleAddFunds(purpose, false) },
-                    onLumpsum = { handleAddFunds(purpose, true) },
+                    onAddFunds = { /* Moved to bottomBar */ },
+                    onLumpsum = { /* Moved to bottomBar */ },
                     onWithdraw = {
                         val instantVal = state.instantRedemptionValue 
                             ?: schemeParams?.instantRedemptionValue 
@@ -431,11 +492,12 @@ fun MainContentV2(
     val gradient = getGradientForCategory(goalType)
     
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+        Spacer(modifier = Modifier.height(32.dp))
         // Premium Header
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(320.dp)
+                .height(280.dp)
                 .background(Brush.linearGradient(
                     colors = gradient,
                     start = Offset(0f, 0f),
@@ -444,7 +506,7 @@ fun MainContentV2(
         ) {
             Column(modifier = Modifier.fillMaxSize().padding(20.dp)) {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
+                    modifier = Modifier.fillMaxWidth().padding(top = 5.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -452,11 +514,14 @@ fun MainContentV2(
                         IconButton(onClick = onBack) {
                             Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.Black)
                         }
-                        Text(
-                            text = displayGoalName,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.Black
+                         Text(
+                            text = displayGoalName.uppercase(),
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontSize = 18.sp,
+                                letterSpacing = 1.sp
+                            ),
+                            fontWeight = FontWeight.Black,
+                            color = accentColor
                         )
                         
                         if ((state.instantRedemptionValue ?: 0.0) > 0.0) {
@@ -486,15 +551,20 @@ fun MainContentV2(
                             }
                         }
                     }
-                    val fundLogo = getFundLogo(state.schemeName ?: displaySchemeName)
-                    Image(
-                        painter = painterResource(fundLogo),
-                        contentDescription = "Fund Logo",
+                    Box(
                         modifier = Modifier
                             .height(40.dp)
                             .clickable { onFundDetails() }
-                            .padding(end = 4.dp)
-                    )
+                            .padding(horizontal = 8.dp)
+                    ) {
+                        val fundLogo = getFundLogo(state.schemeName ?: displaySchemeName)
+                        Image(
+                            painter = painterResource(fundLogo),
+                            contentDescription = "Fund Logo",
+                            modifier = Modifier.fillMaxHeight(),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Fit
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(20.dp))
@@ -580,8 +650,8 @@ fun MainContentV2(
                 contentDescription = null,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .size(200.dp)
-                    .offset(x = 40.dp, y = 20.dp)
+                    .size(130.dp)
+                    .padding(end = 20.dp, bottom = 16.dp)
                     .alpha(0.8f)
             )
         }
@@ -696,38 +766,8 @@ fun MainContentV2(
                 )
                 Spacer(modifier = Modifier.weight(1f))
             }
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // Action Buttons
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                ActionButtonModuleV2(
-                    modifier = Modifier.weight(1f),
-                    text = stringResource(Res.string.add_money),
-                    icon = Icons.Default.Add,
-                    containerColor = accentColor,
-                    onClick = onLumpsum
-                )
-                ActionButtonModuleV2(
-                    modifier = Modifier.weight(1f),
-                    text = stringResource(Res.string.new_plan),
-                    icon = Icons.Default.FlashOn,
-                    containerColor = accentColor,
-                    onClick = onAddFunds
-                )
-                ActionButtonModuleV2(
-                    modifier = Modifier.weight(1f),
-                    text = stringResource(Res.string.withdraw),
-                    icon = if ((state.instantRedemptionValue ?: 0.0) > 0.0) Icons.Default.Bolt else Icons.Default.CallReceived,
-                    containerColor = accentColor,
-                    onClick = onWithdraw
-                )
-            }
             
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }
@@ -833,14 +873,21 @@ fun ActionButtonModuleV2(
         color = containerColor,
         shape = RoundedCornerShape(20.dp)
     ) {
-        Row(
+        Column(
             modifier = Modifier.fillMaxSize(),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
             Icon(imageVector = icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(text = text.uppercase(), style = MaterialTheme.typography.labelLarge, color = Color.White, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = text.uppercase(),
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                color = Color.White,
+                fontWeight = FontWeight.Black,
+                letterSpacing = 0.5.sp,
+                textAlign = TextAlign.Center
+            )
         }
     }
 }
@@ -1094,7 +1141,7 @@ fun SchemeDetailsPopupContentV2(
     val isGoldOrSilver = goalType == GoalType.GOLD || goalType == GoalType.SILVER
     val isEstimatedGold = goalType == GoalType.GOLD
 
-    val accentColor = getCorrelationColorForCategory(state.category, state.colorTheme)
+    val accentColor = if (state.category?.uppercase() == "SILVER") Color.Black else getCorrelationColorForCategory(state.category, state.colorTheme)
     
     var showPopupGoldInfo by remember { mutableStateOf(false) }
     var showPopupSilverInfo by remember { mutableStateOf(false) }
@@ -1324,15 +1371,6 @@ fun SchemeDetailsPopupContentV2(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
-            Button(
-                onClick = onInvestMore,
-                modifier = Modifier.fillMaxWidth().height(56.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = accentColor)
-            ) {
-                Text(stringResource(Res.string.add_money).uppercase(), fontWeight = FontWeight.Bold)
-            }
         }
     }
 }
@@ -1704,6 +1742,11 @@ fun getGradientForCategory(goalType: GoalType): List<Color> {
         GoalType.GOLD -> listOf(Color(0xFFFFF9E6), Color(0xFFFFE8B8))
         GoalType.SILVER -> listOf(Color(0xFFF5F5F5), Color(0xFFE8E8E8))
         GoalType.SAVINGS, GoalType.SAVINGS_PLUS -> listOf(Color(0xFFE8F5E9), Color(0xFFA5D6A7))
+        GoalType.FESTIVAL_SPENDS -> listOf(Color(0xFFFFF5F5), Color(0xFFFFD7B5))
+        GoalType.CHILDRENS_EDUCATION -> listOf(Color(0xFFF5F9FF), Color(0xFFEBF3FF))
+        GoalType.VACATION -> listOf(Color(0xFFFDF5FF), Color(0xFFF8EBFF))
+        GoalType.GLOBAL_EXPOSURE -> listOf(Color(0xFFE0F2F1), Color(0xFFF3E5F5))
+        GoalType.ALL_IN_ONE -> listOf(Color(0xFFE8EAF6), Color(0xFF9FA8DA))
         else -> listOf(Color(0xFFF5F5F5), Color(0xFFE0E0E0))
     }
 }

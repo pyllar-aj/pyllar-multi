@@ -125,7 +125,7 @@ fun OtpVerificationScreen(
             onClick = onNavigateBack,
             modifier = Modifier
                 .align(Alignment.TopStart)
-                .padding(16.dp)
+                .padding(top = 48.dp, start = 16.dp, end = 16.dp)
         ) {
             Text(text = "Back", color = Color.White, style = MaterialTheme.typography.labelLarge)
         }
@@ -134,7 +134,7 @@ fun OtpVerificationScreen(
         Row(
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(8.dp),
+                .padding(top = 40.dp, end = 8.dp),
             horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically
         ) {

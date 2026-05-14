@@ -206,6 +206,7 @@ fun InitialDashboardScreen(
     }
 
     Column(modifier = Modifier.fillMaxSize().background(AppBackground)) {
+        Spacer(modifier = Modifier.height(32.dp))
         // Share, Help at top right (fixed at top)
         Row(
             modifier = Modifier

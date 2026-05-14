@@ -54,6 +54,7 @@ fun LumpsumPurchaseAuthScreen(
     paymentRef: Long = 0L,
     goalId: String = "",
     onNavigateToHelp: () -> Unit = {},
+    onNavigateBack: () -> Unit = {},
     onGoToHome: () -> Unit = {},
     viewModel: LumpsumPurchaseAuthViewModel = koinInject(),
     platformActions: PlatformActions = koinInject()
@@ -66,8 +67,8 @@ fun LumpsumPurchaseAuthScreen(
     
     val isFinalStatus = uiState.status != PurchaseStatus.PENDING || uiState.errorMessage != null
     
-    BackHandler(enabled = !isFinalStatus) {
-        // Disable back during active flow
+    BackHandler(enabled = false) {
+        // Allow back as requested
     }
 
     var availableUpiApps by remember { mutableStateOf<List<UpiAppInfo>>(emptyList()) }
@@ -109,7 +110,7 @@ fun LumpsumPurchaseAuthScreen(
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = tealPrimaryDark),
                 navigationIcon = {
                     if (!isFinalStatus) {
-                        IconButton(onClick = { /* Handle back if allowed */ }) {
+                        IconButton(onClick = onNavigateBack) {
                             Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
                         }
                     }

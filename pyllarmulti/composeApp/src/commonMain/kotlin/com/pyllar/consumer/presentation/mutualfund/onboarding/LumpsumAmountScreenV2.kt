@@ -159,7 +159,8 @@ fun LumpsumAmountScreenV2(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 2.dp),
+                    .padding(horizontal = 8.dp)
+                    .padding(top = 32.dp, bottom = 2.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -490,6 +491,15 @@ fun LumpsumAmountScreenV2(
             kycStatus = dashboardState.kycStatus
         )
     }
+
+    if (isInitTxnLoading || fundDetailsState.isLoading) {
+        Box(
+            modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.3f)),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(color = Color.White)
+        }
+    }
 }
 
 @Composable
@@ -556,7 +566,7 @@ private fun LumpsumStackedBarChart(years: List<Int>, projectedAmounts: List<Doub
             val interestColor = when (goalType) {
                 GoalType.GOLD -> Color(0xFFFFC107)
                 GoalType.SILVER -> Color(0xFFB0BEC5)
-                GoalType.SAVINGS -> Color(0xFFC1E8C2)
+                GoalType.SAVINGS_PLUS -> Color(0xFFC1E8C2)
                 else -> Color(0xFF78CDEB)
             }
             val isSelected = year == selectedYear
@@ -582,6 +592,7 @@ private fun calculateLumpsumFutureValue(oneTimeAmount: Double, years: Int, goalT
     val annualRate = when {
         goalType == GoalType.GOLD -> when (years) { 1 -> 0.754; 3 -> 0.342; 5 -> 0.221; 7 -> 0.215; else -> 0.215 }
         goalType == GoalType.SILVER -> when (years) { 1 -> 1.582; 3 -> 0.435; 5 -> 0.341; 7 -> 0.295; else -> 0.295 }
+        goalType == GoalType.SAVINGS_PLUS -> 0.075
         goalType == GoalType.SAVINGS -> 0.075
         goalType == GoalType.FESTIVAL_SPENDS -> 0.075
         goalType == GoalType.GLOBAL_EXPOSURE -> 0.23

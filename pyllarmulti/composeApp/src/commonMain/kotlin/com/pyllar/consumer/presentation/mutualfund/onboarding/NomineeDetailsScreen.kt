@@ -43,6 +43,7 @@ import com.pyllar.otp.OtpField
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import pyllar.composeapp.generated.resources.*
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 
@@ -146,9 +147,9 @@ fun NomineeDetailsScreen(
     }
 
     // Relationship mapping
-    val relationshipOptions = listOf("father", "mother", "spouse", "son", "daughter", "brother", "sister", "other")
+    val relationshipOptions = listOf("father", "mother", "spouse", "son", "daughter", "brother", "sister", "others")
     val relationshipDisplay = relationshipOptions.associateWith { 
-        it.replaceFirstChar { char -> char.uppercaseChar() } 
+        if (it == "others") "Others" else it.replaceFirstChar { char -> char.uppercaseChar() } 
     }
 
     if (!isInitialized) {
@@ -327,7 +328,10 @@ fun NomineeDetailsScreen(
                         if (isSubmitting) {
                             CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White, strokeWidth = 2.dp)
                         } else {
-                            Text("Submit Details", fontWeight = FontWeight.Bold)
+                            Text(
+                                if (!skipAddingNominee) "Submit" else "Continue", 
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
                     Spacer(modifier = Modifier.height(32.dp))
@@ -421,7 +425,7 @@ private fun NomineeFormSection(
                     }
                 }
             },
-            label = { Text("PAN Number") },
+            label = { Text("Enter PAN Number") },
             modifier = Modifier.fillMaxWidth().bringIntoViewRequester(panBringIntoViewRequester),
             keyboardOptions = KeyboardOptions(
                 capitalization = KeyboardCapitalization.Characters,
@@ -438,7 +442,7 @@ private fun NomineeFormSection(
 
         // Relationship
         ExposedDropdownFieldWithDisplay(
-            label = "Relationship",
+            label = "Nominee's relationship to you",
             selected = nominee.relationship,
             options = relationshipOptions,
             displayMap = relationshipDisplay,
@@ -449,7 +453,7 @@ private fun NomineeFormSection(
         OutlinedTextField(
             value = nominee.dateOfBirth,
             onValueChange = { onUpdate(nominee.copy(dateOfBirth = it)) },
-            label = { Text("Date of Birth (YYYY-MM-DD)") },
+            label = { Text("Nominee Date of Birth") },
             modifier = Modifier.fillMaxWidth(),
             readOnly = true,
             trailingIcon = { 
@@ -515,6 +519,14 @@ private fun OtpVerificationBottomSheet(
             onOtpComplete = { 
                 // Don't auto-submit to match Android UX
             }
+        )
+
+        Text(
+            text = org.jetbrains.compose.resources.stringResource(Res.string.otp_consent_message),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
         )
 
         TextButton(

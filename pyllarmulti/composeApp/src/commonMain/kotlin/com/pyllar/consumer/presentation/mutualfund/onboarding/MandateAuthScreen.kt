@@ -67,9 +67,9 @@ fun MandateAuthScreen(
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     var upiAppClicked by remember { mutableStateOf(false) }
     
-    // Disable back button during active transaction
-    BackHandler(enabled = upiAppClicked || (uiState.mandateStatus != null && uiState.mandateStatus != MandateStatus.APPROVED)) {
-        // Do nothing or show a toast "Please wait while we verify your mandate"
+    // Allow back button as requested
+    BackHandler(enabled = false) {
+        // Do nothing
     }
     var availableUpiApps by remember { mutableStateOf<List<UpiAppInfo>>(emptyList()) }
     var showMoreUpiAppsSheet by remember { mutableStateOf(false) }

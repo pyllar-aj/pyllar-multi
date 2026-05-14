@@ -34,6 +34,7 @@ import com.pyllar.otp.OtpField
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import pyllar.composeapp.generated.resources.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -340,6 +341,14 @@ fun WithdrawAmountScreen(
                                 onOtpChange = { otpCode = it; otpValidationError = null },
                                 onOtpComplete = {},
                                 isError = otpValidationError != null
+                            )
+
+                            Text(
+                                text = org.jetbrains.compose.resources.stringResource(Res.string.otp_consent_message),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
                             )
 
                             if (otpValidationError != null) {

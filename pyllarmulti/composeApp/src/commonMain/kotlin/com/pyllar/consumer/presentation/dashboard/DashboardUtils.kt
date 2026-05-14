@@ -29,7 +29,7 @@ fun getCorrelationColorForCategory(category: String?, colorTheme: String?): Colo
         "SAVINGS" -> Color(0xFF388E3C) // Green
         "SAVINGS_PLUS" -> Color(0xFF2E7D32) // Emerald Green
         "GLOBAL_EXPOSURE" -> Color(0xFF00897B) // Teal
-        "ALL_IN_ONE" -> Color(0xFF1A237E) // Dark blue
+        "ALL_IN_ONE" -> Color(0xFF2C4C9C) // Dark blue
         else -> Color(0xFF4CAF50) // Default green
     }
 }
@@ -43,7 +43,7 @@ fun getBorderColorForCategory(category: String?): Color {
         "VACATION" -> Color(0xFF9C27B0)
         "SAVINGS" -> Color(0xFF4CAF50)
         "GLOBAL_EXPOSURE" -> Color(0xFF00897B)
-        "ALL_IN_ONE" -> Color(0xFF3F51B5) // Indigo/Blue
+        "ALL_IN_ONE" -> Color(0xFF2C4C9C) // Match correlation dark blue
         else -> Color(0xFF4CAF50)
     }
 }
@@ -99,9 +99,11 @@ fun getGoalGradientColors(category: String?, colorTheme: String?): List<Color> {
             Color(0xFFF3E5F5)
         )
         "ALL_IN_ONE" -> listOf(
-            Color(0xFFE8EAF6), // Very light indigo
-            Color(0xFFC5CAE9), // Light indigo
-            Color(0xFF9FA8DA)  // Soft indigo
+            Color(0xFF95A5CD), // Muted blue
+            Color(0xFFF0F8FF), // AliceBlue
+            Color(0xFFF0FFF0), // HoneyDew
+            Color(0xFFFFF8DC), // Cornsilk
+            Color(0xFFE6E6FA)  // Lavender
         )
         else -> listOf(
             Color.White,
@@ -120,7 +122,7 @@ fun getIconBackgroundColorForCategory(category: String?, colorTheme: String?): C
         "SAVINGS" -> Color(0xFFC8E6C9) // Light green
         "SAVINGS_PLUS" -> Color(0xFFA5D6A7) // Emerald tint
         "GLOBAL_EXPOSURE" -> Color(0xFFB2DFDB) // Light teal
-        "ALL_IN_ONE" -> Color(0xFFC5CAE9) // Light indigo
+        "ALL_IN_ONE" -> Color(0xFFD4DBEB) // Light blue-gray
         else -> Color(0xFFC8E6C9) // Default light green
     }
 }

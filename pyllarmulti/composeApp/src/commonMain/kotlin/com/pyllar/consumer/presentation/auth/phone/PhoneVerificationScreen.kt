@@ -277,7 +277,8 @@ fun PhoneVerificationScreen(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 48.dp)
+                .padding(horizontal = 24.dp)
+                .padding(top = 80.dp, bottom = 48.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),

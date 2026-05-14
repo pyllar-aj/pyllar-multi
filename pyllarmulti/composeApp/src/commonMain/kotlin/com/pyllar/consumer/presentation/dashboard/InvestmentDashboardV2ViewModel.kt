@@ -386,7 +386,7 @@ class InvestmentDashboardV2ViewModel(
             if (goalId in activeGoalIds) return@mapNotNull null
             
             // Filter out specific goals from recommendations as per user request
-            if (goalId == "festival_spends" || goalId == "childrens_education" || goalId == "vacation") {
+            if (goalId == "retirement" || goalId == "festival_spends" || goalId == "childrens_education" || goalId == "vacation" || goalId == "savings") {
                 return@mapNotNull null
             }
 
@@ -842,6 +842,24 @@ class InvestmentDashboardV2ViewModel(
                 colorTheme = "silver",
                 actionButtonText = "Start Investing",
                 targetDate = calculateTargetDate(360)
+            ),
+            InvestmentGoal(
+                goalId = "savings_plus",
+                name = "Savings Plus",
+                description = "Premium savings with instant liquidity",
+                iconType = "⚡",
+                targetAmount = 100000.0,
+                investedAmount = 0.0,
+                currentValue = 0.0,
+                returnsPercentage = 0.0,
+                progressPercentage = 0.0,
+                timeRemainingMonths = 37,
+                recommendedMonthlyAmount = 2424.0,
+                recommendedDailyAmount = 101.0,
+                category = "SAVINGS_PLUS",
+                colorTheme = "teal",
+                actionButtonText = "Start Planning",
+                targetDate = calculateTargetDate(37)
             ),
             InvestmentGoal(
                 goalId = "savings",

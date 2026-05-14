@@ -14,7 +14,7 @@
     <string name="g_label"> g</string>
     <string name="share">Share</string>
     <string name="help">Help</string>
-    <string name="lets_set_things_up">Let\'s set things up!</string>
+    <string name="lets_set_things_up">Let's set things up!</string>
     <string name="permissions_description">We need a few permissions to provide you the best experience.</string>
     <string name="notification_permission">Notification permission</string>
     <string name="notification_description">Get updates about your investments and important offers.</string>
@@ -99,4 +99,12 @@
     <string name="will_be_credited_within_30_mins">Money will be credited to your bank account within 30 minutes.</string>
     <string name="will_be_credited_within_days">₹%1$s will be credited to your bank account within 2 business days.</string>
     <string name="go_to_home">Go to Home</string>
+    <string name="otp_consent_message">By entering this OTP, I allow Pyllar Fintech Private Limited to place mutual fund orders on my behalf.</string>
+    <string name="pan_fetch_otp_consent_message">By entering this OTP, I authorise Pyllar Fintech Private Limited to fetch my PAN details.</string>
+    <string name="terms_privacy_message">By proceeding, I agree to Pyllar\'s T&amp;C and Privacy Policy</string>
+    <string name="riskometer">RISKOMETER</string>
+    <string name="scheme_documents">Scheme Documents</string>
+    <string name="disclaimer">Disclaimer</string>
+    <string name="disclaimer_popup_content">Mutual Funds investments are subject to market risks, read all scheme-related documents careruliy. Past performance is not an indicator for future returns.\n\nThe figures have been calculated based on historic returns of this fund.</string>
+    <string name="amfi_disclaimer">Pyllar Fintech Private Limited is an AMFI registered Mutual Fund distributor (ARN No: 341847)</string>
 </resources>

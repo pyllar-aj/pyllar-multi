@@ -92,6 +92,7 @@ fun WithdrawScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                modifier = Modifier.padding(top = 32.dp),
                 title = { Text("Withdraw Funds", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
@@ -140,7 +141,7 @@ fun WithdrawScreen(
                         .padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    item { Spacer(modifier = Modifier.height(16.dp)) }
+                    item { Spacer(modifier = Modifier.height(32.dp)) }
 
                     // Selected Goal Info Card
                     if (selectedGoal != null) {

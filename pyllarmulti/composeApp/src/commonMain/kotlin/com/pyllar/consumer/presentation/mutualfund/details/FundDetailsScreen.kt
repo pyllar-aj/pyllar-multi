@@ -122,6 +122,7 @@ fun FundDetailsScreen(
                             .padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(24.dp)
                     ) {
+                        Spacer(modifier = Modifier.height(32.dp))
                         FundHeader(details.fundName ?: "", details.category ?: "")
                         
                         FundChartSection(
