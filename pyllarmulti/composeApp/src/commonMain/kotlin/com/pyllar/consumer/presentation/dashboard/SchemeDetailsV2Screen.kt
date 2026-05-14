@@ -492,7 +492,7 @@ fun MainContentV2(
     val gradient = getGradientForCategory(goalType)
     
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(25.dp))
         // Premium Header
         Box(
             modifier = Modifier
