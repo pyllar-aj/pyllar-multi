@@ -24,8 +24,10 @@ class IosDeviceInfoProvider : DeviceInfoProvider {
     }
 }
 
+import com.pyllar.consumer.push.PushTokenManager
+
 class IosPushTokenProvider : PushTokenProvider {
-    override suspend fun getPushToken(): String? = null
+    override suspend fun getPushToken(): String? = PushTokenManager.getPushToken()
 }
 
 class IosAnalyticsTracker : AnalyticsTracker {
