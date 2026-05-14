@@ -11,7 +11,8 @@ data class WithdrawalData(
     val userId: String,
     val schemeId: String,
     val isin: String,
-    val folio: String?
+    val folio: String?,
+    val mode: String = "NORMAL"
 )
 
 object WithdrawalDataManager {

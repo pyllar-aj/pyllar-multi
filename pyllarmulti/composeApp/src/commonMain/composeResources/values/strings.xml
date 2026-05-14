@@ -84,4 +84,19 @@
     <string name="internal_units_gold">Internal units that represent your gold holding</string>
     <string name="internal_units_silver">Internal units that represent your silver holding</string>
     <string name="internal_units_generic">Internal units that represent your holding</string>
+    <string name="in_motion">IN MOTION</string>
+    <string name="withdrawal_in_progress_title">Withdrawal in progress</string>
+    <string name="will_be_credited_in_days_approx">Will be credited in 2-3 days</string>
+    <string name="instant_redeem">Instant Redeem</string>
+    <string name="instant_withdrawal">Instant withdrawal</string>
+    <string name="instant_withdrawal_subtitle">Money in your bank in seconds</string>
+    <string name="instant_limit_text">Up to 80% can be withdrawn instantly. Transfers may take up to 30 minutes.</string>
+    <string name="eighty_percent_of_balance">80% of balance</string>
+    <string name="regular_withdrawal">Regular Withdrawal</string>
+    <string name="regular_withdrawal_subtitle">Credited in 1-2 business days</string>
+    <string name="withdrawal_initiated">Withdrawal initiated</string>
+    <string name="withdrawal_success_title">Withdrawal Success</string>
+    <string name="will_be_credited_within_30_mins">Money will be credited to your bank account within 30 minutes.</string>
+    <string name="will_be_credited_within_days">₹%1$s will be credited to your bank account within 2 business days.</string>
+    <string name="go_to_home">Go to Home</string>
 </resources>

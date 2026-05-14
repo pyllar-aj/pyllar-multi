@@ -18,6 +18,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.material.icons.filled.Schedule
+import org.jetbrains.compose.resources.stringResource
+import pyllar.composeapp.generated.resources.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,25 +33,12 @@ fun WithdrawSuccessScreen(
     bankAccountLast4: String,
     transactionId: String,
     folio: String?,
+    redemptionMode: String = "NORMAL",
     onNavigateToHome: () -> Unit
 ) {
     val scrollState = rememberScrollState()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Withdrawal Initiated",
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
-            )
-        }
-    ) { paddingValues ->
+    Scaffold { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -54,54 +46,101 @@ fun WithdrawSuccessScreen(
                 .verticalScroll(scrollState)
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+            verticalArrangement = Arrangement.spacedBy(32.dp)
         ) {
-            // Success Icon
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.Center
+            // Withdrawal Success Badge
+            Surface(
+                shape = RoundedCornerShape(50),
+                color = Color(0xFFE8F5E9).copy(alpha = 0.5f),
+                border = BorderStroke(1.dp, Color(0xFF4CAF50).copy(alpha = 0.3f)),
+                modifier = Modifier.padding(top = 16.dp)
             ) {
-                Surface(
-                    modifier = Modifier.size(80.dp),
-                    shape = CircleShape,
-                    color = Color(0xFF4CAF50)
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(40.dp)
-                        )
-                    }
+                        modifier = Modifier
+                            .size(8.dp)
+                            .background(Color(0xFF4CAF50), CircleShape)
+                    )
+                    Text(
+                        text = stringResource(Res.string.withdrawal_success_title).uppercase(),
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            letterSpacing = 0.5.sp
+                        ),
+                        color = Color(0xFF4CAF50)
+                    )
                 }
             }
 
-            // Main Title
-            Text(
-                text = "Withdrawal of \u20B9${formatIndian(withdrawalAmount)} initiated",
-                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center
-            )
+            // Success Icon Section
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.padding(top = 8.dp)
+            ) {
+                // Outer glow
+                Surface(
+                    modifier = Modifier.size(100.dp),
+                    shape = CircleShape,
+                    color = Color(0xFFE8F5E9).copy(alpha = 0.5f)
+                ) {}
+                
+                // Inner green circle with checkmark
+                Surface(
+                    modifier = Modifier.size(64.dp),
+                    shape = CircleShape,
+                    color = Color(0xFF4CAF50)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+            }
 
-            // Transaction Details
+            // Amount and Subtext
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = "₹${formatIndian(withdrawalAmount)}",
+                    style = MaterialTheme.typography.displayLarge.copy(
+                        fontWeight = FontWeight.Medium
+                    ),
+                    color = Color.Black
+                )
+                Text(
+                    text = stringResource(Res.string.withdrawal_initiated),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.Gray
+                )
+            }
+
+            // Transaction Details Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                shape = RoundedCornerShape(12.dp)
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFF9F9F9)),
+                shape = RoundedCornerShape(20.dp),
+                border = BorderStroke(1.dp, Color(0xFFF0F0F0))
             ) {
                 Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    modifier = Modifier.padding(vertical = 8.dp)
                 ) {
                     TransactionDetailRow(
                         label = "Withdrawing Amount",
-                        value = "\u20B9${formatIndian(withdrawalAmount)}"
+                        value = "₹${formatIndian(withdrawalAmount)}"
+                    )
+                    
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        thickness = 1.dp,
+                        color = Color(0xFFEEEEEE)
                     )
 
                     if (folio != null) {
@@ -109,89 +148,59 @@ fun WithdrawSuccessScreen(
                             label = "Folio Number",
                             value = folio
                         )
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            thickness = 1.dp,
+                            color = Color(0xFFEEEEEE)
+                        )
                     }
 
                     TransactionDetailRow(
-                        label = "Status",
-                        value = "In Progress",
-                        valueColor = Color(0xFF2196F3)
+                        label = "Transaction ID",
+                        value = transactionId
                     )
                 }
             }
 
-            // Processing Information
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFE3F2FD)),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                shape = RoundedCornerShape(12.dp)
+            // Status Information Section
+            Column(
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                // Credit status
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = Color(0xFFF5F5F5).copy(alpha = 0.6f),
+                    shape = RoundedCornerShape(16.dp),
+                    border = BorderStroke(1.dp, Color(0xFFE0E0E0).copy(alpha = 0.6f))
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Check,
-                        contentDescription = null,
-                        tint = Color(0xFF2196F3),
-                        modifier = Modifier.size(20.dp)
-                    )
-
-                    Text(
-                        text = "Your withdrawal will be processed within 1-2 business days.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
-
-            // Credit Status Section
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFF9F9F9)),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        text = "Credit Status",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.padding(12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Surface(
-                            modifier = Modifier.size(24.dp),
+                            modifier = Modifier.size(36.dp),
                             shape = CircleShape,
-                            color = Color(0xFF9E9E9E)
+                            color = Color(0xFFE0E0E0)
                         ) {
-                            Box(
-                                contentAlignment = Alignment.Center,
-                                modifier = Modifier.fillMaxSize()
-                            ) {
+                            Box(contentAlignment = Alignment.Center) {
                                 Icon(
-                                    imageVector = Icons.Default.Check,
+                                    imageVector = Icons.Default.Schedule,
                                     contentDescription = null,
-                                    tint = Color.White,
-                                    modifier = Modifier.size(12.dp)
+                                    tint = Color.Gray,
+                                    modifier = Modifier.size(18.dp)
                                 )
                             }
                         }
-
                         Text(
-                            text = "\u20B9${formatIndian(withdrawalAmount)} will be credited to your bank account.",
+                            text = if (redemptionMode == "INSTANT") {
+                                stringResource(Res.string.will_be_credited_within_30_mins)
+                            } else {
+                                stringResource(Res.string.will_be_credited_within_days, formatIndian(withdrawalAmount))
+                            },
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = Color.Gray,
+                            modifier = Modifier.weight(1f)
                         )
                     }
                 }
@@ -221,7 +230,7 @@ fun WithdrawSuccessScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Go to Home",
+                        text = stringResource(Res.string.go_to_home),
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.titleMedium
                     )

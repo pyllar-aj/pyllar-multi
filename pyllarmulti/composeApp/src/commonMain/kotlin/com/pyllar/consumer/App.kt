@@ -69,7 +69,8 @@ sealed class Screen {
         val bankName: String,
         val bankAccountLast4: String,
         val transactionId: String,
-        val folio: String?
+        val folio: String?,
+        val redemptionMode: String = "NORMAL"
     ) : Screen()
     data class FundDetails(val isin: String, val userId: String, val goalId: String, val sipAmount: Double, val kycAttemptId: String = "", val investorId: String = "", val fromSipAmount: Boolean = false) : Screen()
     data class SipAmountV2(val userId: String, val kycAttemptId: String, val investorId: String, val goalId: String, val fromDashboard: Boolean = false, val isExistingInvestment: Boolean = false) : Screen()
@@ -622,7 +623,8 @@ fun App() {
                                 bankName = data.bankName,
                                 bankAccountLast4 = data.bankAccountLast4,
                                 transactionId = data.transactionId,
-                                folio = data.folio
+                                folio = data.folio,
+                                redemptionMode = data.mode
                             ))
                         } else {
                             // Fallback if data is missing
@@ -639,6 +641,7 @@ fun App() {
                     bankAccountLast4 = screen.bankAccountLast4,
                     transactionId = screen.transactionId,
                     folio = screen.folio,
+                    redemptionMode = screen.redemptionMode,
                     onNavigateToHome = {
                         navigateTo(Screen.InvestmentDashboard(screen.userId), clearStack = true)
                     }

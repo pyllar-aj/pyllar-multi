@@ -149,7 +149,8 @@ fun WithdrawAmountScreen(
                     userId = userId,
                     schemeId = selectedSchemeId ?: "",
                     isin = selectedScheme?.isin ?: "",
-                    folio = selectedScheme?.folioNo
+                    folio = selectedScheme?.folioNo,
+                    mode = withdrawMode ?: "NORMAL"
                 )
             )
             

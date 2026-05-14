@@ -458,6 +458,33 @@ fun MainContentV2(
                             fontWeight = FontWeight.Bold,
                             color = Color.Black
                         )
+                        
+                        if ((state.instantRedemptionValue ?: 0.0) > 0.0) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Surface(
+                                color = Color(0xFFE8F5E9),
+                                shape = RoundedCornerShape(12.dp),
+                                border = BorderStroke(1.dp, Color(0xFF4CAF50).copy(alpha = 0.3f))
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Bolt,
+                                        contentDescription = null,
+                                        tint = Color(0xFFFFC107),
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Text(
+                                        text = stringResource(Res.string.instant_redeem),
+                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                        color = Color(0xFF2E7D32)
+                                    )
+                                }
+                            }
+                        }
                     }
                     val fundLogo = getFundLogo(state.schemeName ?: displaySchemeName)
                     Image(
@@ -530,15 +557,6 @@ fun MainContentV2(
                         val s = it.status?.uppercase().orEmpty()
                         (s.contains("ACTIVE") || s.contains("APPROVED")) && !s.contains("PAUSED")
                     }
-                    if (activeMandates.isNotEmpty()) {
-                        val totalDaily = activeMandates.sumOf { it.amount }
-                        StatusPill(
-                            text = stringResource(Res.string.saving_amount_freq, formatIndian(totalDaily), "daily"),
-                            backgroundColor = Color.White.copy(alpha = 0.4f),
-                            contentColor = Color.Black,
-                            icon = Icons.Default.Check
-                        )
-                    }
                     if (state.investmentInProgress > 0) {
                         StatusPill(
                             text = "₹${formatIndian(state.investmentInProgress)} processing",
@@ -584,6 +602,63 @@ fun MainContentV2(
                     gain = state.totalGain,
                     subtext = "Current value"
                 )
+            }
+
+            if (state.redemptionInProgress > 0) {
+                Spacer(modifier = Modifier.height(24.dp))
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    shape = RoundedCornerShape(16.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                    border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.3f))
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = stringResource(Res.string.in_motion),
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = 1.sp
+                            ),
+                            color = Color.Gray.copy(alpha = 0.8f)
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .background(accentColor.copy(alpha = 0.1f), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Schedule,
+                                    contentDescription = null,
+                                    tint = accentColor,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = stringResource(Res.string.withdrawal_in_progress_title),
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
+                                )
+                                Text(
+                                    text = stringResource(Res.string.will_be_credited_in_days_approx),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color.Gray
+                                )
+                            }
+                            Text(
+                                text = "₹${formatIndian(state.redemptionInProgress)}",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = Color.Black
+                            )
+                        }
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -646,7 +721,7 @@ fun MainContentV2(
                 ActionButtonModuleV2(
                     modifier = Modifier.weight(1f),
                     text = stringResource(Res.string.withdraw),
-                    icon = Icons.Default.CallReceived,
+                    icon = if ((state.instantRedemptionValue ?: 0.0) > 0.0) Icons.Default.Bolt else Icons.Default.CallReceived,
                     containerColor = accentColor,
                     onClick = onWithdraw
                 )

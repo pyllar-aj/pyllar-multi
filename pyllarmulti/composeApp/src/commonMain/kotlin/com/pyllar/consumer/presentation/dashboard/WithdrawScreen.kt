@@ -25,6 +25,8 @@ import com.pyllar.consumer.analytics.PlatformAnalyticsLogger
 import com.pyllar.consumer.util.platformLog
 import kotlinx.coroutines.delay
 import org.koin.compose.koinInject
+import pyllar.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -400,12 +402,12 @@ fun InstantWithdrawalCard(
                     
                     Column {
                         Text(
-                            text = "Instant Withdrawal",
+                            text = stringResource(Res.string.instant_withdrawal),
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "Money in your bank in seconds",
+                            text = stringResource(Res.string.instant_withdrawal_subtitle),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         )
@@ -435,7 +437,7 @@ fun InstantWithdrawalCard(
                     shape = RoundedCornerShape(100.dp)
                 ) {
                     Text(
-                        text = "80% of balance",
+                        text = stringResource(Res.string.eighty_percent_of_balance),
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                         color = Color(0xFF2E7D32),
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -446,7 +448,7 @@ fun InstantWithdrawalCard(
             Spacer(modifier = Modifier.height(8.dp))
             
             Text(
-                text = "Up to 80% can be withdrawn instantly. Transfers may take up to 30 minutes.",
+                text = stringResource(Res.string.instant_limit_text),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )
@@ -480,8 +482,8 @@ fun RegularWithdrawalCard(amount: Double, isSelected: Boolean, onSelect: () -> U
                         }
                     }
                     Column {
-                        Text("Regular Withdrawal", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
-                        Text("Credited in 1-2 business days", style = MaterialTheme.typography.bodySmall, modifier = Modifier.alpha(0.7f))
+                        Text(stringResource(Res.string.regular_withdrawal), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                        Text(stringResource(Res.string.regular_withdrawal_subtitle), style = MaterialTheme.typography.bodySmall, modifier = Modifier.alpha(0.7f))
                     }
                 }
                 RadioButton(
