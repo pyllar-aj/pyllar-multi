@@ -36,6 +36,8 @@ import com.pyllar.consumer.presentation.auth.permission.EmailInputSection
 import com.pyllar.consumer.presentation.auth.permission.PermissionFlowState
 import com.pyllar.consumer.presentation.auth.permission.PermissionViewModel
 import org.koin.compose.koinInject
+import org.jetbrains.compose.resources.stringResource
+import pyllar.composeapp.generated.resources.*
 
 @Composable
 fun MinimalPermissionScreen(
@@ -109,10 +111,10 @@ fun MinimalPermissionScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             TextButton(onClick = onShareApp) {
-                Text("Share", color = MaterialTheme.colorScheme.primary)
+                Text(stringResource(Res.string.share), color = MaterialTheme.colorScheme.primary)
             }
             TextButton(onClick = onNavigateToHelp) {
-                Text("Help", color = MaterialTheme.colorScheme.primary)
+                Text(stringResource(Res.string.help), color = MaterialTheme.colorScheme.primary)
             }
         }
 
@@ -129,13 +131,13 @@ fun MinimalPermissionScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Let's set things up",
+                text = stringResource(Res.string.lets_set_things_up),
                 style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.primary,
                 textAlign = TextAlign.Center
             )
             Text(
-                text = "We need a few permissions to give you the best experience",
+                text = stringResource(Res.string.permissions_description),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center
@@ -144,14 +146,14 @@ fun MinimalPermissionScreen(
             // Permission cards
             PermissionStatusCard(
                 icon = { Text("🔔", style = MaterialTheme.typography.titleLarge) },
-                title = "Notifications",
-                description = "Stay updated on your investments",
+                title = stringResource(Res.string.notification_permission),
+                description = stringResource(Res.string.notification_description),
                 isGranted = state.permissionStatus.notificationsGranted
             )
             PermissionStatusCard(
                 icon = { Text("📍", style = MaterialTheme.typography.titleLarge) },
-                title = "Location",
-                description = "Required for KYC and compliance",
+                title = stringResource(Res.string.location_permission),
+                description = stringResource(Res.string.location_description),
                 isGranted = state.permissionStatus.locationGranted
             )
 
@@ -173,7 +175,7 @@ fun MinimalPermissionScreen(
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = "I consent to Pyllar using my email for investment communications",
+                    text = stringResource(Res.string.email_consent_message),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -194,13 +196,13 @@ fun MinimalPermissionScreen(
             val buttonLabel = when (state.permissionFlow) {
                 is PermissionFlowState.Idle ->
                     if (state.permissionStatus.notificationsGranted && state.permissionStatus.locationGranted)
-                        "Continue" else "Grant Permissions"
+                        stringResource(Res.string.btn_continue) else stringResource(Res.string.grant_permissions)
                 is PermissionFlowState.Completed ->
                     if (state.permissionStatus.notificationsGranted && state.permissionStatus.locationGranted)
-                        "Continue" else "Retry Permissions"
-                is PermissionFlowState.RequestingNotifications -> "Requesting Notifications..."
-                is PermissionFlowState.RequestingLocation -> "Requesting Location..."
-                is PermissionFlowState.CheckingGps -> "Checking GPS..."
+                        stringResource(Res.string.btn_continue) else stringResource(Res.string.retry_permissions)
+                is PermissionFlowState.RequestingNotifications -> stringResource(Res.string.requesting_notifications)
+                is PermissionFlowState.RequestingLocation -> stringResource(Res.string.requesting_location)
+                is PermissionFlowState.CheckingGps -> stringResource(Res.string.checking_gps)
             }
             val buttonEnabled = state.isConsentChecked &&
                     !state.isProcessing &&
@@ -223,7 +225,7 @@ fun MinimalPermissionScreen(
                             strokeWidth = 2.dp
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Processing...", fontWeight = FontWeight.Bold)
+                        Text(stringResource(Res.string.processing), fontWeight = FontWeight.Bold)
                     }
                 } else {
                     Text(buttonLabel, fontWeight = FontWeight.Bold)

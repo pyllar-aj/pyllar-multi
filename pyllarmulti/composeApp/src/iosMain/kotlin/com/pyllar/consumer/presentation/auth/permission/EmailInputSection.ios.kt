@@ -10,6 +10,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.resources.stringResource
+import pyllar.composeapp.generated.resources.*
 
 @Composable
 actual fun EmailInputSection(
@@ -20,7 +22,7 @@ actual fun EmailInputSection(
     OutlinedTextField(
         value = email,
         onValueChange = onEmailChange,
-        label = { Text("Email address") },
+        label = { Text(stringResource(Res.string.communication_email)) },
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
         isError = showError,
@@ -28,7 +30,7 @@ actual fun EmailInputSection(
     )
     if (showError) {
         Text(
-            text = "Please enter your email",
+            text = stringResource(Res.string.please_select_email),
             color = MaterialTheme.colorScheme.error,
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.padding(start = 4.dp, top = 2.dp)

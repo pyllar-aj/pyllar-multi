@@ -9,6 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
@@ -41,6 +42,7 @@ import com.pyllar.consumer.presentation.ui.components.TimeoutButton
 import com.pyllar.consumer.presentation.ui.components.rememberTimeoutState
 import com.pyllar.consumer.presentation.ui.components.TrustStrip
 import com.pyllar.consumer.util.platformLog
+import com.pyllar.consumer.util.BackHandler
 import com.pyllar.consumer.util.Resource
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -62,6 +64,7 @@ fun LumpsumAmountScreenV2(
     isExistingInvestment: Boolean = false,
     onLumpsumCreated: (Double, String?, MandateWrapper?) -> Unit = { _, _, _ -> },
     onForceLogout: () -> Unit = {},
+    onNavigateBack: () -> Unit = {},
     onNavigateToHelp: () -> Unit = {},
     onNavigateToFundDetails: (userId: String, goalId: String, amount: Double, kycAttemptId: String, investorId: String) -> Unit = { _, _, _, _, _ -> },
     sessionStore: SessionStore = koinInject(),
@@ -146,35 +149,50 @@ fun LumpsumAmountScreenV2(
         }
     }
 
+
+    BackHandler {
+        onNavigateBack()
+    }
+
     Scaffold(
         topBar = {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 8.dp, vertical = 2.dp),
-                horizontalArrangement = Arrangement.End,
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(
-                    onClick = {
-                        platformActions.shareText("Check out Pyllar for goal-based investing!")
-                    },
-                    modifier = Modifier.size(40.dp)
-                ) {
+                IconButton(onClick = onNavigateBack) {
                     Icon(
-                        imageVector = Icons.Filled.Share,
-                        contentDescription = "Share",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
+                        imageVector = Icons.Default.ArrowBack,
+                        contentDescription = "Back",
+                        tint = MaterialTheme.colorScheme.primary
                     )
                 }
 
-                TextButton(onClick = onNavigateToHelp) {
-                    Text(
-                        text = "Help",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(
+                        onClick = {
+                            platformActions.shareText("Check out Pyllar for goal-based investing!")
+                        },
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Share,
+                            contentDescription = "Share",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    TextButton(onClick = onNavigateToHelp) {
+                        Text(
+                            text = "Help",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
             }
         }

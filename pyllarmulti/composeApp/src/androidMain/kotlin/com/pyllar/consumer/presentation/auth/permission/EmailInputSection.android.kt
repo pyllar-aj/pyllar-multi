@@ -18,6 +18,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.resources.stringResource
+import pyllar.composeapp.generated.resources.*
 
 @Composable
 actual fun EmailInputSection(
@@ -52,10 +54,10 @@ actual fun EmailInputSection(
     OutlinedTextField(
         value = email,
         onValueChange = { /* read-only; user taps trailing label to pick account */ },
-        label = { Text("Select your email") },
+        label = { Text(stringResource(Res.string.select_your_email)) },
         trailingIcon = {
             Text(
-                text = "Pick",
+                text = stringResource(Res.string.pick_google_account),
                 color = MaterialTheme.colorScheme.primary,
                 style = MaterialTheme.typography.labelMedium,
                 modifier = Modifier
@@ -77,7 +79,7 @@ actual fun EmailInputSection(
     )
     if (showError) {
         Text(
-            text = "Please select an email",
+            text = stringResource(Res.string.please_select_email),
             color = MaterialTheme.colorScheme.error,
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.padding(start = 4.dp, top = 2.dp)

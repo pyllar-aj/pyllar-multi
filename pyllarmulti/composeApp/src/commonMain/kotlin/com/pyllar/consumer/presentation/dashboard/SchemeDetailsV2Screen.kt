@@ -88,6 +88,10 @@ fun SchemeDetailsV2Screen(
     var showResumeSipSuccessSheet by remember { mutableStateOf(false) }
     var showResumeSipErrorSheet by remember { mutableStateOf(false) }
     var mandateForResumeSip by remember { mutableStateOf<MandateDisplayItem?>(null) }
+    
+    var showTotalValueInfoPopup by remember { mutableStateOf(false) }
+    var showEstimatedGoldInfoPopup by remember { mutableStateOf(false) }
+    var showEstimatedSilverInfoPopup by remember { mutableStateOf(false) }
 
     var schemeParams by remember { mutableStateOf<SchemeDetailsParams?>(SchemeDetailsParamsManager.get()) }
     
@@ -234,7 +238,10 @@ fun SchemeDetailsV2Screen(
                         state.isin?.let { isin ->
                             onNavigateToFundDetails(isin, userId, purpose, 0.0, "", "", false)
                         }
-                    }
+                    },
+                    onShowTotalValueInfo = { showTotalValueInfoPopup = true },
+                    onShowGoldInfo = { showEstimatedGoldInfoPopup = true },
+                    onShowSilverInfo = { showEstimatedSilverInfoPopup = true }
                 )
             }
 
@@ -339,6 +346,65 @@ fun SchemeDetailsV2Screen(
             if (showResumeSipErrorSheet) {
                 ResumeSipErrorBottomSheet(onDone = { showResumeSipErrorSheet = false })
             }
+
+            if (showTotalValueInfoPopup) {
+                AlertDialog(
+                    onDismissRequest = { showTotalValueInfoPopup = false },
+                    title = { Text(stringResource(Res.string.total_value_label)) },
+                    text = { Text(stringResource(Res.string.total_value_info_popup)) },
+                    confirmButton = {
+                        TextButton(onClick = { showTotalValueInfoPopup = false }) {
+                            Text(stringResource(Res.string.ok))
+                        }
+                    }
+                )
+            }
+
+            if (showEstimatedGoldInfoPopup) {
+                AlertDialog(
+                    onDismissRequest = { showEstimatedGoldInfoPopup = false },
+                    title = { Text(stringResource(Res.string.estimated_gold)) },
+                    text = {
+                        Column {
+                            Text(stringResource(Res.string.estimated_gold_info_popup_body))
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = stringResource(Res.string.for_representational_purposes_only),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { showEstimatedGoldInfoPopup = false }) {
+                            Text(stringResource(Res.string.ok))
+                        }
+                    }
+                )
+            }
+
+            if (showEstimatedSilverInfoPopup) {
+                AlertDialog(
+                    onDismissRequest = { showEstimatedSilverInfoPopup = false },
+                    title = { Text(stringResource(Res.string.estimated_silver)) },
+                    text = {
+                        Column {
+                            Text(stringResource(Res.string.estimated_silver_info_popup_body))
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = stringResource(Res.string.for_representational_purposes_only),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { showEstimatedSilverInfoPopup = false }) {
+                            Text(stringResource(Res.string.ok))
+                        }
+                    }
+                )
+            }
         }
     }
 }
@@ -357,7 +423,10 @@ fun MainContentV2(
     onAddFunds: () -> Unit,
     onLumpsum: () -> Unit,
     onWithdraw: () -> Unit,
-    onFundDetails: () -> Unit
+    onFundDetails: () -> Unit,
+    onShowTotalValueInfo: () -> Unit,
+    onShowGoldInfo: () -> Unit,
+    onShowSilverInfo: () -> Unit
 ) {
     val gradient = getGradientForCategory(goalType)
     
@@ -379,12 +448,26 @@ fun MainContentV2(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.Black)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.Black)
+                        }
+                        Text(
+                            text = displayGoalName,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black
+                        )
                     }
-                    IconButton(onClick = onFundDetails) {
-                        Icon(Icons.Default.Info, contentDescription = "Fund Info", tint = Color.Black)
-                    }
+                    val fundLogo = getFundLogo(state.schemeName ?: displaySchemeName)
+                    Image(
+                        painter = painterResource(fundLogo),
+                        contentDescription = "Fund Logo",
+                        modifier = Modifier
+                            .height(40.dp)
+                            .clickable { onFundDetails() }
+                            .padding(end = 4.dp)
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(20.dp))
@@ -394,18 +477,37 @@ fun MainContentV2(
                     GoalType.SILVER -> "Your Silver"
                     else -> "Your Savings"
                 }
-                
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Color.Black.copy(alpha = 0.6f),
-                    fontWeight = FontWeight.Bold
-                )
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.Black.copy(alpha = 0.6f),
+                        fontWeight = FontWeight.Bold
+                    )
+                    IconButton(
+                        onClick = {
+                            when (goalType) {
+                                GoalType.GOLD -> onShowGoldInfo()
+                                GoalType.SILVER -> onShowSilverInfo()
+                                else -> onShowTotalValueInfo()
+                            }
+                        },
+                        modifier = Modifier.size(24.dp).padding(start = 4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = "Info",
+                            tint = Color.Black.copy(alpha = 0.4f),
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                }
                 
                 val unitsText = when (goalType) {
                     GoalType.GOLD, GoalType.SILVER -> {
                         val units = state.unitsInGm ?: 0.0
-                        if (units < 1.0) "${(units * 1000).toInt()} mg" else "${units} g"
+                        if (units < 1.0) "${(units * 1000).toInt()}${stringResource(Res.string.mg_label)}" else "${formatDecimal(units, 1)}${stringResource(Res.string.g_label)}"
                     }
                     else -> "₹${formatIndian(state.cummulativeValue)}"
                 }
@@ -424,9 +526,14 @@ fun MainContentV2(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    if (state.mandates.any { it.status?.uppercase()?.contains("ACTIVE") == true }) {
+                    val activeMandates = state.mandates.filter { 
+                        val s = it.status?.uppercase().orEmpty()
+                        (s.contains("ACTIVE") || s.contains("APPROVED")) && !s.contains("PAUSED")
+                    }
+                    if (activeMandates.isNotEmpty()) {
+                        val totalDaily = activeMandates.sumOf { it.amount }
                         StatusPill(
-                            text = "Daily Saving Active",
+                            text = stringResource(Res.string.saving_amount_freq, formatIndian(totalDaily), "daily"),
                             backgroundColor = Color.White.copy(alpha = 0.4f),
                             contentColor = Color.Black,
                             icon = Icons.Default.Check
@@ -434,7 +541,7 @@ fun MainContentV2(
                     }
                     if (state.investmentInProgress > 0) {
                         StatusPill(
-                            text = "Allocation in progress",
+                            text = "₹${formatIndian(state.investmentInProgress)} processing",
                             backgroundColor = Color.White.copy(alpha = 0.4f),
                             contentColor = Color.Black,
                             icon = Icons.Default.Schedule
@@ -468,14 +575,14 @@ fun MainContentV2(
                     modifier = Modifier.weight(1f),
                     label = "INVESTED",
                     value = state.investedAmount + state.investmentInProgress,
-                    subtext = "Total input"
+                    subtext = "Total money in"
                 )
                 SummaryBox(
                     modifier = Modifier.weight(1f),
                     label = "TOTAL VALUE",
                     value = state.cummulativeValue,
                     gain = state.totalGain,
-                    subtext = "Current worth"
+                    subtext = "Current value"
                 )
             }
 
@@ -485,17 +592,17 @@ fun MainContentV2(
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 DashboardTile(
                     modifier = Modifier.weight(1f),
-                    title = "Plans",
-                    description = "${state.mandates.size} active automations",
+                    title = stringResource(Res.string.plans),
+                    description = stringResource(Res.string.view_and_manage_plans_description),
                     icon = Icons.Default.FlashOn,
                     iconColor = accentColor,
                     onClick = onShowPlans
                 )
                 DashboardTile(
                     modifier = Modifier.weight(1f),
-                    title = "Transactions",
-                    description = "History & Statements",
-                    icon = Icons.Default.History,
+                    title = stringResource(Res.string.transactions),
+                    description = stringResource(Res.string.track_investments_withdrawals_description),
+                    icon = Icons.Default.Schedule,
                     iconColor = accentColor,
                     onClick = onShowTransactions
                 )
@@ -506,20 +613,13 @@ fun MainContentV2(
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 DashboardTile(
                     modifier = Modifier.weight(1f),
-                    title = "Goal Info",
-                    description = "Details & Breakdowns",
-                    icon = Icons.Default.BarChart,
+                    title = stringResource(Res.string.view_details),
+                    description = stringResource(Res.string.see_goal_details_description),
+                    icon = Icons.Default.Info,
                     iconColor = accentColor,
                     onClick = onShowDetails
                 )
-                DashboardTile(
-                    modifier = Modifier.weight(1f),
-                    title = "Withdraw",
-                    description = "Sell & Redeem funds",
-                    icon = Icons.Default.CallReceived,
-                    iconColor = accentColor,
-                    onClick = onWithdraw
-                )
+                Spacer(modifier = Modifier.weight(1f))
             }
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -527,21 +627,28 @@ fun MainContentV2(
             // Action Buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 ActionButtonModuleV2(
                     modifier = Modifier.weight(1f),
-                    text = "Daily Save",
+                    text = stringResource(Res.string.add_money),
+                    icon = Icons.Default.Add,
+                    containerColor = accentColor,
+                    onClick = onLumpsum
+                )
+                ActionButtonModuleV2(
+                    modifier = Modifier.weight(1f),
+                    text = stringResource(Res.string.new_plan),
                     icon = Icons.Default.FlashOn,
                     containerColor = accentColor,
                     onClick = onAddFunds
                 )
                 ActionButtonModuleV2(
                     modifier = Modifier.weight(1f),
-                    text = "One-time",
-                    icon = Icons.Default.Add,
+                    text = stringResource(Res.string.withdraw),
+                    icon = Icons.Default.CallReceived,
                     containerColor = accentColor,
-                    onClick = onLumpsum
+                    onClick = onWithdraw
                 )
             }
             
@@ -673,25 +780,58 @@ fun PlansOverlay(
     onResume: (MandateDisplayItem) -> Unit,
     onCancel: (MandateDisplayItem) -> Unit
 ) {
+    val approvedMandates = mandates.filter { m ->
+        val s = m.status?.uppercase().orEmpty()
+        (s.contains("APPROVED") || s.contains("ACTIVE")) && !s.contains("PAUSED")
+    }
+    val pausedMandates = mandates.filter { m ->
+        m.status?.uppercase()?.contains("PAUSED") == true
+    }
+    val otherMandates = mandates.filter { m ->
+        val s = m.status?.uppercase().orEmpty()
+        !((s.contains("APPROVED") || s.contains("ACTIVE")) && !s.contains("PAUSED")) && !s.contains("PAUSED")
+    }
+
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("Daily Plans", fontWeight = FontWeight.Bold) },
+                    title = { Text(stringResource(Res.string.plans), fontWeight = FontWeight.Bold) },
                     navigationIcon = { IconButton(onClick = onDismiss) { Icon(Icons.Default.Close, null) } },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
                 )
             },
-            containerColor = Color.White
+            containerColor = Color(0xFFF8F9FA)
         ) { padding ->
             if (mandates.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No active plans found", color = Color.Gray)
+                    Text(stringResource(Res.string.no_plans_found), color = Color.Gray)
                 }
             } else {
-                LazyColumn(modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    items(mandates) { mandate ->
-                        MandateItemV2(mandate, accentColor, onPause, onResume, onCancel)
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(vertical = 16.dp)
+                ) {
+                    if (pausedMandates.isNotEmpty()) {
+                        item { Text(stringResource(Res.string.state_paused), style = MaterialTheme.typography.labelLarge, color = Color.Gray, modifier = Modifier.padding(bottom = 4.dp)) }
+                        items(pausedMandates) { mandate ->
+                            MandateItemV2(mandate, accentColor, onPause, onResume, onCancel)
+                        }
+                        item { Spacer(modifier = Modifier.height(8.dp)) }
+                    }
+                    if (approvedMandates.isNotEmpty()) {
+                        item { Text(stringResource(Res.string.state_approved), style = MaterialTheme.typography.labelLarge, color = Color.Gray, modifier = Modifier.padding(bottom = 4.dp)) }
+                        items(approvedMandates) { mandate ->
+                            MandateItemV2(mandate, accentColor, onPause, onResume, onCancel)
+                        }
+                        item { Spacer(modifier = Modifier.height(8.dp)) }
+                    }
+                    if (otherMandates.isNotEmpty()) {
+                        item { Text(stringResource(Res.string.state_other), style = MaterialTheme.typography.labelLarge, color = Color.Gray, modifier = Modifier.padding(bottom = 4.dp)) }
+                        items(otherMandates) { mandate ->
+                            MandateItemV2(mandate, accentColor, onPause, onResume, onCancel)
+                        }
                     }
                 }
             }
@@ -707,42 +847,69 @@ fun MandateItemV2(
     onResume: (MandateDisplayItem) -> Unit,
     onCancel: (MandateDisplayItem) -> Unit
 ) {
-    val isPaused = mandate.status?.uppercase()?.contains("PAUSED") == true
+    val statusUpper = mandate.status?.uppercase().orEmpty()
+    val isApproved = statusUpper.contains("APPROVED") || statusUpper.contains("ACTIVE")
+    val isPaused = statusUpper.contains("PAUSED")
+
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.3f))
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Column {
-                    Text(text = "₹${formatIndian(mandate.amount)}/day", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
-                    Text(text = "Investment Plan", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text(text = "₹${formatIndian(mandate.amount)}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    
+                    val displayStatus = when {
+                        statusUpper.contains("ACTIVE") -> stringResource(Res.string.status_active)
+                        statusUpper.contains("APPROVED") -> stringResource(Res.string.status_approved)
+                        statusUpper.contains("PAUSED") -> stringResource(Res.string.status_paused)
+                        statusUpper.contains("PENDING") -> stringResource(Res.string.status_pending)
+                        statusUpper.contains("CANCELLED") -> stringResource(Res.string.status_cancelled)
+                        statusUpper.contains("REJECTED") -> stringResource(Res.string.status_rejected)
+                        statusUpper.contains("FAILED") -> stringResource(Res.string.status_failed)
+                        else -> statusUpper.replace("_", " ")
+                    }
+
+                    val badgeColor = when {
+                        statusUpper.contains("ACTIVE") -> Color(0xFFE3F2FD)
+                        statusUpper.contains("APPROVED") -> Color(0xFFE8F5E9)
+                        statusUpper.contains("PAUSED") || statusUpper.contains("PENDING") -> Color(0xFFFFF3E0)
+                        else -> Color(0xFFFFEBEE)
+                    }
+                    val badgeTextColor = when {
+                        statusUpper.contains("ACTIVE") -> Color(0xFF1976D2)
+                        statusUpper.contains("APPROVED") -> Color(0xFF2E7D32)
+                        statusUpper.contains("PAUSED") || statusUpper.contains("PENDING") -> Color(0xFFF57C00)
+                        else -> Color(0xFFD32F2F)
+                    }
+
+                    Surface(color = badgeColor, shape = RoundedCornerShape(8.dp)) {
+                        Text(
+                            text = displayStatus,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = badgeTextColor,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
-                StatusPill(
-                    text = if (isPaused) "Paused" else "Active",
-                    backgroundColor = if (isPaused) Color.Red.copy(alpha = 0.1f) else Color(0xFFE8F5E9),
-                    contentColor = if (isPaused) Color.Red else Color(0xFF2E7D32),
-                    icon = if (isPaused) Icons.Default.Pause else Icons.Default.Check
-                )
+                
+                Text(text = "Daily Saving Plan", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
             }
             
-            Spacer(modifier = Modifier.height(16.dp))
-            HorizontalDivider(color = Color.LightGray.copy(alpha = 0.3f))
-            Spacer(modifier = Modifier.height(12.dp))
-            
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-                TextButton(onClick = { onCancel(mandate) }) {
-                    Text("Cancel", color = Color.Red)
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                Button(
-                    onClick = { if (isPaused) onResume(mandate) else onPause(mandate) },
-                    colors = ButtonDefaults.buttonColors(containerColor = accentColor),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text(if (isPaused) "Resume" else "Pause")
+            if (isApproved || isPaused) {
+                HorizontalDivider(color = Color.LightGray.copy(alpha = 0.2f))
+                Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp), horizontalArrangement = Arrangement.End) {
+                    TextButton(onClick = { onCancel(mandate) }) {
+                        Text("CANCEL", style = MaterialTheme.typography.labelMedium, color = Color.Red, fontWeight = FontWeight.Bold)
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    TextButton(onClick = { if (isPaused) onResume(mandate) else onPause(mandate) }) {
+                        Text(if (isPaused) "RESUME" else "PAUSE", style = MaterialTheme.typography.labelMedium, color = accentColor, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }
@@ -805,7 +972,7 @@ fun TransactionItemV2(tx: TransactionDisplayItem) {
             }
             Spacer(modifier = Modifier.width(12.dp))
             Column {
-                Text(text = if (isCredit) "Money Added" else "Withdrawal", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                Text(text = if (isCredit) "PURCHASE" else "REDEMPTION", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
                 Text(text = tx.date ?: "", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
             }
         }
@@ -849,29 +1016,82 @@ fun SchemeDetailsPopupContentV2(
     onInvestMore: () -> Unit
 ) {
     val goalType = identifyGoalType(state.category, schemeName)
+    val isGoldOrSilver = goalType == GoalType.GOLD || goalType == GoalType.SILVER
+    val isEstimatedGold = goalType == GoalType.GOLD
+
     val accentColor = getCorrelationColorForCategory(state.category, state.colorTheme)
     
+    var showPopupGoldInfo by remember { mutableStateOf(false) }
+    var showPopupSilverInfo by remember { mutableStateOf(false) }
+
+    if (showPopupGoldInfo) {
+        AlertDialog(
+            onDismissRequest = { showPopupGoldInfo = false },
+            title = { Text(stringResource(Res.string.estimated_gold)) },
+            text = {
+                Column {
+                    Text(stringResource(Res.string.estimated_gold_info_popup_body))
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = stringResource(Res.string.for_representational_purposes_only),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showPopupGoldInfo = false }) {
+                    Text(stringResource(Res.string.ok))
+                }
+            }
+        )
+    }
+
+    if (showPopupSilverInfo) {
+        AlertDialog(
+            onDismissRequest = { showPopupSilverInfo = false },
+            title = { Text(stringResource(Res.string.estimated_silver)) },
+            text = {
+                Column {
+                    Text(stringResource(Res.string.estimated_silver_info_popup_body))
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = stringResource(Res.string.for_representational_purposes_only),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showPopupSilverInfo = false }) {
+                    Text(stringResource(Res.string.ok))
+                }
+            }
+        )
+    }
+
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = Color(0xFFF8F9FA)
     ) {
         Column(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp)
                 .padding(top = 48.dp, bottom = 32.dp)
-                .verticalScroll(rememberScrollState())
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                IconButton(onClick = onDismiss) { Icon(Icons.Default.ArrowBack, null) }
-                Spacer(modifier = Modifier.width(12.dp))
+                IconButton(onClick = onDismiss) {
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                }
                 Text(
-                    text = formatSchemeName(schemeName),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
+                    text = if (schemeName.isNotBlank()) schemeName else goalName,
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                     color = accentColor
                 )
             }
@@ -884,7 +1104,7 @@ fun SchemeDetailsPopupContentV2(
                 colorTheme = state.colorTheme,
                 folioNumber = state.folioNumber,
                 investedAmount = state.investedAmount,
-                totalUnitsAllotted = state.unitsInGm ?: 0.0,
+                totalUnitsAllotted = state.totalUnitsAllotted,
                 totalValue = state.cummulativeValue,
                 currentValue = state.currentValue,
                 investmentInProgress = state.investmentInProgress,
@@ -892,58 +1112,151 @@ fun SchemeDetailsPopupContentV2(
                 redemptionInProgress = state.redemptionInProgress,
                 hasApprovedPlan = state.mandates.isNotEmpty(),
                 showBottomSection = false,
-                containerColor = Color.White
+                containerColor = Color.White,
+                onEstimatedGoldInfoClick = { showPopupGoldInfo = true },
+                onEstimatedSilverInfoClick = { showPopupSilverInfo = true }
             )
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            if (state.investmentInProgress > 0 || state.mandates.isNotEmpty()) {
+            val activeMandates = state.mandates.filter { m ->
+                val s = m.status?.uppercase().orEmpty()
+                (s.contains("APPROVED") || s.contains("ACTIVE")) && !s.contains("PAUSED")
+            }
+
+            if (activeMandates.isNotEmpty() || state.investmentInProgress > 0) {
                 Text(
-                    text = "WHAT'S HAPPENING",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
+                    text = stringResource(Res.string.whats_happening_section),
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                     color = Color.Gray,
                     modifier = Modifier.padding(bottom = 8.dp, start = 4.dp)
                 )
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = Color.White),
-                    shape = RoundedCornerShape(16.dp)
+                    shape = RoundedCornerShape(16.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        if (state.mandates.isNotEmpty()) {
-                            val totalDaily = state.mandates.sumOf { it.amount }
+                        var needDivider = false
+                        if (activeMandates.isNotEmpty()) {
+                            val totalDaily = activeMandates.sumOf { it.amount }
+                            val freq = "daily"
+                            val nextSipMandate = activeMandates.filter { !it.nextSipDate.isNullOrBlank() }.minByOrNull { it.nextSipDate!! }
+                            val nextDeduction = if (nextSipMandate != null) {
+                                stringResource(Res.string.next_deduction_date, nextSipMandate.nextSipDate!!)
+                            } else {
+                                stringResource(Res.string.next_deduction_pending)
+                            }
+
                             WhatsHappeningRowV2(
-                                title = "Saving ₹${formatIndian(totalDaily)} daily",
-                                subtitle = "Automatic daily investment",
-                                badgeText = "ACTIVE",
+                                title = stringResource(Res.string.saving_amount_freq, formatIndian(totalDaily), freq),
+                                subtitle = nextDeduction,
+                                badgeText = stringResource(Res.string.active_badge),
                                 badgeBg = Color(0xFFE8F5E9),
                                 badgeFg = Color(0xFF2E7D32)
                             )
+                            needDivider = true
                         }
+
                         if (state.investmentInProgress > 0) {
-                            if (state.mandates.isNotEmpty()) HorizontalDivider(color = Color.LightGray.copy(alpha = 0.3f))
+                            if (needDivider) HorizontalDivider(color = Color.LightGray.copy(alpha = 0.3f))
+                            val inProgTitle = when {
+                                isEstimatedGold -> stringResource(Res.string.gold_being_allocated)
+                                isGoldOrSilver -> stringResource(Res.string.silver_being_allocated)
+                                else -> stringResource(Res.string.savings_being_allocated)
+                            }
                             WhatsHappeningRowV2(
-                                title = "Allocation in progress",
-                                subtitle = "₹${formatIndian(state.investmentInProgress)} being invested",
-                                badgeText = "PROCESSING",
+                                title = inProgTitle,
+                                subtitle = stringResource(Res.string.allocation_processing_sub, formatIndian(state.investmentInProgress), stringResource(Res.string.units)),
+                                badgeText = stringResource(Res.string.processing_badge),
                                 badgeBg = Color(0xFFFFF3E0),
                                 badgeFg = Color(0xFFF57C00)
                             )
+                            needDivider = true
                         }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.weight(1f))
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
+            Text(
+                text = stringResource(Res.string.for_your_records_section),
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                color = Color.Gray,
+                modifier = Modifier.padding(bottom = 8.dp, start = 4.dp)
+            )
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    if (!state.folioNumber.isNullOrBlank()) {
+                        RecordRowV2(stringResource(Res.string.folio_no), state.folioNumber!!)
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color.LightGray.copy(alpha = 0.3f))
+                    }
+                    
+                    val allottedValue = when {
+                        isGoldOrSilver && (state.unitsInGm ?: 0.0) > 0 -> {
+                            val units = state.unitsInGm!!
+                            if (units < 1.0) "${(units * 1000).toInt()}${stringResource(Res.string.mg_label)}" else "${formatDecimal(units, 2)}${stringResource(Res.string.g_label)}"
+                        }
+                        else -> "₹${formatIndian(state.cummulativeValue)}"
+                    }
+                    val sub = if (isGoldOrSilver) stringResource(if (isEstimatedGold) Res.string.internal_units_gold else Res.string.internal_units_silver) else stringResource(Res.string.internal_units_generic)
+                    RecordRowV2(stringResource(Res.string.units_allotted), allottedValue, sub)
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color.LightGray.copy(alpha = 0.3f))
+
+                    RecordRowV2(stringResource(Res.string.total_value_label), "₹${formatIndian(state.cummulativeValue)}")
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Box(
+                        modifier = Modifier.fillMaxWidth().background(Color.LightGray.copy(alpha = 0.1f), RoundedCornerShape(8.dp)).padding(8.dp)
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            RecordRowV2(stringResource(Res.string.current_value), "₹${formatIndian(state.currentValue)}")
+                            RecordRowV2(stringResource(Res.string.investment_in_progress), "₹${formatIndian(state.investmentInProgress)}")
+                            if (state.redemptionInProgress > 0) {
+                                RecordRowV2(stringResource(Res.string.withdrawal_in_progress_amount).replace("₹%1\$s ", ""), "₹${formatIndian(state.redemptionInProgress)}")
+                            }
+                        }
+                    }
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color.LightGray.copy(alpha = 0.3f))
+
+                    if (state.totalGain != 0.0) {
+                        val diffColor = if(state.totalGain >= 0) Color(0xFF2E7D32) else Color.Red
+                        RecordRowV2(stringResource(Res.string.total_gain), "₹${formatIndian(state.totalGain)}", valueColor = diffColor)
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color.LightGray.copy(alpha = 0.3f))
+                    }
+
+                    RecordRowV2(stringResource(Res.string.can_i_take_it_out), stringResource(Res.string.yes_anytime))
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            Box(
+                modifier = Modifier.fillMaxWidth().background(accentColor.copy(alpha = 0.1f), RoundedCornerShape(8.dp)).padding(16.dp)
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
+                    Icon(imageVector = Icons.Default.Info, contentDescription = null, tint = accentColor, modifier = Modifier.size(16.dp).padding(top = 2.dp))
+                    Text(
+                        text = stringResource(Res.string.sebi_mutual_fund_disclaimer),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.Black.copy(alpha = 0.7f)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
             Button(
                 onClick = onInvestMore,
                 modifier = Modifier.fillMaxWidth().height(56.dp),
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = accentColor)
             ) {
-                Text("Invest More", fontWeight = FontWeight.Bold)
+                Text(stringResource(Res.string.add_money).uppercase(), fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -966,10 +1279,13 @@ fun SchemeDetailsCardV2(
     redemptionInProgress: Double = 0.0,
     hasApprovedPlan: Boolean = false,
     showBottomSection: Boolean = true,
-    containerColor: Color? = null
+    containerColor: Color? = null,
+    onEstimatedGoldInfoClick: () -> Unit = {},
+    onEstimatedSilverInfoClick: () -> Unit = {}
 ) {
     val goalColor = getCorrelationColorForCategory(category, colorTheme)
     val finalContainerColor = containerColor ?: goalColor.copy(alpha = 0.1f)
+    val goalType = identifyGoalType(category, schemeName)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -999,6 +1315,28 @@ fun SchemeDetailsCardV2(
             if (folioNumber != null) {
                 Text("Folio: $folioNumber", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
             }
+            
+            if (unitsInGm != null && unitsInGm > 0) {
+                val label = when (goalType) {
+                    GoalType.GOLD -> "Estimated Gold"
+                    GoalType.SILVER -> "Estimated Silver"
+                    else -> "Units Allotted"
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("$label: ", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                    val unitsText = if (unitsInGm < 1.0) "${(unitsInGm * 1000).toInt()}${stringResource(Res.string.mg_label)}" else "${formatDecimal(unitsInGm, 1)}${stringResource(Res.string.g_label)}"
+                    Text(unitsText, style = MaterialTheme.typography.labelSmall, color = Color.Black, fontWeight = FontWeight.Bold)
+                    IconButton(
+                        onClick = {
+                            if (goalType == GoalType.GOLD) onEstimatedGoldInfoClick()
+                            else if (goalType == GoalType.SILVER) onEstimatedSilverInfoClick()
+                        },
+                        modifier = Modifier.size(24.dp).padding(start = 4.dp)
+                    ) {
+                        Icon(Icons.Default.Info, null, tint = Color.Gray.copy(alpha = 0.5f), modifier = Modifier.size(12.dp))
+                    }
+                }
+            }
         }
     }
 }
@@ -1020,6 +1358,42 @@ fun RupeeAmountBlock(
 }
 
 @Composable
+fun RecordRowV2(
+    label: String,
+    value: String,
+    subtext: String? = null,
+    valueColor: Color = Color.Black
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Top
+    ) {
+        Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                color = Color.Black
+            )
+            if (subtext != null) {
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = subtext,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.Gray
+                )
+            }
+        }
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            color = valueColor,
+            textAlign = TextAlign.End
+        )
+    }
+}
+
+@Composable
 fun WhatsHappeningRowV2(
     title: String,
     subtitle: String,
@@ -1027,17 +1401,33 @@ fun WhatsHappeningRowV2(
     badgeBg: Color,
     badgeFg: Color
 ) {
-    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Top
+    ) {
+        Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                color = Color.Black
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.Black.copy(alpha = 0.6f)
+            )
         }
-        Surface(color = badgeBg, shape = RoundedCornerShape(4.dp)) {
+        Surface(
+            color = badgeBg,
+            shape = RoundedCornerShape(20.dp)
+        ) {
             Text(
                 text = badgeText,
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                 style = MaterialTheme.typography.labelSmall,
                 color = badgeFg,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                 fontWeight = FontWeight.Bold
             )
         }
