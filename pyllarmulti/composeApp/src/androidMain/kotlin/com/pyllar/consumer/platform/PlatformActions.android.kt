@@ -19,6 +19,22 @@ class AndroidPlatformActions(private val context: Context) : PlatformActions {
         }
     }
 
+    override fun openUpiUrl(url: String, packageName: String?) {
+        try {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                if (packageName != null) {
+                    setPackage(packageName)
+                }
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            Log.e("AndroidPlatformActions", "Failed to open UPI URL: $url with package: $packageName", e)
+            // Fallback to generic open
+            openUrl(url)
+        }
+    }
+
     override fun shareText(text: String, title: String) {
         try {
             val shareIntent = Intent(Intent.ACTION_SEND).apply {
@@ -98,5 +114,17 @@ class AndroidPlatformActions(private val context: Context) : PlatformActions {
             }
         }
         return upiAppsList.sortedBy { it.displayName }
+    }
+
+    override fun openAppSettings() {
+        try {
+            val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                data = Uri.fromParts("package", context.packageName, null)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            Log.e("AndroidPlatformActions", "Failed to open app settings", e)
+        }
     }
 }

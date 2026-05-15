@@ -7,13 +7,41 @@ import platform.UIKit.UIViewController
 import platform.Foundation.NSURLComponents
 import platform.Foundation.NSURLQueryItem
 import platform.UIKit.UIWindow
+import com.pyllar.consumer.util.platformLog
 
 class IosPlatformActions : PlatformActions {
 
     override fun openUrl(url: String) {
         val nsUrl = NSURL.URLWithString(url)
         if (nsUrl != null) {
-            UIApplication.sharedApplication.openURL(nsUrl)
+            UIApplication.sharedApplication.openURL(nsUrl, options = emptyMap<Any?, Any?>(), completionHandler = null)
+        }
+    }
+
+    override fun openUpiUrl(url: String, packageName: String?) {
+        // If it's a standard upi:// link and we have a specific app scheme (packageName),
+        // we replace 'upi://' with the app's scheme (e.g., 'phonepe://') to force it to open.
+        val targetUrl = if (url.startsWith("upi://") && !packageName.isNullOrBlank()) {
+            url.replace("upi://", packageName)
+        } else {
+            url
+        }
+        
+        // URL Encoding is CRITICAL on iOS for mandate links with special characters
+        val encodedUrl = targetUrl.replace(" ", "%20")
+            .replace("|", "%7C")
+            .replace("{", "%7B")
+            .replace("}", "%7D")
+            .replace("[", "%5B")
+            .replace("]", "%5D")
+
+        val nsUrl = NSURL.URLWithString(encodedUrl)
+        if (nsUrl != null) {
+            UIApplication.sharedApplication.openURL(nsUrl, options = emptyMap<Any?, Any?>(), completionHandler = { success ->
+                platformLog("IosPlatformActions: Mandate launch result: $success")
+            })
+        } else {
+            platformLog("IosPlatformActions: ❌ Invalid Mandate URL: $encodedUrl")
         }
     }
 
@@ -34,7 +62,7 @@ class IosPlatformActions : PlatformActions {
         
         val url = components?.URL
         if (url != null) {
-            UIApplication.sharedApplication.openURL(url)
+            UIApplication.sharedApplication.openURL(url, options = emptyMap<Any?, Any?>(), completionHandler = null)
         }
     }
 
@@ -66,6 +94,19 @@ class IosPlatformActions : PlatformActions {
                 displayName = name,
                 icon = null
             )
+        }
+    }
+
+    override fun openAppSettings() {
+        val url = platform.UIKit.UIApplicationOpenSettingsURLString
+        val nsUrl = NSURL.URLWithString(url)
+        if (nsUrl != null) {
+            platformLog("IosPlatformActions: Opening app settings...")
+            UIApplication.sharedApplication.openURL(nsUrl, options = emptyMap<Any?, Any?>(), completionHandler = { success ->
+                platformLog("IosPlatformActions: Open settings result: $success")
+            })
+        } else {
+            platformLog("IosPlatformActions: ❌ Failed to create URL for app settings")
         }
     }
 

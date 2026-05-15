@@ -65,13 +65,16 @@ class IosPermissionManager : PermissionManager {
     private var activeLocationDelegate: CLLocationManagerDelegateProtocol? = null
 
     override suspend fun requestLocation(): Boolean {
-        val currentStatus = CLLocationManager.authorizationStatus()
+        val currentStatus = locationManager.authorizationStatus
+        com.pyllar.consumer.util.platformLog("IosPermissionManager: requestLocation - currentStatus: $currentStatus")
+        
         if (currentStatus == kCLAuthorizationStatusAuthorizedWhenInUse ||
             currentStatus == kCLAuthorizationStatusAuthorizedAlways
         ) {
             return true
         }
         if (currentStatus != kCLAuthorizationStatusNotDetermined) {
+            com.pyllar.consumer.util.platformLog("IosPermissionManager: Permission already denied or restricted, returning false")
             return false
         }
 

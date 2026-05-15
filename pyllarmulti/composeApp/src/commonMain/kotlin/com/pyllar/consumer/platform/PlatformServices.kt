@@ -83,7 +83,9 @@ data class UpiAppInfo(
  */
 interface PlatformActions {
     fun openUrl(url: String)
+    fun openUpiUrl(url: String, packageName: String? = null)
     fun shareText(text: String, title: String = "Share")
     fun openWhatsApp(phoneNumber: String, message: String)
     fun getInstalledUpiApps(): List<UpiAppInfo>
+    fun openAppSettings()
 }

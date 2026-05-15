@@ -8,6 +8,7 @@ import com.pyllar.consumer.domain.models.UpdateEmailResponse
 import com.pyllar.consumer.domain.repository.AuthRepository
 import com.pyllar.consumer.platform.PermissionManager
 import com.pyllar.consumer.platform.PermissionStatus
+import com.pyllar.consumer.platform.PlatformActions
 import com.pyllar.consumer.util.Resource
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -39,7 +40,8 @@ data class PermissionScreenState(
 
 class PermissionViewModel(
     private val authRepository: AuthRepository,
-    private val permissionManager: PermissionManager
+    private val permissionManager: PermissionManager,
+    private val platformActions: PlatformActions
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(PermissionScreenState())
@@ -114,13 +116,21 @@ class PermissionViewModel(
             )
 
             // Flow complete
-            com.pyllar.consumer.util.Log.d("PermissionFlow", "Flow complete, calling updateEmail")
             val finalStatus = permissionManager.checkStatus()
+            com.pyllar.consumer.util.Log.d("PermissionFlow", "Flow complete, final status: $finalStatus")
+            
             _state.value = _state.value.copy(
                 permissionFlow = PermissionFlowState.Completed,
                 permissionStatus = finalStatus
             )
-            callUpdateEmailApi(userId)
+
+            if (finalStatus.notificationsGranted && finalStatus.locationGranted && finalStatus.gpsEnabled) {
+                com.pyllar.consumer.util.Log.d("PermissionFlow", "Permissions granted, calling updateEmail")
+                callUpdateEmailApi(userId)
+            } else {
+                com.pyllar.consumer.util.Log.d("PermissionFlow", "Permissions NOT fully granted, opening settings as fallback")
+                platformActions.openAppSettings()
+            }
         }
     }
 

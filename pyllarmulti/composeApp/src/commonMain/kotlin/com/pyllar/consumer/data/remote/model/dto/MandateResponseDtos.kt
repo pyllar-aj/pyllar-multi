@@ -1,11 +1,15 @@
 package com.pyllar.consumer.data.remote.model.dto
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
 data class MandateWrapper(
+    @SerialName("finMandateId")
     val finMandateId: Long?,
+    @SerialName("mandateId")
     val mandateId: Long?,
+    @SerialName("uri")
     val uri: String?
 )
 
@@ -19,20 +23,31 @@ data class LumpsumPurchaseResponseData(
 
 @Serializable
 data class MandateStatusResponseDto(
+    @SerialName("status")
     val status: String,
+    @SerialName("message")
     val message: String?,
+    @SerialName("mandateId")
     val mandateId: Long?,
+    @SerialName("mandateRef")
     val mandateRef: Long?,
+    @SerialName("requiresPolling")
     val requiresPolling: Boolean = false
 )
 
 @Serializable
 data class MandateSyncResponseDto(
+    @SerialName("mandateStatus")
     val mandateStatus: String,
+    @SerialName("message")
     val message: String?,
+    @SerialName("mandateId")
     val mandateId: Long?,
+    @SerialName("mandateRef")
     val mandateRef: Long?,
+    @SerialName("requiresPolling")
     val requiresPolling: Boolean = false,
+    @SerialName("nextPollInSeconds")
     val nextPollInSeconds: Int? = null
 )
 

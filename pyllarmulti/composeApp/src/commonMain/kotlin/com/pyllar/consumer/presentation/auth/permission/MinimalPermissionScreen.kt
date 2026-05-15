@@ -30,6 +30,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pyllar.consumer.data.remote.model.dto.NavigationAction
 import com.pyllar.consumer.presentation.auth.permission.EmailInputSection
@@ -53,6 +56,18 @@ fun MinimalPermissionScreen(
     // Sync current OS permission state on entry
     LaunchedEffect(Unit) {
         viewModel.refreshPermissionStatus()
+    }
+
+    // Sync on resume (e.g. returning from Settings)
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                com.pyllar.consumer.util.Log.d("PermissionFlow", "App resumed, refreshing status")
+                viewModel.onResumed()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
     }
 
     // Handle API result — navigate or show error
@@ -195,10 +210,10 @@ fun MinimalPermissionScreen(
             // CTA button
             val buttonLabel = when (state.permissionFlow) {
                 is PermissionFlowState.Idle ->
-                    if (state.permissionStatus.notificationsGranted && state.permissionStatus.locationGranted)
+                    if (state.permissionStatus.notificationsGranted && state.permissionStatus.locationGranted && state.permissionStatus.gpsEnabled)
                         stringResource(Res.string.btn_continue) else stringResource(Res.string.grant_permissions)
                 is PermissionFlowState.Completed ->
-                    if (state.permissionStatus.notificationsGranted && state.permissionStatus.locationGranted)
+                    if (state.permissionStatus.notificationsGranted && state.permissionStatus.locationGranted && state.permissionStatus.gpsEnabled)
                         stringResource(Res.string.btn_continue) else stringResource(Res.string.retry_permissions)
                 is PermissionFlowState.RequestingNotifications -> stringResource(Res.string.requesting_notifications)
                 is PermissionFlowState.RequestingLocation -> stringResource(Res.string.requesting_location)

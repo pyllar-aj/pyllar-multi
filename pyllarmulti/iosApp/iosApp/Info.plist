@@ -46,5 +46,9 @@
 		<string>indusmobile</string>
 		<string>credpay</string>
 	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Pyllar needs your location to comply with financial regulations and provide local support.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Pyllar needs your location to comply with financial regulations and provide local support.</string>
 </dict>
 </plist>

@@ -78,7 +78,7 @@ fun MandateAuthScreen(
     val goalType = remember(goalId) { identifyGoalType(goalId) }
 
     LaunchedEffect(Unit) {
-        platformLog("MandateAuthScreen: \uD83D\uDCCB Received Parameters - mandateId: $mandateId, mandateRef: $mandateRef")
+        platformLog("MandateAuthScreen: \uD83D\uDCCB Received Parameters - mandateId: $mandateId, mandateRef: $mandateRef, mandateUrl: $mandateUrl")
         availableUpiApps = platformActions.getInstalledUpiApps()
     }
 
@@ -239,8 +239,8 @@ fun MandateAuthScreen(
                         Text("Go to Home", fontWeight = FontWeight.Bold)
                     }
                 }
-            } else if (!upiAppClicked && uiState.error == null) {
-                // Tabbed Bottom Panel
+            } else if (uiState.error == null) {
+                // Tabbed Bottom Panel - Keep visible during syncing to allow switching methods
                 Surface(
                     color = MaterialTheme.colorScheme.surface,
                     shadowElevation = 8.dp,
@@ -264,9 +264,9 @@ fun MandateAuthScreen(
                                 apps = availableUpiApps,
                                 onAppClick = { app ->
                                     upiAppClicked = true
-                                    platformActions.openUrl(mandateUrl)
+                                    platformActions.openUpiUrl(mandateUrl, app.packageName)
                                     scope.launch {
-                                        delay(10000L)
+                                        delay(1000L) // Shorter delay before showing loading
                                         viewModel.startMandateSync(userId, mandateId, mandateRef)
                                     }
                                 },
@@ -288,9 +288,9 @@ fun MandateAuthScreen(
             onAppClick = { app ->
                 showMoreUpiAppsSheet = false
                 upiAppClicked = true
-                platformActions.openUrl(mandateUrl)
+                platformActions.openUpiUrl(mandateUrl, app.packageName)
                 scope.launch {
-                    delay(10000L)
+                    delay(1000L)
                     viewModel.startMandateSync(userId, mandateId, mandateRef)
                 }
             }

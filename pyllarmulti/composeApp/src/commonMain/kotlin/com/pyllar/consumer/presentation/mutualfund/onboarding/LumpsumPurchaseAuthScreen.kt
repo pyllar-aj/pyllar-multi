@@ -252,9 +252,9 @@ fun LumpsumPurchaseAuthScreen(
                                 apps = availableUpiApps,
                                 onAppClick = { app ->
                                     upiAppClicked = true
-                                    platformActions.openUrl(paymentUrl)
+                                    platformActions.openUpiUrl(paymentUrl, app.packageName)
                                     scope.launch {
-                                        delay(10000L)
+                                        delay(1000L)
                                         viewModel.startPaymentSync(userId, paymentId)
                                     }
                                 }

@@ -108,9 +108,25 @@ fun SchemeDetailsV2Screen(
     }
 
     LaunchedEffect(userId, purpose) {
+        platformLog("SchemeDetailsV2: 🔄 Initial load LaunchedEffect - userId: $userId, purpose: $purpose")
         if (userId.isNotBlank() && purpose.isNotBlank()) {
+            // Attempt to restore params from session store if manager is empty
+            if (SchemeDetailsParamsManager.get() == null) {
+                platformLog("SchemeDetailsV2: 🔍 Manager empty, attempting restore from sessionStore")
+                val stored = sessionStore.getValue("scheme_details_params_$purpose")
+                val restored = SchemeDetailsParamsManager.fromJson(stored)
+                if (restored != null) {
+                    platformLog("SchemeDetailsV2: ✅ Restored params from sessionStore")
+                    SchemeDetailsParamsManager.set(restored)
+                    schemeParams = restored
+                }
+            } else if (schemeParams == null) {
+                schemeParams = SchemeDetailsParamsManager.get()
+            }
+
             val currentParams = schemeParams ?: SchemeDetailsParamsManager.get()
             val uipid = currentParams?.userPurposeId ?: purpose
+            platformLog("SchemeDetailsV2: 🚀 Calling loadTransactions with uipid: $uipid")
             viewModel.loadTransactions(userId, uipid, currentParams)
         }
     }
@@ -155,9 +171,12 @@ fun SchemeDetailsV2Screen(
     }
 
     val reloadData = {
+        platformLog("SchemeDetailsV2: 🔄 reloadData called - userId: $userId, purpose: $purpose")
         if (userId.isNotBlank() && purpose.isNotBlank()) {
             val currentParams = schemeParams ?: SchemeDetailsParamsManager.get()
-            viewModel.loadTransactions(userId, purpose, currentParams)
+            val uipid = currentParams?.userPurposeId ?: purpose
+            platformLog("SchemeDetailsV2: 🚀 Reloading transactions with uipid: $uipid")
+            viewModel.loadTransactions(userId, uipid, currentParams)
         }
     }
 
@@ -1554,30 +1573,32 @@ fun CancelSipInfoScreen(
     onCancelSip: () -> Unit,
     onGoBack: () -> Unit
 ) {
-    Surface(modifier = Modifier.fillMaxSize(), color = Color.White) {
-        Column(
-            modifier = Modifier.fillMaxSize().padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Icon(Icons.Default.Warning, null, tint = Color.Red, modifier = Modifier.size(64.dp))
-            Spacer(modifier = Modifier.height(24.dp))
-            Text("Cancel Daily Plan?", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                "Are you sure you want to cancel your daily saving of ₹${formatIndian(dailyAmount)} in $schemeName?",
-                textAlign = TextAlign.Center, color = Color.Gray
-            )
-            Spacer(modifier = Modifier.height(40.dp))
-            Button(
-                onClick = onCancelSip,
-                modifier = Modifier.fillMaxWidth().height(56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
-                shape = RoundedCornerShape(16.dp)
+    Dialog(onDismissRequest = onGoBack, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Surface(modifier = Modifier.fillMaxSize(), color = Color.White) {
+            Column(
+                modifier = Modifier.fillMaxSize().padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
-                Text("Cancel Daily Saving", fontWeight = FontWeight.Bold)
+                Icon(Icons.Default.Warning, null, tint = Color.Red, modifier = Modifier.size(64.dp))
+                Spacer(modifier = Modifier.height(24.dp))
+                Text("Cancel Daily Plan?", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    "Are you sure you want to cancel your daily saving of ₹${formatIndian(dailyAmount)} in $schemeName?",
+                    textAlign = TextAlign.Center, color = Color.Gray
+                )
+                Spacer(modifier = Modifier.height(40.dp))
+                Button(
+                    onClick = onCancelSip,
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Text("Cancel Daily Saving", fontWeight = FontWeight.Bold)
+                }
+                TextButton(onClick = onGoBack) { Text("Keep Saving", color = Color.Black) }
             }
-            TextButton(onClick = onGoBack) { Text("Keep Saving", color = Color.Black) }
         }
     }
 }
@@ -1590,24 +1611,28 @@ fun CancelSipReasonScreen(
     onContinue: () -> Unit,
     onGoBack: () -> Unit
 ) {
-    Surface(modifier = Modifier.fillMaxSize(), color = Color.White) {
-        Column(modifier = Modifier.fillMaxSize().padding(24.dp)) {
-            IconButton(onClick = onGoBack) { Icon(Icons.Default.ArrowBack, null) }
-            Text("Why are you cancelling?", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(24.dp))
-            CancelSipReason.values().forEach { reason ->
-                Row(
-                    modifier = Modifier.fillMaxWidth().clickable { onReasonSelected(reason) }.padding(vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    RadioButton(selected = selectedReason == reason, onClick = { onReasonSelected(reason) })
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(reason.label)
+    Dialog(onDismissRequest = onGoBack, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Surface(modifier = Modifier.fillMaxSize(), color = Color.White) {
+            Column(modifier = Modifier.fillMaxSize().padding(24.dp)) {
+                IconButton(onClick = onGoBack) { Icon(Icons.Default.ArrowBack, null) }
+                Text("Why are you cancelling?", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(24.dp))
+                Column(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+                    CancelSipReason.values().forEach { reason ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth().clickable { onReasonSelected(reason) }.padding(vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(selected = selectedReason == reason, onClick = { onReasonSelected(reason) })
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(reason.label)
+                        }
+                    }
                 }
-            }
-            Spacer(modifier = Modifier.weight(1f))
-            Button(onClick = onContinue, modifier = Modifier.fillMaxWidth().height(56.dp), enabled = selectedReason != null) {
-                Text("Continue")
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(onClick = onContinue, modifier = Modifier.fillMaxWidth().height(56.dp), enabled = selectedReason != null) {
+                    Text("Continue")
+                }
             }
         }
     }
