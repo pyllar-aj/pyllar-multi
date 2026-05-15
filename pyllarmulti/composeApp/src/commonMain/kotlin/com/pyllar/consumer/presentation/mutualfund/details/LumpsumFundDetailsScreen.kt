@@ -182,7 +182,7 @@ fun LumpsumFundDetailsScreen(
                             .padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(24.dp)
                     ) {
-                        Spacer(modifier = Modifier.height(32.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
                         FundHeader(details)
                         
                         FundChartSection(

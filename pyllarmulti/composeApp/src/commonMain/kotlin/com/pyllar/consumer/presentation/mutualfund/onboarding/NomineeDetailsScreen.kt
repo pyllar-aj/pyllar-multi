@@ -485,6 +485,7 @@ private fun OtpVerificationBottomSheet(
 ) {
     var resendTimer by remember { mutableStateOf(30) }
     var canResend by remember { mutableStateOf(false) }
+    var isResent by remember { mutableStateOf(false) }
 
     LaunchedEffect(canResend) {
         if (!canResend) {
@@ -533,6 +534,7 @@ private fun OtpVerificationBottomSheet(
             onClick = { 
                 if (canResend) { 
                     canResend = false
+                    isResent = true
                     onOtpCodeChange("") // Clear previous OTP input
                     onResendOtp() 
                 } 
@@ -546,7 +548,7 @@ private fun OtpVerificationBottomSheet(
             Text(otpVerificationResult.message ?: "Incorrect OTP. Please try again.", color = MaterialTheme.colorScheme.error)
         }
         
-        if (otpGenerationResult is Resource.Success) {
+        if (otpGenerationResult is Resource.Success && isResent) {
             Text("OTP resent successfully!", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
         } else if (otpGenerationResult is Resource.Error) {
             Text(otpGenerationResult.message ?: "Failed to resend OTP.", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)

@@ -12,20 +12,21 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import com.pyllar.consumer.presentation.mutualfund.details.SipCreationResult
 
 data class InvestmentLimitsState(
-    val isLoading: Boolean = true,
+    val isLoading: Boolean = false,
     val minAmount: Long = 101,
     val maxAmount: Long = 500,
     val defaultAmount: Long? = null,
     val error: String? = null
 )
 
-sealed class SipCreationResult {
-    data class Success(val message: String, val nextScreen: String?, val mandateWrapper: MandateWrapper?) : SipCreationResult()
-    data class Failure(val error: String) : SipCreationResult()
-    object SecureChannelError : SipCreationResult()
-}
+//sealed class SipCreationResult {
+//    data class Success(val message: String, val nextScreen: String?, val mandateWrapper: MandateWrapper?) : SipCreationResult()
+//    data class Failure(val error: String) : SipCreationResult()
+//    object SecureChannelError : SipCreationResult()
+//}
 
 class SipAmountScreenV2ViewModel(
     private val fundDetailsRepository: FundDetailsRepository,
@@ -92,7 +93,7 @@ class SipAmountScreenV2ViewModel(
         userInvPurpose: String? = null
     ): SipCreationResult {
         return try {
-            val userPurposeId = sessionStore.getValue("user_purpose_id") ?: ""
+            val userPurposeId = sessionStore.getValue(com.pyllar.consumer.data.local.KeyValueConstants.USER_PURPOSE_ID) ?: ""
             val effectiveUserInvPurpose = userPurposeId.ifBlank { userInvPurpose ?: "" }
 
             val requestPayload = CreateDailySipRequestDto(
@@ -103,23 +104,33 @@ class SipAmountScreenV2ViewModel(
                 userInvPurpose = effectiveUserInvPurpose
             )
 
-            // Using flow to suspend until result
+            platformLog("SipAmountScreenV2ViewModel: 🚀 createSip initiated for userId='$userId'")
             var finalResult: SipCreationResult = SipCreationResult.Failure("Unknown error")
             
             fundDetailsRepository.createDailySip(requestPayload).collect { result ->
-                if (result is Resource.Success) {
-                    try {
-                        sessionStore.saveValue("sip_amount", amount.toString())
-                    } catch (e: Exception) {
-                        platformLog("SipAmountScreenV2ViewModel: \u274C Failed to save sip amount")
+                platformLog("SipAmountScreenV2ViewModel: 📥 Received repository result: ${result::class.simpleName}")
+                when (result) {
+                    is Resource.Success -> {
+                        platformLog("SipAmountScreenV2ViewModel: ✅ Success received")
+                        try {
+                            sessionStore.saveValue("sip_amount", amount.toString())
+                        } catch (e: Exception) {
+                            platformLog("SipAmountScreenV2ViewModel: ⚠️ Failed to save sip amount: ${e.message}")
+                        }
+                        val mandateWrapper = result.data
+                        val nextScreen = result.navigation?.nextScreen
+                        finalResult = SipCreationResult.Success("SIP created successfully!", nextScreen, mandateWrapper)
                     }
-                    val mandateWrapper = result.data
-                    val nextScreen = result.navigation?.nextScreen
-                    finalResult = SipCreationResult.Success("SIP created successfully!", nextScreen, mandateWrapper)
-                } else if (result is Resource.Error) {
-                    finalResult = SipCreationResult.Failure(result.message ?: "Failed to create SIP")
+                    is Resource.Error -> {
+                        platformLog("SipAmountScreenV2ViewModel: ❌ Error received: ${result.message}")
+                        finalResult = SipCreationResult.Failure(result.message ?: "Failed to create SIP")
+                    }
+                    is Resource.Loading -> {
+                        platformLog("SipAmountScreenV2ViewModel: ⏳ Loading...")
+                    }
                 }
             }
+            platformLog("SipAmountScreenV2ViewModel: 🏁 createSip returning: ${finalResult::class.simpleName}")
             finalResult
         } catch (e: Exception) {
             platformLog("SipAmountScreenV2ViewModel: \u274C Exception: ${e.message}")

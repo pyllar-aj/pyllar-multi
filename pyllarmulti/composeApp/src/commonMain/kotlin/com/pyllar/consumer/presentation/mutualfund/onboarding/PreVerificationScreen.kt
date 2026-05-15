@@ -577,6 +577,7 @@ private fun PreVerificationOtpBottomSheet(
 ) {
     var resendTimer by remember { mutableStateOf(30) }
     var canResend by remember { mutableStateOf(false) }
+    var isResent by remember { mutableStateOf(false) }
 
     LaunchedEffect(canResend) {
         if (!canResend) {
@@ -625,12 +626,17 @@ private fun PreVerificationOtpBottomSheet(
             onClick = {
                 if (canResend) {
                     canResend = false
+                    isResent = true
                     onResendOtp()
                 }
             },
             enabled = canResend
         ) {
             Text(if (canResend) "Resend OTP" else "Resend in $resendTimer seconds")
+        }
+
+        if (otpVerificationResult !is Resource.Loading && isResent && otpVerificationResult !is Resource.Error) {
+             Text("OTP resent successfully!", color = Color(0xFF4CAF50), style = MaterialTheme.typography.bodySmall)
         }
 
         if (otpVerificationResult is Resource.Error) {

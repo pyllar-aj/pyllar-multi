@@ -60,9 +60,9 @@ fun FundDetailsScreen(
 
     if (state.sipError != null) {
         AlertDialog(
-            onDismissRequest = { /* Clear error in VM if needed, but for now just hide */ },
-            title = { Text("Error") },
-            text = { Text(state.sipError!!) },
+            onDismissRequest = { viewModel.clearSipError() },
+            title = { Text("Investment Failed") },
+            text = { Text(state.sipError ?: "An unexpected error occurred. Please try again.") },
             confirmButton = {
                 TextButton(onClick = { 
                     viewModel.clearSipError()
@@ -88,6 +88,8 @@ fun FundDetailsScreen(
             if (fromSipAmount) {
                 FundDetailsBottomBar(
                     isLoading = state.isSipCreating,
+                    isFetching = state.isLoading,
+                    isEnabled = state.fundDetails != null,
                     sipAmount = sipAmount,
                     onInvestClick = {
                         if (sipAmount <= 0) return@FundDetailsBottomBar
@@ -112,7 +114,7 @@ fun FundDetailsScreen(
             if (state.isLoading) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             } else if (state.error != null) {
-                Text(state.error!!, color = MaterialTheme.colorScheme.error, modifier = Modifier.align(Alignment.Center))
+                Text(state.error ?: "Failed to load fund details", color = MaterialTheme.colorScheme.error, modifier = Modifier.align(Alignment.Center))
             } else {
                 state.fundDetails?.let { details ->
                     Column(
@@ -122,7 +124,7 @@ fun FundDetailsScreen(
                             .padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(24.dp)
                     ) {
-                        Spacer(modifier = Modifier.height(32.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
                         FundHeader(details.fundName ?: "", details.category ?: "")
                         
                         FundChartSection(
@@ -188,7 +190,13 @@ fun MetricItem(label: String, value: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun FundDetailsBottomBar(isLoading: Boolean, sipAmount: Double, onInvestClick: () -> Unit) {
+fun FundDetailsBottomBar(
+    isLoading: Boolean,
+    isFetching: Boolean,
+    isEnabled: Boolean,
+    sipAmount: Double,
+    onInvestClick: () -> Unit
+) {
     Surface(tonalElevation = 4.dp, shadowElevation = 8.dp) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -202,9 +210,9 @@ fun FundDetailsBottomBar(isLoading: Boolean, sipAmount: Double, onInvestClick: (
             Button(
                 onClick = onInvestClick,
                 modifier = Modifier.height(56.dp).weight(1.5f),
-                enabled = !isLoading
+                enabled = !isLoading && !isFetching && isEnabled
             ) {
-                if (isLoading) {
+                if (isLoading || isFetching) {
                     CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
                 } else {
                     Text("Invest Now", fontWeight = FontWeight.Bold)

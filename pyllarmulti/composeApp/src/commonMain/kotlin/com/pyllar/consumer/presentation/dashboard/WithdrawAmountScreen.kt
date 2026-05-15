@@ -334,6 +334,26 @@ fun WithdrawAmountScreen(
                             }
                             Text("Sent to $phoneNumber", style = MaterialTheme.typography.bodyMedium)
                             
+                            var resendTimer by remember { mutableStateOf(30) }
+                            var canResend by remember { mutableStateOf(false) }
+                            var isResent by remember { mutableStateOf(false) }
+                            
+                            // Initialize isResent to false when screen first appears
+                            LaunchedEffect(Unit) {
+                                isResent = false
+                            }
+
+                            LaunchedEffect(canResend) {
+                                if (!canResend) {
+                                    resendTimer = 30
+                                    while (resendTimer > 0) {
+                                        delay(1000)
+                                        resendTimer--
+                                    }
+                                    canResend = true
+                                }
+                            }
+
                             OtpField(
                                 length = 6,
                                 modifier = Modifier.fillMaxWidth(),
@@ -350,6 +370,27 @@ fun WithdrawAmountScreen(
                                 textAlign = TextAlign.Center,
                                 modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
                             )
+
+                            TextButton(
+                                onClick = {
+                                    if (canResend) {
+                                        canResend = false
+                                        otpCode = ""
+                                        isResent = true
+                                        scope.launch {
+                                            val finalUserId = if (userId.isBlank()) sessionStore.getCurrentUserId() else userId
+                                            viewModel.generateRedemptionOtp(finalUserId)
+                                        }
+                                    }
+                                },
+                                enabled = canResend
+                            ) {
+                                Text(if (canResend) "Resend OTP" else "Resend in $resendTimer seconds")
+                            }
+
+                            if (otpGenerationResult is Resource.Success && !canResend && isResent) {
+                                Text("OTP resent successfully!", color = Color(0xFF4CAF50), style = MaterialTheme.typography.bodySmall)
+                            }
 
                             if (otpValidationError != null) {
                                 Text(otpValidationError!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)

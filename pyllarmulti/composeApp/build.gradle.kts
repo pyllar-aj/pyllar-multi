@@ -29,7 +29,7 @@ kotlin {
         iosTarget.binaries.framework {
             baseName = "ComposeApp"
             isStatic = true
-         //   freeCompilerArgs += listOf("-Xbinary=bundleId=com.pyllar.consumer")
+           freeCompilerArgs += listOf("-Xbinary=bundleId=com.pyllar.consumer")
         }
     }
     
@@ -106,15 +106,9 @@ val generateIosBuildConfig by tasks.registering {
     }
 }
 
+// Wire the generated directory safely to the iOS source set so Gradle knows about the task dependency
 kotlin.sourceSets.getByName("iosMain") {
-    kotlin.srcDir(generateIosBuildConfig)
-}
-
-tasks.matching { it.name.startsWith("compile") && it.name.contains("Ios") }.configureEach {
-    dependsOn(generateIosBuildConfig)
-}
-tasks.matching { it.name.startsWith("link") && it.name.contains("Ios") }.configureEach {
-    dependsOn(generateIosBuildConfig)
+    kotlin.srcDir(generateIosBuildConfig.map { it.outputs.files.singleFile })
 }
 
 android {

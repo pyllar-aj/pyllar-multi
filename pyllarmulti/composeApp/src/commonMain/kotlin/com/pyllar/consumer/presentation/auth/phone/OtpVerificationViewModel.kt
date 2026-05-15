@@ -72,6 +72,7 @@ class OtpVerificationViewModel(
                 val appVersion = deviceInfoProvider.getAppVersion().orEmpty()
                 val pushToken = pushTokenProvider.getPushToken().orEmpty()
 
+                com.pyllar.consumer.util.platformLog("OtpVerificationViewModel: Verifying OTP for ${_phoneNumber.value} with id: ${_otpRef.value}")
                 val request = OtpVerificationRequest(
                     phoneNumber = _phoneNumber.value,
                     otp = _otp.value,
@@ -114,6 +115,9 @@ class OtpVerificationViewModel(
             )
 
             authRepository.sendOtp(request).collect { result ->
+                if (result is Resource.Success) {
+                    _otpRef.value = result.data?.otpRef
+                }
                 _resendResult.value = when (result) {
                     is Resource.Success -> Resource.Success("OTP sent successfully")
                     is Resource.Error -> Resource.Error(result.message ?: "Failed to send OTP")

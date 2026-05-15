@@ -164,20 +164,20 @@ fun App() {
                     is Screen.BankDetails -> sessionStore.saveValue(KeyValueConstants.KYC_ATTEMPT_ID, screen.kycAttemptId)
                     is Screen.KycInformation -> screen.kycAttemptId?.let { sessionStore.saveValue(KeyValueConstants.KYC_ATTEMPT_ID, it) }
                     is Screen.SipAmountV2 -> {
-                        sessionStore.saveValue(KeyValueConstants.KYC_ATTEMPT_ID, screen.kycAttemptId)
-                        sessionStore.saveValue(KeyValueConstants.INVESTOR_ID, screen.investorId)
+                        if (screen.kycAttemptId.isNotBlank()) sessionStore.saveValue(KeyValueConstants.KYC_ATTEMPT_ID, screen.kycAttemptId)
+                        if (screen.investorId.isNotBlank()) sessionStore.saveValue(KeyValueConstants.INVESTOR_ID, screen.investorId)
                     }
                     is Screen.MandateAuth -> {
-                        sessionStore.saveValue(KeyValueConstants.KYC_ATTEMPT_ID, screen.kycAttemptId)
-                        sessionStore.saveValue(KeyValueConstants.INVESTOR_ID, screen.investorId)
+                        if (screen.kycAttemptId.isNotBlank()) sessionStore.saveValue(KeyValueConstants.KYC_ATTEMPT_ID, screen.kycAttemptId)
+                        if (screen.investorId.isNotBlank()) sessionStore.saveValue(KeyValueConstants.INVESTOR_ID, screen.investorId)
                     }
                     is Screen.LumpsumAmountV2 -> {
-                        sessionStore.saveValue(KeyValueConstants.KYC_ATTEMPT_ID, screen.kycAttemptId)
-                        sessionStore.saveValue(KeyValueConstants.INVESTOR_ID, screen.investorId)
+                        if (screen.kycAttemptId.isNotBlank()) sessionStore.saveValue(KeyValueConstants.KYC_ATTEMPT_ID, screen.kycAttemptId)
+                        if (screen.investorId.isNotBlank()) sessionStore.saveValue(KeyValueConstants.INVESTOR_ID, screen.investorId)
                     }
                     is Screen.LumpsumPurchaseAuth -> {
-                        sessionStore.saveValue(KeyValueConstants.KYC_ATTEMPT_ID, screen.kycAttemptId)
-                        sessionStore.saveValue(KeyValueConstants.INVESTOR_ID, screen.investorId)
+                        if (screen.kycAttemptId.isNotBlank()) sessionStore.saveValue(KeyValueConstants.KYC_ATTEMPT_ID, screen.kycAttemptId)
+                        if (screen.investorId.isNotBlank()) sessionStore.saveValue(KeyValueConstants.INVESTOR_ID, screen.investorId)
                     }
                     else -> {}
                 }
@@ -772,7 +772,7 @@ fun App() {
                     onNavigateToFundDetails = { userId, goalId, amt, kycId, invId ->
                          navigateTo(Screen.LumpsumFundDetails("", userId, goalId, amt, kycAttemptId = kycId, investorId = invId))
                     },
-                    onNavigateBack = { navigateTo(Screen.SchemeDetails(screen.userId, screen.goalId)) }
+                    onNavigateBack = { navigateBack() }
                 )
             }
             is Screen.LumpsumPurchaseAuth -> {

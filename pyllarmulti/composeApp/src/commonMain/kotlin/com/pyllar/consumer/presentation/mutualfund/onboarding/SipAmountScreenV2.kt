@@ -95,43 +95,74 @@ fun SipAmountScreenV2(
     val coroutineScope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
     
-    // Effective userId and goalId states - fetch from repository when params are empty
+    // Effective IDs - fetch from repository when params are empty
     var effectiveUserId by remember(userId) { mutableStateOf(userId) }
+    var isFetchingIds by remember { mutableStateOf(false) }
+    var effectiveKycAttemptId by remember(kycAttemptId) { mutableStateOf(kycAttemptId) }
+    var effectiveInvestorId by remember(investorId) { mutableStateOf(investorId) }
     var effectiveGoalId by remember(goalId) { mutableStateOf(goalId) }
+    var isInitializing by remember { mutableStateOf(true) }
+    var isInitialized by remember { mutableStateOf(false) }
     var isInitTxnLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(userId, goalId) {
-        platformLog("SipAmountScreenV2: Received params - userId: '$userId', goalId: '$goalId'")
+    LaunchedEffect(userId, goalId, kycAttemptId, investorId) {
+        platformLog("SipAmountScreenV2: Received params - userId: '$userId', goalId: '$goalId', kyc: '$kycAttemptId', inv: '$investorId'")
         if (userId.isNotBlank()) effectiveUserId = userId
         if (goalId.isNotBlank()) effectiveGoalId = goalId
+        if (kycAttemptId.isNotBlank()) effectiveKycAttemptId = kycAttemptId
+        if (investorId.isNotBlank()) effectiveInvestorId = investorId
     }
 
     // Fetch effective values from repository on composition
     LaunchedEffect(Unit) {
-        // Fetch userId from repository if param is empty
-        if (userId.isBlank()) {
-            try {
-                val storedUserId = sessionStore.getCurrentUserId()
-                if (storedUserId.isNotBlank()) {
-                    effectiveUserId = storedUserId
-                    platformLog("SipAmountScreenV2: Restored userId from storage: '$storedUserId'")
+        try {
+            isFetchingIds = true
+            platformLog("SipAmountV2: 🔄 Initializing screen IDs. Provided: kyc='$kycAttemptId', inv='$investorId'")
+            
+            // Fetch userId from repository if param is empty
+            if (userId.isBlank()) {
+                try {
+                    val storedUserId = sessionStore.getCurrentUserId()
+                    if (storedUserId.isNotBlank()) {
+                        effectiveUserId = storedUserId
+                        platformLog("SipAmountScreenV2: Restored userId from storage: '$storedUserId'")
+                    }
+                } catch (e: Exception) {
+                    platformLog("SipAmountScreenV2: Error fetching userId from storage: ${e.message}")
                 }
-            } catch (e: Exception) {
-                platformLog("SipAmountScreenV2: Error fetching userId from storage: ${e.message}")
             }
-        }
 
-        // Fetch goalId from repository if param is empty
-        if (goalId.isBlank()) {
-            try {
-                val storedGoalId = sessionStore.getValue(KeyValueConstants.SELECTED_GOAL_ID) ?: ""
-                if (storedGoalId.isNotBlank()) {
-                    effectiveGoalId = storedGoalId
-                    platformLog("SipAmountScreenV2: Restored goalId from storage: '$storedGoalId'")
+            // Fetch goalId from repository if param is empty
+            if (goalId.isBlank()) {
+                try {
+                    val storedGoalId = sessionStore.getValue(KeyValueConstants.SELECTED_GOAL_ID) ?: ""
+                    if (storedGoalId.isNotBlank()) {
+                        effectiveGoalId = storedGoalId
+                        platformLog("SipAmountScreenV2: Restored goalId from storage: '$storedGoalId'")
+                    }
+                } catch (e: Exception) {
+                    platformLog("SipAmountScreenV2: Error fetching goalId from storage: ${e.message}")
                 }
-            } catch (e: Exception) {
-                platformLog("SipAmountScreenV2: Error fetching goalId from storage: ${e.message}")
             }
+
+            // Always try to restore from storage if provided ones are blank
+            if (effectiveKycAttemptId.isBlank() || effectiveInvestorId.isBlank()) {
+                val storedKycId = sessionStore.getValue(KeyValueConstants.KYC_ATTEMPT_ID) ?: ""
+                val storedInvId = sessionStore.getValue(KeyValueConstants.INVESTOR_ID) ?: ""
+                platformLog("SipAmountV2: Restoration check: storedKyc='$storedKycId', storedInv='$storedInvId'")
+                
+                if (effectiveKycAttemptId.isBlank() && storedKycId.isNotBlank()) {
+                    effectiveKycAttemptId = storedKycId
+                }
+                if (effectiveInvestorId.isBlank() && storedInvId.isNotBlank()) {
+                    effectiveInvestorId = storedInvId
+                }
+            }
+        } finally {
+            isFetchingIds = false
+            isInitializing = false
+            isInitialized = true
         }
     }
 
@@ -250,29 +281,36 @@ fun SipAmountScreenV2(
             )
         },
         bottomBar = {
-            if (!limitsState.isLoading) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+            val isFetching = isInitializing || isInitTxnLoading || limitsState.isLoading || fundDetailsState.isLoading || isFetchingIds
+            val canContinue = !isFetching && !isLoading
+            
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Button(
+                    onClick = { showDetailsBottomSheet = true },
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    enabled = canContinue,
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Button(
-                        onClick = { showDetailsBottomSheet = true },
-                        modifier = Modifier.fillMaxWidth().height(56.dp),
-                        enabled = !isLoading,
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
+                    if (isFetching || isLoading) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White, strokeWidth = 2.dp)
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(if (isLoading) "Processing..." else "Loading...", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    } else {
                         Text("Continue", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                     }
-
-                    Text(
-                        "You can change or stop your SIP anytime.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    )
                 }
+
+                Text(
+                    "You can change or stop your SIP anytime.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
             }
         }
     ) { padding ->
@@ -425,8 +463,8 @@ fun SipAmountScreenV2(
                                     effectiveUserId,
                                     effectiveGoalId,
                                     amount.toDouble(),
-                                    kycAttemptId,
-                                    investorId
+                                    effectiveKycAttemptId,
+                                    effectiveInvestorId
                                 )
                             }
                         )
@@ -451,23 +489,53 @@ fun SipAmountScreenV2(
             goalType = resolvedGoalType,
             fundDetailsState = fundDetailsState,
             onConfirm = {
-                isLoading = true
-                showDetailsBottomSheet = false
                 coroutineScope.launch {
-                    val result = viewModel.createSip(effectiveUserId, kycAttemptId, investorId, amount.toDouble())
-                    when (result) {
-                        is SipCreationResult.Success -> {
-                            onSipCreated(amount.toDouble(), result.mandateWrapper?.uri, result.mandateWrapper?.mandateId, result.mandateWrapper?.finMandateId)
+                    platformLog("SipAmountV2: onConfirm clicked. Current IDs: userId='$effectiveUserId', kycId='$effectiveKycAttemptId', invId='$effectiveInvestorId'")
+                    
+                    // Proceed with API call
+                    platformLog("SipAmountV2: Proceeding with createSip API call...")
+                    isLoading = true
+                    showDetailsBottomSheet = false
+                    
+                    try {
+                        val result = viewModel.createSip(effectiveUserId, effectiveKycAttemptId, effectiveInvestorId, amount.toDouble())
+                        platformLog("SipAmountV2: createSip result: $result")
+                        
+                        when (result) {
+                            is SipCreationResult.Success -> {
+                                platformLog("SipAmountV2: SIP Creation Success! Navigating...")
+                                onSipCreated(amount.toDouble(), result.mandateWrapper?.uri, result.mandateWrapper?.mandateId, result.mandateWrapper?.finMandateId)
+                            }
+                            is SipCreationResult.Failure -> {
+                                platformLog("SipAmountV2: SIP Creation Failure: ${result.message}")
+                                errorMessage = result.message
+                            }
+                            else -> {
+                                platformLog("SipAmountV2: Unexpected result type: ${result::class.simpleName}")
+                            }
                         }
-                        is SipCreationResult.Failure -> {
-                            platformLog("SIP Creation failed: ${result.message}")
-                        }
-                        else -> {}
+                    } catch (e: Exception) {
+                        platformLog("SipAmountV2: Exception during createSip: ${e.message}")
+                        errorMessage = "An unexpected error occurred: ${e.message}"
+                    } finally {
+                        isLoading = false
                     }
-                    isLoading = false
                 }
             },
             onDismiss = { showDetailsBottomSheet = false }
+        )
+    }
+
+    if (errorMessage != null) {
+        AlertDialog(
+            onDismissRequest = { errorMessage = null },
+            title = { Text("Investment Failed") },
+            text = { Text(errorMessage ?: "An unexpected error occurred. Please try again.") },
+            confirmButton = {
+                TextButton(onClick = { errorMessage = null }) {
+                    Text("OK")
+                }
+            }
         )
     }
 }

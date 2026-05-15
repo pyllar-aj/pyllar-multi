@@ -155,10 +155,10 @@ fun WithdrawSuccessScreen(
                         )
                     }
 
-                    TransactionDetailRow(
-                        label = "Transaction ID",
-                        value = transactionId
-                    )
+                //    TransactionDetailRow(
+                //        label = "Transaction ID",
+                //        value = transactionId
+                //    )
                 }
             }
 
