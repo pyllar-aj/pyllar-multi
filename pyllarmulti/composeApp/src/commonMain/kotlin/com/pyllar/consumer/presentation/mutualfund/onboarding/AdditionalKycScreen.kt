@@ -134,9 +134,22 @@ fun AdditionalKycScreen(
             if (maritalStatus.isBlank()) maritalStatus = uiState["maritalStatus"]?.toString() ?: ""
             if (occupationType.isBlank()) occupationType = uiState["occupationType"]?.toString() ?: ""
             if (placeOfBirth.isBlank()) placeOfBirth = uiState["placeOfBirth"]?.toString() ?: ""
-            if (incomeSlab.isBlank()) incomeSlab = uiState["annualIncome"]?.toString() ?: ""
+            if (incomeSlab.isBlank()) incomeSlab = uiState["incomeSlab"]?.toString() ?: uiState["annualIncome"]?.toString() ?: ""
             if (city.isBlank()) city = uiState["city"]?.toString() ?: ""
             if (pincode.isBlank()) pincode = uiState["pincode"]?.toString() ?: ""
+            if (addressLine1.isBlank()) addressLine1 = uiState["addressLine1"]?.toString() ?: ""
+            if (addressLine2.isBlank()) addressLine2 = uiState["addressLine2"]?.toString() ?: ""
+            if (addressLine3.isBlank()) addressLine3 = uiState["addressLine3"]?.toString() ?: ""
+            
+            // Handle yes/no status fields
+            val resStat = uiState["residentialStatus"]?.toString()
+            if (resStat != null) residentialStatus = resStat
+            
+            val natStat = uiState["nationality"]?.toString()
+            if (natStat != null) nationality = natStat
+            
+            val pepStat = uiState["politicallyExposed"]?.toString()
+            if (pepStat != null) politicallyExposed = pepStat
         }
     }
 

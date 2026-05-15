@@ -5,19 +5,19 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class AdditionalKycRequest(
-    @SerialName("marital_status")
+    @SerialName("maritalStatus")
     val maritalStatus: String,
-    @SerialName("occupation_type")
+    @SerialName("occupationType")
     val occupationType: String,
-    @SerialName("father_name")
+    @SerialName("fatherName")
     val fatherName: String,
-    @SerialName("annual_income")
+    @SerialName("annualIncome")
     val annualIncome: String,
-    @SerialName("is_politically_exposed")
+    @SerialName("isPoliticallyExposed")
     val isPoliticallyExposed: Boolean,
-    @SerialName("nationality_country")
+    @SerialName("nationality")
     val nationalityCountry: String,
-    @SerialName("place_of_birth")
+    @SerialName("placeOfBirth")
     val placeOfBirth: String,
     val gender: String,
     val city: String,
