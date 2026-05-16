@@ -89,3 +89,25 @@ interface PlatformActions {
     fun getInstalledUpiApps(): List<UpiAppInfo>
     fun openAppSettings()
 }
+
+/**
+ * Platform-independent representation of geographic coordinates.
+ */
+data class LocationCoordinates(
+    val latitude: Double,
+    val longitude: Double
+)
+
+/**
+ * Abstraction for fetching the current device location.
+ *
+ * Implementations should handle platform-specific location services
+ * (e.g., FusedLocationProvider on Android, CLLocationManager on iOS).
+ */
+interface LocationProvider {
+    /**
+     * Attempts to fetch the current location.
+     * Returns null if permissions are missing or location services are disabled.
+     */
+    suspend fun getCurrentLocation(): LocationCoordinates?
+}

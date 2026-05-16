@@ -28,6 +28,8 @@ import com.pyllar.consumer.data.remote.model.dto.NavChartDataDto
 import com.pyllar.consumer.data.remote.model.dto.FundReturnsDto
 import org.koin.compose.koinInject
 import kotlinx.coroutines.launch
+import com.pyllar.consumer.presentation.dashboard.InvestmentDashboardV2ViewModel
+import com.pyllar.consumer.presentation.dashboard.KycPendingBottomSheet
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,16 +43,23 @@ fun FundDetailsScreen(
     fromSipAmount: Boolean = false,
     onBackClick: () -> Unit = {},
     onSipCreated: (Double, String?, com.pyllar.consumer.data.remote.model.dto.MandateWrapper?) -> Unit = { _, _, _ -> },
-    viewModel: FundDetailsViewModel = koinInject()
+    viewModel: FundDetailsViewModel = koinInject(),
+    dashboardViewModel: InvestmentDashboardV2ViewModel = koinInject()
 ) {
     val state by viewModel.uiState.collectAsState()
+    val dashboardState by dashboardViewModel.dashboardState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
+    var showKycPendingBottomSheet by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         PlatformAnalyticsLogger.logScreenView("FundDetails")
     }
 
     LaunchedEffect(isin, userId, goalId) {
+        if (userId.isNotBlank()) {
+            dashboardViewModel.loadDashboardData(userId)
+        }
+        
         if (isin.isNotBlank()) {
             viewModel.loadFundDetails(isin)
         } else if (userId.isNotBlank() && goalId.isNotBlank()) {
@@ -94,6 +103,18 @@ fun FundDetailsScreen(
                     onInvestClick = {
                         if (sipAmount <= 0) return@FundDetailsBottomBar
                         
+                        // Check KYC status before proceeding
+                        val kycStatus = dashboardState.kycStatus
+                        val isKycPending = !dashboardState.isLoading &&
+                                (kycStatus.equals("PENDING", ignoreCase = true) ||
+                                 kycStatus.equals("IN_PROGRESS", ignoreCase = true) ||
+                                 kycStatus.equals("EXPIRED", ignoreCase = true))
+                        
+                        if (isKycPending) {
+                            showKycPendingBottomSheet = true
+                            return@FundDetailsBottomBar
+                        }
+
                         coroutineScope.launch {
                             val result = viewModel.createSip(
                                 userId = userId,
@@ -111,6 +132,14 @@ fun FundDetailsScreen(
         }
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+            if (showKycPendingBottomSheet) {
+                KycPendingBottomSheet(
+                    onDismiss = { showKycPendingBottomSheet = false },
+                    onRetryKyc = { showKycPendingBottomSheet = false },
+                    kycStatus = dashboardState.kycStatus
+                )
+            }
+            
             if (state.isLoading) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             } else if (state.error != null) {

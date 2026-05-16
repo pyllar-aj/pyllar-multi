@@ -92,6 +92,7 @@ fun SipAmountScreenV2(
 ) {
     val limitsState by viewModel.limitsState.collectAsState()
     val fundDetailsState by fundDetailsViewModel.uiState.collectAsState()
+    val dashboardState by dashboardViewModel.dashboardState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
     
@@ -180,16 +181,22 @@ fun SipAmountScreenV2(
     var showSavingsGrowthBottomSheet by remember { mutableStateOf(false) }
     var savingsGrowthSelectedYears by remember { mutableStateOf(7) }
     var showDetailsBottomSheet by remember { mutableStateOf(false) }
+    var showKycPendingBottomSheet by remember { mutableStateOf(false) }
 
 
     // Track resolved goal type - update it when initGoalTxn returns the real purpose
     var resolvedGoalType by remember(effectiveGoalId) { mutableStateOf(identifyGoalType(effectiveGoalId)) }
 
-    // Load fund details when effectiveUserId and effectiveGoalId are available
+    // Load fund details and dashboard data when effectiveUserId and effectiveGoalId are available
     LaunchedEffect(effectiveUserId, effectiveGoalId) {
-        if (effectiveUserId.isNotBlank() && effectiveGoalId.isNotBlank()) {
-            platformLog("SipAmountScreenV2: Triggering initial fund details load - userId: '$effectiveUserId', goalId: '$effectiveGoalId'")
-            fundDetailsViewModel.loadFundDetailsByGoal(effectiveUserId, effectiveGoalId)
+        if (effectiveUserId.isNotBlank()) {
+            platformLog("SipAmountScreenV2: Loading dashboard data for KYC status - userId: '$effectiveUserId'")
+            dashboardViewModel.loadDashboardData(effectiveUserId)
+            
+            if (effectiveGoalId.isNotBlank()) {
+                platformLog("SipAmountScreenV2: Triggering initial fund details load - userId: '$effectiveUserId', goalId: '$effectiveGoalId'")
+                fundDetailsViewModel.loadFundDetailsByGoal(effectiveUserId, effectiveGoalId)
+            }
         }
     }
 
@@ -492,6 +499,20 @@ fun SipAmountScreenV2(
                 coroutineScope.launch {
                     platformLog("SipAmountV2: onConfirm clicked. Current IDs: userId='$effectiveUserId', kycId='$effectiveKycAttemptId', invId='$effectiveInvestorId'")
                     
+                    // Check KYC status only after dashboard has loaded
+                    val kycStatus = dashboardState.kycStatus
+                    val isKycPending = !dashboardState.isLoading &&
+                            (kycStatus.equals("PENDING", ignoreCase = true) ||
+                             kycStatus.equals("IN_PROGRESS", ignoreCase = true) ||
+                             kycStatus.equals("EXPIRED", ignoreCase = true))
+                    
+                    if (isKycPending) {
+                        platformLog("SipAmountV2: KYC Pending ('$kycStatus'). Showing KycPendingBottomSheet.")
+                        showDetailsBottomSheet = false
+                        showKycPendingBottomSheet = true
+                        return@launch
+                    }
+
                     // Proceed with API call
                     platformLog("SipAmountV2: Proceeding with createSip API call...")
                     isLoading = true
@@ -523,6 +544,17 @@ fun SipAmountScreenV2(
                 }
             },
             onDismiss = { showDetailsBottomSheet = false }
+        )
+    }
+
+    if (showKycPendingBottomSheet) {
+        com.pyllar.consumer.presentation.dashboard.KycPendingBottomSheet(
+            onDismiss = { showKycPendingBottomSheet = false },
+            onRetryKyc = {
+                showKycPendingBottomSheet = false
+                // Optional: Navigation back to KYC screen if needed
+            },
+            kycStatus = dashboardState.kycStatus
         )
     }
 

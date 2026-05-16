@@ -35,6 +35,7 @@ import com.pyllar.consumer.util.Resource
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import com.pyllar.consumer.util.platformLog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,7 +44,8 @@ fun AdditionalKycScreen(
     token: String,
     onNext: (String?, String?) -> Unit,
     onNavigateToHelp: () -> Unit = {},
-    viewModel: AdditionalKycViewModel = koinInject()
+    viewModel: AdditionalKycViewModel = koinInject(),
+    locationProvider: com.pyllar.consumer.platform.LocationProvider = koinInject()
 ) {
     var fatherName by remember { mutableStateOf("") }
     var gender by remember { mutableStateOf("") }
@@ -60,6 +62,17 @@ fun AdditionalKycScreen(
     var nationality by remember { mutableStateOf("yes") }
     var politicallyExposed by remember { mutableStateOf("no") }
     var isConfirmed by remember { mutableStateOf(false) }
+    
+    var latitude by remember { mutableStateOf<Double?>(null) }
+    var longitude by remember { mutableStateOf<Double?>(null) }
+    var isFetchingLocation by remember { mutableStateOf(false) }
+
+    val validationMessage = when {
+        residentialStatus == "no" -> "We do not support Non-Resident Individuals at this time. We plan to include this feature in future updates."
+        nationality == "no" -> "We do not support non-Indian citizens at this time. We plan to include this feature in future updates."
+        politicallyExposed == "yes" -> "We do not support Politically Exposed Persons at this time. We plan to include this feature in future updates."
+        else -> null
+    }
     
     var isSubmitting by remember { mutableStateOf(false) }
     var showValidationErrors by remember { mutableStateOf(false) }
@@ -129,7 +142,7 @@ fun AdditionalKycScreen(
 
     LaunchedEffect(uiState) {
         if (uiState.isNotEmpty()) {
-            if (fatherName.isBlank()) fatherName = uiState["fatherName"]?.toString()?.uppercase() ?: ""
+            if (fatherName.isBlank()) fatherName = uiState["fatherName"]?.toString() ?: ""
             if (gender.isBlank()) gender = uiState["gender"]?.toString() ?: ""
             if (maritalStatus.isBlank()) maritalStatus = uiState["maritalStatus"]?.toString() ?: ""
             if (occupationType.isBlank()) occupationType = uiState["occupationType"]?.toString() ?: ""
@@ -142,14 +155,9 @@ fun AdditionalKycScreen(
             if (addressLine3.isBlank()) addressLine3 = uiState["addressLine3"]?.toString() ?: ""
             
             // Handle yes/no status fields
-            val resStat = uiState["residentialStatus"]?.toString()
-            if (resStat != null) residentialStatus = resStat
-            
-            val natStat = uiState["nationality"]?.toString()
-            if (natStat != null) nationality = natStat
-            
-            val pepStat = uiState["politicallyExposed"]?.toString()
-            if (pepStat != null) politicallyExposed = pepStat
+            uiState["residentialStatus"]?.toString()?.let { residentialStatus = it }
+            uiState["nationality"]?.toString()?.let { nationality = it }
+            uiState["politicallyExposed"]?.toString()?.let { politicallyExposed = it }
         }
     }
 
@@ -369,39 +377,88 @@ fun AdditionalKycScreen(
                     Text("I confirm that the above details are correct and I am a tax resident of India.")
                 }
 
+                if (validationMessage != null) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+                    ) {
+                        Text(
+                            text = validationMessage,
+                            modifier = Modifier.padding(12.dp),
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+
                 Button(
                     onClick = {
                         if (fatherName.isBlank() || gender.isBlank() || maritalStatus.isBlank() || 
                             occupationType.isBlank() || placeOfBirth.isBlank() || city.isBlank() || 
-                            pincode.length != 6 || incomeSlab.isBlank() || !isConfirmed) {
+                            pincode.length != 6 || incomeSlab.isBlank() || !isConfirmed || validationMessage != null) {
                             showValidationErrors = true
                             return@Button
                         }
                         isSubmitting = true
-                        viewModel.submitAdditionalKyc(
-                            kycAttemptId = kycAttemptId,
-                            token = token,
-                            maritalStatus = maritalStatus,
-                            occupationType = occupationType,
-                            fatherName = fatherName,
-                            annualIncome = incomeSlab,
-                            isPoliticallyExposed = politicallyExposed == "yes",
-                            nationalityCountry = if (nationality == "yes") "IN" else "OTHERS",
-                            placeOfBirth = placeOfBirth,
-                            gender = gender,
-                            addressLine1 = addressLine1,
-                            addressLine2 = addressLine2,
-                            addressLine3 = addressLine3,
-                            city = city,
-                            pincode = pincode,
-                            longitude = null,
-                            latitude = null
-                        )
+                        if (latitude == null || longitude == null) {
+                            isFetchingLocation = true
+                            scope.launch {
+                                val coords = locationProvider.getCurrentLocation()
+                                latitude = coords?.latitude
+                                longitude = coords?.longitude
+                                isFetchingLocation = false
+                                
+                                platformLog("AdditionalKycScreen: \uD83D\uDCCD Fetched Location - Lat: $latitude, Lon: $longitude")
+
+                                // Proceed with submission after location is fetched
+                                viewModel.submitAdditionalKyc(
+                                    kycAttemptId = kycAttemptId,
+                                    token = token,
+                                    maritalStatus = maritalStatus,
+                                    occupationType = occupationType,
+                                    fatherName = fatherName,
+                                    annualIncome = incomeSlab,
+                                    isPoliticallyExposed = politicallyExposed == "yes",
+                                    nationalityCountry = if (nationality == "yes") "IN" else "OTHERS",
+                                    placeOfBirth = placeOfBirth,
+                                    gender = gender,
+                                    addressLine1 = addressLine1,
+                                    addressLine2 = addressLine2,
+                                    addressLine3 = addressLine3,
+                                    city = city,
+                                    pincode = pincode,
+                                    longitude = longitude,
+                                    latitude = latitude
+                                )
+                            }
+                        } else {
+                            platformLog("AdditionalKycScreen: \uD83D\uDCCD Using Cached Location - Lat: $latitude, Lon: $longitude")
+                            viewModel.submitAdditionalKyc(
+                                kycAttemptId = kycAttemptId,
+                                token = token,
+                                maritalStatus = maritalStatus,
+                                occupationType = occupationType,
+                                fatherName = fatherName,
+                                annualIncome = incomeSlab,
+                                isPoliticallyExposed = politicallyExposed == "yes",
+                                nationalityCountry = if (nationality == "yes") "IN" else "OTHERS",
+                                placeOfBirth = placeOfBirth,
+                                gender = gender,
+                                addressLine1 = addressLine1,
+                                addressLine2 = addressLine2,
+                                addressLine3 = addressLine3,
+                                city = city,
+                                pincode = pincode,
+                                longitude = longitude,
+                                latitude = latitude
+                            )
+                        }
                     },
                     modifier = Modifier.fillMaxWidth().height(50.dp),
+                    enabled = validationMessage == null && !isSubmitting,
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    if (isSubmitting) {
+                    if (isSubmitting || isFetchingLocation) {
                         CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
                     } else {
                         Text("Submit Details", fontWeight = FontWeight.Bold)

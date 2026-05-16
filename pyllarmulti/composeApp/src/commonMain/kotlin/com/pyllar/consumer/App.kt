@@ -24,6 +24,7 @@ import com.pyllar.consumer.data.local.KeyValueConstants
 import com.pyllar.consumer.util.Resource
 import com.pyllar.consumer.util.platformLog
 import org.koin.compose.koinInject
+import androidx.compose.ui.platform.LocalUriHandler
 
 sealed class Screen {
     object PhoneVerification : Screen()
@@ -117,6 +118,7 @@ fun App() {
     val authRepository: com.pyllar.consumer.domain.repository.AuthRepository = koinInject()
     val onboardingRepository: com.pyllar.consumer.domain.repository.OnboardingRepository = koinInject()
     val scope = rememberCoroutineScope()
+    val uriHandler = LocalUriHandler.current
     PyllarTheme {
         val screenStack = remember { mutableStateListOf<Screen>() }
         val currentScreen = if (screenStack.isNotEmpty()) screenStack.last() else null
@@ -415,9 +417,8 @@ fun App() {
                         }
                     },
                     onOpenWebSignIn = {
-                        if (!screen.reUrl.isNullOrBlank()) {
-                            navigateTo(Screen.KycWebView(screen.userId, screen.reUrl, screen.kycAttemptId))
-                        }
+                        platformLog("App: Opening DigiLocker signup in browser")
+                        uriHandler.openUri("https://accounts.digilocker.gov.in/signup/mobile/--en")
                     },
                     onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId, showKycHelp = true)) }
                 )

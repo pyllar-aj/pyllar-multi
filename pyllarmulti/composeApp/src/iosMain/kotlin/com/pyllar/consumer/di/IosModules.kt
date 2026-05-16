@@ -33,6 +33,7 @@ fun iosPlatformModule(): Module = module {
     single<UpdateManager> { IosUpdateManager() }
     single<PermissionManager> { IosPermissionManager() }
     single<PlatformActions> { IosPlatformActions() }
+    single<com.pyllar.consumer.platform.LocationProvider> { com.pyllar.consumer.platform.IosLocationProvider() }
     single<com.pyllar.consumer.data.local.LocalOnboardingStore> { com.pyllar.consumer.data.local.IosLocalOnboardingStore() }
 }
 
