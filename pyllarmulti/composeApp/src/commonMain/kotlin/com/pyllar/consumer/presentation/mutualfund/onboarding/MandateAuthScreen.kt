@@ -32,7 +32,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.alexzhirkevich.compottie.*
-import io.github.alexzhirkevich.qrose.*
+import io.github.alexzhirkevich.qrose.rememberQrCodePainter
+import androidx.compose.ui.graphics.painter.Painter
+import pyllar.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.painterResource
 import pyllar.composeapp.generated.resources.Res
 import com.pyllar.consumer.data.remote.model.dto.MandateStatus
 import com.pyllar.consumer.data.remote.model.dto.MandateWrapper
@@ -326,6 +329,8 @@ fun UpiAppGrid(
 
 @Composable
 fun UpiAppCard(app: UpiAppInfo, onClick: () -> Unit) {
+    val fallbackIcon = getFallbackUpiIcon(app.displayName)
+    
     Card(
         onClick = onClick,
         modifier = Modifier.height(80.dp),
@@ -338,15 +343,45 @@ fun UpiAppCard(app: UpiAppInfo, onClick: () -> Unit) {
             verticalArrangement = Arrangement.Center
         ) {
             if (app.icon != null) {
-                Image(bitmap = app.icon, contentDescription = app.displayName, modifier = Modifier.size(32.dp).clip(RoundedCornerShape(8.dp)))
+                Image(
+                    bitmap = app.icon, 
+                    contentDescription = app.displayName, 
+                    modifier = Modifier.size(32.dp).clip(RoundedCornerShape(8.dp)),
+                    contentScale = ContentScale.Fit
+                )
+            } else if (fallbackIcon != null) {
+                Image(
+                    painter = fallbackIcon,
+                    contentDescription = app.displayName,
+                    modifier = Modifier.size(32.dp).clip(RoundedCornerShape(8.dp)),
+                    contentScale = ContentScale.Fit
+                )
             } else {
-                Box(modifier = Modifier.size(32.dp).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.primary), contentAlignment = Alignment.Center) {
+                Box(
+                    modifier = Modifier.size(32.dp).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.primary), 
+                    contentAlignment = Alignment.Center
+                ) {
                     Text(app.displayName.take(1), color = Color.White, fontWeight = FontWeight.Bold)
                 }
             }
             Spacer(modifier = Modifier.height(4.dp))
             Text(app.displayName, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
+    }
+}
+
+@Composable
+fun getFallbackUpiIcon(displayName: String): Painter? {
+    val name = displayName.lowercase()
+    return when {
+        name.contains("phonepe") -> painterResource(Res.drawable.upi_phonepe)
+        name.contains("google pay") || name.contains("gpay") || name.contains("tez") -> painterResource(Res.drawable.upi_gpay)
+        name.contains("paytm") -> painterResource(Res.drawable.upi_paytm)
+        name.contains("bhim") -> painterResource(Res.drawable.upi_bhim)
+        name.contains("amazon") -> painterResource(Res.drawable.upi_amazonpay)
+        name.contains("cred") -> painterResource(Res.drawable.upi_cred)
+        name.contains("imobile") || name.contains("icici") -> painterResource(Res.drawable.upi_imobile)
+        else -> null
     }
 }
 

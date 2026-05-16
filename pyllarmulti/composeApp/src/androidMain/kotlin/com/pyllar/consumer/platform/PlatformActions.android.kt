@@ -3,7 +3,9 @@ package com.pyllar.consumer.platform
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
+import android.graphics.drawable.Drawable
 import android.net.Uri
+import androidx.core.graphics.drawable.toBitmap
 import com.pyllar.consumer.util.Log
 
 class AndroidPlatformActions(private val context: Context) : PlatformActions {
@@ -97,14 +99,14 @@ class AndroidPlatformActions(private val context: Context) : PlatformActions {
                         }
                         
                         try {
-                            val appIcon = packageManager.getApplicationIcon(packageName)
-                            // Use bit manipulation to convert drawable to bitmap if toBitmap extension is not available
-                            // But we can try to use the extension if we add the import
-                            val bitmap = androidx.core.graphics.drawable.toBitmap(appIcon, 64, 64)
+                            val appIcon: Drawable = packageManager.getApplicationIcon(packageName)
+                            // Use core-ktx extension to convert drawable to bitmap
+                            val bitmap = appIcon.toBitmap(128, 128)
                             val iconBitmap = androidx.compose.ui.graphics.asImageBitmap(bitmap)
                             
                             upiAppsList.add(UpiAppInfo(packageName, displayName, iconBitmap))
                         } catch (e: Exception) {
+                            Log.e("AndroidPlatformActions", "Failed to load icon for $packageName", e)
                             upiAppsList.add(UpiAppInfo(packageName, displayName, null))
                         }
                     }

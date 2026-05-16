@@ -25,6 +25,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
@@ -66,7 +68,8 @@ fun NomineeDetailsScreen(
 
     // Screen state
     var showOtpScreen by remember { mutableStateOf(false) }
-    var otpCode by remember { mutableStateOf("") }
+    var otpFieldValue by remember { mutableStateOf(TextFieldValue("")) }
+    val otpCode = otpFieldValue.text
     var phoneNumber by remember { mutableStateOf("") }
     var isSubmitting by remember { mutableStateOf(false) }
     var hasNavigatedAfterOtp by remember { mutableStateOf(false) }
@@ -134,7 +137,7 @@ fun NomineeDetailsScreen(
             platformLog("NomineeDetailsScreen: \uD83D\uDE80 OTP verified, navigating to next: ${navigationInfo?.nextScreen}")
             onNext(navigationInfo?.nextScreen)
         } else if (otpVerificationResult is Resource.Error) {
-            otpCode = ""
+            otpFieldValue = TextFieldValue("")
             keyboardController?.show()
         }
     }
@@ -165,10 +168,10 @@ fun NomineeDetailsScreen(
                 if (showOtpScreen) {
                     OtpVerificationBottomSheet(
                         maskedPhoneNumber = if (phoneNumber.length >= 4) "******${phoneNumber.takeLast(4)}" else phoneNumber,
-                        otpCode = otpCode,
+                        otpFieldValue = otpFieldValue,
                         otpVerificationResult = otpVerificationResult,
                         otpGenerationResult = otpGenerationResult,
-                        onOtpCodeChange = { otpCode = it },
+                        onOtpFieldValueChange = { otpFieldValue = it },
                         onVerifyOtp = { otpValue ->
                             scope.launch {
                                 val fullPhone = sessionStore.getCurrentPhone()
@@ -475,10 +478,10 @@ private fun NomineeFormSection(
 @Composable
 private fun OtpVerificationBottomSheet(
     maskedPhoneNumber: String,
-    otpCode: String,
+    otpFieldValue: TextFieldValue,
     otpVerificationResult: Resource<String>?,
     otpGenerationResult: Resource<String>?,
-    onOtpCodeChange: (String) -> Unit,
+    onOtpFieldValueChange: (TextFieldValue) -> Unit,
     onVerifyOtp: (String) -> Unit,
     onResendOtp: () -> Unit,
     onDismiss: () -> Unit
@@ -515,8 +518,8 @@ private fun OtpVerificationBottomSheet(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
             enabled = otpVerificationResult !is Resource.Loading,
             isError = otpVerificationResult is Resource.Error,
-            otpText = otpCode,
-            onOtpChange = onOtpCodeChange,
+            otpFieldValue = otpFieldValue,
+            onOtpFieldValueChange = onOtpFieldValueChange,
             onOtpComplete = { 
                 // Don't auto-submit to match Android UX
             }
@@ -535,7 +538,7 @@ private fun OtpVerificationBottomSheet(
                 if (canResend) { 
                     canResend = false
                     isResent = true
-                    onOtpCodeChange("") // Clear previous OTP input
+                    onOtpFieldValueChange(TextFieldValue("")) // Clear previous OTP input
                     onResendOtp() 
                 } 
             },
@@ -555,8 +558,8 @@ private fun OtpVerificationBottomSheet(
         }
 
         Button(
-            onClick = { onVerifyOtp(otpCode) },
-            enabled = otpCode.length == 6 && otpVerificationResult !is Resource.Loading,
+            onClick = { onVerifyOtp(otpFieldValue.text) },
+            enabled = otpFieldValue.text.length == 6 && otpVerificationResult !is Resource.Loading,
             modifier = Modifier.fillMaxWidth().height(50.dp),
             shape = RoundedCornerShape(8.dp)
         ) {

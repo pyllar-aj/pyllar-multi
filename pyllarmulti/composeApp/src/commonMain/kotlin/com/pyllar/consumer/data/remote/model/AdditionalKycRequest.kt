@@ -15,7 +15,7 @@ data class AdditionalKycRequest(
     val annualIncome: String,
     @SerialName("isPoliticallyExposed")
     val isPoliticallyExposed: Boolean,
-    @SerialName("nationality")
+    @SerialName("nationalityCountry")
     val nationalityCountry: String,
     @SerialName("placeOfBirth")
     val placeOfBirth: String,

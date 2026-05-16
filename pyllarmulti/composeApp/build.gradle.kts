@@ -62,6 +62,7 @@ kotlin {
             implementation(libs.androidx.security.crypto)
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.play.services.location)
+            implementation(libs.androidx.core.ktx)
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)

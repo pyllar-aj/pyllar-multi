@@ -20,6 +20,8 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -50,6 +52,17 @@ fun OtpVerificationScreen(
 
     val timeoutState = rememberTimeoutState("OtpVerification", "verify")
     var isSubmitting by remember { mutableStateOf(false) }
+
+    var otpFieldValue by remember { 
+        mutableStateOf(TextFieldValue(otp, selection = TextRange(otp.length))) 
+    }
+    
+    // Sync with ViewModel if needed
+    LaunchedEffect(otp) {
+        if (otp != otpFieldValue.text) {
+            otpFieldValue = TextFieldValue(otp, selection = TextRange(otp.length))
+        }
+    }
 
     var resendSeconds by remember { mutableStateOf(30) }
     LaunchedEffect(resendSeconds) {
@@ -201,11 +214,11 @@ fun OtpVerificationScreen(
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                     enabled = verificationResult !is Resource.Loading,
                     isError = verificationResult is Resource.Error,
-                    otpText = otp,
-                    allowNonSequentialFocus = true,
-                    onOtpChange = {
-                        if (it.length <= 6 && it.all { ch -> ch.isDigit() }) {
-                            viewModel.updateOtp(it)
+                    otpFieldValue = otpFieldValue,
+                    onOtpFieldValueChange = { newValue ->
+                        if (newValue.text.length <= 6 && newValue.text.all { ch -> ch.isDigit() }) {
+                            otpFieldValue = newValue
+                            viewModel.updateOtp(newValue.text)
                         }
                     },
                     onOtpComplete = {

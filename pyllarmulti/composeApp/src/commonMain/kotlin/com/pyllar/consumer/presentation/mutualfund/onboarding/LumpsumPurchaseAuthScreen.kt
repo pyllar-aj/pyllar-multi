@@ -31,7 +31,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.alexzhirkevich.compottie.*
-import io.github.alexzhirkevich.qrose.*
+import io.github.alexzhirkevich.qrose.rememberQrCodePainter
+import androidx.compose.ui.graphics.painter.Painter
+import pyllar.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.painterResource
 import pyllar.composeapp.generated.resources.Res
 import com.pyllar.consumer.platform.PlatformActions
 import com.pyllar.consumer.platform.UpiAppInfo
@@ -281,25 +284,66 @@ fun UpiAppGridPurchase(
         modifier = Modifier.fillMaxWidth().heightIn(max = 200.dp)
     ) {
         items(apps.take(6)) { app ->
-            Card(
-                onClick = { onAppClick(app) },
-                modifier = Modifier.height(80.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Column(
-                    modifier = Modifier.fillMaxSize().padding(8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+            UpiAppCardPurchase(app = app, onClick = { onAppClick(app) })
+        }
+    }
+}
+
+@Composable
+fun UpiAppCardPurchase(app: UpiAppInfo, onClick: () -> Unit) {
+    val fallbackIcon = getFallbackUpiIcon(app.displayName)
+    
+    Card(
+        onClick = onClick,
+        modifier = Modifier.height(80.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize().padding(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            if (app.icon != null) {
+                Image(
+                    bitmap = app.icon, 
+                    contentDescription = app.displayName, 
+                    modifier = Modifier.size(32.dp).clip(RoundedCornerShape(8.dp)),
+                    contentScale = ContentScale.Fit
+                )
+            } else if (fallbackIcon != null) {
+                Image(
+                    painter = fallbackIcon,
+                    contentDescription = app.displayName,
+                    modifier = Modifier.size(32.dp).clip(RoundedCornerShape(8.dp)),
+                    contentScale = ContentScale.Fit
+                )
+            } else {
+                Box(
+                    modifier = Modifier.size(32.dp).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.primary), 
+                    contentAlignment = Alignment.Center
                 ) {
-                    if (app.icon != null) {
-                        Image(bitmap = app.icon, contentDescription = app.displayName, modifier = Modifier.size(32.dp).clip(RoundedCornerShape(8.dp)))
-                    }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(app.displayName, style = MaterialTheme.typography.bodySmall, maxLines = 1)
+                    Text(app.displayName.take(1), color = Color.White, fontWeight = FontWeight.Bold)
                 }
             }
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(app.displayName, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
+    }
+}
+
+@Composable
+fun getFallbackUpiIcon(displayName: String): Painter? {
+    val name = displayName.lowercase()
+    return when {
+        name.contains("phonepe") -> painterResource(Res.drawable.upi_phonepe)
+        name.contains("google pay") || name.contains("gpay") || name.contains("tez") -> painterResource(Res.drawable.upi_gpay)
+        name.contains("paytm") -> painterResource(Res.drawable.upi_paytm)
+        name.contains("bhim") -> painterResource(Res.drawable.upi_bhim)
+        name.contains("amazon") -> painterResource(Res.drawable.upi_amazonpay)
+        name.contains("cred") -> painterResource(Res.drawable.upi_cred)
+        name.contains("imobile") || name.contains("icici") -> painterResource(Res.drawable.upi_imobile)
+        else -> null
     }
 }
 

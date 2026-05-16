@@ -21,8 +21,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -65,7 +67,8 @@ fun PreVerificationScreen(
     val scope = rememberCoroutineScope()
     val lazyListState = rememberLazyListState()
 
-    var panNumber by remember { mutableStateOf("") }
+    var panFieldValue by remember { mutableStateOf(TextFieldValue("")) }
+    val panNumber = panFieldValue.text
     var panError by remember { mutableStateOf<String?>(null) }
     var autoFetchFailed by remember { mutableStateOf(false) }
     var isPhoneMissing by remember { mutableStateOf(false) }
@@ -74,8 +77,11 @@ fun PreVerificationScreen(
     // Auto-fill PAN from prepopulated data
     LaunchedEffect(uiState.prepopulatedData) {
         val prepopulatedPan = uiState.prepopulatedData["panNumber"]
-        if (!prepopulatedPan.isNullOrBlank() && panNumber.isBlank()) {
-            panNumber = prepopulatedPan
+        if (!prepopulatedPan.isNullOrBlank() && panFieldValue.text.isBlank()) {
+            panFieldValue = TextFieldValue(
+                text = prepopulatedPan,
+                selection = TextRange(prepopulatedPan.length)
+            )
         }
     }
 
@@ -127,6 +133,8 @@ fun PreVerificationScreen(
     LaunchedEffect(uiState.nextScreen) {
         uiState.nextScreen?.let { screenName ->
             platformLog("PreVerificationScreen: \uD83D\uDE80 NAVIGATING to screen: $screenName")
+            keyboardController?.hide()
+            focusManager.clearFocus()
             PlatformAnalyticsLogger.logEvent("server_navigation", mapOf("from_screen" to "pre_verification", "to_screen" to screenName))
             onNavigateToScreen(screenName)
         }
@@ -134,7 +142,8 @@ fun PreVerificationScreen(
 
     // OTP bottom sheet state
     var showOtpBottomSheet by remember { mutableStateOf(false) }
-    var otpCode by remember { mutableStateOf("") }
+    var otpFieldValue by remember { mutableStateOf(TextFieldValue("")) }
+    val otpCode = otpFieldValue.text
     var otpSheetPhoneDisplay by remember { mutableStateOf("") }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -169,7 +178,10 @@ fun PreVerificationScreen(
                     showOtpBottomSheet = true
                 } else if (data.status == "ALREADY_VERIFIED") {
                     if (!data.panNumber.isNullOrBlank()) {
-                        panNumber = data.panNumber
+                        panFieldValue = TextFieldValue(
+                            text = data.panNumber,
+                            selection = TextRange(data.panNumber.length)
+                        )
                         fetchedPanName = data.fullName
                         showManualEntryForm = true
                         autoFetchFailed = false
@@ -196,7 +208,10 @@ fun PreVerificationScreen(
                 val personalDetails = data.personalDetails
 
                 if (panDetails?.panNumber != null) {
-                    panNumber = panDetails.panNumber
+                    panFieldValue = TextFieldValue(
+                        text = panDetails.panNumber,
+                        selection = TextRange(panDetails.panNumber.length)
+                    )
                     fetchedPanName = personalDetails?.fullName ?: ""
                     showManualEntryForm = true
                     autoFetchFailed = false
@@ -310,7 +325,7 @@ fun PreVerificationScreen(
                                             platformLog("PreVerificationScreen: 🚀 Initiating PAN fetch for $latestPhone")
                                             isPhoneMissing = false
                                             currentPrefillId = null
-                                            otpCode = ""
+                                            otpFieldValue = TextFieldValue("")
                                             viewModel.clearPanVerifyOtpResult()
                                             viewModel.initiatePanFetch(latestPhone)
                                         } else {
@@ -387,9 +402,9 @@ fun PreVerificationScreen(
                                         modifier = Modifier.padding(bottom = 8.dp)
                                     )
                                     OutlinedTextField(
-                                        value = panNumber,
+                                        value = panFieldValue,
                                         onValueChange = { newValue ->
-                                            val filtered = newValue.uppercase().filter { it.isLetterOrDigit() }
+                                            val newText = newValue.text.uppercase().filter { it.isLetterOrDigit() }
                                                 .filterIndexed { index, c ->
                                                     when (index) {
                                                         in 0..4 -> c.isLetter()
@@ -398,8 +413,19 @@ fun PreVerificationScreen(
                                                         else -> false
                                                     }
                                                 }
-                                            if (filtered.length <= 10) {
-                                                panNumber = filtered
+                                            
+                                            if (newText.length <= 10) {
+                                                // Adjust selection if text changed externally (filtering)
+                                                val selection = if (newText.length < newValue.text.length) {
+                                                    TextRange(newText.length)
+                                                } else {
+                                                    newValue.selection
+                                                }
+                                                
+                                                panFieldValue = newValue.copy(
+                                                    text = newText,
+                                                    selection = selection
+                                                )
                                                 panError = null
                                                 autoFetchFailed = false
                                                 isPhoneMissing = false
@@ -527,9 +553,9 @@ fun PreVerificationScreen(
             ) {
                 PreVerificationOtpBottomSheet(
                     phoneNumber = otpSheetPhoneDisplay,
-                    otpCode = otpCode,
+                    otpFieldValue = otpFieldValue,
                     otpVerificationResult = uiState.panVerifyOtpResult,
-                    onOtpCodeChange = { otpCode = it },
+                    onOtpFieldValueChange = { otpFieldValue = it },
                     onVerifyOtp = { otpValue ->
                         PlatformAnalyticsLogger.logEvent("find_my_pan_otp_verify_clicked", mapOf("otp_length" to otpValue.length))
                         val prefillIdStr = currentPrefillId
@@ -539,11 +565,12 @@ fun PreVerificationScreen(
                     },
                     onResendOtp = { 
                         currentPrefillId = null
+                        otpFieldValue = TextFieldValue("")
                         viewModel.clearPanVerifyOtpResult()
                         viewModel.initiatePanFetch(userPhone) 
                     },
                     onDismiss = {
-                        otpCode = ""
+                        otpFieldValue = TextFieldValue("")
                         currentPrefillId = null
                         viewModel.clearPanVerifyOtpResult()
                         showOtpBottomSheet = false
@@ -568,9 +595,9 @@ fun PreVerificationScreen(
 @Composable
 private fun PreVerificationOtpBottomSheet(
     phoneNumber: String,
-    otpCode: String,
+    otpFieldValue: TextFieldValue,
     otpVerificationResult: Resource<*>?,
-    onOtpCodeChange: (String) -> Unit,
+    onOtpFieldValueChange: (TextFieldValue) -> Unit,
     onVerifyOtp: (String) -> Unit,
     onResendOtp: () -> Unit,
     onDismiss: () -> Unit
@@ -609,8 +636,8 @@ private fun PreVerificationOtpBottomSheet(
         OtpField(
             length = 6,
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-            otpText = otpCode,
-            onOtpChange = onOtpCodeChange,
+            otpFieldValue = otpFieldValue,
+            onOtpFieldValueChange = onOtpFieldValueChange,
             onOtpComplete = {}
         )
 
@@ -644,8 +671,8 @@ private fun PreVerificationOtpBottomSheet(
         }
 
         Button(
-            onClick = { onVerifyOtp(otpCode) },
-            enabled = otpCode.length == 6 && otpVerificationResult !is Resource.Loading,
+            onClick = { onVerifyOtp(otpFieldValue.text) },
+            enabled = otpFieldValue.text.length == 6 && otpVerificationResult !is Resource.Loading,
             modifier = Modifier.fillMaxWidth()
         ) {
             if (otpVerificationResult is Resource.Loading) {

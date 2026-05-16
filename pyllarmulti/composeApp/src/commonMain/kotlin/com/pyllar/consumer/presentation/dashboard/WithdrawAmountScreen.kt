@@ -18,6 +18,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -60,7 +62,8 @@ fun WithdrawAmountScreen(
     var showConfirmationSheet by remember { mutableStateOf(false) }
     var isConfirming by remember { mutableStateOf(false) }
     var showOtpScreen by remember { mutableStateOf(false) }
-    var otpCode by remember { mutableStateOf("") }
+    var otpFieldValue by remember { mutableStateOf(TextFieldValue("")) }
+    val otpCode = otpFieldValue.text
     var phoneNumber by remember { mutableStateOf("") }
     var otpValidationError by remember { mutableStateOf<String?>(null) }
     var isVerifyingOtp by remember { mutableStateOf(false) }
@@ -126,7 +129,7 @@ fun WithdrawAmountScreen(
             viewModel.createRedemption(request)
         } else if (otpVerificationResult is Resource.Error) {
             isVerifyingOtp = false
-            otpCode = ""
+            otpFieldValue = TextFieldValue("")
             otpValidationError = otpVerificationResult?.message
         }
     }
@@ -355,13 +358,13 @@ fun WithdrawAmountScreen(
                             }
 
                             OtpField(
-                                length = 6,
-                                modifier = Modifier.fillMaxWidth(),
-                                otpText = otpCode,
-                                onOtpChange = { otpCode = it; otpValidationError = null },
-                                onOtpComplete = {},
-                                isError = otpValidationError != null
-                            )
+                                 length = 6,
+                                 modifier = Modifier.fillMaxWidth(),
+                                 otpFieldValue = otpFieldValue,
+                                 onOtpFieldValueChange = { otpFieldValue = it; otpValidationError = null },
+                                 onOtpComplete = {},
+                                 isError = otpValidationError != null
+                             )
 
                             Text(
                                 text = org.jetbrains.compose.resources.stringResource(Res.string.otp_consent_message),
@@ -373,9 +376,9 @@ fun WithdrawAmountScreen(
 
                             TextButton(
                                 onClick = {
-                                    if (canResend) {
-                                        canResend = false
-                                        otpCode = ""
+                                     if (canResend) {
+                                         canResend = false
+                                         otpFieldValue = TextFieldValue("")
                                         isResent = true
                                         scope.launch {
                                             val finalUserId = if (userId.isBlank()) sessionStore.getCurrentUserId() else userId

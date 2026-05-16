@@ -9,7 +9,9 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 
@@ -19,18 +21,24 @@ fun OtpField(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     isError: Boolean = false,
-    otpText: String,
-    allowNonSequentialFocus: Boolean = true,
-    onOtpChange: (String) -> Unit,
+    otpFieldValue: TextFieldValue,
+    onOtpFieldValueChange: (TextFieldValue) -> Unit,
     onOtpComplete: () -> Unit,
 ) {
     // Minimal implementation: one text field. Keeps call sites intact while unblocking builds.
     OutlinedTextField(
-        value = otpText,
+        value = otpFieldValue,
         onValueChange = { newValue ->
-            val trimmed = newValue.take(length)
-            onOtpChange(trimmed)
-            if (trimmed.length == length) onOtpComplete()
+            val newText = newValue.text.take(length)
+            // Adjust selection if text changed externally
+            val selection = if (newText.length < newValue.text.length) {
+                TextRange(newText.length)
+            } else {
+                newValue.selection
+            }
+            
+            onOtpFieldValueChange(newValue.copy(text = newText, selection = selection))
+            if (newText.length == length) onOtpComplete()
         },
         modifier = modifier,
         enabled = enabled,

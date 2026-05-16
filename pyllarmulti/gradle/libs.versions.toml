@@ -45,6 +45,7 @@ koin-test = { module = "io.insert-koin:koin-test", version.ref = "koin" }
 compottie = { module = "io.github.alexzhirkevich:compottie", version = "2.0.0-rc02" }
 qrose = { module = "io.github.alexzhirkevich:qrose", version = "1.0.1" }
 play-services-location = { group = "com.google.android.gms", name = "play-services-location", version = "21.3.0" }
+androidx-core-ktx = { module = "androidx.core:core-ktx", version = "1.15.0" }
 
 
 [plugins]
