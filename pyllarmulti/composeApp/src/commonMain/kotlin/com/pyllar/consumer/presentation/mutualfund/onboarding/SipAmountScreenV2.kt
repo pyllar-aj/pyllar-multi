@@ -1,5 +1,6 @@
 package com.pyllar.consumer.presentation.mutualfund.onboarding
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -44,10 +45,22 @@ import androidx.compose.ui.zIndex
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import com.pyllar.consumer.platform.PlatformActions
 import com.pyllar.consumer.presentation.mutualfund.details.FundDetailsViewModel
 import com.pyllar.consumer.presentation.dashboard.InvestmentDashboardV2ViewModel
 import com.pyllar.consumer.domain.storage.SessionStore
+import com.pyllar.consumer.util.GoalType
+import com.pyllar.consumer.util.identifyGoalType
+import com.pyllar.consumer.util.getGoalDisplayName
+import com.pyllar.consumer.util.calculateGoldReturns
+import com.pyllar.consumer.util.formatRupeesShort
+import com.pyllar.consumer.util.getInvestmentStatus
 import com.pyllar.consumer.data.local.KeyValueConstants
 import com.pyllar.consumer.util.platformLog
 import com.pyllar.consumer.util.Resource
@@ -60,19 +73,7 @@ import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.DayOfWeek
 import kotlin.math.pow
 
-// Goal type identification
-enum class GoalType {
-    GOLD,
-    SILVER,
-    SAVINGS,
-    FESTIVAL_SPENDS,
-    ALL_IN_ONE,
-    GLOBAL_EXPOSURE,
-    SAVINGS_PLUS,
-    OTHER
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun SipAmountScreenV2(
     userId: String,
@@ -176,12 +177,20 @@ fun SipAmountScreenV2(
     }
 
     var amount by remember { mutableStateOf(targetAmount) }
+    var amountText by remember {
+        val initial = targetAmount.toInt().toString()
+        mutableStateOf(TextFieldValue(initial, TextRange(initial.length)))
+    }
     var isCustomMode by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     var showSavingsGrowthBottomSheet by remember { mutableStateOf(false) }
     var savingsGrowthSelectedYears by remember { mutableStateOf(7) }
     var showDetailsBottomSheet by remember { mutableStateOf(false) }
     var showKycPendingBottomSheet by remember { mutableStateOf(false) }
+    var isAmountFocused by remember { mutableStateOf(false) }
+    
+    val bringIntoViewRequester = remember { BringIntoViewRequester() }
+    val amountFocusRequester = remember { FocusRequester() }
 
 
     // Track resolved goal type - update it when initGoalTxn returns the real purpose
@@ -254,6 +263,8 @@ fun SipAmountScreenV2(
     LaunchedEffect(limitsState) {
         if (!limitsState.isLoading) {
             amount = targetAmount
+            val newText = targetAmount.toInt().toString()
+            amountText = TextFieldValue(newText, TextRange(newText.length))
         }
     }
 
@@ -359,28 +370,69 @@ fun SipAmountScreenV2(
                         )
                         
                         if (isCustomMode) {
-                            var customValue by remember(amount) { mutableStateOf(amount.toInt().toString()) }
                             OutlinedTextField(
-                                value = customValue,
-                                onValueChange = { 
-                                    customValue = it.filter { c -> c.isDigit() }
-                                    if (customValue.isNotEmpty()) {
-                                        amount = customValue.toFloat()
+                                value = amountText,
+                                onValueChange = { newValue ->
+                                    val filteredText = newValue.text.filter { it.isDigit() }
+                                    if (filteredText.isNotEmpty()) {
+                                        val newAmount = filteredText.toIntOrNull()
+                                        if (newAmount != null && newAmount in minAmount.toInt()..maxAmount.toInt()) {
+                                            amountText = TextFieldValue(filteredText, newValue.selection)
+                                            amount = newAmount.toFloat()
+                                        } else if (newAmount != null && newAmount > maxAmount.toInt()) {
+                                            val maxText = maxAmount.toInt().toString()
+                                            amountText = TextFieldValue(maxText, TextRange(maxText.length))
+                                            amount = maxAmount
+                                        } else if (newAmount != null && newAmount < minAmount.toInt()) {
+                                            // Allow typing but don't update 'amount' until valid
+                                            amountText = TextFieldValue(filteredText, newValue.selection)
+                                        }
+                                    } else {
+                                        amountText = TextFieldValue("", TextRange(0))
                                     }
                                 },
                                 keyboardOptions = KeyboardOptions(
-                                    keyboardType = KeyboardType.Decimal,
+                                    keyboardType = KeyboardType.Number,
                                     imeAction = ImeAction.Done
                                 ),
                                 keyboardActions = KeyboardActions(
-                                    onDone = { isCustomMode = false }
+                                    onDone = { focusManager.clearFocus() }
                                 ),
-                                modifier = Modifier.width(150.dp),
+                                modifier = Modifier
+                                    .width(150.dp)
+                                    .focusRequester(amountFocusRequester)
+                                    .bringIntoViewRequester(bringIntoViewRequester)
+                                    .onFocusChanged { focusState: androidx.compose.ui.focus.FocusState ->
+                                        val wasFocused = isAmountFocused
+                                        isAmountFocused = focusState.isFocused
+                                        
+                                        if (focusState.isFocused && !wasFocused) {
+                                            val text = amountText.text
+                                            amountText = TextFieldValue(text, TextRange(text.length))
+                                            coroutineScope.launch {
+                                                kotlinx.coroutines.delay(300)
+                                                bringIntoViewRequester.bringIntoView()
+                                            }
+                                        }
+
+                                        // On focus loss, validate min amount
+                                        if (!focusState.isFocused && wasFocused) {
+                                            val currentInput = amountText.text.toIntOrNull()
+                                            if (currentInput == null || currentInput < minAmount.toInt()) {
+                                                val newText = minAmount.toInt().toString()
+                                                amountText = TextFieldValue(newText, TextRange(newText.length))
+                                                amount = minAmount
+                                            }
+                                        }
+                                    },
+                                prefix = { Text("₹") },
                                 textStyle = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold, textAlign = TextAlign.Center),
                                 singleLine = true,
                                 colors = TextFieldDefaults.colors(
                                     focusedContainerColor = Color.Transparent,
-                                    unfocusedContainerColor = Color.Transparent
+                                    unfocusedContainerColor = Color.Transparent,
+                                    focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                                    unfocusedIndicatorColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
                                 )
                             )
                         } else {
@@ -388,8 +440,18 @@ fun SipAmountScreenV2(
                                 "₹${amount.toInt()}",
                                 style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
                                 color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.clickable { isCustomMode = true }
+                                modifier = Modifier.clickable { 
+                                    isCustomMode = true 
+                                }
                             )
+                        }
+
+                        LaunchedEffect(isCustomMode) {
+                            if (isCustomMode) {
+                                kotlinx.coroutines.delay(300)
+                                amountFocusRequester.requestFocus()
+                                bringIntoViewRequester.bringIntoView()
+                            }
                         }
                         
                         Row(
@@ -431,6 +493,8 @@ fun SipAmountScreenV2(
                                     isPopular = valOpt == defaultAmount.toInt() && minAmount.toInt() != defaultAmount.toInt(),
                                     onClick = { 
                                         amount = valOpt.toFloat()
+                                        val newText = valOpt.toString()
+                                        amountText = TextFieldValue(newText, TextRange(newText.length))
                                         isCustomMode = false
                                     }
                                 )
@@ -708,49 +772,6 @@ fun Coin(goalType: GoalType) {
     )
 }
 
-@Composable
-fun AmountChip(
-    amount: Int? = null,
-    label: String? = null,
-    isSelected: Boolean,
-    isPopular: Boolean,
-    onClick: () -> Unit
-) {
-    val text = label ?: "₹$amount"
-    val borderColor = if (isSelected) MaterialTheme.colorScheme.primary else Color.LightGray
-    val containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
-
-    Box(modifier = Modifier.width(72.dp).height(70.dp).clickable(onClick = onClick)) {
-        Card(
-            modifier = Modifier.fillMaxWidth().height(60.dp).align(Alignment.BottomCenter),
-            shape = RoundedCornerShape(12.dp),
-            border = androidx.compose.foundation.BorderStroke(1.dp, borderColor),
-            colors = CardDefaults.cardColors(containerColor = containerColor)
-        ) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(
-                    text = text,
-                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 14.sp
-                )
-            }
-        }
-
-        if (isPopular) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(4.dp))
-                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                    .zIndex(2f)
-            ) {
-                Text("POPULAR", color = Color.White, fontSize = 8.sp, fontWeight = FontWeight.Bold)
-            }
-        }
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SavingsGrowthBottomSheet(
@@ -919,141 +940,3 @@ fun FundDetailsBottomSheet(
     }
 }
 
-fun calculateGoldReturns(dailyAmount: Double, years: Int, goalType: GoalType): Double {
-    val days = years * 365
-    val annualRate = when (goalType) {
-        GoalType.GOLD -> 0.215
-        GoalType.SILVER -> 0.295
-        GoalType.SAVINGS -> 0.075
-        GoalType.SAVINGS_PLUS -> 0.075
-        GoalType.GLOBAL_EXPOSURE -> 0.23
-        else -> 0.10
-    }
-    val dailyRate = (1.0 + annualRate).pow(1.0 / 365.0) - 1.0
-    return if (dailyRate > 0) {
-        dailyAmount * ((((1.0 + dailyRate).pow(days.toDouble()) - 1.0) / dailyRate) * (1.0 + dailyRate))
-    } else {
-        dailyAmount * days
-    }
-}
-
-fun formatRupeesShort(amount: Double): String {
-    return when {
-        amount >= 10_000_000 -> "₹${(amount / 10_000_000).toInt()}Cr"
-        amount >= 100_000 -> "₹${(amount / 100_000).toInt()}L"
-        else -> "₹${amount.toInt()}"
-    }
-}
-
-@Composable
-fun InvestingInCard(
-    fundDetailsState: com.pyllar.consumer.presentation.mutualfund.details.FundDetailsState,
-    onClick: () -> Unit = {}
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() },
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("Investing in", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-                fundDetailsState.fundDetails?.fundName?.let { fundName ->
-                    val logo = when {
-                        fundName.contains("Invesco", true) -> Res.drawable.invesco
-                        fundName.contains("Aditya", true) -> Res.drawable.aditya
-                        fundName.contains("Axis", true) -> Res.drawable.axis_lo
-                        fundName.contains("Nippon", true) -> Res.drawable.nippon
-                        else -> null
-                    }
-                    if (logo != null) {
-                        androidx.compose.foundation.Image(
-                            painter = painterResource(logo),
-                            contentDescription = null,
-                            modifier = Modifier.size(40.dp)
-                        )
-                    }
-                }
-            }
-            
-            fundDetailsState.fundDetails?.let { details ->
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = details.fundName,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column {
-                        Text("Category", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(details.category ?: "Mutual Fund", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
-                    }
-                    Column(horizontalAlignment = Alignment.End) {
-                        Text("Risk Level", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(details.riskLevel ?: "Moderate", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
-                    }
-                }
-            } ?: run {
-                if (fundDetailsState.isLoading) {
-                    Box(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                    }
-                } else {
-                    Text("Fund details not available", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
-                }
-            }
-        }
-    }
-}
-
-fun identifyGoalType(goalId: String): GoalType {
-    if (goalId.isBlank()) return GoalType.OTHER
-
-    val lowerGoalId = goalId.lowercase()
-    return when {
-        lowerGoalId == "gold" || lowerGoalId.contains("gold") -> GoalType.GOLD
-        lowerGoalId == "silver" || lowerGoalId.contains("silver") -> GoalType.SILVER
-        lowerGoalId == "savings" || lowerGoalId == "saving" || lowerGoalId.contains("saving") -> GoalType.SAVINGS
-        lowerGoalId == "festival_spends" || lowerGoalId.contains("festival") -> GoalType.FESTIVAL_SPENDS
-        lowerGoalId == "all_in_one" || lowerGoalId.contains("all_in_one") || lowerGoalId.contains("all-in-one") -> GoalType.ALL_IN_ONE
-        lowerGoalId == "global_exposure" || lowerGoalId.contains("global_exposure") || lowerGoalId.contains("global-exposure") -> GoalType.GLOBAL_EXPOSURE
-        lowerGoalId == "savings_plus" || lowerGoalId.contains("savings_plus") || lowerGoalId.contains("savings-plus") -> GoalType.SAVINGS_PLUS
-        else -> GoalType.OTHER
-    }
-}
-
-fun getGoalDisplayName(goalType: GoalType): String {
-    return when (goalType) {
-        GoalType.GOLD -> "Gold"
-        GoalType.SILVER -> "Silver"
-        GoalType.SAVINGS -> "Savings"
-        GoalType.FESTIVAL_SPENDS -> "Festivals"
-        GoalType.ALL_IN_ONE -> "All-in-One"
-        GoalType.GLOBAL_EXPOSURE -> "Global Exposure"
-        GoalType.SAVINGS_PLUS -> "Savings Plus"
-        GoalType.OTHER -> "Goal"
-    }
-}
-
-fun getInvestmentStatus(): String {
-    val now = kClockSystem.now().toLocalDateTime(TimeZone.currentSystemDefault())
-    val dayOfWeek = now.dayOfWeek
-
-    return when (dayOfWeek) {
-        DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY -> "Tomorrow"
-        DayOfWeek.FRIDAY, DayOfWeek.SATURDAY -> "Monday"
-        DayOfWeek.SUNDAY -> "Tuesday"
-    }
-}

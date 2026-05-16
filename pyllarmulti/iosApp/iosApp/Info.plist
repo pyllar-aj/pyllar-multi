@@ -31,7 +31,7 @@
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>phonepe</string>
-		<string>tez</string>
+		<string>gpay</string>
 		<string>paytmmp</string>
 		<string>bhim</string>
 		<string>amazonpay</string>

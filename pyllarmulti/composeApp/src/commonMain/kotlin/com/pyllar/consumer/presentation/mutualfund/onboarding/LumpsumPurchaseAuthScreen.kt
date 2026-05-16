@@ -42,6 +42,7 @@ import com.pyllar.consumer.util.BackHandler
 import com.pyllar.consumer.util.platformLog
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import com.pyllar.consumer.util.*
 import org.koin.compose.koinInject
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 
@@ -251,7 +252,7 @@ fun LumpsumPurchaseAuthScreen(
                         Spacer(modifier = Modifier.height(24.dp))
 
                         if (selectedTabIndex == 0) {
-                            UpiAppGridPurchase(
+                            UpiAppGrid(
                                 apps = availableUpiApps,
                                 onAppClick = { app ->
                                     upiAppClicked = true
@@ -263,7 +264,7 @@ fun LumpsumPurchaseAuthScreen(
                                 }
                             )
                         } else {
-                            QrPlaceholderPurchase(paymentUrl)
+                            QrPlaceholder(paymentUrl)
                         }
                     }
                 }
@@ -272,108 +273,9 @@ fun LumpsumPurchaseAuthScreen(
     }
 }
 
-@Composable
-fun UpiAppGridPurchase(
-    apps: List<UpiAppInfo>,
-    onAppClick: (UpiAppInfo) -> Unit
-) {
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(3),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        modifier = Modifier.fillMaxWidth().heightIn(max = 200.dp)
-    ) {
-        items(apps.take(6)) { app ->
-            UpiAppCardPurchase(app = app, onClick = { onAppClick(app) })
-        }
-    }
-}
 
 @Composable
-fun UpiAppCardPurchase(app: UpiAppInfo, onClick: () -> Unit) {
-    val fallbackIcon = getFallbackUpiIcon(app.displayName)
-    
-    Card(
-        onClick = onClick,
-        modifier = Modifier.height(80.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize().padding(8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            if (app.icon != null) {
-                Image(
-                    bitmap = app.icon, 
-                    contentDescription = app.displayName, 
-                    modifier = Modifier.size(32.dp).clip(RoundedCornerShape(8.dp)),
-                    contentScale = ContentScale.Fit
-                )
-            } else if (fallbackIcon != null) {
-                Image(
-                    painter = fallbackIcon,
-                    contentDescription = app.displayName,
-                    modifier = Modifier.size(32.dp).clip(RoundedCornerShape(8.dp)),
-                    contentScale = ContentScale.Fit
-                )
-            } else {
-                Box(
-                    modifier = Modifier.size(32.dp).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.primary), 
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(app.displayName.take(1), color = Color.White, fontWeight = FontWeight.Bold)
-                }
-            }
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(app.displayName, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        }
-    }
-}
-
-@Composable
-fun getFallbackUpiIcon(displayName: String): Painter? {
-    val name = displayName.lowercase()
-    return when {
-        name.contains("phonepe") -> painterResource(Res.drawable.upi_phonepe)
-        name.contains("google pay") || name.contains("gpay") || name.contains("tez") -> painterResource(Res.drawable.upi_gpay)
-        name.contains("paytm") -> painterResource(Res.drawable.upi_paytm)
-        name.contains("bhim") -> painterResource(Res.drawable.upi_bhim)
-        name.contains("amazon") -> painterResource(Res.drawable.upi_amazonpay)
-        name.contains("cred") -> painterResource(Res.drawable.upi_cred)
-        name.contains("imobile") || name.contains("icici") -> painterResource(Res.drawable.upi_imobile)
-        else -> null
-    }
-}
-
-@Composable
-fun QrPlaceholderPurchase(url: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-        if (url.isNotBlank()) {
-            Box(
-                modifier = Modifier
-                    .size(200.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color.White)
-                    .border(1.dp, Color.LightGray, RoundedCornerShape(16.dp))
-                    .padding(12.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Image(
-                    painter = rememberQrCodePainter(url),
-                    contentDescription = "QR Code",
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-        Text("Scan with any UPI app", style = MaterialTheme.typography.bodyMedium)
-    }
-}
-
-@Composable
-fun LumpsumApprovedWaitingContent(goalType: GoalType, amountDisplay: String, progress: Int) {
+private fun LumpsumApprovedWaitingContent(goalType: GoalType, amountDisplay: String, progress: Int) {
     val (accentColor, lightBackground) = accentColorsForLumpsumGoal(goalType)
     
     Card(

@@ -22,7 +22,11 @@ class IosPlatformActions : PlatformActions {
         // If it's a standard upi:// link and we have a specific app scheme (packageName),
         // we replace 'upi://' with the app's scheme (e.g., 'phonepe://') to force it to open.
         val targetUrl = if (url.startsWith("upi://") && !packageName.isNullOrBlank()) {
-            url.replace("upi://", packageName)
+            if (packageName == "gpay://") {
+                url.replace("upi://", "gpay://upi/")
+            } else {
+                url.replace("upi://", packageName)
+            }
         } else {
             url
         }
@@ -69,7 +73,7 @@ class IosPlatformActions : PlatformActions {
     override fun getInstalledUpiApps(): List<UpiAppInfo> {
         val upiSchemes = mapOf(
             "phonepe://" to "PhonePe",
-            "tez://" to "Google Pay",
+            "gpay://" to "Google Pay",
             "paytmmp://" to "Paytm",
             "bhim://" to "BHIM",
             "amazonpay://" to "Amazon Pay",

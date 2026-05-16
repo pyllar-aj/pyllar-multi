@@ -28,6 +28,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.ui.text.TextRange
@@ -51,6 +56,7 @@ import kotlin.math.pow
 import com.pyllar.consumer.data.remote.model.dto.MandateWrapper
 import com.pyllar.consumer.platform.PlatformActions
 import com.pyllar.consumer.presentation.dashboard.getFundLogo
+import com.pyllar.consumer.util.*
 import androidx.compose.foundation.Image
 import org.jetbrains.compose.resources.painterResource
 
@@ -86,6 +92,10 @@ fun LumpsumAmountScreenV2(
     var showUnexpectedErrorDialog by remember { mutableStateOf(false) }
     var showKycPendingBottomSheet by remember { mutableStateOf(false) }
     var showTrustStripInfoDialog by remember { mutableStateOf(false) }
+    var isAmountFocused by remember { mutableStateOf(false) }
+    
+    val bringIntoViewRequester = remember { BringIntoViewRequester() }
+    val amountFocusRequester = remember { FocusRequester() }
 
     val coroutineScope = rememberCoroutineScope()
     val timeoutState = rememberTimeoutState("LumpsumAmountV2", "continue")
@@ -261,13 +271,16 @@ fun LumpsumAmountScreenV2(
                         val filteredText = newValue.text.filter { it.isDigit() }
                         if (filteredText.isNotEmpty()) {
                             val newAmount = filteredText.toIntOrNull()
-                            if (newAmount != null && newAmount <= maxAmount.toInt()) {
+                            if (newAmount != null && newAmount in minAmount.toInt()..maxAmount.toInt()) {
                                 amountText = TextFieldValue(filteredText, newValue.selection)
                                 amount = newAmount.toFloat()
                             } else if (newAmount != null && newAmount > maxAmount.toInt()) {
                                 val maxText = maxAmount.toInt().toString()
                                 amountText = TextFieldValue(maxText, TextRange(maxText.length))
                                 amount = maxAmount
+                            } else if (newAmount != null && newAmount < minAmount.toInt()) {
+                                // Allow typing but don't update 'amount' until valid
+                                amountText = TextFieldValue(filteredText, newValue.selection)
                             }
                         } else {
                             amountText = TextFieldValue("", TextRange(0))
@@ -279,7 +292,7 @@ fun LumpsumAmountScreenV2(
                     ),
                     prefix = { Text("₹") },
                     keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Decimal,
+                        keyboardType = KeyboardType.Number,
                         imeAction = ImeAction.Done
                     ),
                     keyboardActions = KeyboardActions(
@@ -287,9 +300,48 @@ fun LumpsumAmountScreenV2(
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    singleLine = true
+                        .padding(horizontal = 16.dp)
+                        .focusRequester(amountFocusRequester)
+                        .bringIntoViewRequester(bringIntoViewRequester)
+                        .onFocusChanged { focusState: androidx.compose.ui.focus.FocusState ->
+                            val wasFocused = isAmountFocused
+                            isAmountFocused = focusState.isFocused
+                            
+                            if (focusState.isFocused && !wasFocused) {
+                                val text = amountText.text
+                                amountText = TextFieldValue(text, TextRange(text.length))
+                                coroutineScope.launch {
+                                    kotlinx.coroutines.delay(300)
+                                    bringIntoViewRequester.bringIntoView()
+                                }
+                            }
+
+                            // On focus loss, validate min amount
+                            if (!focusState.isFocused && wasFocused) {
+                                val currentInput = amountText.text.toIntOrNull()
+                                if (currentInput == null || currentInput < minAmount.toInt()) {
+                                    val newText = minAmount.toInt().toString()
+                                    amountText = TextFieldValue(newText, TextRange(newText.length))
+                                    amount = minAmount
+                                }
+                            }
+                        },
+                    singleLine = true,
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                        unfocusedIndicatorColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                    )
                 )
+
+                LaunchedEffect(isCustomMode) {
+                    if (isCustomMode) {
+                        kotlinx.coroutines.delay(300)
+                        amountFocusRequester.requestFocus()
+                        bringIntoViewRequester.bringIntoView()
+                    }
+                }
 
                 Text(
                     text = "One-time investment amount",
@@ -589,16 +641,4 @@ private fun LumpsumStackedBarChart(years: List<Int>, projectedAmounts: List<Doub
     }
 }
 
-private fun calculateLumpsumFutureValue(oneTimeAmount: Double, years: Int, goalType: GoalType = GoalType.OTHER): Double {
-    val annualRate = when {
-        goalType == GoalType.GOLD -> when (years) { 1 -> 0.754; 3 -> 0.342; 5 -> 0.221; 7 -> 0.215; else -> 0.215 }
-        goalType == GoalType.SILVER -> when (years) { 1 -> 1.582; 3 -> 0.435; 5 -> 0.341; 7 -> 0.295; else -> 0.295 }
-        goalType == GoalType.SAVINGS_PLUS -> 0.075
-        goalType == GoalType.SAVINGS -> 0.075
-        goalType == GoalType.FESTIVAL_SPENDS -> 0.075
-        goalType == GoalType.GLOBAL_EXPOSURE -> 0.23
-        goalType == GoalType.ALL_IN_ONE -> 0.175
-        else -> 0.10
-    }
-    return (oneTimeAmount * (1.0 + annualRate).pow(years.toDouble())).coerceAtLeast(0.0)
-}
+

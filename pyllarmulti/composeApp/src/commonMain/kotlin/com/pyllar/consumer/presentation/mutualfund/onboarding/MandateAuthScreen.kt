@@ -45,6 +45,7 @@ import com.pyllar.consumer.util.BackHandler
 import com.pyllar.consumer.util.platformLog
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import com.pyllar.consumer.util.*
 import org.koin.compose.koinInject
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -276,7 +277,7 @@ fun MandateAuthScreen(
                                 onMoreClick = { showMoreUpiAppsSheet = true }
                             )
                         } else {
-                            QrPlaceholder(mandateUrl)
+                            QrPlaceholder(mandateUrl, description = "Scan this QR with any UPI app")
                         }
                     }
                 }
@@ -302,91 +303,7 @@ fun MandateAuthScreen(
 }
 
 @Composable
-fun UpiAppGrid(
-    apps: List<UpiAppInfo>,
-    onAppClick: (UpiAppInfo) -> Unit,
-    onMoreClick: () -> Unit
-) {
-    val hasMoreApps = apps.size > 6
-    val appsToShow = if (hasMoreApps) apps.take(5) else apps.take(6)
-
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(3),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        modifier = Modifier.fillMaxWidth().heightIn(max = 200.dp)
-    ) {
-        items(appsToShow) { app ->
-            UpiAppCard(app = app, onClick = { onAppClick(app) })
-        }
-        if (hasMoreApps) {
-            item {
-                MoreUpiAppsCard(onClick = onMoreClick)
-            }
-        }
-    }
-}
-
-@Composable
-fun UpiAppCard(app: UpiAppInfo, onClick: () -> Unit) {
-    val fallbackIcon = getFallbackUpiIcon(app.displayName)
-    
-    Card(
-        onClick = onClick,
-        modifier = Modifier.height(80.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize().padding(8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            if (app.icon != null) {
-                Image(
-                    bitmap = app.icon, 
-                    contentDescription = app.displayName, 
-                    modifier = Modifier.size(32.dp).clip(RoundedCornerShape(8.dp)),
-                    contentScale = ContentScale.Fit
-                )
-            } else if (fallbackIcon != null) {
-                Image(
-                    painter = fallbackIcon,
-                    contentDescription = app.displayName,
-                    modifier = Modifier.size(32.dp).clip(RoundedCornerShape(8.dp)),
-                    contentScale = ContentScale.Fit
-                )
-            } else {
-                Box(
-                    modifier = Modifier.size(32.dp).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.primary), 
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(app.displayName.take(1), color = Color.White, fontWeight = FontWeight.Bold)
-                }
-            }
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(app.displayName, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        }
-    }
-}
-
-@Composable
-fun getFallbackUpiIcon(displayName: String): Painter? {
-    val name = displayName.lowercase()
-    return when {
-        name.contains("phonepe") -> painterResource(Res.drawable.upi_phonepe)
-        name.contains("google pay") || name.contains("gpay") || name.contains("tez") -> painterResource(Res.drawable.upi_gpay)
-        name.contains("paytm") -> painterResource(Res.drawable.upi_paytm)
-        name.contains("bhim") -> painterResource(Res.drawable.upi_bhim)
-        name.contains("amazon") -> painterResource(Res.drawable.upi_amazonpay)
-        name.contains("cred") -> painterResource(Res.drawable.upi_cred)
-        name.contains("imobile") || name.contains("icici") -> painterResource(Res.drawable.upi_imobile)
-        else -> null
-    }
-}
-
-@Composable
-fun MoreUpiAppsCard(onClick: () -> Unit) {
+private fun MoreUpiAppsCard(onClick: () -> Unit) {
     Card(
         onClick = onClick,
         modifier = Modifier.height(80.dp),
@@ -401,7 +318,7 @@ fun MoreUpiAppsCard(onClick: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MoreUpiAppsBottomSheet(apps: List<UpiAppInfo>, onDismiss: () -> Unit, onAppClick: (UpiAppInfo) -> Unit) {
+private fun MoreUpiAppsBottomSheet(apps: List<UpiAppInfo>, onDismiss: () -> Unit, onAppClick: (UpiAppInfo) -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(modifier = Modifier.fillMaxWidth().padding(24.dp)) {
             Text("Choose UPI App", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
@@ -421,73 +338,10 @@ fun MoreUpiAppsBottomSheet(apps: List<UpiAppInfo>, onDismiss: () -> Unit, onAppC
     }
 }
 
-@Composable
-fun QrPlaceholder(url: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-        if (url.isNotBlank()) {
-            Box(
-                modifier = Modifier
-                    .size(220.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color.White)
-                    .border(1.dp, Color.LightGray, RoundedCornerShape(16.dp))
-                    .padding(12.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Image(
-                    painter = rememberQrCodePainter(url),
-                    contentDescription = "QR Code",
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
-        } else {
-            Box(modifier = Modifier.size(200.dp).border(1.dp, Color.LightGray, RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.QrCode, contentDescription = null, modifier = Modifier.size(64.dp), tint = Color.Gray)
-                    Text("Invalid QR Data", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-                }
-            }
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-        Text("Scan this QR with any UPI app", style = MaterialTheme.typography.bodyMedium)
-    }
-}
-@Composable
-fun StatusDisplay(icon: androidx.compose.ui.graphics.vector.ImageVector, iconTint: Color, title: String, description: String, actionText: String, onAction: () -> Unit) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Icon(imageVector = icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(80.dp))
-        Text(title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-        Text(description, style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center)
-        Spacer(modifier = Modifier.height(24.dp))
-        Button(onClick = onAction, modifier = Modifier.fillMaxWidth().height(56.dp), shape = RoundedCornerShape(12.dp)) {
-            Text(actionText, fontWeight = FontWeight.Bold)
-        }
-    }
-}
 
-@OptIn(org.jetbrains.compose.resources.ExperimentalResourceApi::class)
-@Composable
-fun LoadingDisplay() {
-    val composition by rememberLottieComposition {
-        val json = Res.readBytes("files/secure.json").decodeToString()
-        LottieCompositionSpec.JsonString(json)
-    }
-    
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Box(modifier = Modifier.size(200.dp), contentAlignment = Alignment.Center) {
-            LottieAnimation(
-                composition = composition,
-                iterations = LottieConstants.IterateForever,
-                modifier = Modifier.fillMaxSize()
-            )
-        }
-        Text("Verifying...", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        Text("Please do not close the app or go back.", style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
-    }
-}
 
 @Composable
-fun MandateApprovedWaitingContent(mandateUrl: String, progress: Int, isPlanReady: Boolean, isPlanResponseResolved: Boolean, goalType: GoalType) {
+private fun MandateApprovedWaitingContent(mandateUrl: String, progress: Int, isPlanReady: Boolean, isPlanResponseResolved: Boolean, goalType: GoalType) {
     val accentColor = when (goalType) {
         GoalType.GOLD -> Color(0xFFC8860A)
         GoalType.SILVER -> Color(0xFF6B7280)
@@ -535,7 +389,7 @@ fun MandateApprovedWaitingContent(mandateUrl: String, progress: Int, isPlanReady
 }
 
 @Composable
-fun WaitingStepRow(title: String, subtitle: String, isDone: Boolean, showConnector: Boolean, accentColor: Color) {
+private fun WaitingStepRow(title: String, subtitle: String, isDone: Boolean, showConnector: Boolean, accentColor: Color) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(
