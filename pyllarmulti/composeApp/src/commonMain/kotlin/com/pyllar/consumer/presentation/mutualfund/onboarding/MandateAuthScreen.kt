@@ -223,17 +223,6 @@ fun MandateAuthScreen(
                     modifier = Modifier.fillMaxWidth().padding(24.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    if (status == MandateStatus.APPROVED && isBtnEnabled) {
-                        Button(
-                            onClick = { /* Share Logic */ },
-                            modifier = Modifier.fillMaxWidth().height(56.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
-                        ) {
-                            Text("Share with Family", fontWeight = FontWeight.Bold)
-                        }
-                    }
-
                     Button(
                         onClick = onGoToHome,
                         modifier = Modifier.fillMaxWidth().height(56.dp),

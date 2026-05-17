@@ -115,6 +115,7 @@ fun getInvestmentStatus(): String {
         DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY -> "Tomorrow"
         DayOfWeek.FRIDAY, DayOfWeek.SATURDAY -> "Monday"
         DayOfWeek.SUNDAY -> "Tuesday"
+        else -> "Tomorrow"
     }
 }
 

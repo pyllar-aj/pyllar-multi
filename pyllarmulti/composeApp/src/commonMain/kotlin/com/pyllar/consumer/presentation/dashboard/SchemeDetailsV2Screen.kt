@@ -93,6 +93,8 @@ fun SchemeDetailsV2Screen(
     var showTotalValueInfoPopup by remember { mutableStateOf(false) }
     var showEstimatedGoldInfoPopup by remember { mutableStateOf(false) }
     var showEstimatedSilverInfoPopup by remember { mutableStateOf(false) }
+    var showInvestmentInProgressDialog by remember { mutableStateOf(false) }
+    var showFolioPendingDialog by remember { mutableStateOf(false) }
 
     var schemeParams by remember { mutableStateOf<SchemeDetailsParams?>(SchemeDetailsParamsManager.get()) }
     
@@ -182,31 +184,35 @@ fun SchemeDetailsV2Screen(
     }
 
     val handleAddFunds = { gid: String, isLumpsum: Boolean ->
-        scope.launch {
-            try {
-                val result = dashboardViewModel.initGoalTxn(userId, gid)
-                if (result is Resource.Success) {
-                    result.data?.let { response ->
-                        if (response.userPurposeId.isNotBlank()) {
-                            sessionStore.saveValue(KeyValueConstants.USER_PURPOSE_ID, response.userPurposeId)
+        if (isLumpsum && state.folioNumber.isNullOrBlank()) {
+            showFolioPendingDialog = true
+        } else {
+            scope.launch {
+                try {
+                    val result = dashboardViewModel.initGoalTxn(userId, gid)
+                    if (result is Resource.Success) {
+                        result.data?.let { response ->
+                            if (response.userPurposeId.isNotBlank()) {
+                                sessionStore.saveValue(KeyValueConstants.USER_PURPOSE_ID, response.userPurposeId)
+                            }
                         }
                     }
-                }
-                
-                sessionStore.saveValue(KeyValueConstants.SELECTED_GOAL_ID, gid)
-                val hasInvestment = state.investedAmount > 0 || !state.folioNumber.isNullOrBlank()
-                sessionStore.saveValue("isExistingInvestment", hasInvestment.toString())
+                    
+                    sessionStore.saveValue(KeyValueConstants.SELECTED_GOAL_ID, gid)
+                    val hasInvestment = state.investedAmount > 0 || !state.folioNumber.isNullOrBlank()
+                    sessionStore.saveValue("isExistingInvestment", hasInvestment.toString())
 
-                val kycAttemptId = sessionStore.getValue(KeyValueConstants.KYC_ATTEMPT_ID) ?: ""
-                val investorId = sessionStore.getValue(KeyValueConstants.INVESTOR_ID) ?: ""
+                    val kycAttemptId = sessionStore.getValue(KeyValueConstants.KYC_ATTEMPT_ID) ?: ""
+                    val investorId = sessionStore.getValue(KeyValueConstants.INVESTOR_ID) ?: ""
 
-                if (isLumpsum) {
-                    onNavigateToLumpsum(userId, kycAttemptId, investorId, gid, hasInvestment)
-                } else {
-                    onNavigateToAddFunds(userId, kycAttemptId, investorId, gid, hasInvestment)
+                    if (isLumpsum) {
+                        onNavigateToLumpsum(userId, kycAttemptId, investorId, gid, hasInvestment)
+                    } else {
+                        onNavigateToAddFunds(userId, kycAttemptId, investorId, gid, hasInvestment)
+                    }
+                } catch (e: Exception) {
+                    platformLog("Error: ${e.message}")
                 }
-            } catch (e: Exception) {
-                platformLog("Error: ${e.message}")
             }
         }
     }
@@ -246,28 +252,32 @@ fun SchemeDetailsV2Screen(
                             icon = if ((state.instantRedemptionValue ?: 0.0) > 0.0) Icons.Default.Bolt else Icons.Default.CallReceived,
                             containerColor = accentColor,
                             onClick = {
-                                val instantVal = state.instantRedemptionValue 
-                                    ?: schemeParams?.instantRedemptionValue 
-                                    ?: SchemeDetailsParamsManager.get()?.instantRedemptionValue
+                                if (state.currentValue > 0) {
+                                    val instantVal = state.instantRedemptionValue 
+                                        ?: schemeParams?.instantRedemptionValue 
+                                        ?: SchemeDetailsParamsManager.get()?.instantRedemptionValue
 
-                                val params = WithdrawInitParams(
-                                    isin = state.isin ?: "",
-                                    folio = state.folioNumber,
-                                    amount = state.currentValue,
-                                    investmentInProgress = state.investmentInProgress,
-                                    bankAccountNumber = "",
-                                    bankAccountIfscCode = "",
-                                    schemeName = displaySchemeName,
-                                    canWithdraw = state.canWithdraw,
-                                    redemptionInProgress = state.redemptionInProgress,
-                                    redeemableAmount = state.redeemableAmount,
-                                    instantRedemptionValue = instantVal
-                                )
-                                WithdrawParamsManager.set(params)
-                                scope.launch {
-                                    sessionStore.saveValue("withdraw_init_params", WithdrawParamsManager.toJson(params))
+                                    val params = WithdrawInitParams(
+                                        isin = state.isin ?: "",
+                                        folio = state.folioNumber,
+                                        amount = state.currentValue,
+                                        investmentInProgress = state.investmentInProgress,
+                                        bankAccountNumber = "",
+                                        bankAccountIfscCode = "",
+                                        schemeName = displaySchemeName,
+                                        canWithdraw = state.canWithdraw,
+                                        redemptionInProgress = state.redemptionInProgress,
+                                        redeemableAmount = state.redeemableAmount,
+                                        instantRedemptionValue = instantVal
+                                    )
+                                    WithdrawParamsManager.set(params)
+                                    scope.launch {
+                                        sessionStore.saveValue("withdraw_init_params", WithdrawParamsManager.toJson(params))
+                                    }
+                                    onNavigateToWithdraw(params)
+                                } else {
+                                    showInvestmentInProgressDialog = true
                                 }
-                                onNavigateToWithdraw(params)
                             }
                         )
                     }
@@ -292,28 +302,32 @@ fun SchemeDetailsV2Screen(
                     onAddFunds = { /* Moved to bottomBar */ },
                     onLumpsum = { /* Moved to bottomBar */ },
                     onWithdraw = {
-                        val instantVal = state.instantRedemptionValue 
-                            ?: schemeParams?.instantRedemptionValue 
-                            ?: SchemeDetailsParamsManager.get()?.instantRedemptionValue
+                        if (state.currentValue > 0) {
+                            val instantVal = state.instantRedemptionValue 
+                                ?: schemeParams?.instantRedemptionValue 
+                                ?: SchemeDetailsParamsManager.get()?.instantRedemptionValue
 
-                        val params = WithdrawInitParams(
-                            isin = state.isin ?: "",
-                            folio = state.folioNumber,
-                            amount = state.currentValue,
-                            investmentInProgress = state.investmentInProgress,
-                            bankAccountNumber = "",
-                            bankAccountIfscCode = "",
-                            schemeName = displaySchemeName,
-                            canWithdraw = state.canWithdraw,
-                            redemptionInProgress = state.redemptionInProgress,
-                            redeemableAmount = state.redeemableAmount,
-                            instantRedemptionValue = instantVal
-                        )
-                        WithdrawParamsManager.set(params)
-                        scope.launch {
-                            sessionStore.saveValue("withdraw_init_params", WithdrawParamsManager.toJson(params))
+                            val params = WithdrawInitParams(
+                                isin = state.isin ?: "",
+                                folio = state.folioNumber,
+                                amount = state.currentValue,
+                                investmentInProgress = state.investmentInProgress,
+                                bankAccountNumber = "",
+                                bankAccountIfscCode = "",
+                                schemeName = displaySchemeName,
+                                canWithdraw = state.canWithdraw,
+                                redemptionInProgress = state.redemptionInProgress,
+                                redeemableAmount = state.redeemableAmount,
+                                instantRedemptionValue = instantVal
+                            )
+                            WithdrawParamsManager.set(params)
+                            scope.launch {
+                                sessionStore.saveValue("withdraw_init_params", WithdrawParamsManager.toJson(params))
+                            }
+                            onNavigateToWithdraw(params)
+                        } else {
+                            showInvestmentInProgressDialog = true
                         }
-                        onNavigateToWithdraw(params)
                     },
                     onFundDetails = {
                         state.isin?.let { isin ->
@@ -426,6 +440,32 @@ fun SchemeDetailsV2Screen(
             }
             if (showResumeSipErrorSheet) {
                 ResumeSipErrorBottomSheet(onDone = { showResumeSipErrorSheet = false })
+            }
+
+            if (showInvestmentInProgressDialog) {
+                AlertDialog(
+                    onDismissRequest = { showInvestmentInProgressDialog = false },
+                    title = { Text(stringResource(Res.string.investment_in_progress_title)) },
+                    text = { Text(stringResource(Res.string.investment_in_progress_message)) },
+                    confirmButton = {
+                        TextButton(onClick = { showInvestmentInProgressDialog = false }) {
+                            Text(stringResource(Res.string.ok))
+                        }
+                    }
+                )
+            }
+
+            if (showFolioPendingDialog) {
+                AlertDialog(
+                    onDismissRequest = { showFolioPendingDialog = false },
+                    title = { Text(stringResource(Res.string.investment_in_progress_title)) },
+                    text = { Text(stringResource(Res.string.folio_pending_message)) },
+                    confirmButton = {
+                        TextButton(onClick = { showFolioPendingDialog = false }) {
+                            Text(stringResource(Res.string.ok))
+                        }
+                    }
+                )
             }
 
             if (showTotalValueInfoPopup) {
@@ -643,10 +683,6 @@ fun MainContentV2(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    val activeMandates = state.mandates.filter { 
-                        val s = it.status?.uppercase().orEmpty()
-                        (s.contains("ACTIVE") || s.contains("APPROVED")) && !s.contains("PAUSED")
-                    }
                     if (state.investmentInProgress > 0) {
                         StatusPill(
                             text = "₹${formatIndian(state.investmentInProgress)} processing",
@@ -694,7 +730,15 @@ fun MainContentV2(
                 )
             }
 
-            if (state.redemptionInProgress > 0) {
+            val activeMandates = state.mandates.filter { 
+                val s = it.status?.uppercase().orEmpty()
+                (s.contains("ACTIVE") || s.contains("APPROVED")) && !s.contains("PAUSED")
+            }
+            val nextSipDateStr = activeMandates.firstOrNull { !it.nextSipDate.isNullOrBlank() }?.nextSipDate
+            val hasApprovedPlan = activeMandates.isNotEmpty()
+            val showFirstSaveDate = hasApprovedPlan && state.investedAmount == 0.0 && state.cummulativeValue == 0.0 && !nextSipDateStr.isNullOrBlank()
+
+            if (state.redemptionInProgress > 0 || showFirstSaveDate) {
                 Spacer(modifier = Modifier.height(24.dp))
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -730,22 +774,31 @@ fun MainContentV2(
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
-                            Column(modifier = Modifier.weight(1f)) {
+                            if (showFirstSaveDate) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = stringResource(Res.string.first_save_date_message, formatDate(nextSipDateStr!!)),
+                                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
+                                    )
+                                }
+                            } else {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = stringResource(Res.string.withdrawal_in_progress_title),
+                                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
+                                    )
+                                    Text(
+                                        text = stringResource(Res.string.will_be_credited_in_days_approx),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = Color.Gray
+                                    )
+                                }
                                 Text(
-                                    text = stringResource(Res.string.withdrawal_in_progress_title),
-                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
-                                )
-                                Text(
-                                    text = stringResource(Res.string.will_be_credited_in_days_approx),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = Color.Gray
+                                    text = "₹${formatIndian(state.redemptionInProgress)}",
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = Color.Black
                                 )
                             }
-                            Text(
-                                text = "₹${formatIndian(state.redemptionInProgress)}",
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                color = Color.Black
-                            )
                         }
                     }
                 }
@@ -931,8 +984,9 @@ fun PlansOverlay(
     }
     val otherMandates = mandates.filter { m ->
         val s = m.status?.uppercase().orEmpty()
-        !((s.contains("APPROVED") || s.contains("ACTIVE")) && !s.contains("PAUSED")) && !s.contains("PAUSED")
+        !((s.contains("APPROVED") || s.contains("ACTIVE")) && !s.contains("PAUSED")) && !s.contains("PAUSED") && !s.contains("INITIATED")
     }
+
 
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Scaffold(
@@ -1238,6 +1292,11 @@ fun SchemeDetailsPopupContentV2(
                 )
             }
 
+            val activeMandates = state.mandates.filter { m ->
+                val s = m.status?.uppercase().orEmpty()
+                (s.contains("APPROVED") || s.contains("ACTIVE")) && !s.contains("PAUSED")
+            }
+
             SchemeDetailsCardV2(
                 schemeName = schemeName,
                 goalName = goalName,
@@ -1252,7 +1311,7 @@ fun SchemeDetailsPopupContentV2(
                 investmentInProgress = state.investmentInProgress,
                 totalGain = state.totalGain,
                 redemptionInProgress = state.redemptionInProgress,
-                hasApprovedPlan = state.mandates.isNotEmpty(),
+                hasApprovedPlan = activeMandates.isNotEmpty(),
                 showBottomSection = false,
                 containerColor = Color.White,
                 onEstimatedGoldInfoClick = { showPopupGoldInfo = true },
@@ -1261,10 +1320,6 @@ fun SchemeDetailsPopupContentV2(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            val activeMandates = state.mandates.filter { m ->
-                val s = m.status?.uppercase().orEmpty()
-                (s.contains("APPROVED") || s.contains("ACTIVE")) && !s.contains("PAUSED")
-            }
 
             if (activeMandates.isNotEmpty() || state.investmentInProgress > 0) {
                 Text(

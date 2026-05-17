@@ -268,6 +268,8 @@ fun SipAmountScreenV2(
         }
     }
 
+    val isFetching = isInitializing || isInitTxnLoading || limitsState.isLoading || fundDetailsState.isLoading || isFetchingIds
+
     com.pyllar.consumer.util.BackHandler {
         onNavigateBack()
     }
@@ -299,7 +301,6 @@ fun SipAmountScreenV2(
             )
         },
         bottomBar = {
-            val isFetching = isInitializing || isInitTxnLoading || limitsState.isLoading || fundDetailsState.isLoading || isFetchingIds
             val canContinue = !isFetching && !isLoading
             
             Column(
@@ -333,7 +334,7 @@ fun SipAmountScreenV2(
         }
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            if (limitsState.isLoading) {
+            if (isFetching) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             } else {
                     // Amount Selection

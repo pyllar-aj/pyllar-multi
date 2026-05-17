@@ -1581,7 +1581,12 @@ fun DashboardTrustFooter() {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Surface(modifier = Modifier.size(40.dp), shape = RoundedCornerShape(12.dp), color = Color.White, shadowElevation = 4.dp) {
                 Box(contentAlignment = Alignment.Center) {
-                    Text("P", fontWeight = FontWeight.Bold, color = darkGreenText)
+                    Image(
+                        painter = painterResource(Res.drawable.app_icon),
+                        contentDescription = "Pyllar Money Icon",
+                        modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(12.dp)),
+                        contentScale = ContentScale.Fit
+                    )
                 }
             }
             Spacer(modifier = Modifier.width(12.dp))

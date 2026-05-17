@@ -6,6 +6,8 @@ import com.pyllar.consumer.util.Resource
 import com.pyllar.consumer.domain.repository.PreVerificationRepository
 import com.pyllar.consumer.data.remote.dto.PreVerificationResponseDto
 import com.pyllar.consumer.domain.repository.CommonRepository
+import com.pyllar.consumer.domain.storage.SessionStore
+import com.pyllar.consumer.data.local.KeyValueConstants
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -38,7 +40,8 @@ data class PreVerificationUiState(
 
 class PreVerificationViewModel(
     private val preVerificationRepository: PreVerificationRepository,
-    private val commonRepository: CommonRepository
+    private val commonRepository: CommonRepository,
+    private val sessionStore: SessionStore
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PreVerificationUiState())
@@ -55,7 +58,7 @@ class PreVerificationViewModel(
 
     private fun fetchPrepopulatedData() {
         viewModelScope.launch {
-            platformLog("PreVerificationVM: \uD83D\uDD0D [fetchPrepopulatedData] Fetching screen data")
+            platformLog("PreVerificationVM: 🔍 [fetchPrepopulatedData] Fetching screen data")
             try {
                 commonRepository.fetchScreenData("PreVerification").collect { result ->
                     if (result is Resource.Success) {
@@ -69,15 +72,37 @@ class PreVerificationViewModel(
                                     element?.toString()
                                 }
                             }
-                            platformLog("PreVerificationVM: \u2705 Received data")
-                            _uiState.value = _uiState.value.copy(prepopulatedData = stringMap)
+                            platformLog("PreVerificationVM: ✅ Received data")
+                            
+                            // Try to retrieve and persist redirect_url to ensure it is populated
+                            val redirectUrl = stringMap["redirectUrl"] ?: stringMap["redirect_url"]
+                            if (!redirectUrl.isNullOrBlank()) {
+                                platformLog("PreVerificationVM: 💾 Found redirectUrl in prepopulated data: $redirectUrl. Saving to sessionStore.")
+                                sessionStore.saveValue(KeyValueConstants.RE_URL, redirectUrl)
+                            }
+                            
+                            val navigation = result.navigation
+                            val nextScreen = if (navigation?.shouldNavigate() == true) navigation.nextScreen else null
+                            platformLog("PreVerificationVM: Navigation resolution - nextScreen='$nextScreen', action='${navigation?.action}'")
+                            
+                            _uiState.value = _uiState.value.copy(
+                                prepopulatedData = stringMap,
+                                nextScreen = nextScreen
+                            )
+                        } else {
+                            val navigation = result.navigation
+                            val nextScreen = if (navigation?.shouldNavigate() == true) navigation.nextScreen else null
+                            if (nextScreen != null) {
+                                platformLog("PreVerificationVM: ✅ Received navigation with null dataMap - nextScreen='$nextScreen'")
+                                _uiState.value = _uiState.value.copy(nextScreen = nextScreen)
+                            }
                         }
                     } else if (result is Resource.Error) {
-                        platformLog("PreVerificationVM: \u274C Failed to fetch data: ${result.message}")
+                        platformLog("PreVerificationVM: ❌ Failed to fetch data: ${result.message}")
                     }
                 }
             } catch (e: Exception) {
-                platformLog("PreVerificationVM: \u274C Exception: ${e.message}")
+                platformLog("PreVerificationVM: ❌ Exception: ${e.message}")
             }
         }
     }

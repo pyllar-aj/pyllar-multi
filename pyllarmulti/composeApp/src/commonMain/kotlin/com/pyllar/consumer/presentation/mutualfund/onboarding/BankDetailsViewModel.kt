@@ -37,20 +37,27 @@ class BankDetailsViewModel(
 
     private fun fetchPrepopulationData() {
         viewModelScope.launch {
-            platformLog("BankDetailsViewModel: \uD83D\uDD0D Fetching screen data")
+            platformLog("BankDetailsViewModel: 🔍 Fetching screen data")
             try {
                 commonRepository.fetchScreenData("BankDetails").collect { result ->
                     if (result is Resource.Success) {
                         val dataMap = result.data?.data
                         if (dataMap != null) {
-                            val stringMap = dataMap.mapValues { it.value?.toString() }
+                            val stringMap = dataMap.mapValues { 
+                                val element = it.value
+                                if (element is kotlinx.serialization.json.JsonPrimitive && element.isString) {
+                                    element.content
+                                } else {
+                                    element?.toString()
+                                }
+                            }
                             _prefillData.value = stringMap
-                            platformLog("BankDetailsViewModel: \u2705 Received data")
+                            platformLog("BankDetailsViewModel: ✅ Received data")
                         }
                     }
                 }
             } catch (e: Exception) {
-                platformLog("BankDetailsViewModel: \u274C Exception: ${e.message}")
+                platformLog("BankDetailsViewModel: ❌ Exception: ${e.message}")
             }
         }
     }

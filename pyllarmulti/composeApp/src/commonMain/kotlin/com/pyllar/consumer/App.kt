@@ -336,7 +336,12 @@ fun App() {
                     investorId = screen.investorId,
                     onSignatureCompleted = { nextScreen, redirectUrl ->
                         scope.launch {
-                            handleNavigation(nextScreen, screen.userId, screen.kycAttemptId, screen.investorId, reUrl = redirectUrl, sessionStore = sessionStore) { navigateTo(it) }
+                            if (!redirectUrl.isNullOrBlank()) {
+                                sessionStore.saveValue(KeyValueConstants.RE_URL, redirectUrl)
+                                navigateTo(Screen.EsignInformation(screen.userId))
+                            } else {
+                                handleNavigation(nextScreen, screen.userId, screen.kycAttemptId, screen.investorId, sessionStore = sessionStore) { navigateTo(it) }
+                            }
                         }
                     },
                     onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId, showKycHelp = true)) }
@@ -469,8 +474,17 @@ fun App() {
             is Screen.EsignInformation -> {
                 EsignInformationScreen(
                     onProceed = {
-                        // Refresh state by going to PreVerification, which will return the Esign URL
-                        navigateTo(Screen.PreVerification(screen.userId))
+                        scope.launch {
+                            val reUrl = sessionStore.getValue(KeyValueConstants.RE_URL)
+                            val kycAttemptId = sessionStore.getValue(KeyValueConstants.KYC_ATTEMPT_ID)
+                            if (!reUrl.isNullOrBlank()) {
+                                platformLog("App: Found saved esign URL in sessionStore: $reUrl. Navigating directly to EsignWebView.")
+                                navigateTo(Screen.EsignWebView(screen.userId, reUrl, kycAttemptId))
+                            } else {
+                                platformLog("App: No saved esign URL in sessionStore. Refreshing state via PreVerification.")
+                                navigateTo(Screen.PreVerification(screen.userId))
+                            }
+                        }
                     },
                     onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId, showKycHelp = true)) }
                 )
@@ -908,7 +922,7 @@ private suspend fun handleNavigation(
             platformLog("AppNav: Matched ESIGN_INFORMATION")
             onNavigate(Screen.EsignInformation(userId))
         }
-        ScreenNames.WEB_VIEW -> {
+        ScreenNames.WEB_VIEW, "web_view", "webview" -> {
             platformLog("AppNav: Matched WEB_VIEW")
             if (!effectiveReUrl.isNullOrBlank()) {
                 onNavigate(Screen.KycWebView(userId, effectiveReUrl, effectiveKycId))
@@ -916,7 +930,7 @@ private suspend fun handleNavigation(
                 onNavigate(Screen.KycInformation(userId, null, effectiveKycId))
             }
         }
-        ScreenNames.WEB_VIEW_ESIGN -> {
+        ScreenNames.WEB_VIEW_ESIGN, "web_view_esign", "webview_esign" -> {
             platformLog("AppNav: Matched WEB_VIEW_ESIGN")
             if (!effectiveReUrl.isNullOrBlank()) {
                 onNavigate(Screen.EsignWebView(userId, effectiveReUrl, effectiveKycId))
