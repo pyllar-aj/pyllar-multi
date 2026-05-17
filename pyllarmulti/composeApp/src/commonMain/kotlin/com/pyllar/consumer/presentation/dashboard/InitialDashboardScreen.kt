@@ -340,7 +340,13 @@ fun InitialDashboardScreen(
                     }
                 }
 
-                item { Spacer(modifier = Modifier.height(32.dp)) }
+                item {
+                    DashboardTrustFooter()
+                }
+
+                item {
+                    PoweredByAmcsSection()
+                }
             }
 
             if (isSubmitting) {
