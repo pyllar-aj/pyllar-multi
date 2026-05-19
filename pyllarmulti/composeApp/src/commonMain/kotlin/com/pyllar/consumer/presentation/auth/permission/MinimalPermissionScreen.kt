@@ -196,6 +196,27 @@ fun MinimalPermissionScreen(
                 )
             }
 
+            // Local permission error messages when denied/disabled
+            val showLocalPermissionError = !state.permissionStatus.locationGranted || !state.permissionStatus.gpsEnabled
+            val isFlowAttempted = state.permissionFlow is PermissionFlowState.Completed
+            if (isFlowAttempted && showLocalPermissionError) {
+                val permissionErrorMsg = when {
+                    !state.permissionStatus.locationGranted && !state.permissionStatus.gpsEnabled ->
+                        stringResource(Res.string.location_and_gps_required_error)
+                    !state.permissionStatus.locationGranted ->
+                        stringResource(Res.string.location_permission_required_error)
+                    else ->
+                        stringResource(Res.string.gps_required_error)
+                }
+                Text(
+                    text = permissionErrorMsg,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
+                )
+            }
+
             // Server error message
             if (!state.serverErrorMessage.isNullOrBlank()) {
                 Text(
@@ -210,11 +231,11 @@ fun MinimalPermissionScreen(
             // CTA button
             val buttonLabel = when (state.permissionFlow) {
                 is PermissionFlowState.Idle ->
-                    if (state.permissionStatus.notificationsGranted && state.permissionStatus.locationGranted && state.permissionStatus.gpsEnabled)
+                    if (state.permissionStatus.locationGranted && state.permissionStatus.gpsEnabled)
                         stringResource(Res.string.btn_continue) else stringResource(Res.string.grant_permissions)
                 is PermissionFlowState.Completed ->
-                    if (state.permissionStatus.notificationsGranted && state.permissionStatus.locationGranted && state.permissionStatus.gpsEnabled)
-                        stringResource(Res.string.btn_continue) else stringResource(Res.string.retry_permissions)
+                    if (state.permissionStatus.locationGranted && state.permissionStatus.gpsEnabled)
+                        stringResource(Res.string.btn_continue) else stringResource(Res.string.go_to_settings)
                 is PermissionFlowState.RequestingNotifications -> stringResource(Res.string.requesting_notifications)
                 is PermissionFlowState.RequestingLocation -> stringResource(Res.string.requesting_location)
                 is PermissionFlowState.CheckingGps -> stringResource(Res.string.checking_gps)

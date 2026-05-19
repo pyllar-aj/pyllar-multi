@@ -65,7 +65,7 @@ class IosPermissionManager : PermissionManager {
     private var activeLocationDelegate: CLLocationManagerDelegateProtocol? = null
 
     override suspend fun requestLocation(): Boolean {
-        val currentStatus = locationManager.authorizationStatus
+        val currentStatus = CLLocationManager.authorizationStatus()
         com.pyllar.consumer.util.platformLog("IosPermissionManager: requestLocation - currentStatus: $currentStatus")
         
         if (currentStatus == kCLAuthorizationStatusAuthorizedWhenInUse ||
@@ -84,6 +84,7 @@ class IosPermissionManager : PermissionManager {
                     manager: CLLocationManager,
                     didChangeAuthorizationStatus: CLAuthorizationStatus
                 ) {
+                    com.pyllar.consumer.util.platformLog("IosPermissionManager delegate: didChangeAuthorizationStatus called with status: $didChangeAuthorizationStatus")
                     if (didChangeAuthorizationStatus == kCLAuthorizationStatusNotDetermined) return
                     val granted = didChangeAuthorizationStatus == kCLAuthorizationStatusAuthorizedWhenInUse ||
                             didChangeAuthorizationStatus == kCLAuthorizationStatusAuthorizedAlways

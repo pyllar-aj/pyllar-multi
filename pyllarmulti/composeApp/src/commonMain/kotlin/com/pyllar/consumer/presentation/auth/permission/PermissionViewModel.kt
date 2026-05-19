@@ -78,7 +78,7 @@ class PermissionViewModel(
 
         val status = permissionManager.checkStatus()
         com.pyllar.consumer.util.Log.d("PermissionFlow", "Current status: $status")
-        if (status.notificationsGranted && status.locationGranted && status.gpsEnabled) {
+        if (status.locationGranted && status.gpsEnabled) {
             com.pyllar.consumer.util.Log.d("PermissionFlow", "Permissions already granted, calling updateEmail")
             _state.value = _state.value.copy(
                 permissionFlow = PermissionFlowState.Completed,
@@ -87,8 +87,13 @@ class PermissionViewModel(
             callUpdateEmailApi(userId)
             return
         }
-        com.pyllar.consumer.util.Log.d("PermissionFlow", "Starting permission flow")
-        startPermissionFlow(userId)
+        if (current.permissionFlow is PermissionFlowState.Completed) {
+            com.pyllar.consumer.util.Log.d("PermissionFlow", "Flow completed but required permissions still missing, opening settings")
+            platformActions.openAppSettings()
+        } else {
+            com.pyllar.consumer.util.Log.d("PermissionFlow", "Starting permission flow")
+            startPermissionFlow(userId)
+        }
     }
 
     private fun startPermissionFlow(userId: String) {
@@ -124,12 +129,11 @@ class PermissionViewModel(
                 permissionStatus = finalStatus
             )
 
-            if (finalStatus.notificationsGranted && finalStatus.locationGranted && finalStatus.gpsEnabled) {
+            if (finalStatus.locationGranted && finalStatus.gpsEnabled) {
                 com.pyllar.consumer.util.Log.d("PermissionFlow", "Permissions granted, calling updateEmail")
                 callUpdateEmailApi(userId)
             } else {
-                com.pyllar.consumer.util.Log.d("PermissionFlow", "Permissions NOT fully granted, opening settings as fallback")
-                platformActions.openAppSettings()
+                com.pyllar.consumer.util.Log.d("PermissionFlow", "Permissions NOT fully granted, staying on permission screen")
             }
         }
     }

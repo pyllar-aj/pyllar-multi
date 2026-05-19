@@ -103,6 +103,7 @@ class IosPlatformActions : PlatformActions {
 
     override fun openAppSettings() {
         val url = platform.UIKit.UIApplicationOpenSettingsURLString
+        platformLog("IosPlatformActions: UIApplicationOpenSettingsURLString value is: '$url'")
         val nsUrl = NSURL.URLWithString(url)
         if (nsUrl != null) {
             platformLog("IosPlatformActions: Opening app settings...")
