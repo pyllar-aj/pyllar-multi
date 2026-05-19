@@ -16,7 +16,7 @@
     <string name="help">Help</string>
     <string name="lets_set_things_up">Let's set things up!</string>
     <string name="permissions_description">We need a few permissions to provide you the best experience.</string>
-    <string name="notification_permission">Notification permission (Optional)</string>
+    <string name="notification_permission">Notification permission</string>
     <string name="notification_description">Get updates about your investments and important offers.</string>
     <string name="location_permission">Location permission (Required)</string>
     <string name="location_description">Mandatory for KYC verification and fraud prevention.</string>
