@@ -697,21 +697,24 @@ fun MainContentV2(
                 if (state.investmentInProgress > 0) {
                     Spacer(modifier = Modifier.height(6.dp))
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
+                        verticalAlignment = Alignment.Top,
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        modifier = Modifier.padding(horizontal = 4.dp)
+                        modifier = Modifier
+                            .fillMaxWidth(0.58f)
+                            .padding(horizontal = 4.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Info,
                             contentDescription = null,
                             tint = Color.Black.copy(alpha = 0.5f),
-                            modifier = Modifier.size(13.dp)
+                            modifier = Modifier.size(13.dp).padding(top = 1.dp)
                         )
                         Text(
                             text = "Units are typically allocated within 2 business days",
                             style = MaterialTheme.typography.bodySmall.copy(
                                 fontSize = 11.sp,
-                                fontWeight = FontWeight.Medium
+                                fontWeight = FontWeight.Medium,
+                                lineHeight = 14.sp
                             ),
                             color = Color.Black.copy(alpha = 0.6f)
                         )

@@ -453,25 +453,31 @@ private fun NomineeFormSection(
         )
 
         // Date of Birth
-        OutlinedTextField(
-            value = nominee.dateOfBirth,
-            onValueChange = { onUpdate(nominee.copy(dateOfBirth = it)) },
-            label = { Text("Nominee Date of Birth") },
-            modifier = Modifier.fillMaxWidth(),
-            readOnly = true,
-            trailingIcon = { 
-                IconButton(onClick = showDatePicker) {
-                    Icon(Icons.Filled.DateRange, contentDescription = "Select Date")
-                }
-            },
-            interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }.also { src ->
-                LaunchedEffect(src) {
-                    src.interactions.collect { if (it is PressInteraction.Release) showDatePicker() }
-                }
-            },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
-            keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() })
-        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { showDatePicker() }
+        ) {
+            OutlinedTextField(
+                value = nominee.dateOfBirth,
+                onValueChange = {},
+                label = { Text("Nominee Date of Birth") },
+                modifier = Modifier.fillMaxWidth(),
+                readOnly = true,
+                enabled = false,
+                trailingIcon = { 
+                    IconButton(onClick = showDatePicker) {
+                        Icon(Icons.Filled.DateRange, contentDescription = "Select Date")
+                    }
+                },
+                colors = OutlinedTextFieldDefaults.colors(
+                    disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                    disabledBorderColor = MaterialTheme.colorScheme.outline,
+                    disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            )
+        }
     }
 }
 

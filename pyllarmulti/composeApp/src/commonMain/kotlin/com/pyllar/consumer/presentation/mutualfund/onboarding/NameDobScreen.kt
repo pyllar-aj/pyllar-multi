@@ -348,25 +348,27 @@ fun NameDobScreen(
                 // DOB field
                 Column(modifier = Modifier.fillMaxWidth(0.95f)) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                        OutlinedTextField(
-                            value = dob,
-                            onValueChange = {},
-                            label = { Text("Date of Birth") },
-                            singleLine = true, readOnly = true,
-                            isError = dobError != null,
-                            modifier = Modifier.weight(1f),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                focusedLabelColor = MaterialTheme.colorScheme.primary,
-                                unfocusedBorderColor = MaterialTheme.colorScheme.primary,
-                                unfocusedLabelColor = MaterialTheme.colorScheme.primary
-                            ),
-                            interactionSource = remember { MutableInteractionSource() }.also { src ->
-                                LaunchedEffect(src) {
-                                    src.interactions.collect { if (it is PressInteraction.Release) showDatePicker = true }
-                                }
-                            }
-                        )
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { showDatePicker = true }
+                        ) {
+                            OutlinedTextField(
+                                value = dob,
+                                onValueChange = {},
+                                label = { Text("Date of Birth") },
+                                singleLine = true,
+                                readOnly = true,
+                                enabled = false,
+                                isError = dobError != null,
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                                    disabledBorderColor = if (dobError != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                                    disabledLabelColor = if (dobError != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                                )
+                            )
+                        }
                         IconButton(onClick = { showDatePicker = true }) {
                             Icon(Icons.Filled.DateRange, contentDescription = "Pick date")
                         }

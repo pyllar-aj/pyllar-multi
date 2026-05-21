@@ -59,6 +59,8 @@
 			</array>
 		</dict>
 	</array>
+	<key>CFBundleName</key>
+	<string>Pyllar Money</string>
 	<key>GIDClientID</key>
 	<string>627050529362-24kq1su5cfl4bbt8mbu3afhd315m4vdj.apps.googleusercontent.com</string>
 </dict>
