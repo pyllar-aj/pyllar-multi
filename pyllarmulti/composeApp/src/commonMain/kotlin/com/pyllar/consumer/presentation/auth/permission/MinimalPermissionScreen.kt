@@ -182,7 +182,7 @@ fun MinimalPermissionScreen(
             Text(
                 text = "Please select your personal email address to receive important updates about your investments, redemptions, and holdings.",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialTheme.colorScheme.primary,
                 textAlign = TextAlign.Start,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)
             )

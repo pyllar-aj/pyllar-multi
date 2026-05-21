@@ -248,7 +248,7 @@ fun NomineeDetailsScreen(
                         ) {
                             Checkbox(checked = skipAddingNominee, onCheckedChange = { skipAddingNominee = it })
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Do you wish to add a nominee?", style = MaterialTheme.typography.bodyLarge)
+                            Text("Skip adding nominees", style = MaterialTheme.typography.bodyLarge)
                         }
 
                         if (skipAddingNominee) {
