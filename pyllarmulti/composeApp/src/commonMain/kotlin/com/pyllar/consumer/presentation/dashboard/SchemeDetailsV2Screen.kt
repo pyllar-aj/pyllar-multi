@@ -344,6 +344,7 @@ fun SchemeDetailsV2Screen(
             if (showPlansView) {
                 PlansOverlay(
                     mandates = state.mandates,
+                    isLoading = state.isLoading,
                     accentColor = accentColor,
                     onDismiss = { showPlansView = false },
                     onPause = { m ->
@@ -398,6 +399,7 @@ fun SchemeDetailsV2Screen(
             if (showCancelReasonScreen && mandateForCancelSip != null) {
                 CancelSipReasonScreen(
                     selectedReason = selectedCancelReason,
+                    isLoading = cancelSipLoading,
                     onReasonSelected = { selectedCancelReason = it },
                     onContinue = {
                         selectedCancelReason?.let { reason ->
@@ -692,6 +694,29 @@ fun MainContentV2(
                         )
                     }
                 }
+                if (state.investmentInProgress > 0) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.padding(horizontal = 4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = null,
+                            tint = Color.Black.copy(alpha = 0.5f),
+                            modifier = Modifier.size(13.dp)
+                        )
+                        Text(
+                            text = "Units are typically allocated within 2 business days",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium
+                            ),
+                            color = Color.Black.copy(alpha = 0.6f)
+                        )
+                    }
+                }
             }
 
             // Locker Image
@@ -969,6 +994,7 @@ fun ActionButtonModuleV2(
 @Composable
 fun PlansOverlay(
     mandates: List<MandateDisplayItem>,
+    isLoading: Boolean,
     accentColor: Color,
     onDismiss: () -> Unit,
     onPause: (MandateDisplayItem) -> Unit,
@@ -999,7 +1025,11 @@ fun PlansOverlay(
             },
             containerColor = Color(0xFFF8F9FA)
         ) { padding ->
-            if (mandates.isEmpty()) {
+            if (isLoading) {
+                Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = accentColor)
+                }
+            } else if (mandates.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(stringResource(Res.string.no_plans_found), color = Color.Gray)
                 }
@@ -1663,6 +1693,7 @@ fun CancelSipInfoScreen(
 @Composable
 fun CancelSipReasonScreen(
     selectedReason: CancelSipReason?,
+    isLoading: Boolean,
     onReasonSelected: (CancelSipReason) -> Unit,
     onContinue: () -> Unit,
     onGoBack: () -> Unit
@@ -1670,24 +1701,32 @@ fun CancelSipReasonScreen(
     Dialog(onDismissRequest = onGoBack, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(modifier = Modifier.fillMaxSize(), color = Color.White) {
             Column(modifier = Modifier.fillMaxSize().padding(24.dp)) {
-                IconButton(onClick = onGoBack) { Icon(Icons.Default.ArrowBack, null) }
+                IconButton(onClick = onGoBack, enabled = !isLoading) { Icon(Icons.Default.ArrowBack, null) }
                 Text("Why are you cancelling?", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(24.dp))
                 Column(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())) {
                     CancelSipReason.values().forEach { reason ->
                         Row(
-                            modifier = Modifier.fillMaxWidth().clickable { onReasonSelected(reason) }.padding(vertical = 12.dp),
+                            modifier = Modifier.fillMaxWidth().clickable(enabled = !isLoading) { onReasonSelected(reason) }.padding(vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            RadioButton(selected = selectedReason == reason, onClick = { onReasonSelected(reason) })
+                            RadioButton(
+                                selected = selectedReason == reason,
+                                onClick = { onReasonSelected(reason) },
+                                enabled = !isLoading
+                            )
                             Spacer(modifier = Modifier.width(12.dp))
                             Text(reason.label)
                         }
                     }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
-                Button(onClick = onContinue, modifier = Modifier.fillMaxWidth().height(56.dp), enabled = selectedReason != null) {
-                    Text("Continue")
+                Button(onClick = onContinue, modifier = Modifier.fillMaxWidth().height(56.dp), enabled = selectedReason != null && !isLoading) {
+                    if (isLoading) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
+                    } else {
+                        Text("Continue")
+                    }
                 }
             }
         }

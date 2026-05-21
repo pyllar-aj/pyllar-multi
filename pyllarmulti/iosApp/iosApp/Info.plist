@@ -50,5 +50,16 @@
 	<string>Pyllar needs your location to comply with financial regulations and provide local support.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Pyllar needs your location to comply with financial regulations and provide local support.</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.627050529362-24kq1su5cfl4bbt8mbu3afhd315m4vdj</string>
+			</array>
+		</dict>
+	</array>
+	<key>GIDClientID</key>
+	<string>627050529362-24kq1su5cfl4bbt8mbu3afhd315m4vdj.apps.googleusercontent.com</string>
 </dict>
 </plist>

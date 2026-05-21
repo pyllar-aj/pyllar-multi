@@ -2,11 +2,13 @@ import UIKit
 import SwiftUI
 import ComposeApp
 import CryptoKit
+import GoogleSignIn
 
 struct ComposeView: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UIViewController {
         // Initialize bridge for KMP
         SwiftCryptoScope.shared.bridge = SwiftCryptoBridge()
+        SwiftGoogleSignInScope.shared.bridge = SwiftGoogleSignInBridge()
         return MainViewControllerKt.MainViewController()
     }
 
@@ -165,5 +167,130 @@ class SwiftCryptoBridge: IosCryptoBridge {
             kotlinArray.set(index: Int32(i), value: Int8(bitPattern: swiftArray[i]))
         }
         return kotlinArray
+    }
+}
+
+private var accessoryViewKey: UInt8 = 0
+
+@objc class KeyboardAccessorySwizzler: NSObject {
+    static let shared = KeyboardAccessorySwizzler()
+    
+    private var hasSwizzled = false
+    
+    func swizzle() {
+        guard !hasSwizzled else { return }
+        hasSwizzled = true
+        
+        let originalSelector = #selector(getter: UIResponder.inputAccessoryView)
+        let swizzledSelector = #selector(getter: UIResponder.customInputAccessoryView)
+        
+        guard let originalMethod = class_getInstanceMethod(UIResponder.self, originalSelector),
+              let swizzledMethod = class_getInstanceMethod(UIResponder.self, swizzledSelector) else {
+            return
+        }
+        
+        method_exchangeImplementations(originalMethod, swizzledMethod)
+    }
+}
+
+extension UIResponder {
+    @objc var customInputAccessoryView: UIView? {
+        // If there's already an original accessory view, respect it
+        if let originalAccessory = self.customInputAccessoryView {
+            return originalAccessory
+        }
+        
+        guard let view = self as? UIView else {
+            return nil
+        }
+        
+        // First, check if there's already an accessory view set via associated object
+        if let accessory = objc_getAssociatedObject(view, &accessoryViewKey) as? UIView {
+            return accessory
+        }
+        
+        // Check if this view conforms to UITextInput (standard and custom text fields)
+        if view.conforms(to: UITextInput.self) {
+            if let traits = view as? UITextInputTraits {
+                let type = traits.keyboardType
+                if type == .numberPad || type == .decimalPad || type == .phonePad {
+                    // Create native accessory view toolbar:
+                    // Height: 44 pt (standard compact iOS system toolbar height)
+                    let toolbar = UIToolbar(frame: CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: 44))
+                    
+                    // Native styling:
+                    // - light gray background (#F2F2F7)
+                    toolbar.barTintColor = UIColor(red: 242/255, green: 242/255, blue: 247/255, alpha: 1.0)
+                    toolbar.isTranslucent = false
+                    
+                    // Subtle top border line:
+                    let borderLine = UIView(frame: CGRect(x: 0, y: 0, width: toolbar.frame.width, height: 0.5))
+                    borderLine.backgroundColor = UIColor.lightGray.withAlphaComponent(0.3)
+                    borderLine.autoresizingMask = [.flexibleWidth, .flexibleBottomMargin]
+                    toolbar.addSubview(borderLine)
+                    
+                    // Done button (blue native styling)
+                    let doneButton = UIBarButtonItem(
+                        title: "Done",
+                        style: .done,
+                        target: self,
+                        action: #selector(customDismissKeyboard)
+                    )
+                    doneButton.tintColor = .systemBlue
+                    
+                    let flexibleSpace = UIBarButtonItem(
+                        barButtonSystemItem: .flexibleSpace,
+                        target: nil,
+                        action: nil
+                    )
+                    
+                    toolbar.items = [flexibleSpace, doneButton]
+                    
+                    objc_setAssociatedObject(view, &accessoryViewKey, toolbar, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+                    return toolbar
+                }
+            }
+        }
+        
+        return nil
+    }
+    
+    @objc func customDismissKeyboard() {
+        self.resignFirstResponder()
+    }
+}
+
+class SwiftGoogleSignInBridge: NSObject, IosGoogleSignInBridge {
+    func pickEmail(completion: @escaping (String?) -> Void) {
+        DispatchQueue.main.async {
+            guard let rootVC = self.getTopViewController() else {
+                completion(nil)
+                return
+            }
+            
+            GIDSignIn.sharedInstance.signIn(withPresenting: rootVC) { signInResult, error in
+                if let error = error {
+                    print("Google Sign-In error: \(error.localizedDescription)")
+                    completion(nil)
+                    return
+                }
+                
+                let email = signInResult?.user.profile?.email
+                completion(email)
+                
+                // Recommended cleanup: sign out immediately
+                GIDSignIn.sharedInstance.signOut()
+            }
+        }
+    }
+    
+    private func getTopViewController() -> UIViewController? {
+        let scenes = UIApplication.shared.connectedScenes
+        let windowScene = scenes.first as? UIWindowScene
+        var topVC = windowScene?.windows.first { $0.isKeyWindow }?.rootViewController
+        while let presentedVC = topVC?.presentedViewController {
+            topVC = presentedVC
+        }
+        return topVC
     }
 }

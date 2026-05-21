@@ -962,23 +962,59 @@ fun PrimaryGoalCard(
                                     }
                                 }
                                 Spacer(modifier = Modifier.width(12.dp))
-                                if (isSavingsPlus) {
-                                    Text(
-                                        text = buildAnnotatedString {
-                                            append("Savings ")
-                                            withStyle(SpanStyle(fontFamily = cursiveFontFamily, fontSize = 22.sp)) {
-                                                append("Plus")
-                                            }
-                                        },
-                                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                                        color = Color(0xFF1B5E20)
-                                    )
-                                } else {
-                                    Text(
-                                        text = formatGoalName(goal.name),
-                                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                                        color = correlationColor
-                                    )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    if (isSavingsPlus) {
+                                        Text(
+                                            text = buildAnnotatedString {
+                                                append("Savings ")
+                                                withStyle(SpanStyle(fontFamily = cursiveFontFamily, fontSize = 22.sp)) {
+                                                    append("Plus")
+                                                }
+                                            },
+                                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                                            color = Color(0xFF1B5E20)
+                                        )
+                                    } else {
+                                        Text(
+                                            text = formatGoalName(goal.name),
+                                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                                            color = correlationColor
+                                        )
+                                    }
+                                    
+                                    val status = goal.planSummary?.status?.uppercase()
+                                    if (status == "PAUSED") {
+                                        Surface(
+                                            color = Color(0xFFFFF3E0),
+                                            shape = RoundedCornerShape(4.dp)
+                                        ) {
+                                            Text(
+                                                text = "PAUSED",
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                                style = MaterialTheme.typography.labelSmall.copy(
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Color(0xFFE65100)
+                                                )
+                                            )
+                                        }
+                                    } else if (status == "CANCELLED") {
+                                        Surface(
+                                            color = Color(0xFFFFEBEE),
+                                            shape = RoundedCornerShape(4.dp)
+                                        ) {
+                                            Text(
+                                                text = "CANCELLED",
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                                style = MaterialTheme.typography.labelSmall.copy(
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Color(0xFFC62828)
+                                                )
+                                            )
+                                        }
+                                    }
                                 }
                             }
                             
@@ -1741,15 +1777,24 @@ private fun PlanDetailsSection(summary: PlanSummary) {
                 )
             }
             
-            // Next SIP Date
+            // Next SIP Date or Status
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.weight(1f)
             ) {
+                val statusUpper = summary.status?.uppercase()
                 Text(
-                    text = formatNextSipDate(summary.nextSipDate) ?: "—",
+                    text = when (statusUpper) {
+                        "PAUSED" -> "Paused"
+                        "CANCELLED" -> "Cancelled"
+                        else -> formatNextSipDate(summary.nextSipDate) ?: "—"
+                    },
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = when (statusUpper) {
+                        "PAUSED" -> Color(0xFFF57C00) // Orange
+                        "CANCELLED" -> Color(0xFFD32F2F) // Red
+                        else -> MaterialTheme.colorScheme.onSurface
+                    }
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(

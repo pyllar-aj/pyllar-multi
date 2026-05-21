@@ -172,6 +172,10 @@ class InvestmentDashboardV2ViewModel(
 
         val primaryGoals = currentInvestments.map { investment ->
             mapInvestmentToGoal(investment, successfulCredits, successfulRedemptions)
+        }.filter { goal ->
+            val isCancelled = goal.planSummary?.status?.uppercase() == "CANCELLED"
+            val hasNoHoldings = goal.currentValue <= 0.0 && goal.investedAmount <= 0.0
+            !(isCancelled && hasNoHoldings)
         }.sortedByDescending { it.currentValue }
 
         val activeGoalIds = primaryGoals.map { it.goalId }.toSet()
