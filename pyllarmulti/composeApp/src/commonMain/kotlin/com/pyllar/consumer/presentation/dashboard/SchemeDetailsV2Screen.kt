@@ -1212,7 +1212,8 @@ fun TransactionItemV2(tx: TransactionDisplayItem) {
                 fontWeight = FontWeight.Black,
                 color = if (isCredit) Color(0xFF2E7D32) else Color.Black
             )
-            Text(text = tx.state ?: "", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+            val displayState = if (tx.state.equals("SUBMITTED", ignoreCase = true)) "IN PROGRESS" else tx.state
+            Text(text = displayState, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
         }
     }
 }
