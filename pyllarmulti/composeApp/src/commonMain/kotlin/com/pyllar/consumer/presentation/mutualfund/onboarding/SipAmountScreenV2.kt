@@ -473,14 +473,12 @@ fun SipAmountScreenV2(
                         }
                         
                         // Chip Amounts Calculation
-                        val chipAmounts = remember(minAmount, defaultAmount) {
-                            val min = minAmount.toInt()
-                            val default = defaultAmount.toInt()
-                            if (min != default) {
-                                listOf(min, default, default + 50)
-                            } else {
-                                listOf(min, min + 50, min + 100)
-                            }
+                        val chipAmounts = remember(minAmount, defaultAmount, maxAmount) {
+                            val minVal = minAmount.toInt()
+                            val defaultVal = defaultAmount.toInt()
+                            val maxVal = maxAmount.toInt()
+                            val secondVal = if (defaultVal != minVal) defaultVal else minVal + 100
+                            listOf(minVal, secondVal, maxVal)
                         }
 
                         Row(
