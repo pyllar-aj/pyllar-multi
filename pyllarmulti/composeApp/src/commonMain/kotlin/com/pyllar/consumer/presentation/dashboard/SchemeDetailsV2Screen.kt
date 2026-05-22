@@ -1168,10 +1168,13 @@ fun TransactionsOverlay(
                     Text("No transactions found", color = Color.Gray)
                 }
             } else {
-                LazyColumn(modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp)) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp),
+                    contentPadding = PaddingValues(top = 16.dp, bottom = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
                     items(transactions) { tx ->
-                        TransactionItemV2(tx)
-                        HorizontalDivider(color = Color.LightGray.copy(alpha = 0.2f))
+                        TransactionItemV2(transaction = tx)
                     }
                 }
             }
@@ -1180,40 +1183,171 @@ fun TransactionsOverlay(
 }
 
 @Composable
-fun TransactionItemV2(tx: TransactionDisplayItem) {
-    val isCredit = tx.isCredit
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+fun TransactionItemV2(transaction: TransactionDisplayItem) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(12.dp)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier.size(40.dp).background(if (isCredit) Color(0xFFE8F5E9) else Color(0xFFFFF3E0), CircleShape),
-                contentAlignment = Alignment.Center
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
             ) {
-                Icon(
-                    imageVector = if (isCredit) Icons.Default.Add else Icons.Default.CallReceived,
-                    contentDescription = null,
-                    tint = if (isCredit) Color(0xFF2E7D32) else Color(0xFFF57C00),
-                    modifier = Modifier.size(20.dp)
-                )
+                // Left: Buy/Sell on top, amount, then date below
+                Column(modifier = Modifier.weight(1f)) {
+                    val buyOrSell = when (transaction.transactionType?.uppercase()) {
+                        "LUMP_SUM_PURCHASE" -> stringResource(Res.string.transaction_one_time)
+                        "PURCHASE" -> stringResource(Res.string.transaction_buy)
+                        else -> stringResource(Res.string.transaction_sell)
+                    }
+                    Text(
+                        text = buyOrSell,
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "₹${formatIndian(transaction.amount)}",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = if (transaction.isCredit) Color(0xFF4CAF50) else Color(0xFFF44336)
+                    )
+                    if (transaction.date != null) {
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = transaction.date,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
+                    }
+                }
+                // Right: all state badges
+                if (transaction.state != null) {
+                    val stateUpper = transaction.state.uppercase()
+                    val isPurchase = transaction.transactionType?.uppercase() == "PURCHASE" || transaction.transactionType?.uppercase() == "LUMP_SUM_PURCHASE"
+
+                    Column(
+                        horizontalAlignment = Alignment.End,
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        if (isPurchase) {
+                            if (stateUpper == "SUCCESS" || stateUpper == "SUCCESSFUL") {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Surface(
+                                        color = Color(0xFFC8E6C9),
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Text(
+                                            text = stringResource(Res.string.payment_completed),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = Color(0xFF2E7D32),
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                        )
+                                    }
+                                }
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Surface(
+                                        color = Color(0xFFE8F5E9),
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Text(
+                                            text = stringResource(Res.string.units_allotted),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = Color(0xFF2E7D32),
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                        )
+                                    }
+                                }
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Surface(
+                                        color = Color(0xFFE8F5E9),
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Text(
+                                            text = stringResource(Res.string.status_success),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = Color(0xFF2E7D32),
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                        )
+                                    }
+                                }
+                            } else if (stateUpper == "SUBMITTED" || stateUpper == "IN_PROGRESS" || stateUpper == "ALLOCATING UNITS") {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Surface(
+                                        color = Color(0xFFC8E6C9),
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Text(
+                                            text = stringResource(Res.string.payment_completed),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = Color(0xFF2E7D32),
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                        )
+                                    }
+                                }
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Surface(
+                                        color = Color(0xFFE3F2FD),
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Text(
+                                            text = stringResource(Res.string.allocating_units),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = Color(0xFF1976D2),
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                        )
+                                    }
+                                }
+                            } else {
+                                val displayState = stateUpper.replace("_", " ")
+                                val (bg, textColor) = when {
+                                    stateUpper == "FAILED" -> Color(0xFFFFEBEE) to Color(0xFFC62828)
+                                    else -> Color(0xFFF5F5F5) to Color(0xFF616161)
+                                }
+                                Surface(
+                                    color = bg,
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Text(
+                                        text = displayState,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = textColor,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    )
+                                }
+                            }
+                        } else {
+                            val displayState = when {
+                                transaction.transactionType?.uppercase() == "REDEMPTION" &&
+                                        (stateUpper == "SUBMITTED" || stateUpper == "IN_PROGRESS") -> stringResource(Res.string.in_motion)
+                                else -> stateUpper.replace("_", " ")
+                            }
+                            val (bg, textColor) = when {
+                                stateUpper in listOf("SUCCESS", "SUCCESSFUL") -> Color(0xFFE8F5E9) to Color(0xFF2E7D32)
+                                stateUpper in listOf("SUBMITTED", "IN_PROGRESS", "PENDING") -> Color(0xFFFFF3E0) to Color(0xFFF57C00)
+                                stateUpper == "FAILED" -> Color(0xFFFFEBEE) to Color(0xFFC62828)
+                                else -> Color(0xFFF5F5F5) to Color(0xFF616161)
+                            }
+                            Surface(
+                                color = bg,
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text(
+                                    text = displayState,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = textColor,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
+                        }
+                    }
+                }
             }
-            Spacer(modifier = Modifier.width(12.dp))
-            Column {
-                Text(text = if (isCredit) "PURCHASE" else "REDEMPTION", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-                Text(text = tx.date ?: "", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-            }
-        }
-        Column(horizontalAlignment = Alignment.End) {
-            Text(
-                text = "${if (isCredit) "+" else "-"} ₹${formatIndian(tx.amount)}",
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Black,
-                color = if (isCredit) Color(0xFF2E7D32) else Color.Black
-            )
-            val displayState = if (tx.state.equals("SUBMITTED", ignoreCase = true)) "IN PROGRESS" else tx.state
-            Text(text = displayState, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
         }
     }
 }

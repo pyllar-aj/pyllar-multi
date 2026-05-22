@@ -479,8 +479,6 @@ class InvestmentDashboardV2ViewModel(
         Log.d(TAG, "   Total Invested: ₹${formatIndian(totalInvested)}")
         Log.d(TAG, "   Progressive Target: ₹${formatIndian(progressiveTarget)}")
         Log.d(TAG, "   Progress: $progressPercentage%")
-        Log.d(TAG, "   Remaining Months: $timeRemaining")
-        Log.d(TAG, "   Target Date: ${calculateTargetDate(timeRemaining)}")
 
         return when (selectedGoalType) {
             "festival_spends" -> InvestmentGoal(
@@ -784,8 +782,6 @@ class InvestmentDashboardV2ViewModel(
         Log.d(TAG, "Real SIP Calculation:")
         Log.d(TAG, "   Daily SIP: ₹${formatIndian(dailySipAmount)}")
         Log.d(TAG, "   Monthly SIP: ₹${formatIndian(monthlySipAmount)}")
-        Log.d(TAG, "   Daily as Monthly: ₹${formatIndian(dailySipAsMonthly)}")
-        Log.d(TAG, "   Total Monthly: ₹${formatIndian(totalMonthlyInvestment)}")
 
         return if (totalMonthlyInvestment > 0) {
             totalMonthlyInvestment

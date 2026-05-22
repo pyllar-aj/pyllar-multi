@@ -231,7 +231,7 @@ fun WithdrawAmountScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Available to withdraw", style = MaterialTheme.typography.bodyMedium)
+                        Text("Available to withdraw ", style = MaterialTheme.typography.bodyMedium)
                         Text(
                             "₹${formatIndian(withdrawableAmount)}", 
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),

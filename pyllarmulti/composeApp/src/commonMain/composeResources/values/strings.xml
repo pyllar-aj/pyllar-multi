@@ -115,4 +115,10 @@
     <string name="investment_in_progress_message">If you have initiated an investment, it may currently be in progress. Investments typically take up to 2 working days to reflect. Once processed, the amount will be available for withdrawal.</string>
     <string name="folio_pending_message">If you have initiated an investment, it may currently be in progress. Investments typically take up to 2 working days to reflect. You can make lumpsum purchases once your folio number has been allocated.</string>
     <string name="first_save_date_message">Your first save will be updated before %1$s 10:00 AM.</string>
+    <string name="payment_completed">PAYMENT COMPLETED</string>
+    <string name="status_success">SUCCESS</string>
+    <string name="allocating_units">ALLOCATING UNITS</string>
+    <string name="transaction_one_time">ONE-TIME</string>
+    <string name="transaction_buy">BUY</string>
+    <string name="transaction_sell">SELL</string>
 </resources>
