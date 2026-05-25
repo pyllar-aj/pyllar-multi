@@ -1,21 +1,18 @@
 package com.pyllar.consumer.analytics
 
 /**
- * iOS no-op actual for [PlatformAnalyticsLogger].
- *
- * Replace with real implementations (Firebase iOS SDK,
- * Amplitude, etc.) when iOS analytics are required.
+ * iOS actual for [PlatformAnalyticsLogger] that delegates to SwiftAnalyticsScope.bridge.
  */
 actual object PlatformAnalyticsLogger {
     actual fun logEvent(name: String, params: Map<String, Any?>) {
-        // No-op on iOS — wire to Firebase iOS SDK when ready
+        SwiftAnalyticsScope.bridge?.logEvent(name, params)
     }
 
     actual fun logScreenView(screenName: String) {
-        // No-op on iOS
+        SwiftAnalyticsScope.bridge?.logScreenView(screenName)
     }
 
     actual fun setUserId(userId: String) {
-        // No-op on iOS
+        SwiftAnalyticsScope.bridge?.setUserId(userId)
     }
 }

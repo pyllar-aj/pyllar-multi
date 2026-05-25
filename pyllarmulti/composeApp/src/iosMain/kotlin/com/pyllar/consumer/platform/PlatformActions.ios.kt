@@ -115,6 +115,10 @@ class IosPlatformActions : PlatformActions {
         }
     }
 
+    override fun generateReferralLink(referrerId: String, onComplete: (String?) -> Unit) {
+        com.pyllar.consumer.analytics.SwiftAnalyticsScope.bridge?.generateReferralLink(referrerId, onComplete)
+    }
+
     private fun getRootViewController(): UIViewController? {
         val window = UIApplication.sharedApplication.windows.first() as? UIWindow
         return window?.rootViewController

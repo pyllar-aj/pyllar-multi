@@ -88,6 +88,23 @@ interface PlatformActions {
     fun openWhatsApp(phoneNumber: String, message: String)
     fun getInstalledUpiApps(): List<UpiAppInfo>
     fun openAppSettings()
+    fun generateReferralLink(referrerId: String, onComplete: (String?) -> Unit)
+}
+
+/**
+ * Provider interface for platform-specific AppsFlyer/Google attribution parameters.
+ */
+interface AttributionProvider {
+    fun getReferralCode(): String?
+    fun getMediaSource(): String?
+    fun getCampaign(): String?
+    fun getCampaignId(): String?
+    fun getAdSet(): String?
+    fun getAfStatus(): String?
+    fun getChannel(): String?
+    fun getGclid(): String?
+    fun getGbraid(): String?
+    fun getWbraid(): String?
 }
 
 /**

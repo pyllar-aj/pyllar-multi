@@ -60,5 +60,18 @@ class AndroidAnalyticsTracker(
     }
 }
 
+class AndroidAttributionProvider : AttributionProvider {
+    override fun getReferralCode(): String? = com.pyllar.consumer.analytics.AppsFlyerAttributionCache.getReferralCode()
+    override fun getMediaSource(): String? = com.pyllar.consumer.analytics.AppsFlyerAttributionCache.getMediaSource()
+    override fun getCampaign(): String? = com.pyllar.consumer.analytics.AppsFlyerAttributionCache.getCampaign()
+    override fun getCampaignId(): String? = com.pyllar.consumer.analytics.AppsFlyerAttributionCache.getCampaignId()
+    override fun getAdSet(): String? = com.pyllar.consumer.analytics.AppsFlyerAttributionCache.getAdSet()
+    override fun getAfStatus(): String? = com.pyllar.consumer.analytics.AppsFlyerAttributionCache.getAfStatus()
+    override fun getChannel(): String? = com.pyllar.consumer.analytics.AppsFlyerAttributionCache.getChannel()
+    override fun getGclid(): String? = com.pyllar.consumer.analytics.AppsFlyerAttributionCache.getGclid()
+    override fun getGbraid(): String? = com.pyllar.consumer.analytics.AppsFlyerAttributionCache.getGbraid()
+    override fun getWbraid(): String? = com.pyllar.consumer.analytics.AppsFlyerAttributionCache.getWbraid()
+}
+
 // AndroidUpdateManager is defined in update/AndroidUpdateManager.kt
 

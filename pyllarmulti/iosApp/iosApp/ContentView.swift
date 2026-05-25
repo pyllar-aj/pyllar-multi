@@ -3,12 +3,14 @@ import SwiftUI
 import ComposeApp
 import CryptoKit
 import GoogleSignIn
+import AppsFlyerLib
 
 struct ComposeView: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UIViewController {
         // Initialize bridge for KMP
         SwiftCryptoScope.shared.bridge = SwiftCryptoBridge()
         SwiftGoogleSignInScope.shared.bridge = SwiftGoogleSignInBridge()
+        SwiftAnalyticsScope.shared.bridge = SwiftAnalyticsBridge()
         return MainViewControllerKt.MainViewController()
     }
 
@@ -292,5 +294,36 @@ class SwiftGoogleSignInBridge: NSObject, IosGoogleSignInBridge {
             topVC = presentedVC
         }
         return topVC
+    }
+}
+
+class SwiftAnalyticsBridge: NSObject, IosAnalyticsBridge {
+    static var attributionData: [String: String] = [:]
+
+    func logEvent(name: String, params: [String : Any]) {
+        AppsFlyerLib.shared().logEvent(name, withValues: params)
+    }
+
+    func logScreenView(screenName: String) {
+        AppsFlyerLib.shared().logEvent("screen_view", withValues: ["screen_name": screenName])
+    }
+
+    func setUserId(userId: String) {
+        AppsFlyerLib.shared().customerUserID = userId
+    }
+
+    func generateReferralLink(referrerId: String, onComplete: @escaping (String?) -> Void) {
+        AppsFlyerShareInviteHelper.generateInviteUrl(linkGenerator: { generator in
+            generator.addParameterValue("referral", forKey: "deep_link_value")
+            generator.addParameterValue(referrerId, forKey: "deep_link_sub1")
+            generator.addParameterValue(referrerId, forKey: "af_sub1")
+            return generator
+        }, completionHandler: { url in
+            onComplete(url?.absoluteString)
+        })
+    }
+
+    func getAttributionData() -> [String : String?] {
+        return SwiftAnalyticsBridge.attributionData
     }
 }

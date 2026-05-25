@@ -17,7 +17,9 @@ import kotlinx.coroutines.launch
 class OtpVerificationViewModel(
     private val authRepository: AuthRepository,
     private val deviceInfoProvider: DeviceInfoProvider,
-    private val pushTokenProvider: PushTokenProvider
+    private val pushTokenProvider: PushTokenProvider,
+    private val onboardingRepository: com.pyllar.consumer.domain.repository.OnboardingRepository,
+    private val attributionProvider: com.pyllar.consumer.platform.AttributionProvider
 ) : ViewModel() {
 
     private val _verificationResult = MutableStateFlow<Resource<AuthUserDTO>?>(null)
@@ -85,6 +87,24 @@ class OtpVerificationViewModel(
                     pushToken = pushToken
                 )
                 authRepository.verifyOtp(request).collect { result ->
+                    if (result is Resource.Success) {
+                        val userId = result.data?.userId ?: _otpRef.value.orEmpty()
+                        val referralCode = attributionProvider.getReferralCode()
+                        if (userId.isNotBlank() && !referralCode.isNullOrBlank()) {
+                            viewModelScope.launch {
+                                onboardingRepository.submitHelperCode(
+                                    com.pyllar.consumer.data.remote.requests.HelperCodeRequest(
+                                        userId = userId,
+                                        helperCode = referralCode.uppercase()
+                                    )
+                                ).collect { submitResult ->
+                                    if (submitResult is Resource.Success) {
+                                        com.pyllar.consumer.util.Log.d("OtpVerificationViewModel", "✅ Auto-submitted referral code: $referralCode")
+                                    }
+                                }
+                            }
+                        }
+                    }
                     _verificationResult.value = result
                 }
             } finally {

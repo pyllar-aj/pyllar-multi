@@ -17,7 +17,17 @@ data class OtpRegistrationRequest(
     val utmMedium: String? = null,
     val utmCampaign: String? = null,
     val utmTerm: String? = null,
-    val utmContent: String? = null
+    val utmContent: String? = null,
+    val utmCampaignId: String? = null,
+    val gclid: String? = null,
+    val gbraid: String? = null,
+    val wbraid: String? = null,
+    val afMediaSource: String? = null,
+    val afCampaign: String? = null,
+    val afCampaignId: String? = null,
+    val afAdSet: String? = null,
+    val afStatus: String? = null,
+    val afChannel: String? = null
 )
 
 @Serializable
