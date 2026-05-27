@@ -8,14 +8,8 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         UNUserNotificationCenter.current().delegate = self
 
-        // Request notification permissions
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
-            if granted {
-                DispatchQueue.main.async {
-                    UIApplication.shared.registerForRemoteNotifications()
-                }
-            }
-        }
+        // Register to receive remote notification tokens (does not trigger permission popup)
+        UIApplication.shared.registerForRemoteNotifications()
 
         // Initialize AppsFlyer
         AppsFlyerLib.shared().appsFlyerDevKey = "gog7ERykY2ivzocSRnpKPi" // Add AppsFlyer Dev Key here
