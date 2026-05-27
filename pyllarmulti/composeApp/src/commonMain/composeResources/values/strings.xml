@@ -121,4 +121,6 @@
     <string name="transaction_one_time">ONE-TIME</string>
     <string name="transaction_buy">BUY</string>
     <string name="transaction_sell">SELL</string>
+    <string name="check_internet_connection">Check your Internet connection and try again</string>
+    <string name="incorrect_otp_message">Incorrect OTP. Please try again.</string>
 </resources>

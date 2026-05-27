@@ -74,6 +74,7 @@ kotlin {
             implementation(libs.androidx.security.crypto)
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.play.services.location)
+            implementation(libs.kotlinx.coroutines.play.services)
             implementation(libs.androidx.core.ktx)
             implementation("com.appsflyer:af-android-sdk:6.16.2")
             implementation("com.microsoft.clarity:clarity-compose:3.6.0")

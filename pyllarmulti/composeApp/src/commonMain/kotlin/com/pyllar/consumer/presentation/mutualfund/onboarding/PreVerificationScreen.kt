@@ -667,7 +667,37 @@ private fun PreVerificationOtpBottomSheet(
         }
 
         if (otpVerificationResult is Resource.Error) {
-            Text(otpVerificationResult.message ?: "Incorrect OTP", color = MaterialTheme.colorScheme.error)
+            val errorMessage = otpVerificationResult.message ?: ""
+            val isNetworkError = otpVerificationResult.isNetworkError ||
+                errorMessage.contains("NETWORK_ERROR", ignoreCase = true) ||
+                errorMessage.contains("Network", ignoreCase = true) ||
+                errorMessage.contains("timeout", ignoreCase = true) ||
+                errorMessage.contains("connection", ignoreCase = true) ||
+                errorMessage.contains("Failed to connect", ignoreCase = true) ||
+                errorMessage.contains("IOException", ignoreCase = true)
+            if (isNetworkError) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    )
+                ) {
+                    Text(
+                        text = org.jetbrains.compose.resources.stringResource(Res.string.check_internet_connection),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.padding(12.dp)
+                    )
+                }
+            } else {
+                Text(
+                    text = org.jetbrains.compose.resources.stringResource(Res.string.incorrect_otp_message),
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         }
 
         Button(

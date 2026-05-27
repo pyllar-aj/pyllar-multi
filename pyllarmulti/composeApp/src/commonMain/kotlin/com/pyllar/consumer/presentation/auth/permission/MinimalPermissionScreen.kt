@@ -25,6 +25,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import com.pyllar.consumer.util.currentTimeMillis
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -52,6 +56,8 @@ fun MinimalPermissionScreen(
     onShareApp: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    var isNavigating by remember { mutableStateOf(false) }
+    var lastClickTime by remember { mutableStateOf(0L) }
 
     // Sync current OS permission state on entry
     LaunchedEffect(Unit) {
@@ -91,6 +97,7 @@ fun MinimalPermissionScreen(
                         val nextScreen = nav?.nextScreen
                         com.pyllar.consumer.util.Log.d("PermissionFlow", "Next screen: $nextScreen")
                         if (!nextScreen.isNullOrBlank()) {
+                            isNavigating = true
                             com.pyllar.consumer.util.Log.d("PermissionFlow", "Triggering navigation to: $nextScreen")
                             onNavigateNext(nextScreen)
                             viewModel.clearResult()
@@ -108,8 +115,17 @@ fun MinimalPermissionScreen(
         }
     }
 
-    // Full-screen loading overlay while API call is in flight
-    if (state.isProcessing && state.updateEmailResult is com.pyllar.consumer.util.Resource.Loading) {
+    val isSuccessNavigating = state.updateEmailResult is com.pyllar.consumer.util.Resource.Success &&
+            state.updateEmailResult?.navigation?.action != NavigationAction.STAY &&
+            state.updateEmailResult?.navigation?.action != NavigationAction.RETRY &&
+            !state.updateEmailResult?.navigation?.nextScreen.isNullOrBlank()
+
+    val showLoading = isNavigating ||
+            (state.isProcessing && state.updateEmailResult is com.pyllar.consumer.util.Resource.Loading) ||
+            isSuccessNavigating
+
+    // Full-screen loading overlay while API call is in flight or we are navigating next
+    if (showLoading) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
@@ -254,9 +270,17 @@ fun MinimalPermissionScreen(
                     state.permissionFlow !is PermissionFlowState.RequestingLocation &&
                     state.permissionFlow !is PermissionFlowState.CheckingGps
 
+            val finalButtonEnabled = buttonEnabled && !isNavigating
+
             Button(
-                onClick = { viewModel.onGrantPermissionsTapped(userId) },
-                enabled = buttonEnabled,
+                onClick = {
+                    val currentTime = currentTimeMillis()
+                    if (currentTime - lastClickTime > 1000) {
+                        lastClickTime = currentTime
+                        viewModel.onGrantPermissionsTapped(userId)
+                    }
+                },
+                enabled = finalButtonEnabled,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)

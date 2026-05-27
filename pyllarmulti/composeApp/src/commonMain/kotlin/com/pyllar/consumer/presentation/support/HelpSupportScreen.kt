@@ -140,6 +140,7 @@ fun HelpSupportScreen(
                 }
             }
 
+            /*
             // Referral / Helper code card
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
@@ -189,6 +190,7 @@ fun HelpSupportScreen(
                     }
                 }
             }
+            */
 
             // FAQ
             item {

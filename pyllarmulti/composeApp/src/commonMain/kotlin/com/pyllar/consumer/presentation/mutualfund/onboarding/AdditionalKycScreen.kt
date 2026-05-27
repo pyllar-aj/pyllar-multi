@@ -36,6 +36,11 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import com.pyllar.consumer.util.platformLog
+import com.pyllar.consumer.platform.PermissionManager
+import com.pyllar.consumer.platform.PlatformActions
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,10 +50,33 @@ fun AdditionalKycScreen(
     onNext: (String?, String?) -> Unit,
     onNavigateToHelp: () -> Unit = {},
     viewModel: AdditionalKycViewModel = koinInject(),
-    locationProvider: com.pyllar.consumer.platform.LocationProvider = koinInject()
+    locationProvider: com.pyllar.consumer.platform.LocationProvider = koinInject(),
+    permissionManager: PermissionManager = koinInject(),
+    platformActions: PlatformActions = koinInject()
 ) {
+    val scope = rememberCoroutineScope()
     var fatherName by remember { mutableStateOf("") }
     var gender by remember { mutableStateOf("") }
+    var locationStatus by remember { mutableStateOf<String?>(null) }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                scope.launch {
+                    delay(500)
+                    val status = permissionManager.checkStatus()
+                    if (status.locationGranted && status.gpsEnabled) {
+                        locationStatus = null
+                    }
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
     var maritalStatus by remember { mutableStateOf("") }
     var occupationType by remember { mutableStateOf("") }
     var placeOfBirth by remember { mutableStateOf("") }
@@ -130,7 +158,6 @@ fun AdditionalKycScreen(
     val scrollState = rememberScrollState()
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
-    val scope = rememberCoroutineScope()
 
     val uiState by viewModel.prefillData.collectAsState()
     val isLoadingData by viewModel.isLoadingScreenData.collectAsState()
@@ -149,7 +176,10 @@ fun AdditionalKycScreen(
             if (placeOfBirth.isBlank()) placeOfBirth = uiState["placeOfBirth"]?.toString() ?: ""
             if (incomeSlab.isBlank()) incomeSlab = uiState["incomeSlab"]?.toString() ?: uiState["annualIncome"]?.toString() ?: ""
             if (city.isBlank()) city = uiState["city"]?.toString() ?: ""
-            if (pincode.isBlank()) pincode = uiState["pincode"]?.toString() ?: ""
+            if (pincode.isBlank()) {
+                val rawPincode = uiState["pincode"]?.toString() ?: ""
+                pincode = rawPincode.filter { it.isDigit() }.take(6)
+            }
             if (addressLine1.isBlank()) addressLine1 = uiState["addressLine1"]?.toString() ?: ""
             if (addressLine2.isBlank()) addressLine2 = uiState["addressLine2"]?.toString() ?: ""
             if (addressLine3.isBlank()) addressLine3 = uiState["addressLine3"]?.toString() ?: ""
@@ -320,7 +350,12 @@ fun AdditionalKycScreen(
                     val isPincodeError = shouldShowError("pincode", pincode, { it.length == 6 && it.all { it.isDigit() } })
                     OutlinedTextField(
                         value = pincode,
-                        onValueChange = { if (it.length <= 6) pincode = it },
+                        onValueChange = { newValue ->
+                            val digitsOnly = newValue.filter { it.isDigit() }
+                            if (digitsOnly.length <= 6) {
+                                pincode = digitsOnly
+                            }
+                        },
                         label = { Text("Pincode") },
                         modifier = Modifier.weight(1f).onFocusChanged { onFieldFocusChanged("pincode", it.isFocused) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -391,6 +426,20 @@ fun AdditionalKycScreen(
                     }
                 }
 
+                if (locationStatus != null) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+                    ) {
+                        Text(
+                            text = locationStatus!!,
+                            modifier = Modifier.padding(12.dp),
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+
                 Button(
                     onClick = {
                         if (fatherName.isBlank() || gender.isBlank() || maritalStatus.isBlank() || 
@@ -399,16 +448,41 @@ fun AdditionalKycScreen(
                             showValidationErrors = true
                             return@Button
                         }
-                        isSubmitting = true
+                        
                         if (latitude == null || longitude == null) {
-                            isFetchingLocation = true
                             scope.launch {
+                                val status = permissionManager.checkStatus()
+                                if (!status.locationGranted) {
+                                    platformLog("AdditionalKycScreen: Location permission not granted - requesting permission")
+                                    locationStatus = "Location permission is required to verify your address. Please grant location access."
+                                    permissionManager.requestLocation()
+                                    return@launch
+                                }
+
+                                if (!status.gpsEnabled) {
+                                    platformLog("AdditionalKycScreen: Location services are disabled - opening settings")
+                                    locationStatus = "Location services/GPS are disabled. Please enable location services in Settings."
+                                    platformActions.openAppSettings()
+                                    return@launch
+                                }
+
+                                isSubmitting = true
+                                isFetchingLocation = true
+                                locationStatus = null
+
                                 val coords = locationProvider.getCurrentLocation()
                                 latitude = coords?.latitude
                                 longitude = coords?.longitude
                                 isFetchingLocation = false
-                                
-                                platformLog("AdditionalKycScreen: \uD83D\uDCCD Fetched Location - Lat: $latitude, Lon: $longitude")
+
+                                if (latitude == null || longitude == null) {
+                                    platformLog("AdditionalKycScreen: Failed to fetch location coordinates")
+                                    locationStatus = "Unable to determine your location. Please check your GPS signal and try again."
+                                    isSubmitting = false
+                                    return@launch
+                                }
+
+                                platformLog("AdditionalKycScreen: 📍 Fetched Location - Lat: $latitude, Lon: $longitude")
 
                                 // Proceed with submission after location is fetched
                                 viewModel.submitAdditionalKyc(
@@ -432,7 +506,8 @@ fun AdditionalKycScreen(
                                 )
                             }
                         } else {
-                            platformLog("AdditionalKycScreen: \uD83D\uDCCD Using Cached Location - Lat: $latitude, Lon: $longitude")
+                            isSubmitting = true
+                            platformLog("AdditionalKycScreen: 📍 Using Cached Location - Lat: $latitude, Lon: $longitude")
                             viewModel.submitAdditionalKyc(
                                 kycAttemptId = kycAttemptId,
                                 token = token,
@@ -455,7 +530,7 @@ fun AdditionalKycScreen(
                         }
                     },
                     modifier = Modifier.fillMaxWidth().height(50.dp),
-                    enabled = validationMessage == null && !isSubmitting,
+                    enabled = validationMessage == null && !isSubmitting && !isFetchingLocation,
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     if (isSubmitting || isFetchingLocation) {

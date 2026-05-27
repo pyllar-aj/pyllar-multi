@@ -30,6 +30,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.pyllar.consumer.analytics.PlatformAnalyticsLogger
 import com.pyllar.consumer.presentation.components.LoadingScreen
+import com.pyllar.consumer.presentation.ui.components.rememberDebouncedClick
 import com.pyllar.consumer.util.Resource
 import com.pyllar.consumer.util.platformLog
 import com.pyllar.consumer.util.*
@@ -552,6 +553,7 @@ fun MainContentV2(
     onShowSilverInfo: () -> Unit
 ) {
     val gradient = getGradientForCategory(goalType)
+    val debouncedFundDetails = rememberDebouncedClick(onClick = onFundDetails)
     
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         Spacer(modifier = Modifier.height(25.dp))
@@ -616,7 +618,7 @@ fun MainContentV2(
                     Box(
                         modifier = Modifier
                             .height(40.dp)
-                            .clickable { onFundDetails() }
+                            .clickable { debouncedFundDetails() }
                             .padding(horizontal = 8.dp)
                     ) {
                         val fundLogo = getFundLogo(state.schemeName ?: displaySchemeName)
@@ -946,8 +948,9 @@ fun DashboardTile(
     iconColor: Color,
     onClick: () -> Unit
 ) {
+    val debouncedClick = rememberDebouncedClick(onClick = onClick)
     Surface(
-        modifier = modifier.height(110.dp).clickable(onClick = onClick),
+        modifier = modifier.height(110.dp).clickable(onClick = debouncedClick),
         color = Color.White,
         shape = RoundedCornerShape(20.dp),
         border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.3f))
@@ -969,8 +972,9 @@ fun ActionButtonModuleV2(
     containerColor: Color,
     onClick: () -> Unit
 ) {
+    val debouncedClick = rememberDebouncedClick(onClick = onClick)
     Surface(
-        modifier = modifier.height(64.dp).clickable(onClick = onClick),
+        modifier = modifier.height(64.dp).clickable(onClick = debouncedClick),
         color = containerColor,
         shape = RoundedCornerShape(20.dp)
     ) {
@@ -1130,13 +1134,15 @@ fun MandateItemV2(
             }
             
             if (isApproved || isPaused) {
+                val debouncedCancel = rememberDebouncedClick { onCancel(mandate) }
+                val debouncedPauseResume = rememberDebouncedClick { if (isPaused) onResume(mandate) else onPause(mandate) }
                 HorizontalDivider(color = Color.LightGray.copy(alpha = 0.2f))
                 Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp), horizontalArrangement = Arrangement.End) {
-                    TextButton(onClick = { onCancel(mandate) }) {
+                    TextButton(onClick = debouncedCancel) {
                         Text("CANCEL", style = MaterialTheme.typography.labelMedium, color = Color.Red, fontWeight = FontWeight.Bold)
                     }
                     Spacer(modifier = Modifier.width(8.dp))
-                    TextButton(onClick = { if (isPaused) onResume(mandate) else onPause(mandate) }) {
+                    TextButton(onClick = debouncedPauseResume) {
                         Text(if (isPaused) "RESUME" else "PAUSE", style = MaterialTheme.typography.labelMedium, color = accentColor, fontWeight = FontWeight.Bold)
                     }
                 }
@@ -1859,7 +1865,8 @@ fun CancelSipReasonScreen(
                     }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
-                Button(onClick = onContinue, modifier = Modifier.fillMaxWidth().height(56.dp), enabled = selectedReason != null && !isLoading) {
+                val debouncedContinue = rememberDebouncedClick(onClick = onContinue)
+                Button(onClick = debouncedContinue, modifier = Modifier.fillMaxWidth().height(56.dp), enabled = selectedReason != null && !isLoading) {
                     if (isLoading) {
                         CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
                     } else {
@@ -1902,6 +1909,7 @@ fun CancelSipErrorBottomSheet(onDone: () -> Unit) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PauseSipConfirmBottomSheet(isLoading: Boolean, onCancel: () -> Unit, onConfirm: () -> Unit) {
+    val debouncedConfirm = rememberDebouncedClick(onClick = onConfirm)
     ModalBottomSheet(onDismissRequest = onCancel) {
         Column(modifier = Modifier.fillMaxWidth().padding(24.dp)) {
             Text("Pause Daily Saving?", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
@@ -1909,7 +1917,7 @@ fun PauseSipConfirmBottomSheet(isLoading: Boolean, onCancel: () -> Unit, onConfi
             Spacer(modifier = Modifier.height(24.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) { Text("Go Back") }
-                Button(onClick = onConfirm, modifier = Modifier.weight(1f), enabled = !isLoading) {
+                Button(onClick = debouncedConfirm, modifier = Modifier.weight(1f), enabled = !isLoading) {
                     if (isLoading) CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White)
                     else Text("Pause")
                 }
@@ -1947,6 +1955,7 @@ fun PauseSipErrorBottomSheet(onDone: () -> Unit) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ResumeSipConfirmBottomSheet(isLoading: Boolean, onCancel: () -> Unit, onConfirm: () -> Unit) {
+    val debouncedConfirm = rememberDebouncedClick(onClick = onConfirm)
     ModalBottomSheet(onDismissRequest = onCancel) {
         Column(modifier = Modifier.fillMaxWidth().padding(24.dp)) {
             Text("Resume Daily Saving?", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
@@ -1954,7 +1963,7 @@ fun ResumeSipConfirmBottomSheet(isLoading: Boolean, onCancel: () -> Unit, onConf
             Spacer(modifier = Modifier.height(24.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) { Text("Go Back") }
-                Button(onClick = onConfirm, modifier = Modifier.weight(1f), enabled = !isLoading) {
+                Button(onClick = debouncedConfirm, modifier = Modifier.weight(1f), enabled = !isLoading) {
                     if (isLoading) CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White)
                     else Text("Resume")
                 }

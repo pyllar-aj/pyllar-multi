@@ -6,6 +6,7 @@ import android.content.Intent
 import android.graphics.drawable.Drawable
 import android.net.Uri
 import androidx.core.graphics.drawable.toBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import com.pyllar.consumer.util.Log
 
 class AndroidPlatformActions(private val context: Context) : PlatformActions {
@@ -102,7 +103,7 @@ class AndroidPlatformActions(private val context: Context) : PlatformActions {
                             val appIcon: Drawable = packageManager.getApplicationIcon(packageName)
                             // Use core-ktx extension to convert drawable to bitmap
                             val bitmap = appIcon.toBitmap(128, 128)
-                            val iconBitmap = androidx.compose.ui.graphics.asImageBitmap(bitmap)
+                            val iconBitmap = bitmap.asImageBitmap()
                             
                             upiAppsList.add(UpiAppInfo(packageName, displayName, iconBitmap))
                         } catch (e: Exception) {
