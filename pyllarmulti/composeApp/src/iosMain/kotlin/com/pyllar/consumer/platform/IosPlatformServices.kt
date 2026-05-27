@@ -31,11 +31,15 @@ class IosPushTokenProvider : PushTokenProvider {
 
 class IosAnalyticsTracker : AnalyticsTracker {
     override fun logEvent(name: String, params: Map<String, Any?>) {
-        // No-op for now on iOS
+        try {
+            com.pyllar.consumer.analytics.SwiftAnalyticsScope.bridge?.logEvent(name, params)
+        } catch (_: Throwable) {}
     }
 
     override fun logScreenView(screenName: String) {
-        // No-op for now on iOS
+        try {
+            com.pyllar.consumer.analytics.SwiftAnalyticsScope.bridge?.logScreenView(screenName)
+        } catch (_: Throwable) {}
     }
 }
 

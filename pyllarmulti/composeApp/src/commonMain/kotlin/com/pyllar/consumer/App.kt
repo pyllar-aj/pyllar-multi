@@ -25,6 +25,7 @@ import com.pyllar.consumer.util.Resource
 import com.pyllar.consumer.util.platformLog
 import org.koin.compose.koinInject
 import androidx.compose.ui.platform.LocalUriHandler
+import com.pyllar.consumer.analytics.PlatformAnalyticsLogger
 
 sealed class Screen {
     object PhoneVerification : Screen()
@@ -200,6 +201,7 @@ fun App() {
             platformLog("App: Initializing. isLoggedIn=$isLoggedIn")
             if (isLoggedIn) {
                 val userId = sessionStore.getCurrentUserId()
+                PlatformAnalyticsLogger.setUserId(userId)
                 val lastScreen = sessionStore.getValue(KeyValueConstants.LAST_SCREEN)
                 platformLog("App: Resuming. userId=$userId, lastScreen=$lastScreen")
                 if (lastScreen != null && lastScreen != ScreenNames.HOME) {
@@ -311,6 +313,7 @@ fun App() {
                     phoneNumber = screen.phoneNumber,
                     viewModel = otpVm,
                     onNavigateToPermissionScreen = { isNewUser, nextScreen, userId ->
+                        PlatformAnalyticsLogger.setUserId(userId)
                         navigateTo(Screen.MinimalPermission(
                             userId = userId,
                             isNewUser = isNewUser,

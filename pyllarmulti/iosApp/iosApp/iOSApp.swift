@@ -1,6 +1,8 @@
 import SwiftUI
 import ComposeApp
 import UserNotifications
+import Clarity
+import AppsFlyerLib
 
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
@@ -14,6 +16,22 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
                 }
             }
         }
+
+        // Initialize AppsFlyer
+        AppsFlyerLib.shared().appsFlyerDevKey = "" // Add AppsFlyer Dev Key here
+        AppsFlyerLib.shared().appleAppID = ""      // Add iTunes App ID here
+        #if DEBUG
+        AppsFlyerLib.shared().isDebug = true
+        #endif
+        AppsFlyerLib.shared().start()
+
+        // Initialize Clarity
+        let clarityConfig = ClarityConfig(projectId: "vkt8sc281d")
+        ClaritySDK.initialize(config: clarityConfig)
+        
+        let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
+        _ = ClaritySDK.setCustomTag(key: "app_version", value: appVersion)
+
         return true
     }
 

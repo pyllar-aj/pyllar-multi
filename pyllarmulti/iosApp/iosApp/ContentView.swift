@@ -3,12 +3,15 @@ import SwiftUI
 import ComposeApp
 import CryptoKit
 import GoogleSignIn
+import Clarity
+import AppsFlyerLib
 
 struct ComposeView: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UIViewController {
         // Initialize bridge for KMP
         SwiftCryptoScope.shared.bridge = SwiftCryptoBridge()
         SwiftGoogleSignInScope.shared.bridge = SwiftGoogleSignInBridge()
+        SwiftAnalyticsScope.shared.bridge = SwiftAnalyticsBridge()
         return MainViewControllerKt.MainViewController()
     }
 
@@ -292,5 +295,24 @@ class SwiftGoogleSignInBridge: NSObject, IosGoogleSignInBridge {
             topVC = presentedVC
         }
         return topVC
+    }
+}
+
+class SwiftAnalyticsBridge: NSObject, IosAnalyticsBridge {
+    func logEvent(name: String, params: [String : Any]) {
+        AppsFlyerLib.shared().logEvent(name, withValues: params)
+        print("Analytics: Logged Event '\(name)' with params \(params)")
+    }
+    
+    func logScreenView(screenName: String) {
+        AppsFlyerLib.shared().logEvent(screenName, withValues: nil)
+        ClaritySDK.setCurrentScreenName(screenName)
+        print("Analytics: Logged Screen view '\(screenName)'")
+    }
+    
+    func setUserId(userId: String) {
+        AppsFlyerLib.shared().customerUserID = userId
+        ClaritySDK.setCustomUserId(userId)
+        print("Analytics: Set User ID '\(userId)'")
     }
 }

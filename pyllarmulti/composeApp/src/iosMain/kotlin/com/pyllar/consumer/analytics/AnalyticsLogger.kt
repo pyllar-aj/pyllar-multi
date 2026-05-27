@@ -8,14 +8,20 @@ package com.pyllar.consumer.analytics
  */
 actual object PlatformAnalyticsLogger {
     actual fun logEvent(name: String, params: Map<String, Any?>) {
-        // No-op on iOS — wire to Firebase iOS SDK when ready
+        try {
+            SwiftAnalyticsScope.bridge?.logEvent(name, params)
+        } catch (_: Throwable) {}
     }
 
     actual fun logScreenView(screenName: String) {
-        // No-op on iOS
+        try {
+            SwiftAnalyticsScope.bridge?.logScreenView(screenName)
+        } catch (_: Throwable) {}
     }
 
     actual fun setUserId(userId: String) {
-        // No-op on iOS
+        try {
+            SwiftAnalyticsScope.bridge?.setUserId(userId)
+        } catch (_: Throwable) {}
     }
 }
