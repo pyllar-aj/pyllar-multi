@@ -1,6 +1,18 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.io.File as JFile
 
+// Load shared keystore properties (same file used by the standalone Android project)
+val keystorePropertiesFile = rootProject.file("../pyllar/android/keystore.properties")
+val keystoreProperties = mutableMapOf<String, String>()
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.readLines().forEach { line ->
+        if (line.contains("=") && !line.trimStart().startsWith("#")) {
+            val (k, v) = line.split("=", limit = 2)
+            keystoreProperties[k.trim()] = v.trim()
+        }
+    }
+}
+
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidApplication)
@@ -63,6 +75,8 @@ kotlin {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.play.services.location)
             implementation(libs.androidx.core.ktx)
+            implementation("com.appsflyer:af-android-sdk:6.16.2")
+            implementation("com.microsoft.clarity:clarity-compose:3.6.0")
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
@@ -129,14 +143,17 @@ android {
         }
     }
     buildTypes {
+        val appsflyerKey = "\"${keystoreProperties["appsflyerDevKey"] ?: ""}\""
         debug {
             // Debug / local backend (matches pyllar.flavor=debug)
             buildConfigField("String", "BASE_URL", "\"http://10.222.186.212:8080\"")
+            buildConfigField("String", "APPSFLYER_DEV_KEY", appsflyerKey)
         }
         getByName("release") {
             isMinifyEnabled = false
             // Production backend (matches pyllar.flavor=release)
             buildConfigField("String", "BASE_URL", "\"https://api.pyllar.in\"")
+            buildConfigField("String", "APPSFLYER_DEV_KEY", appsflyerKey)
         }
     }
     compileOptions {

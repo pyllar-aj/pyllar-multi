@@ -1,28 +1,36 @@
 package com.pyllar.consumer.analytics
 
-/**
- * Android actual implementation of [PlatformAnalyticsLogger].
- *
- * TODO: Add Firebase Analytics and Microsoft Clarity dependencies to androidMain:
- *   implementation(platform("com.google.firebase:firebase-bom:33.x.x"))
- *   implementation("com.google.firebase:firebase-analytics")
- *   implementation("com.microsoft.clarity:clarity:2.x.x")
- *
- * Then replace this stub with the full implementation from:
- *   Pyllar/android/app/src/main/…/analytics/AnalyticsLogger.kt
- *
- * Until those dependencies are added, all methods are no-ops.
- */
+import android.content.Context
+import com.appsflyer.AppsFlyerLib
+
 actual object PlatformAnalyticsLogger {
+
+    private var appContext: Context? = null
+
+    /** Called once from PyllarApplication after AppsFlyer is started. */
+    fun init(context: Context) {
+        appContext = context.applicationContext
+    }
+
     actual fun logEvent(name: String, params: Map<String, Any?>) {
-        // TODO: wire to FirebaseAnalytics once dependency is added
+        val ctx = appContext ?: return
+        try {
+            val afParams = HashMap<String, Any>()
+            params.forEach { (k, v) -> if (v != null) afParams[k] = v }
+            AppsFlyerLib.getInstance().logEvent(ctx, name, afParams)
+        } catch (_: Throwable) {}
     }
 
     actual fun logScreenView(screenName: String) {
-        // TODO: wire to FirebaseAnalytics.Event.SCREEN_VIEW
+        val ctx = appContext ?: return
+        try {
+            AppsFlyerLib.getInstance().logEvent(ctx, screenName, emptyMap<String, Any>())
+        } catch (_: Throwable) {}
     }
 
     actual fun setUserId(userId: String) {
-        // TODO: wire to FirebaseAnalytics.setUserId + Clarity.setCustomUserId
+        try {
+            AppsFlyerLib.getInstance().setCustomerUserId(userId)
+        } catch (_: Throwable) {}
     }
 }

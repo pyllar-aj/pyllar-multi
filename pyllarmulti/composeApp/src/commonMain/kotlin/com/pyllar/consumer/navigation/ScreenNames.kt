@@ -5,6 +5,7 @@ package com.pyllar.consumer.navigation
  * These should be kept in sync with backend/core/src/main/java/com/pyllar/controller/ScreenNames.java
  */
 object ScreenNames {
+    const val PHONE_VERIFICATION = "phone_verification"
     const val OTP_VERIFICATION = "otp_verification"
     const val MINIMAL_PERMISSION = "minimal_permission"
     const val PRE_VERIFICATION = "pre_verification"

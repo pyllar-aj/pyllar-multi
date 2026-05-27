@@ -33,6 +33,9 @@ class PhoneVerificationViewModel(
     private val _hasLanguagePreference = MutableStateFlow(false)
     val hasLanguagePreference: StateFlow<Boolean> = _hasLanguagePreference
 
+    private val _languagePopupShown = MutableStateFlow(false)
+    val languagePopupShown: StateFlow<Boolean> = _languagePopupShown
+
     init {
         viewModelScope.launch {
             val stored = sessionStore.getValue(LANGUAGE_PREFERENCE_KEY)
@@ -83,6 +86,8 @@ class PhoneVerificationViewModel(
             }
         }
     }
+
+    fun markLanguagePopupShown() { _languagePopupShown.value = true }
 
     /** Persist user language preference to local DB (key_value_store). Call when user selects language or taps Continue. */
     fun saveLanguagePreference(languageTag: String) {

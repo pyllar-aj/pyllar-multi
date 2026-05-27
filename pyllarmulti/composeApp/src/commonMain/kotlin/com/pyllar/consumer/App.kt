@@ -5,7 +5,7 @@ import kotlinx.coroutines.launch
 import com.pyllar.consumer.navigation.ScreenNames
 import com.pyllar.consumer.presentation.auth.permission.PermissionViewModel
 import com.pyllar.consumer.presentation.auth.permission.MinimalPermissionScreen
-import com.pyllar.consumer.presentation.auth.phone.PhoneVerificationScreen
+import com.pyllar.consumer.presentation.auth.phone.PhoneVerificationScreenV2
 import com.pyllar.consumer.presentation.auth.phone.PhoneVerificationViewModel
 import com.pyllar.consumer.presentation.auth.phone.OtpVerificationScreen
 import com.pyllar.consumer.presentation.auth.phone.OtpVerificationViewModel
@@ -233,7 +233,7 @@ fun App() {
             null -> { /* Handled by isInitializing */ }
             is Screen.PhoneVerification -> {
                 val phoneVm: PhoneVerificationViewModel = koinInject()
-                PhoneVerificationScreen(
+                PhoneVerificationScreenV2(
                     viewModel = phoneVm,
                     onPhoneVerified = { number ->
                         val authToken = phoneVm.verificationResult.value
