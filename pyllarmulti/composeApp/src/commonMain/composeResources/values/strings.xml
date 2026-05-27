@@ -123,4 +123,12 @@
     <string name="transaction_sell">SELL</string>
     <string name="check_internet_connection">Check your Internet connection and try again</string>
     <string name="incorrect_otp_message">Incorrect OTP. Please try again.</string>
+    <string name="login_v2_if_started_ago">Since JAN 2023</string>
+    <string name="login_v2_gold_pill">Your grams only go up as you save</string>
+    <string name="login_v2_silver_pill">Your grams only go up as you save</string>
+    <string name="login_v2_gold_equivalent">Gold equivalent</string>
+    <string name="login_v2_silver_equivalent">Silver equivalent</string>
+    <string name="login_v2_gold_worth">worth ~₹2,0,000 today</string>
+    <string name="login_v2_silver_worth">worth ~₹3,0,000 today</string>
+    <string name="daily_since_format">₹101/day since %1$s</string>
 </resources>

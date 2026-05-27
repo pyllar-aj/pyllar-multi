@@ -92,6 +92,8 @@ import com.pyllar.consumer.analytics.PlatformAnalyticsLogger
 import com.pyllar.consumer.presentation.ui.components.rememberTimeoutState
 import com.pyllar.consumer.util.Resource
 import com.pyllar.consumer.domain.models.AuthToken
+import org.jetbrains.compose.resources.stringResource
+import pyllar.composeapp.generated.resources.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -255,20 +257,24 @@ fun PhoneVerificationScreenV2(
         PlatformAnalyticsLogger.logScreenView("PhoneVerification")
     }
 
-    val assets = remember {
+    val goldTitle = stringResource(Res.string.login_v2_if_started_ago)
+    val goldPill = stringResource(Res.string.login_v2_gold_pill)
+    val silverPill = stringResource(Res.string.login_v2_silver_pill)
+
+    val assets = remember(goldTitle, goldPill, silverPill) {
         listOf(
             AssetBannerData(
-                title = "If you started saving ₹100/day in Jan '23",
+                title = goldTitle,
                 targetGrams = 15.8f,
                 unit = "g",
-                pillText = "Gold accumulation",
+                pillText = goldPill,
                 accentColor = Color(0xFFF5C518)
             ),
             AssetBannerData(
-                title = "If you started saving ₹100/day in Jan '23",
+                title = goldTitle,
                 targetGrams = 1.24f,
                 unit = "kg",
-                pillText = "Silver accumulation",
+                pillText = silverPill,
                 accentColor = Color(0xFFE0E0E0)
             )
         )
@@ -437,7 +443,7 @@ fun PhoneVerificationScreenV2(
                                         modifier = Modifier.size(12.dp)
                                     )
                                     Text(
-                                        text = "Daily since Jan '23",
+                                        text = stringResource(Res.string.daily_since_format, "Jan '23"),
                                         color = Color.White.copy(alpha = 0.85f),
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Medium
@@ -470,13 +476,13 @@ fun PhoneVerificationScreenV2(
                         // Asset type + worth labels
                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             Text(
-                                text = if (currentAssetIndex == 0) "Gold equivalent" else "Silver equivalent",
+                                text = if (currentAssetIndex == 0) stringResource(Res.string.login_v2_gold_equivalent) else stringResource(Res.string.login_v2_silver_equivalent),
                                 color = Color.White,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "worth ₹1,800/month SIP",
+                                text = if (currentAssetIndex == 0) stringResource(Res.string.login_v2_gold_worth) else stringResource(Res.string.login_v2_silver_worth),
                                 color = Color.White.copy(alpha = 0.6f),
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Normal
@@ -656,7 +662,7 @@ fun PhoneVerificationScreenV2(
                                 )
                             } else {
                                 Text(
-                                    text = if (timeoutState.isTimeoutActive()) "Retry" else "Start Saving",
+                                    text = if (timeoutState.isTimeoutActive()) "Retry" else "Send OTP",
                                     style = MaterialTheme.typography.bodyLarge.copy(
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 16.sp

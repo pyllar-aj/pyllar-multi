@@ -18,8 +18,8 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         }
 
         // Initialize AppsFlyer
-        AppsFlyerLib.shared().appsFlyerDevKey = "" // Add AppsFlyer Dev Key here
-        AppsFlyerLib.shared().appleAppID = ""      // Add iTunes App ID here
+        AppsFlyerLib.shared().appsFlyerDevKey = "gog7ERykY2ivzocSRnpKPi" // Add AppsFlyer Dev Key here
+        AppsFlyerLib.shared().appleAppID = "6767513475"      // Add iTunes App ID here
         #if DEBUG
         AppsFlyerLib.shared().isDebug = true
         #endif

@@ -232,14 +232,26 @@ extension UIResponder {
                     borderLine.autoresizingMask = [.flexibleWidth, .flexibleBottomMargin]
                     toolbar.addSubview(borderLine)
                     
-                    // Done button (blue native styling)
-                    let doneButton = UIBarButtonItem(
-                        title: "Done",
-                        style: .done,
-                        target: self,
-                        action: #selector(customDismissKeyboard)
-                    )
-                    doneButton.tintColor = .systemBlue
+                    // Done button (dark green background circle with thick white checkmark/tick icon)
+                    let tickButton = UIButton(type: .custom)
+                    tickButton.backgroundColor = UIColor(red: 7/255, green: 91/255, blue: 50/255, alpha: 1.0)
+                    tickButton.layer.cornerRadius = 15
+                    tickButton.layer.masksToBounds = true
+                    tickButton.tintColor = .white
+                    
+                    let config = UIImage.SymbolConfiguration(pointSize: 12, weight: .heavy)
+                    let tickImage = UIImage(systemName: "checkmark", withConfiguration: config)
+                    tickButton.setImage(tickImage, for: .normal)
+                    
+                    tickButton.translatesAutoresizingMaskIntoConstraints = false
+                    NSLayoutConstraint.activate([
+                        tickButton.widthAnchor.constraint(equalToConstant: 30),
+                        tickButton.heightAnchor.constraint(equalToConstant: 30)
+                    ])
+                    
+                    tickButton.addTarget(self, action: #selector(customDismissKeyboard), for: .touchUpInside)
+                    
+                    let doneButton = UIBarButtonItem(customView: tickButton)
                     
                     let flexibleSpace = UIBarButtonItem(
                         barButtonSystemItem: .flexibleSpace,
