@@ -218,6 +218,63 @@ fun App() {
             }
         }
 
+        LaunchedEffect(isInitializing) {
+            if (!isInitializing) {
+                val isLoggedIn = sessionStore.isLoggedIn()
+                if (isLoggedIn) {
+                    val userId = sessionStore.getCurrentUserId()
+                    com.pyllar.consumer.push.PushTokenManager.lastNotificationPayload.collect { payload ->
+                        if (!payload.isNullOrBlank()) {
+                            platformLog("App: Received notification payload: $payload")
+                            
+                            var action = payload
+                            var notificationUrl: String? = null
+                            var screenRoute: String? = null
+
+                            if (payload.trim().startsWith("{") && payload.trim().endsWith("}")) {
+                                try {
+                                    val element = kotlinx.serialization.json.Json.parseToJsonElement(payload)
+                                    if (element is kotlinx.serialization.json.JsonObject) {
+                                        val act = element["action"] ?: element["screen"]
+                                        if (act is kotlinx.serialization.json.JsonPrimitive) {
+                                            action = act.content
+                                        }
+                                        val urlVal = element["url"]
+                                        if (urlVal is kotlinx.serialization.json.JsonPrimitive) {
+                                            notificationUrl = urlVal.content
+                                        }
+                                        val routeVal = element["route"]
+                                        if (routeVal is kotlinx.serialization.json.JsonPrimitive) {
+                                            screenRoute = routeVal.content
+                                        }
+                                    }
+                                } catch (e: Exception) {
+                                    platformLog("AppNav: Failed to parse payload JSON: ${e.message}")
+                                }
+                            }
+
+                            // If action is "screen" and screenRoute is provided, use screenRoute as action
+                            val targetAction = if (action.equals("screen", ignoreCase = true) && !screenRoute.isNullOrBlank()) {
+                                screenRoute
+                            } else {
+                                action
+                            }
+
+                            handleNavigation(
+                                action = targetAction,
+                                userId = userId,
+                                notificationUrl = notificationUrl,
+                                sessionStore = sessionStore
+                            ) { screen ->
+                                navigateTo(screen)
+                            }
+                            com.pyllar.consumer.push.PushTokenManager.clearNotificationPayload()
+                        }
+                    }
+                }
+            }
+        }
+
         if (isInitializing) {
             com.pyllar.consumer.presentation.components.LoadingScreen(text = "Initializing...")
             return@PyllarTheme
@@ -881,6 +938,7 @@ private suspend fun handleNavigation(
     investorId: String? = null,
     preVerificationId: String? = null,
     reUrl: String? = null,
+    notificationUrl: String? = null,
     sessionStore: com.pyllar.consumer.domain.storage.SessionStore,
     onNavigate: (Screen) -> Unit
 ) {
@@ -924,7 +982,9 @@ private suspend fun handleNavigation(
         }
         ScreenNames.WEB_VIEW, "web_view", "webview" -> {
             platformLog("AppNav: Matched WEB_VIEW")
-            if (!effectiveReUrl.isNullOrBlank()) {
+            if (!notificationUrl.isNullOrBlank()) {
+                onNavigate(Screen.NotificationWebView(notificationUrl, "Notification"))
+            } else if (!effectiveReUrl.isNullOrBlank()) {
                 onNavigate(Screen.KycWebView(userId, effectiveReUrl, effectiveKycId))
             } else {
                 onNavigate(Screen.KycInformation(userId, null, effectiveKycId))

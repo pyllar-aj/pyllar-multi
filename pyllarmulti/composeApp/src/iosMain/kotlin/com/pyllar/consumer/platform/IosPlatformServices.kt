@@ -1,14 +1,15 @@
 package com.pyllar.consumer.platform
 
+import platform.UIKit.UIDevice
+import platform.Foundation.NSBundle
+import com.pyllar.consumer.push.PushTokenManager
+
 /**
  * iOS implementations of shared platform service interfaces.
  *
  * These are intentionally minimal and can be expanded with
  * real implementations as the iOS host app evolves.
  */
-
-import platform.UIKit.UIDevice
-import platform.Foundation.NSBundle
 
 class IosDeviceInfoProvider : DeviceInfoProvider {
     override fun getDeviceId(): String? {
@@ -23,8 +24,6 @@ class IosDeviceInfoProvider : DeviceInfoProvider {
         return NSBundle.mainBundle.infoDictionary?.get("CFBundleShortVersionString") as? String ?: "1.0.0"
     }
 }
-
-import com.pyllar.consumer.push.PushTokenManager
 
 class IosPushTokenProvider : PushTokenProvider {
     override suspend fun getPushToken(): String? = PushTokenManager.getPushToken()

@@ -34,6 +34,45 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
         completionHandler([.banner, .list, .sound])
     }
+
+    // Handle notification tap or action (when app is in background or foreground)
+    func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
+        let userInfo = response.notification.request.content.userInfo
+        print("Notification tapped with userInfo: \(userInfo)")
+
+        let action = userInfo["action"] as? String ?? userInfo["screen"] as? String
+        let url = userInfo["url"] as? String
+        let route = userInfo["route"] as? String
+        
+        sendNotificationPayload(action: action, url: url, route: route)
+        completionHandler()
+    }
+
+    // Handle background / silent remote notifications
+    func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable : Any], fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
+        print("Received remote notification in background: \(userInfo)")
+        
+        let action = userInfo["action"] as? String ?? userInfo["screen"] as? String
+        let url = userInfo["url"] as? String
+        let route = userInfo["route"] as? String
+        
+        sendNotificationPayload(action: action, url: url, route: route)
+        completionHandler(.newData)
+    }
+
+    private func sendNotificationPayload(action: String?, url: String?, route: String?) {
+        var dict = [String: String]()
+        if let action = action { dict["action"] = action }
+        if let url = url { dict["url"] = url }
+        if let route = route { dict["route"] = route }
+        
+        if let jsonData = try? JSONSerialization.data(withJSONObject: dict, options: []),
+           let jsonString = String(data: jsonData, encoding: .utf8) {
+            PushTokenManager.shared.setNotificationPayload(payload: jsonString)
+        } else if let action = action {
+            PushTokenManager.shared.setNotificationPayload(payload: action)
+        }
+    }
 }
 
 @main
