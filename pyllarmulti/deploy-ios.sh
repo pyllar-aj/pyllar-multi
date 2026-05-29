@@ -41,7 +41,7 @@ fi
 echo "==> Flavor: $FLAVOR  (baseUrl: $BASE_URL)"
 
 # ── Simulator config ───────────────────────────────────────────────────────
-SIMULATOR_UDID="A6D26BBA-A765-4A93-9E72-F7730AC04F8A"
+SIMULATOR_UDID="0BDF3796-6D9E-44D4-8D1C-F13D0204E4FB"
 SIMULATOR_NAME="Test iPhone 26.4"
 BUNDLE_ID="com.pyllar.consumer"
 DERIVED_DATA="/tmp/pyllar-ios-build"
