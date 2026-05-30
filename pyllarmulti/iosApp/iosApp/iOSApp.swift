@@ -1,5 +1,6 @@
 import SwiftUI
 import AppsFlyerLib
+import Clarity
 
 class AppDelegate: NSObject, UIApplicationDelegate, AppsFlyerLibDelegate {
     func application(
@@ -15,6 +16,13 @@ class AppDelegate: NSObject, UIApplicationDelegate, AppsFlyerLibDelegate {
         #if DEBUG
         AppsFlyerLib.shared().isDebug = true
         #endif
+
+        // Configure Microsoft Clarity
+        let clarityConfig = ClarityConfig(projectId: "vkt8sc281d")
+        #if DEBUG
+        clarityConfig.logLevel = .verbose
+        #endif
+        ClaritySDK.initialize(config: clarityConfig)
 
         return true
     }

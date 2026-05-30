@@ -315,14 +315,17 @@ class SwiftAnalyticsBridge: NSObject, IosAnalyticsBridge {
 
     func logEvent(name: String, params: [String : Any]) {
         AppsFlyerLib.shared().logEvent(name, withValues: params)
+        ClaritySDK.sendCustomEvent(name: name)
     }
 
     func logScreenView(screenName: String) {
         AppsFlyerLib.shared().logEvent("screen_view", withValues: ["screen_name": screenName])
+        ClaritySDK.setCurrentScreenName(screenName)
     }
 
     func setUserId(userId: String) {
         AppsFlyerLib.shared().customerUserID = userId
+        ClaritySDK.setCustomUserId(userId)
     }
 
     func generateReferralLink(referrerId: String, onComplete: @escaping (String?) -> Void) {
