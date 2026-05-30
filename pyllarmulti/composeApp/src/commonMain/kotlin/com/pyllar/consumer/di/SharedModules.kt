@@ -49,6 +49,7 @@ import com.pyllar.consumer.presentation.mutualfund.onboarding.MandateAuthModel
 import com.pyllar.consumer.presentation.mutualfund.onboarding.LumpsumPurchaseAuthViewModel
 import com.pyllar.consumer.presentation.mutualfund.onboarding.CheckPanPopulatedDetailsViewModel
 import com.pyllar.consumer.presentation.profile.ProfileViewModel
+import com.pyllar.consumer.navigation.ForceUpdateManager
 import com.pyllar.consumer.presentation.referral.ReferralViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -62,6 +63,7 @@ import org.koin.dsl.module
  * Platform modules must provide SessionStore.
  */
 val sharedModule: Module = module {
+    single { ForceUpdateManager() }
     single { PyllarApiClient(getApiBaseUrl()) }
     single { com.pyllar.consumer.data.remote.crypto.createSecureSessionStore() }
     single { com.pyllar.consumer.data.remote.crypto.SecureHandshakeCoordinator({ getApiBaseUrl() }, get(), get()) }

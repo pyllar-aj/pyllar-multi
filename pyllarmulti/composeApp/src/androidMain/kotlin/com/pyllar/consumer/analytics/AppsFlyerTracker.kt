@@ -104,7 +104,7 @@ object AppsFlyerTracker {
                 override fun onResponse(url: String?) {
                     onComplete(url)
                 }
-                override fun onError(error: String?) {
+                override fun onResponseError(error: String) {
                     Log.e(TAG, "Failed to generate OneLink: $error")
                     onComplete(null)
                 }

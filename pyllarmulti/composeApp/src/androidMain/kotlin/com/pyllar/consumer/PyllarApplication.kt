@@ -56,14 +56,7 @@ class PyllarApplication : Application() {
     }
 
     private fun initAppsFlyer() {
-        try {
-            AppsFlyerLib.getInstance().apply {
-                setDebugLog(BuildConfig.DEBUG)
-                init(BuildConfig.APPSFLYER_DEV_KEY, null, this@PyllarApplication)
-                start(this@PyllarApplication)
-            }
-            PlatformAnalyticsLogger.init(this)
-        } catch (_: Throwable) {}
+        // AppsFlyer is initialised via AppsFlyerTracker.init() in onCreate().
     }
 
     private fun initClarity() {

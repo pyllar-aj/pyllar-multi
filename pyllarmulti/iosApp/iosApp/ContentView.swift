@@ -278,24 +278,36 @@ extension UIResponder {
 class SwiftGoogleSignInBridge: NSObject, IosGoogleSignInBridge {
     func pickEmail(completion: @escaping (String?) -> Void) {
         DispatchQueue.main.async {
-            guard let rootVC = self.getTopViewController() else {
+            // First, try to silently restore a previous session
+            GIDSignIn.sharedInstance.restorePreviousSignIn { user, error in
+                if let email = user?.profile?.email {
+                    completion(email)
+                } else {
+                    // If no previous session, show the interactive picker
+                    self.showInteractiveSignIn(completion: completion)
+                }
+            }
+        }
+    }
+    
+    private func showInteractiveSignIn(completion: @escaping (String?) -> Void) {
+        guard let rootVC = self.getTopViewController() else {
+            completion(nil)
+            return
+        }
+        
+        GIDSignIn.sharedInstance.signIn(withPresenting: rootVC) { signInResult, error in
+            if let error = error {
+                print("Google Sign-In error: \(error.localizedDescription)")
                 completion(nil)
                 return
             }
             
-            GIDSignIn.sharedInstance.signIn(withPresenting: rootVC) { signInResult, error in
-                if let error = error {
-                    print("Google Sign-In error: \(error.localizedDescription)")
-                    completion(nil)
-                    return
-                }
-                
-                let email = signInResult?.user.profile?.email
-                completion(email)
-                
-                // Recommended cleanup: sign out immediately
-                GIDSignIn.sharedInstance.signOut()
-            }
+            let email = signInResult?.user.profile?.email
+            completion(email)
+            
+            // NOTE: We no longer call GIDSignIn.sharedInstance.signOut() here.
+            // This allows the SDK to remember the user for next time.
         }
     }
     

@@ -73,3 +73,29 @@ actual object PlatformAnalyticsLogger {
         } catch (_: Throwable) {}
     }
 }
+
+/**
+ * Legacy shim so ported Android code that calls AnalyticsLogger.logEvent(context, name, params)
+ * compiles unchanged. The context parameter is ignored — PlatformAnalyticsLogger already holds
+ * applicationContext set in PyllarApplication.
+ */
+object AnalyticsLogger {
+    fun logEvent(context: android.content.Context, eventName: String, params: Map<String, Any?> = emptyMap()) {
+        PlatformAnalyticsLogger.logEvent(eventName, params)
+    }
+
+    fun logScreenView(context: android.content.Context, screenName: String) {
+        PlatformAnalyticsLogger.logScreenView(screenName)
+    }
+
+    fun setClarityUserId(userId: String) {
+        PlatformAnalyticsLogger.setUserId(userId)
+    }
+
+    fun clearUserIdentity(context: android.content.Context) {
+        try {
+            com.google.firebase.analytics.FirebaseAnalytics.getInstance(context).setUserId(null)
+            Clarity.setCustomUserId("")
+        } catch (_: Throwable) {}
+    }
+}

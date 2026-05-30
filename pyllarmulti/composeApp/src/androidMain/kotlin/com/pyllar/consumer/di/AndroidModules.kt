@@ -7,6 +7,7 @@ import com.pyllar.consumer.platform.AndroidAnalyticsTracker
 import com.pyllar.consumer.platform.AndroidDeviceInfoProvider
 import com.pyllar.consumer.platform.AndroidPushTokenProvider
 import com.pyllar.consumer.update.AndroidUpdateManager
+import com.pyllar.consumer.update.InAppUpdateManager
 import com.pyllar.consumer.platform.AnalyticsTracker
 import com.pyllar.consumer.platform.AndroidPermissionManager
 import com.pyllar.consumer.platform.DeviceInfoProvider
@@ -36,5 +37,6 @@ fun androidPlatformModule(appContext: Context): Module = module {
     single<PlatformActions> { AndroidPlatformActions(appContext) }
     single<com.pyllar.consumer.platform.LocationProvider> { com.pyllar.consumer.platform.AndroidLocationProvider(appContext) }
     single<com.pyllar.consumer.platform.AttributionProvider> { com.pyllar.consumer.platform.AndroidAttributionProvider() }
+    single { InAppUpdateManager(appContext) }
 }
 

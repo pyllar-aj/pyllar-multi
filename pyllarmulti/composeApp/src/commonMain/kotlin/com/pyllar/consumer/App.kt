@@ -27,6 +27,11 @@ import com.pyllar.consumer.util.platformLog
 import org.koin.compose.koinInject
 import androidx.compose.ui.platform.LocalUriHandler
 import com.pyllar.consumer.analytics.PlatformAnalyticsLogger
+import com.pyllar.consumer.navigation.ForceUpdateManager
+import com.pyllar.consumer.presentation.components.ForceUpdateDialog
+import com.pyllar.consumer.presentation.components.UpdateBottomSheet
+import com.pyllar.consumer.update.checkPlatformForUpdates
+import com.pyllar.consumer.update.onOptionalUpdateDismissed
 
 sealed class Screen {
     object PhoneVerification : Screen()
@@ -120,6 +125,7 @@ fun App() {
     val sessionStore: com.pyllar.consumer.domain.storage.SessionStore = koinInject()
     val authRepository: com.pyllar.consumer.domain.repository.AuthRepository = koinInject()
     val onboardingRepository: com.pyllar.consumer.domain.repository.OnboardingRepository = koinInject()
+    val forceUpdateManager: ForceUpdateManager = koinInject()
     val scope = rememberCoroutineScope()
     val uriHandler = LocalUriHandler.current
     PyllarTheme {
@@ -196,6 +202,12 @@ fun App() {
             } else {
                 platformLog("AppNav: Cannot navigate back, stack size is 1")
             }
+        }
+
+        // Check for available updates on the current platform (no-op on Android — handled by
+        // InAppUpdateManager in MainActivity; calls iTunes API on iOS).
+        LaunchedEffect(Unit) {
+            checkPlatformForUpdates(forceUpdateManager)
         }
 
         LaunchedEffect(Unit) {
@@ -278,6 +290,36 @@ fun App() {
                 }
             }
         }
+
+        // ── Update overlays ────────────────────────────────────────────────────────
+        // ForceUpdateDialog uses Dialog() internally so it floats above all content
+        // on both Android and iOS regardless of where it sits in the tree.
+        forceUpdateManager.forceUpdateInfo?.let { info ->
+            ForceUpdateDialog(
+                forceUpdateInfo = info,
+                onUpdateClick = {
+                    try { uriHandler.openUri(info.updateUrl) } catch (_: Exception) {
+                        try { uriHandler.openUri(info.webUrl) } catch (_: Exception) {}
+                    }
+                }
+            )
+        }
+
+        // Optional update (iOS only — Android drives this via Play Core in MainActivity).
+        // optionalUpdateUrl is only ever set by IosAppStoreUpdateChecker; stays null on Android.
+        forceUpdateManager.optionalUpdateUrl?.let { storeUrl ->
+            UpdateBottomSheet(
+                onUpdateClick = {
+                    try { uriHandler.openUri(storeUrl) } catch (_: Exception) {}
+                    forceUpdateManager.clearOptionalUpdate()
+                },
+                onDismiss = {
+                    onOptionalUpdateDismissed() // records timestamp for 72-hour throttle (iOS only)
+                    forceUpdateManager.clearOptionalUpdate()
+                }
+            )
+        }
+        // ── End update overlays ────────────────────────────────────────────────────
 
         if (isInitializing) {
             com.pyllar.consumer.presentation.components.LoadingScreen(text = "Initializing...")
@@ -929,12 +971,11 @@ fun App() {
                 )
             }
             is Screen.HelpSupport -> {
-                HelpSupportScreen(
-                    userId = screen.userId,
+                HelpSupportScreenV2(
                     showKycHelp = screen.showKycHelp,
                     showBankHelp = screen.showBankHelp,
                     showOnlyKycInfo = screen.showOnlyKycInfo,
-                    onBack = { navigateBack() }
+                    onClose = { navigateBack() }
                 )
             }
             is Screen.NotificationWebView -> {
