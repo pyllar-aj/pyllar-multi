@@ -168,8 +168,8 @@
     <string name="referral_step2_detailed_desc">They install Pyllar using your link, complete setup, and start any daily SIP.</string>
     <string name="referral_step3_detailed_title">They earn the 7-day streak badge</string>
     <string name="referral_step3_detailed_desc">Your friend needs to maintain a 7-day investment streak to earn the badge. If they pause, cancel, or miss an investment, the streak resets and starts over.</string>
-    <string name="referral_step4_detailed_title">100 coins land in your wallet</string>
-    <string name="referral_step4_detailed_desc">On day 8, ₹100 worth of coins are credited to you instantly. Each coin = ₹1. Coins never expire.</string>
+    <string name="referral_step4_detailed_title">You both earn rewards</string>
+    <string name="referral_step4_detailed_desc">Once your friend earns the 7-day streak badge, both of you receive ₹100 worth of coins. 100 coins = ₹100. Coins never expire.</string>
 
     <string name="referral_key_terms_title">Key terms</string>
     <string name="referral_term_reward">Reward</string>
@@ -230,15 +230,15 @@
     <string name="referral_faq_collapse_desc">Collapse</string>
     <string name="referral_faq_expand_desc">Expand</string>
     <string name="referral_faq_q1">How do referrals work?</string>
-    <string name="referral_faq_a1">Share your referral link with friends. When they install Pyllar, complete setup, start a daily SIP, and earn the 7-day streak badge, you earn 100 coins.</string>
+    <string name="referral_faq_a1">Share your referral link with friends. When they install Pyllar, complete setup, start a daily SIP, and earn the 7-day streak badge, both of you receive 100 coins.</string>
     <string name="referral_faq_q2">Does my friend need to enter a referral code?</string>
     <string name="referral_faq_a2">No. Your referral code is automatically attached to the shared link, so your friend just needs to install the app using your link.</string>
     <string name="referral_faq_q3">What is the 7-day streak badge?</string>
     <string name="referral_faq_a3">Your friend earns the 7-day streak badge after completing investments for 7 days in a row. If they pause, cancel, or miss an investment, the streak resets and starts over.</string>
-    <string name="referral_faq_q4">When will I receive my referral reward?</string>
-    <string name="referral_faq_a4">You’ll receive 100 coins instantly once your friend completes 7 successful investment days.</string>
+    <string name="referral_faq_q4">When do we receive our referral rewards?</string>
+    <string name="referral_faq_a4">Both you and your friend receive 100 coins once your friend earns the 7-day streak badge.</string>
     <string name="referral_faq_q5">How do I use or withdraw my coins?</string>
-    <string name="referral_faq_a5">Coins are added to your Pyllar wallet. 1 coin = ₹1, and they can be redeemed according to wallet redemption rules.</string>
+    <string name="referral_faq_a5">Coins are added to your Pyllar wallet. 100 coins = ₹100, and they can be redeemed according to wallet redemption rules.</string>
     <string name="referral_faq_q6">Is there a limit to how many friends I can invite?</string>
     <string name="referral_faq_a6">No. You can invite as many friends as you want and earn rewards for each eligible referral.</string>
 
