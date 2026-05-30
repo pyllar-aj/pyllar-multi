@@ -94,6 +94,7 @@
 			packageProductDependencies = (
 				216E2CF82FBEDE88001E32D1 /* GoogleSignIn */,
 				216E2CFA2FBEDE88001E32D1 /* GoogleSignInSwift */,
+				AF0000000000000000000002 /* AppsFlyerLib */,
 			);
 			productName = iosApp;
 			productReference = 2A145260C2906617681AD30B /* Pyllar.app */;
@@ -125,6 +126,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				216E2CF72FBEDE88001E32D1 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+				AF0000000000000000000001 /* XCRemoteSwiftPackageReference "AppsFlyerFramework-Static" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 13A11D9F7DA03C59D8E1222A /* Products */;
@@ -412,6 +414,14 @@
 				minimumVersion = 9.1.0;
 			};
 		};
+		AF0000000000000000000001 /* XCRemoteSwiftPackageReference "AppsFlyerFramework-Static" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/AppsFlyerSDK/AppsFlyerFramework-Static";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 6.14.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -424,6 +434,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 216E2CF72FBEDE88001E32D1 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
 			productName = GoogleSignInSwift;
+		};
+		AF0000000000000000000002 /* AppsFlyerLib */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AF0000000000000000000001 /* XCRemoteSwiftPackageReference "AppsFlyerFramework-Static" */;
+			productName = AppsFlyerLib;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

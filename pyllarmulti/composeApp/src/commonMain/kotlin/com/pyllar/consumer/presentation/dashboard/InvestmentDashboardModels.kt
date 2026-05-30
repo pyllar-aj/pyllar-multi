@@ -18,6 +18,7 @@ data class InvestmentDashboardV2State(
     val firstLakhMilestoneTimestamp: Long = 0,
     val kycStatus: String = "PENDING",
     val userName: String = "",
+    val referralEnabled: Boolean = false,
     val isLoading: Boolean = true,
     val errorMessage: String? = null
 )

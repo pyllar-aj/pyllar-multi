@@ -121,4 +121,114 @@
     <string name="transaction_one_time">ONE-TIME</string>
     <string name="transaction_buy">BUY</string>
     <string name="transaction_sell">SELL</string>
+
+    <!-- Referral Screen Strings -->
+    <string name="referral_title">Refer &amp; earn</string>
+    <string name="referral_go_back_desc">Go back</string>
+    <string name="referral_how_it_works">How it works</string>
+    <string name="referral_explainer_header_part1">How refer &amp; earn</string>
+    <string name="referral_explainer_header_part2">actually works</string>
+    <string name="referral_close_sheet_desc">Close sheet</string>
+    <string name="referral_got_it">Got it</string>
+
+    <string name="referral_wallet_header">YOUR WALLET</string>
+    <string name="referral_coins_label">coins</string>
+    <string name="referral_in_pocket_format">= ₹%1$d in your pocket</string>
+    <string name="referral_gold_coins_desc">Gold coins stack</string>
+    <string name="referral_available_to_withdraw">Available to withdraw</string>
+    <string name="referral_more_to_withdraw_format">₹%1$d more to withdraw</string>
+    <string name="referral_lifetime_earned">LIFETIME EARNED</string>
+    <string name="referral_withdrawn">WITHDRAWN</string>
+
+    <string name="referral_subtitle">for every friend who invests 7 days</string>
+    <string name="referral_earn_first_100">EARN YOUR FIRST ₹100</string>
+    <string name="referral_how_you_earn_discipline">How you earn — when your friend stays disciplined.</string>
+    <string name="referral_step_label_format">STEP %1$s</string>
+
+    <string name="referral_step1_title">Share your code</string>
+    <string name="referral_step1_desc">Send it to a friend on WhatsApp or anywhere.</string>
+    <string name="referral_step2_title">They sign up &amp; invest</string>
+    <string name="referral_step2_desc">They use your code at sign-up and start a daily SIP.</string>
+    <string name="referral_step3_title">Earn 100 coins</string>
+    <string name="referral_step3_desc">Credited after they invest 7 days in a row. 1 coin = ₹1.</string>
+
+    <string name="referral_step1_detailed_title">Share your link</string>
+    <string name="referral_step1_detailed_desc">Tap \"Share on WhatsApp\" — your unique referral link is sent. Your friend doesn\'t need to type a code; it\'s already attached.</string>
+    <string name="referral_step2_detailed_title">They install &amp; start a SIP</string>
+    <string name="referral_step2_detailed_desc">They install Pyllar using your link, complete setup, and start any daily SIP.</string>
+    <string name="referral_step3_detailed_title">They earn the 7-day streak badge</string>
+    <string name="referral_step3_detailed_desc">Your friend needs to maintain a 7-day investment streak to earn the badge. If they pause, cancel, or miss an investment, the streak resets and starts over.</string>
+    <string name="referral_step4_detailed_title">100 coins land in your wallet</string>
+    <string name="referral_step4_detailed_desc">On day 8, ₹100 worth of coins are credited to you instantly. Each coin = ₹1. Coins never expire.</string>
+
+    <string name="referral_key_terms_title">Key terms</string>
+    <string name="referral_term_reward">Reward</string>
+    <string name="referral_term_reward_val">100 coins per friend</string>
+    <string name="referral_term_coin_value">Coin value</string>
+    <string name="referral_term_coin_value_val">1 coin = ₹1</string>
+    <string name="referral_term_qualifying_action">Qualifying action</string>
+    <string name="referral_term_qualifying_action_val">7-day streak</string>
+    <string name="referral_term_withdrawals">Withdrawals</string>
+    <string name="referral_term_withdrawals_val">Multiples of ₹1000</string>
+    <string name="referral_term_coin_expiry">Coin expiry</string>
+    <string name="referral_term_coin_expiry_val">Never</string>
+    <string name="referral_term_cap">Cap</string>
+    <string name="referral_term_cap_val">No limit on friends</string>
+
+    <string name="referral_invite_code">Your invite code</string>
+    <string name="referral_code_hint">One tap. Your code is already inside the link.</string>
+    <string name="referral_code_label">CODE</string>
+    <string name="referral_link_clipboard_label">Pyllar Referral Link</string>
+    <string name="referral_link_copied_toast">Link copied!</string>
+    <string name="referral_copy_code_desc">Copy code</string>
+    <string name="referral_btn_copy">Copy</string>
+    <string name="referral_whatsapp_message_format">Hey! Join me on Pyllar to grow your money daily. Install via my link and start your daily SIP: %1$s</string>
+    <string name="referral_whatsapp_not_installed_toast">WhatsApp not installed!</string>
+    <string name="referral_btn_whatsapp">Share on WhatsApp</string>
+    <string name="referral_btn_more">More</string>
+    <string name="referral_more_options_desc">More options</string>
+    <string name="referral_btn_share_link">Share invite link</string>
+
+    <string name="referral_my_referrals_title">Your referrals</string>
+    <string name="referral_my_referrals_summary_format">%1$d invited · %2$d earned</string>
+    <string name="referral_no_invites_yet">No invites yet</string>
+    <string name="referral_no_invites_yet_desc">When friends install via your link, they\'ll show up here.</string>
+    <string name="referral_status_invited">Invited</string>
+    <string name="referral_status_earned">Earned</string>
+    <string name="referral_btn_see_less">See less</string>
+    <string name="referral_btn_see_all">See all referrals</string>
+
+    <string name="referral_withdrawal_history_title">Withdrawal history</string>
+    <string name="referral_withdrawn_history_label">withdrawn</string>
+    <string name="referral_status_done">Done</string>
+
+    <string name="referral_btn_invite_first_friend">Invite your first friend</string>
+    <string name="referral_btn_withdraw_to_bank_format">Withdraw ₹%1$d to bank</string>
+    <string name="referral_btn_need_more_format">Need ₹%1$d more to withdraw</string>
+
+    <string name="referral_withdraw_sheet_title">Withdraw coins</string>
+    <string name="referral_withdrawing_header">YOU\'RE WITHDRAWING</string>
+    <string name="referral_coins_in_wallet">Coins in wallet</string>
+    <string name="referral_coins_format">%1$d coins</string>
+    <string name="referral_withdrawing_label">Withdrawing</string>
+    <string name="referral_minus_coins_format">-%1$d coins</string>
+    <string name="referral_balance_left">Balance left</string>
+    <string name="referral_btn_confirm_withdrawal">Confirm Withdrawal</string>
+    <string name="referral_btn_cancel">Cancel</string>
+
+    <string name="referral_faqs_title">Frequently asked questions</string>
+    <string name="referral_faq_collapse_desc">Collapse</string>
+    <string name="referral_faq_expand_desc">Expand</string>
+    <string name="referral_faq_q1">How do referrals work?</string>
+    <string name="referral_faq_a1">Share your referral link with friends. When they install Pyllar, complete setup, start a daily SIP, and earn the 7-day streak badge, you earn 100 coins.</string>
+    <string name="referral_faq_q2">Does my friend need to enter a referral code?</string>
+    <string name="referral_faq_a2">No. Your referral code is automatically attached to the shared link, so your friend just needs to install the app using your link.</string>
+    <string name="referral_faq_q3">What is the 7-day streak badge?</string>
+    <string name="referral_faq_a3">Your friend earns the 7-day streak badge after completing investments for 7 days in a row. If they pause, cancel, or miss an investment, the streak resets and starts over.</string>
+    <string name="referral_faq_q4">When will I receive my referral reward?</string>
+    <string name="referral_faq_a4">You’ll receive 100 coins instantly once your friend completes 7 successful investment days.</string>
+    <string name="referral_faq_q5">How do I use or withdraw my coins?</string>
+    <string name="referral_faq_a5">Coins are added to your Pyllar wallet. 1 coin = ₹1, and they can be redeemed according to wallet redemption rules.</string>
+    <string name="referral_faq_q6">Is there a limit to how many friends I can invite?</string>
+    <string name="referral_faq_a6">No. You can invite as many friends as you want and earn rewards for each eligible referral.</string>
 </resources>
