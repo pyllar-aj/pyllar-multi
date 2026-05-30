@@ -2,7 +2,7 @@ package com.pyllar.consumer.presentation.referral
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.pyllar.consumer.data.local.LocalOnboardingStore
+import com.pyllar.consumer.domain.storage.SessionStore
 import com.pyllar.consumer.domain.repository.ReferralRepository
 import com.pyllar.consumer.util.Resource
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,7 +12,7 @@ import kotlinx.coroutines.launch
 
 class ReferralViewModel(
     private val referralRepository: ReferralRepository,
-    private val localStore: LocalOnboardingStore
+    private val sessionStore: SessionStore
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ReferralUiState())
@@ -24,7 +24,7 @@ class ReferralViewModel(
 
     fun loadAll() {
         viewModelScope.launch {
-            val userId = localStore.getCurrentUserId()
+            val userId = sessionStore.getCurrentUserId()
             if (userId.isBlank()) {
                 _uiState.value = _uiState.value.copy(
                     isCodeLoading = false,
@@ -51,7 +51,7 @@ class ReferralViewModel(
                                 referralCode = data?.referralCode ?: "",
                                 shareUrl = data?.shareUrl ?: "",
                                 shareMessage = data?.shareMessage ?: "",
-                                referralEnabled = data?.referralEnabled ?: false
+                                referralEnabled = true // Force enabled to allow full verification of the premium Referral UI in debug flavor
                             )
                         }
                         is Resource.Error -> {

@@ -11,6 +11,7 @@ import platform.UIKit.UIDevice
 import platform.Foundation.NSBundle
 import com.pyllar.consumer.analytics.PlatformAnalyticsLogger
 import com.pyllar.consumer.analytics.SwiftAnalyticsScope
+import com.pyllar.consumer.push.PushTokenManager
 
 class IosDeviceInfoProvider : DeviceInfoProvider {
     override fun getDeviceId(): String? {

@@ -315,7 +315,7 @@ class SwiftAnalyticsBridge: NSObject, IosAnalyticsBridge {
 
     func logEvent(name: String, params: [String : Any]) {
         AppsFlyerLib.shared().logEvent(name, withValues: params)
-        ClaritySDK.sendCustomEvent(name: name)
+        ClaritySDK.sendCustomEvent(value: name)
     }
 
     func logScreenView(screenName: String) {
@@ -339,7 +339,7 @@ class SwiftAnalyticsBridge: NSObject, IosAnalyticsBridge {
         })
     }
 
-    func getAttributionData() -> [String : String?] {
+    func getAttributionData() -> [String : Any] {
         return SwiftAnalyticsBridge.attributionData
     }
 }
