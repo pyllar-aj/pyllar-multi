@@ -16,7 +16,9 @@ data class InvestorDashboardResponseV2Dto(
     @SerialName("recommendations")
     val recommendations: List<RecommendationDto>?,
     @SerialName("showAll")
-    val showAll: Boolean? = false
+    val showAll: Boolean? = false,
+    @SerialName("referralEnabled")
+    val referralEnabled: Boolean? = false
 )
 
 @Serializable

@@ -289,6 +289,7 @@ class InvestmentDashboardV2ViewModel(
             firstLakhMilestoneTimestamp = lakhMilestoneTimestamp,
             kycStatus = response.kycDetails?.kycStatus ?: "PENDING",
             userName = response.userName ?: "",
+            referralEnabled = response.referralEnabled ?: false,
             isLoading = false
         )
     }

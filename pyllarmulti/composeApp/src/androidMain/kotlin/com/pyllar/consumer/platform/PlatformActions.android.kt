@@ -130,4 +130,8 @@ class AndroidPlatformActions(private val context: Context) : PlatformActions {
             Log.e("AndroidPlatformActions", "Failed to open app settings", e)
         }
     }
+
+    override fun generateReferralLink(referrerId: String, onComplete: (String?) -> Unit) {
+        com.pyllar.consumer.analytics.AppsFlyerTracker.generateReferralLink(context, referrerId, onComplete)
+    }
 }

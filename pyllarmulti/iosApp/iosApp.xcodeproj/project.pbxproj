@@ -434,7 +434,7 @@
 			repositoryURL = "https://github.com/AppsFlyerSDK/AppsFlyerFramework";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 6.16.2;
+				minimumVersion = 6.14.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */

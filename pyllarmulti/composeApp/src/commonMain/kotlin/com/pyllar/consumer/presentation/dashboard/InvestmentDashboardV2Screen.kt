@@ -41,6 +41,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -79,6 +80,7 @@ fun InvestmentDashboardV2Screen(
     onNavigateToWithdraw: () -> Unit = {},
     onNavigateToProfile: () -> Unit = {},
     onNavigateToHelp: () -> Unit = {},
+    onNavigateToReferral: () -> Unit = {},
     onRetryKyc: () -> Unit = {},
     viewModel: InvestmentDashboardV2ViewModel = koinInject(),
     platformActions: PlatformActions = koinInject(),
@@ -333,6 +335,15 @@ fun InvestmentDashboardV2Screen(
                             onGoalClick = { goalId -> handleGoalSelection(goalId) }
                         )
                     }
+                }
+            }
+
+            if (!dashboardState.isLoading && dashboardState.referralEnabled) {
+                item {
+                    ReferAndEarnCard(
+                        coinsBalance = 100,
+                        onClick = onNavigateToReferral
+                    )
                 }
             }
 
@@ -1817,4 +1828,187 @@ fun AmcLogoItem(resource: DrawableResource) {
             .height(35.dp),
         contentScale = ContentScale.Fit
     )
+}
+
+@Composable
+fun ReferAndEarnCard(
+    coinsBalance: Int,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(Color(0xFF0C3320), Color(0xFF04190F))
+                    ),
+                    shape = RoundedCornerShape(20.dp)
+                )
+        ) {
+            // Gold "NEW" tag at the top right
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .background(
+                        color = Color(0xFFBD9A3C),
+                        shape = RoundedCornerShape(bottomStart = 12.dp, topEnd = 20.dp)
+                    )
+                    .padding(horizontal = 12.dp, vertical = 4.dp)
+            ) {
+                Text(
+                    text = "NEW",
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                    color = Color(0xFF04190F),
+                    fontSize = 10.sp
+                )
+            }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Top Row: Texts on left, Gold stack on right
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "REFER & EARN",
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.sp
+                            ),
+                            color = Color(0xFFBD9A3C)
+                        )
+
+                        // "Invite friends, earn ₹100 each"
+                        val inviteHeading = buildAnnotatedString {
+                            append("Invite friends, earn ")
+                            withStyle(
+                                style = SpanStyle(
+                                    color = Color(0xFFFFF59D), // Gold/yellow color
+                                    fontWeight = FontWeight.Bold,
+                                    fontStyle = FontStyle.Italic,
+                                    fontFamily = FontFamily.Serif
+                                )
+                            ) {
+                                append("\n₹100 ")
+                            }
+                            append(" each")
+                        }
+
+                        Text(
+                            text = inviteHeading,
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 20.sp
+                            ),
+                            color = Color.White
+                        )
+
+                        // Subtext
+                        Text(
+                            text = "Worth 100 coins when they invest 7 days",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.7f),
+                            lineHeight = 16.sp
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Image(
+                        painter = painterResource(Res.drawable.gold_icon),
+                        contentDescription = "Referral rewards",
+                        modifier = Modifier.size(80.dp),
+                        contentScale = ContentScale.Fit
+                    )
+                }
+
+                // Divider line (thin gold/white translucent line)
+                HorizontalDivider(
+                    color = Color.White.copy(alpha = 0.15f),
+                    thickness = 0.5.dp,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                // Bottom Row: Pill/Wallet on left, Invite button on right
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Pill displaying either "100 coins" or the actual balance
+                        val displayBalance = if (coinsBalance <= 0) 100 else coinsBalance
+                        
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .border(
+                                    BorderStroke(1.dp, Color(0xFFBD9A3C).copy(alpha = 0.5f)),
+                                    shape = RoundedCornerShape(50)
+                                )
+                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                        ) {
+                            Image(
+                                painter = painterResource(Res.drawable.gold_icon),
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "$displayBalance coins",
+                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                color = Color(0xFFFFF59D)
+                            )
+                        }
+                        
+                        Spacer(modifier = Modifier.width(8.dp))
+                        
+                        Text(
+                            text = "≈ ₹$displayBalance in wallet",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.8f)
+                        )
+                    }
+
+                    // Right: Invite > button at the very right end!
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable { onClick() }
+                    ) {
+                        Text(
+                            text = "Invite",
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                            color = Color(0xFFFFF59D)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = ">",
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                            color = Color(0xFFFFF59D)
+                        )
+                    }
+                }
+            }
+        }
+    }
 }

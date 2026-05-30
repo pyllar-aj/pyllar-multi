@@ -18,6 +18,8 @@ data class ProfileResponseDto(
     val deletionRequestId: String? = null,
     val deletionStatus: String? = null,
     val deletionRequestedAt: String? = null,
-    val deletionMessage: String? = null
+    val deletionMessage: String? = null,
+    val referralEnabled: Boolean? = false,
+    val referredByCode: String? = null
 )
 

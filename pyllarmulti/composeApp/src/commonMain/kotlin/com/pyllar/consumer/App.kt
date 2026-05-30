@@ -16,6 +16,7 @@ import com.pyllar.consumer.presentation.home.*
 import com.pyllar.consumer.presentation.notification.*
 import com.pyllar.consumer.presentation.profile.*
 import com.pyllar.consumer.presentation.support.*
+import com.pyllar.consumer.presentation.referral.*
 import com.pyllar.consumer.presentation.mutualfund.upi.UpiAccountLinkingScreen
 import com.pyllar.consumer.presentation.mutualfund.upi.UpiAccountLinkingViewModel
 import com.pyllar.consumer.presentation.ui.theme.PyllarTheme
@@ -100,6 +101,7 @@ sealed class Screen {
         val goalId: String = ""
     ) : Screen()
     data class Profile(val userId: String) : Screen()
+    data class Referral(val userId: String) : Screen()
     data class AccountDeletion(val userId: String) : Screen()
     data class HelpSupport(
         val userId: String,
@@ -653,7 +655,8 @@ fun App() {
                         navigateTo(Screen.Withdraw(screen.userId))
                     },
                     onNavigateToProfile = { navigateTo(Screen.Profile(screen.userId)) },
-                    onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId)) }
+                    onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId)) },
+                    onNavigateToReferral = { navigateTo(Screen.Referral(screen.userId)) }
                 )
             }
             is Screen.SchemeDetails -> {
@@ -901,6 +904,22 @@ fun App() {
                     onDeleteAccount = { navigateTo(Screen.AccountDeletion(screen.userId)) },
                     onHelpSupport = { navigateTo(Screen.HelpSupport(screen.userId)) },
                     onBack = { navigateBack() }
+                )
+            }
+            is Screen.Referral -> {
+                val referralVm: ReferralViewModel = koinInject()
+                val uiState by referralVm.uiState.collectAsState()
+                ReferralScreen(
+                    userId = screen.userId,
+                    uiState = uiState,
+                    onBackClick = { navigateBack() },
+                    onWithdrawClick = { amount ->
+                        // Simulate withdrawal success
+                        scope.launch {
+                            referralVm.dismissSuccessMessage()
+                        }
+                    },
+                    onDismissSuccessMessage = { referralVm.dismissSuccessMessage() }
                 )
             }
             is Screen.AccountDeletion -> {

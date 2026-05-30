@@ -10,12 +10,14 @@ import com.pyllar.consumer.data.repository.FundDetailsRepositoryImpl
 import com.pyllar.consumer.data.repository.MutualFundRepositoryImpl
 import com.pyllar.consumer.data.repository.OnboardingRepositoryImpl
 import com.pyllar.consumer.data.repository.RedemptionRepositoryImpl
+import com.pyllar.consumer.data.repository.ReferralRepositoryImpl
 import com.pyllar.consumer.domain.repository.AuthRepository
 import com.pyllar.consumer.domain.repository.DashboardRepository
 import com.pyllar.consumer.domain.repository.FundDetailsRepository
 import com.pyllar.consumer.domain.repository.MutualFundRepository
 import com.pyllar.consumer.domain.repository.OnboardingRepository
 import com.pyllar.consumer.domain.repository.RedemptionRepository
+import com.pyllar.consumer.domain.repository.ReferralRepository
 import com.pyllar.consumer.domain.storage.SessionStore
 import com.pyllar.consumer.presentation.auth.login.AuthViewModel
 import com.pyllar.consumer.presentation.auth.permission.PermissionViewModel
@@ -47,6 +49,7 @@ import com.pyllar.consumer.presentation.mutualfund.onboarding.MandateAuthModel
 import com.pyllar.consumer.presentation.mutualfund.onboarding.LumpsumPurchaseAuthViewModel
 import com.pyllar.consumer.presentation.mutualfund.onboarding.CheckPanPopulatedDetailsViewModel
 import com.pyllar.consumer.presentation.profile.ProfileViewModel
+import com.pyllar.consumer.presentation.referral.ReferralViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import org.koin.core.module.Module
@@ -69,6 +72,7 @@ val sharedModule: Module = module {
     single<FundDetailsRepository> { FundDetailsRepositoryImpl(get()) }
     single<RedemptionRepository> { RedemptionRepositoryImpl(get()) }
     single<DashboardRepository> { DashboardRepositoryImpl(get()) }
+    single<ReferralRepository> { ReferralRepositoryImpl(get()) }
     single<com.pyllar.consumer.domain.repository.CommonRepository> { com.pyllar.consumer.data.repository.CommonRepositoryImpl(get()) }
     single<PreVerificationRepository> { PreVerificationRepositoryImpl(get()) }
     single<com.pyllar.consumer.domain.repository.UpiRepository> { com.pyllar.consumer.data.repository.UpiRepositoryImpl(get()) }
@@ -107,4 +111,5 @@ val sharedModule: Module = module {
     factoryOf(::WithdrawViewModel)
     factoryOf(::HelperCodeViewModel)
     factoryOf(::ProfileViewModel)
+    factoryOf(::ReferralViewModel)
 }

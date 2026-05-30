@@ -76,8 +76,15 @@ kotlin {
             implementation(libs.play.services.location)
             implementation(libs.kotlinx.coroutines.play.services)
             implementation(libs.androidx.core.ktx)
-            implementation("com.appsflyer:af-android-sdk:6.16.2")
+//            implementation("com.appsflyer:af-android-sdk:6.16.2")
+//            implementation("com.microsoft.clarity:clarity-compose:3.6.0")
+//
+            // Analytics, attribution and session recording
+            implementation(platform("com.google.firebase:firebase-bom:32.7.4"))
+            implementation("com.google.firebase:firebase-analytics")
             implementation("com.microsoft.clarity:clarity-compose:3.6.0")
+            implementation("com.facebook.android:facebook-android-sdk:17.0.2")
+            implementation("com.appsflyer:af-android-sdk:6.16.2")
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)

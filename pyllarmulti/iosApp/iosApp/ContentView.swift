@@ -238,19 +238,19 @@ extension UIResponder {
                     tickButton.layer.cornerRadius = 15
                     tickButton.layer.masksToBounds = true
                     tickButton.tintColor = .white
-                    
+
                     let config = UIImage.SymbolConfiguration(pointSize: 12, weight: .heavy)
                     let tickImage = UIImage(systemName: "checkmark", withConfiguration: config)
                     tickButton.setImage(tickImage, for: .normal)
-                    
+
                     tickButton.translatesAutoresizingMaskIntoConstraints = false
                     NSLayoutConstraint.activate([
                         tickButton.widthAnchor.constraint(equalToConstant: 30),
                         tickButton.heightAnchor.constraint(equalToConstant: 30)
                     ])
-                    
+
                     tickButton.addTarget(self, action: #selector(customDismissKeyboard), for: .touchUpInside)
-                    
+
                     let doneButton = UIBarButtonItem(customView: tickButton)
                     
                     let flexibleSpace = UIBarButtonItem(
@@ -311,20 +311,32 @@ class SwiftGoogleSignInBridge: NSObject, IosGoogleSignInBridge {
 }
 
 class SwiftAnalyticsBridge: NSObject, IosAnalyticsBridge {
+    static var attributionData: [String: String] = [:]
+
     func logEvent(name: String, params: [String : Any]) {
         AppsFlyerLib.shared().logEvent(name, withValues: params)
-        print("Analytics: Logged Event '\(name)' with params \(params)")
     }
-    
+
     func logScreenView(screenName: String) {
-        AppsFlyerLib.shared().logEvent(screenName, withValues: nil)
-        ClaritySDK.setCurrentScreenName(screenName)
-        print("Analytics: Logged Screen view '\(screenName)'")
+        AppsFlyerLib.shared().logEvent("screen_view", withValues: ["screen_name": screenName])
     }
-    
+
     func setUserId(userId: String) {
         AppsFlyerLib.shared().customerUserID = userId
-        ClaritySDK.setCustomUserId(userId)
-        print("Analytics: Set User ID '\(userId)'")
+    }
+
+    func generateReferralLink(referrerId: String, onComplete: @escaping (String?) -> Void) {
+        AppsFlyerShareInviteHelper.generateInviteUrl(linkGenerator: { generator in
+            generator.addParameterValue("referral", forKey: "deep_link_value")
+            generator.addParameterValue(referrerId, forKey: "deep_link_sub1")
+            generator.addParameterValue(referrerId, forKey: "af_sub1")
+            return generator
+        }, completionHandler: { url in
+            onComplete(url?.absoluteString)
+        })
+    }
+
+    func getAttributionData() -> [String : String?] {
+        return SwiftAnalyticsBridge.attributionData
     }
 }

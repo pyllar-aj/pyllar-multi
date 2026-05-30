@@ -35,5 +35,6 @@ fun androidPlatformModule(appContext: Context): Module = module {
     single<PermissionManager> { AndroidPermissionManager(appContext) }
     single<PlatformActions> { AndroidPlatformActions(appContext) }
     single<com.pyllar.consumer.platform.LocationProvider> { com.pyllar.consumer.platform.AndroidLocationProvider(appContext) }
+    single<com.pyllar.consumer.platform.AttributionProvider> { com.pyllar.consumer.platform.AndroidAttributionProvider() }
 }
 
