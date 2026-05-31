@@ -285,7 +285,7 @@ fun PhoneVerificationScreenV2(
 
     LaunchedEffect(Unit) {
         while (true) {
-            delay(3000)
+            delay(6000)
             isVisible = false
             delay(500)
             currentAssetIndex = (currentAssetIndex + 1) % assets.size

@@ -666,7 +666,7 @@ fun App() {
                 )
             }
             is Screen.InitialDashboard -> {
-                InitialDashboardScreen(
+                InitialDashboardScreenV2(
                     userId = screen.userId,
                     onNavigateToOnboarding = { _, _ -> /* Fallback */ },
                     onNavigateToRoute = { nextScreen, preVerificationId ->

@@ -318,4 +318,58 @@
     <string name="what_if_verification_fails">What if verification fails?</string>
     <string name="double_check_account_message">Double-check your account number and IFSC code and make sure the account is held in your name only. Ensure the account is active and has UPI enabled. Contact support if issues persist.</string>
     <string name="bank_need_help">For bank account verification issues, tap \'Bank Account\' below to chat with our support team on WhatsApp.</string>
+
+    <!-- Initial Dashboard V2 Localized Strings -->
+    <string name="choose_goal_subtitle">Invest &amp; withdraw from the same bank account. Add more goals anytime.</string>
+    <string name="dashboard_start_growing_wealth">Start growing your wealth</string>
+    <string name="small_steps">Small Steps</string>
+    <string name="big_dreams">Big Dreams</string>
+    <string name="gold_and_silver_bars">Gold and Silver Bars</string>
+    <string name="gold_3y_cagr">Gold 3Y CAGR</string>
+    <string name="silver_3y_cagr">Silver 3Y CAGR</string>
+    <string name="instant_badge">Instant</string>
+    <string name="purchasing_power_equivalent_gold">* Purchasing power equivalent</string>
+    <string name="purchasing_power_equivalent_silver">* Purchasing power equivalent</string>
+    <string name="corpus_growth_estimation">* Corpus growth value estimation</string>
+    <string name="estimation_based_performance">* Estimation based on performance</string>
+    <string name="grows_market_performance">Grows with market performance</string>
+    <string name="content_description_info">Info</string>
+
+    <!-- Comparison Matrix and Trust signals -->
+    <string name="compare_physical_gold_silver">Compare with physical Gold &amp; Silver</string>
+    <string name="features_header">FEATURES</string>
+    <string name="pyllar_money_header">PYLLAR MONEY</string>
+    <string name="physical_header">Digital Gold &amp; Silver</string>
+    <string name="sebi_regulated_funds">SEBI-regulated funds</string>
+    <string name="no_making_charges">0% Making charges</string>
+    <string name="regulated_storage">Regulated storage</string>
+    <string name="built_for_everyday_indians">Built for everyday Indians</string>
+    <string name="amfi_registered">AMFI Registered</string>
+    <string name="secure_title">Secure</string>
+    <string name="secure_subtitle">Your investments\nare 100% safe</string>
+    <string name="trusted_title">Trusted</string>
+    <string name="trusted_subtitle">Backed by leading\nAMCs</string>
+    <string name="transparent_title">Transparent</string>
+    <string name="transparent_subtitle">Clear, simple &amp;\nhonest investing</string>
+    <string name="powered_by_leading_amcs">POWERED BY LEADING AMCS</string>
+
+    <string name="intro_goal_gold_desc">Grows in line with gold price</string>
+    <string name="intro_goal_silver_desc">Grows in line with silver price</string>
+    <string name="up_to_7_returns">Up to 7% returns</string>
+    <string name="intro_goal_savings">Savings</string>
+    <string name="plus_label">Plus</string>
+    <string name="intro_goal_gold">Gold</string>
+    <string name="intro_goal_silver">Silver</string>
+    <string name="daily_label">Daily</string>
+    <string name="savings_plus_info_title">Savings Plus</string>
+    <string name="savings_plus_info_description">Pyllar Savings Plus allows you to earn higher returns than a typical savings account with instant liquidity.</string>
+    <string name="gold_purchasing_power_explanation">Purchasing power equivalent based on historical gold prices.</string>
+    <string name="silver_purchasing_power_explanation">Purchasing power equivalent based on historical silver prices.</string>
+    <string name="share_pyllar">Share Pyllar</string>
+    <string name="share_message">Gold, Silver &amp; much more starting at ₹21! ✨\n\nSmall daily steps ➡️ Big rewards. Join me and build a consistent saving habit for your goals with Pyllar.\n\nStart today: https://pyllar.in/download.html</string>
+    <string name="content_description_share">Share</string>
+    <string name="unable_to_select_goal">Unable to select goal. Please try again.</string>
+    <string name="something_went_wrong">Something went wrong. Please try again.</string>
+    <string name="arn_label">ARN:</string>
+    <string name="arn_value">341847</string>
 </resources>

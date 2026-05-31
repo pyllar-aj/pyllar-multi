@@ -59,22 +59,19 @@ fun AdditionalKycScreen(
     var gender by remember { mutableStateOf("") }
     var locationStatus by remember { mutableStateOf<String?>(null) }
 
-    val lifecycleOwner = LocalLifecycleOwner.current
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                scope.launch {
-                    delay(500)
-                    val status = permissionManager.checkStatus()
-                    if (status.locationGranted && status.gpsEnabled) {
-                        locationStatus = null
-                    }
+    LaunchedEffect(Unit) {
+        while (true) {
+            val status = permissionManager.checkStatus()
+            if (status.locationGranted && status.gpsEnabled) {
+                locationStatus = null
+            } else if (locationStatus != null) {
+                if (!status.locationGranted) {
+                    locationStatus = "Location permission is required to verify your address. Please grant location access."
+                } else if (!status.gpsEnabled) {
+                    locationStatus = "Location services/GPS are disabled. Please enable location services in Settings."
                 }
             }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
+            delay(1000)
         }
     }
     var maritalStatus by remember { mutableStateOf("") }
@@ -431,12 +428,26 @@ fun AdditionalKycScreen(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
                     ) {
-                        Text(
-                            text = locationStatus!!,
+                        Column(
                             modifier = Modifier.padding(12.dp),
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = locationStatus!!,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Button(
+                                onClick = { platformActions.openAppSettings() },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.error,
+                                    contentColor = MaterialTheme.colorScheme.onError
+                                ),
+                                modifier = Modifier.align(Alignment.End)
+                            ) {
+                                Text("Open Settings")
+                            }
+                        }
                     }
                 }
 
@@ -455,14 +466,16 @@ fun AdditionalKycScreen(
                                 if (!status.locationGranted) {
                                     platformLog("AdditionalKycScreen: Location permission not granted - requesting permission")
                                     locationStatus = "Location permission is required to verify your address. Please grant location access."
-                                    permissionManager.requestLocation()
-                                    return@launch
+                                    val granted = permissionManager.requestLocation()
+                                    if (!granted) {
+                                        return@launch
+                                    }
                                 }
 
-                                if (!status.gpsEnabled) {
-                                    platformLog("AdditionalKycScreen: Location services are disabled - opening settings")
+                                val updatedStatus = permissionManager.checkStatus()
+                                if (!updatedStatus.gpsEnabled) {
+                                    platformLog("AdditionalKycScreen: Location services are disabled")
                                     locationStatus = "Location services/GPS are disabled. Please enable location services in Settings."
-                                    platformActions.openAppSettings()
                                     return@launch
                                 }
 
