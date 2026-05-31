@@ -22,6 +22,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material.icons.filled.Schedule
 import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.koinInject
+import com.pyllar.consumer.platform.PlatformActions
 import pyllar.composeapp.generated.resources.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -34,9 +36,18 @@ fun WithdrawSuccessScreen(
     transactionId: String,
     folio: String?,
     redemptionMode: String = "NORMAL",
+    platformActions: PlatformActions = koinInject(),
     onNavigateToHome: () -> Unit
 ) {
     val scrollState = rememberScrollState()
+
+    LaunchedEffect(Unit) {
+        platformActions.requestInAppReview(
+            screenName = "WithdrawSuccess",
+            silentFallback = true,
+            trigger = "auto"
+        )
+    }
 
     Scaffold { paddingValues ->
         Column(

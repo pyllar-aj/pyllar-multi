@@ -119,13 +119,47 @@ class IosPlatformActions : PlatformActions {
         com.pyllar.consumer.analytics.SwiftAnalyticsScope.bridge?.generateReferralLink(referrerId, onComplete)
     }
 
-    override fun requestInAppReview() {
+    override fun requestInAppReview(
+        screenName: String,
+        silentFallback: Boolean,
+        trigger: String
+    ) {
+        platformLog("IosPlatformActions: 🚀 requestInAppReview called (silentFallback=$silentFallback)")
+        com.pyllar.consumer.analytics.PlatformAnalyticsLogger.logEvent(
+            "rate_us_in_app_review_started",
+            mapOf("screen_name" to screenName, "silent" to silentFallback, "trigger" to trigger)
+        )
+
         val window = UIApplication.sharedApplication.windows.first() as? UIWindow
         val scene = window?.windowScene
         if (scene != null) {
+            platformLog("IosPlatformActions: ✅ Found windowScene, requesting review in scene")
             platform.StoreKit.SKStoreReviewController.requestReviewInScene(scene)
+            com.pyllar.consumer.analytics.PlatformAnalyticsLogger.logEvent(
+                "rate_us_in_app_review_shown",
+                mapOf("screen_name" to screenName, "trigger" to trigger)
+            )
         } else {
-            platformLog("IosPlatformActions: requestInAppReview called but windowScene is null")
+            platformLog("IosPlatformActions: ❌ requestInAppReview called but windowScene is null, falling back to App Store")
+            com.pyllar.consumer.analytics.PlatformAnalyticsLogger.logEvent(
+                "rate_us_in_app_review_fallback",
+                mapOf("reason" to "no_scene", "screen_name" to screenName, "trigger" to trigger)
+            )
+            if (!silentFallback) {
+                openAppStoreReview()
+            }
+        }
+    }
+
+    private fun openAppStoreReview() {
+        val appStoreUrl = "itms-apps://itunes.apple.com/app/id6767513475?action=write-review"
+        val nsUrl = NSURL.URLWithString(appStoreUrl)
+        if (nsUrl != null) {
+            UIApplication.sharedApplication.openURL(nsUrl, options = emptyMap<Any?, Any?>(), completionHandler = { success ->
+                platformLog("IosPlatformActions: Opened App Store review result: $success")
+            })
+        } else {
+            platformLog("IosPlatformActions: ❌ Failed to open App Store review URL")
         }
     }
 

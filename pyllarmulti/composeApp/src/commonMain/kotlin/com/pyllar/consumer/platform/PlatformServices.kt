@@ -89,7 +89,11 @@ interface PlatformActions {
     fun getInstalledUpiApps(): List<UpiAppInfo>
     fun openAppSettings()
     fun generateReferralLink(referrerId: String, onComplete: (String?) -> Unit)
-    fun requestInAppReview()
+    fun requestInAppReview(
+        screenName: String = "InvestmentDashboardV2",
+        silentFallback: Boolean = false,
+        trigger: String = "manual"
+    )
 }
 
 /**

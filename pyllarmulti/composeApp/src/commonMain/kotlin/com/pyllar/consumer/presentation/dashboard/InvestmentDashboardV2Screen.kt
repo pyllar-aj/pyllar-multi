@@ -51,6 +51,8 @@ import com.pyllar.consumer.util.Log
 import com.pyllar.consumer.util.platformLog
 import com.pyllar.consumer.util.Resource
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import kotlinx.datetime.Clock
 import org.koin.compose.koinInject
 import com.pyllar.consumer.platform.PlatformActions
 import kotlin.math.ceil
@@ -181,6 +183,27 @@ fun InvestmentDashboardV2Screen(
     LaunchedEffect(userId) {
         if (userId.isNotBlank()) {
             viewModel.loadDashboardData(userId)
+        }
+    }
+
+    // Auto-trigger In-App Review after 1 second, once every 10 days, after data is loaded
+    LaunchedEffect(dashboardState.isLoading) {
+        if (!dashboardState.isLoading) {
+            delay(1000)
+            val lastPromptTimeStr = sessionStore.getValue("last_review_prompt_time")
+            val lastPromptTime = lastPromptTimeStr?.toLongOrNull() ?: 0L
+            val currentTime = Clock.System.now().toEpochMilliseconds()
+            val tenDaysInMillis = 10L * 24 * 60 * 60 * 1000
+
+            val actualCurrentValue = dashboardState.primaryGoals.sumOf { it.currentValue }
+            if (currentTime - lastPromptTime > tenDaysInMillis && actualCurrentValue > 0) {
+                platformActions.requestInAppReview(
+                    screenName = "InvestmentDashboardV2",
+                    silentFallback = true,
+                    trigger = "auto"
+                )
+                sessionStore.saveValue("last_review_prompt_time", currentTime.toString())
+            }
         }
     }
 

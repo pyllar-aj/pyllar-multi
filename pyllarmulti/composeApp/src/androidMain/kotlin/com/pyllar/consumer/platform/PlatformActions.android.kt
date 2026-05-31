@@ -140,10 +140,11 @@ class AndroidPlatformActions(private val context: Context) : PlatformActions {
         com.pyllar.consumer.analytics.AppsFlyerTracker.generateReferralLink(context, referrerId, onComplete)
     }
 
-    override fun requestInAppReview() {
-        val screenName = "InvestmentDashboardV2"
-        val trigger = "manual"
-        val silentFallback = false
+    override fun requestInAppReview(
+        screenName: String,
+        silentFallback: Boolean,
+        trigger: String
+    ) {
 
         Log.d("AndroidPlatformActions", "🚀 requestInAppReview called (silentFallback=$silentFallback)")
         AnalyticsLogger.logEvent(
