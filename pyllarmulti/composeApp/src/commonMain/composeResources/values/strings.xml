@@ -372,4 +372,6 @@
     <string name="something_went_wrong">Something went wrong. Please try again.</string>
     <string name="arn_label">ARN:</string>
     <string name="arn_value">341847</string>
+    <string name="start_nav">Start NAV</string>
+    <string name="current_nav">Current NAV</string>
 </resources>

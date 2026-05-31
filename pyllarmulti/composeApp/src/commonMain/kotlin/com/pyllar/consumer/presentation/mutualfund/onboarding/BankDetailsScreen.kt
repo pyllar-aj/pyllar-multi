@@ -258,6 +258,7 @@ fun BankDetailsScreen(
                             onValueChange = { accountNumber = it.filter { it.isDigit() } },
                             label = { Text("Account Number") },
                             modifier = Modifier.fillMaxWidth(),
+                            enabled = !isPolling,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next)
                         )
 
@@ -266,6 +267,7 @@ fun BankDetailsScreen(
                             onValueChange = { ifscCode = it.uppercase().take(11) },
                             label = { Text("IFSC Code") },
                             modifier = Modifier.fillMaxWidth(),
+                            enabled = !isPolling,
                             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters, imeAction = ImeAction.Done)
                         )
 

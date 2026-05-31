@@ -89,6 +89,7 @@ interface PlatformActions {
     fun getInstalledUpiApps(): List<UpiAppInfo>
     fun openAppSettings()
     fun generateReferralLink(referrerId: String, onComplete: (String?) -> Unit)
+    fun requestInAppReview()
 }
 
 /**

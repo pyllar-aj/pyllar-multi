@@ -119,6 +119,16 @@ class IosPlatformActions : PlatformActions {
         com.pyllar.consumer.analytics.SwiftAnalyticsScope.bridge?.generateReferralLink(referrerId, onComplete)
     }
 
+    override fun requestInAppReview() {
+        val window = UIApplication.sharedApplication.windows.first() as? UIWindow
+        val scene = window?.windowScene
+        if (scene != null) {
+            platform.StoreKit.SKStoreReviewController.requestReviewInScene(scene)
+        } else {
+            platformLog("IosPlatformActions: requestInAppReview called but windowScene is null")
+        }
+    }
+
     private fun getRootViewController(): UIViewController? {
         val window = UIApplication.sharedApplication.windows.first() as? UIWindow
         return window?.rootViewController

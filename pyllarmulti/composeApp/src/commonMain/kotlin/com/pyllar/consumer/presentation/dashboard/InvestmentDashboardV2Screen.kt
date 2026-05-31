@@ -236,7 +236,7 @@ fun InvestmentDashboardV2Screen(
                     onDismissMenu = { showMenu = false },
                     onShareClick = { platformActions.shareText("Start your investment journey with Pyllar! Download now: https://pyllar.in", "Share Pyllar") },
                     onLanguageClick = { /* Handle Language */ },
-                    onRateUsClick = { /* Handle Rate Us */ }
+                    onRateUsClick = { platformActions.requestInAppReview() }
                 )
             }
 

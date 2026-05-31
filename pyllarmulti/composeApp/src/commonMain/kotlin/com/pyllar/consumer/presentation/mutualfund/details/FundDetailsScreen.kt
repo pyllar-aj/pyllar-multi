@@ -1,5 +1,11 @@
 package com.pyllar.consumer.presentation.mutualfund.details
 
+import org.jetbrains.compose.resources.stringResource
+import pyllar.composeapp.generated.resources.*
+import kotlin.math.roundToInt
+import kotlin.math.pow
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -250,6 +256,46 @@ fun FundDetailsBottomBar(
         }
     }
 }
+
+fun formatDecimal(value: Double, decimals: Int = 2): String {
+    val factor = 10.0.pow(decimals)
+    val roundedValue = kotlin.math.round(value * factor) / factor
+    val intPart = roundedValue.toLong()
+    val fracPart = kotlin.math.abs(kotlin.math.round((roundedValue - intPart) * factor).toLong())
+    val fracStr = fracPart.toString().padStart(decimals, '0')
+    return "$intPart.$fracStr"
+}
+
+private fun formatChartDate(dateString: String): String {
+    return try {
+        val parts = dateString.split("-")
+        if (parts.size == 3) {
+            val year = parts[0].takeLast(2)
+            val month = when (parts[1]) {
+                "01" -> "Jan"
+                "02" -> "Feb"
+                "03" -> "Mar"
+                "04" -> "Apr"
+                "05" -> "May"
+                "06" -> "Jun"
+                "07" -> "Jul"
+                "08" -> "Aug"
+                "09" -> "Sep"
+                "10" -> "Oct"
+                "11" -> "Nov"
+                "12" -> "Dec"
+                else -> parts[1]
+            }
+            val day = parts[2].toInt().toString()
+            "$day $month '$year"
+        } else {
+            dateString
+        }
+    } catch (e: Exception) {
+        dateString
+    }
+}
+
 @Composable
 fun FundChartSection(
     state: FundDetailsState,
@@ -291,7 +337,7 @@ fun FundChartSection(
             val sign = if (returnVal >= 0) "+" else ""
             
             Text(
-                text = "$sign${returnVal}% CAGR (${state.selectedPeriod})",
+                text = "$sign${formatDecimal(returnVal)}% CAGR (${state.selectedPeriod})",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = returnColor
@@ -316,6 +362,42 @@ fun FundChartSection(
                     .fillMaxWidth()
                     .height(200.dp)
             )
+
+            // Start & Current NAV indicator below the chart
+            val currentNav = state.chartData.firstOrNull()?.nav
+            val oldestNav = state.chartData.lastOrNull()?.nav
+            if (currentNav != null && oldestNav != null) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Text(
+                            text = stringResource(Res.string.start_nav),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "₹${formatDecimal(oldestNav)}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            text = stringResource(Res.string.current_nav),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "₹${formatDecimal(currentNav)}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = lineColor
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -326,56 +408,146 @@ fun SimpleNavChart(
     lineColor: Color,
     modifier: Modifier = Modifier
 ) {
-    Canvas(modifier = modifier) {
-        if (data.size < 2) return@Canvas
+    val reversedData = remember(data) { data.reversed() }
+    if (reversedData.size < 2) return
 
-        val minNav = data.minOf { it.nav }.toFloat()
-        val maxNav = data.maxOf { it.nav }.toFloat()
-        val navRange = maxNav - minNav
-        
-        val width = size.width
-        val height = size.height
-        val padding = 8.dp.toPx()
-        
-        val usableWidth = width - (2 * padding)
-        val usableHeight = height - (2 * padding)
+    var touchX by remember { mutableStateOf<Float?>(null) }
+    var selectedIndex by remember { mutableStateOf<Int?>(null) }
 
-        val myPath = Path()
-        val fillPath = Path()
-
-        data.forEachIndexed { index, point ->
-            val x = padding + (index.toFloat() / (data.size - 1)) * usableWidth
-            val y = padding + usableHeight - ((point.nav.toFloat() - minNav) / navRange.coerceAtLeast(0.1f)) * usableHeight
+    Box(modifier = modifier) {
+        Canvas(
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(reversedData) {
+                    awaitPointerEventScope {
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            val position = event.changes.firstOrNull()?.position
+                            val isPressed = event.changes.any { it.pressed }
+                            if (position != null && isPressed) {
+                                touchX = position.x
+                            } else {
+                                touchX = null
+                                selectedIndex = null
+                            }
+                        }
+                    }
+                }
+        ) {
+            val minNav = reversedData.minOf { it.nav }.toFloat()
+            val maxNav = reversedData.maxOf { it.nav }.toFloat()
+            val navRange = maxNav - minNav
             
-            if (index == 0) {
-                myPath.moveTo(x, y)
-                fillPath.moveTo(x, height)
-                fillPath.lineTo(x, y)
-            } else {
-                myPath.lineTo(x, y)
-                fillPath.lineTo(x, y)
+            val width = size.width
+            val height = size.height
+            val padding = 8.dp.toPx()
+            
+            val usableWidth = width - (2 * padding)
+            val usableHeight = height - (2 * padding)
+
+            val myPath = Path()
+            val fillPath = Path()
+
+            val points = reversedData.mapIndexed { index, point ->
+                val x = padding + (index.toFloat() / (reversedData.size - 1)) * usableWidth
+                val y = padding + usableHeight - ((point.nav.toFloat() - minNav) / navRange.coerceAtLeast(0.1f)) * usableHeight
+                Offset(x, y)
             }
-            
-            if (index == data.size - 1) {
-                fillPath.lineTo(x, height)
-                fillPath.close()
+
+            points.forEachIndexed { index, point ->
+                if (index == 0) {
+                    myPath.moveTo(point.x, point.y)
+                    fillPath.moveTo(point.x, height)
+                    fillPath.lineTo(point.x, point.y)
+                } else {
+                    myPath.lineTo(point.x, point.y)
+                    fillPath.lineTo(point.x, point.y)
+                }
+                
+                if (index == reversedData.size - 1) {
+                    fillPath.lineTo(point.x, height)
+                    fillPath.close()
+                }
+            }
+
+            drawPath(
+                path = fillPath,
+                brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                    colors = listOf(lineColor.copy(alpha = 0.2f), Color.Transparent)
+                ),
+                style = Fill
+            )
+
+            val strokeWidth = 3.dp.toPx()
+            drawPath(
+                path = myPath,
+                color = lineColor,
+                style = Stroke(width = strokeWidth)
+            )
+
+            touchX?.let { tx ->
+                val relativeX = tx - padding
+                val index = (relativeX / usableWidth * (reversedData.size - 1))
+                    .roundToInt()
+                    .coerceIn(0, reversedData.size - 1)
+                
+                selectedIndex = index
+                val selectedPoint = points[index]
+
+                drawLine(
+                    color = Color.Gray.copy(alpha = 0.5f),
+                    start = Offset(selectedPoint.x, padding),
+                    end = Offset(selectedPoint.x, height - padding),
+                    strokeWidth = 1.dp.toPx(),
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
+                )
+
+                drawCircle(
+                    color = lineColor.copy(alpha = 0.3f),
+                    radius = 8.dp.toPx(),
+                    center = selectedPoint
+                )
+
+                drawCircle(
+                    color = lineColor,
+                    radius = 4.dp.toPx(),
+                    center = selectedPoint
+                )
             }
         }
 
-        drawPath(
-            path = fillPath,
-            brush = androidx.compose.ui.graphics.Brush.verticalGradient(
-                colors = listOf(lineColor.copy(alpha = 0.2f), Color.Transparent)
-            ),
-            style = Fill
-        )
+        selectedIndex?.let { index ->
+            val point = reversedData[index]
+            val formattedNav = formatDecimal(point.nav)
+            val formattedDate = formatChartDate(point.date)
 
-        val strokeWidth = 3.dp.toPx()
-        drawPath(
-            path = myPath,
-            color = lineColor,
-            style = Stroke(width = strokeWidth)
-        )
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 4.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                shape = RoundedCornerShape(8.dp),
+                shadowElevation = 4.dp,
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+            ) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "NAV: ₹$formattedNav",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = formattedDate,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                    )
+                }
+            }
+        }
     }
 }
 

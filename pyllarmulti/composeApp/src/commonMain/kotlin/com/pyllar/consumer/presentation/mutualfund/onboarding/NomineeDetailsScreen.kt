@@ -243,10 +243,10 @@ fun NomineeDetailsScreen(
                     // Skip Toggle
                     Column {
                         Row(
-                            modifier = Modifier.fillMaxWidth().clickable { skipAddingNominee = !skipAddingNominee },
+                            modifier = Modifier.fillMaxWidth().clickable(enabled = !showOtpScreen) { skipAddingNominee = !skipAddingNominee },
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Checkbox(checked = skipAddingNominee, onCheckedChange = { skipAddingNominee = it })
+                            Checkbox(checked = skipAddingNominee, onCheckedChange = { skipAddingNominee = it }, enabled = !showOtpScreen)
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Skip adding nominees", style = MaterialTheme.typography.bodyLarge)
                         }
@@ -278,6 +278,7 @@ fun NomineeDetailsScreen(
                                 totalNominees = nominees.size,
                                 relationshipOptions = relationshipOptions,
                                 relationshipDisplay = relationshipDisplay,
+                                enabled = !showOtpScreen,
                                 onUpdate = { updated ->
                                     nominees = nominees.toMutableList().apply { this[index] = updated }
                                 },
@@ -291,7 +292,8 @@ fun NomineeDetailsScreen(
                         if (nominees.size < 3) {
                             OutlinedButton(
                                 onClick = { nominees = nominees + NomineeInfo("", "", "", "") },
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth(),
+                                enabled = !showOtpScreen
                             ) {
                                 Icon(Icons.Filled.Add, contentDescription = "Add")
                                 Spacer(modifier = Modifier.width(8.dp))
@@ -326,7 +328,7 @@ fun NomineeDetailsScreen(
                         },
                         modifier = Modifier.fillMaxWidth().height(50.dp),
                         shape = RoundedCornerShape(8.dp),
-                        enabled = !isSubmitting
+                        enabled = !isSubmitting && !showOtpScreen
                     ) {
                         if (isSubmitting) {
                             CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White, strokeWidth = 2.dp)
@@ -379,6 +381,7 @@ private fun NomineeFormSection(
     totalNominees: Int,
     relationshipOptions: List<String>,
     relationshipDisplay: Map<String, String>,
+    enabled: Boolean,
     onUpdate: (NomineeInfo) -> Unit,
     onRemove: () -> Unit,
     showDatePicker: () -> Unit
@@ -398,7 +401,7 @@ private fun NomineeFormSection(
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
             )
             if (index > 0) {
-                IconButton(onClick = onRemove) {
+                IconButton(onClick = onRemove, enabled = enabled) {
                     Icon(Icons.Filled.Close, contentDescription = "Remove", tint = MaterialTheme.colorScheme.error)
                 }
             }
@@ -409,6 +412,7 @@ private fun NomineeFormSection(
             value = nominee.name,
             onValueChange = { onUpdate(nominee.copy(name = it)) },
             label = { Text("Nominee Name") },
+            enabled = enabled,
             modifier = Modifier.fillMaxWidth().bringIntoViewRequester(nameBringIntoViewRequester),
             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Next),
             keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(androidx.compose.ui.focus.FocusDirection.Down) })
@@ -429,6 +433,7 @@ private fun NomineeFormSection(
                 }
             },
             label = { Text("Enter PAN Number") },
+            enabled = enabled,
             modifier = Modifier.fillMaxWidth().bringIntoViewRequester(panBringIntoViewRequester),
             keyboardOptions = KeyboardOptions(
                 capitalization = KeyboardCapitalization.Characters,
@@ -449,14 +454,15 @@ private fun NomineeFormSection(
             selected = nominee.relationship,
             options = relationshipOptions,
             displayMap = relationshipDisplay,
-            onSelect = { onUpdate(nominee.copy(relationship = it)) }
+            onSelect = { onUpdate(nominee.copy(relationship = it)) },
+            enabled = enabled
         )
 
         // Date of Birth
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { showDatePicker() }
+                .clickable(enabled = enabled) { showDatePicker() }
         ) {
             OutlinedTextField(
                 value = nominee.dateOfBirth,
@@ -464,9 +470,9 @@ private fun NomineeFormSection(
                 label = { Text("Nominee Date of Birth") },
                 modifier = Modifier.fillMaxWidth(),
                 readOnly = true,
-                enabled = false,
+                enabled = enabled,
                 trailingIcon = { 
-                    IconButton(onClick = showDatePicker) {
+                    IconButton(onClick = showDatePicker, enabled = enabled) {
                         Icon(Icons.Filled.DateRange, contentDescription = "Select Date")
                     }
                 },

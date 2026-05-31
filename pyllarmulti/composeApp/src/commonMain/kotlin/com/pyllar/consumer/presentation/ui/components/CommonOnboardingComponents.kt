@@ -63,39 +63,43 @@ fun ExposedDropdownFieldWithDisplay(
     options: List<String>,
     displayMap: Map<String, String>,
     onSelect: (String) -> Unit,
-    showError: Boolean = false
+    showError: Boolean = false,
+    enabled: Boolean = true
 ) {
     var expanded by remember { mutableStateOf(false) }
     ExposedDropdownMenuBox(
         expanded = expanded,
-        onExpandedChange = { expanded = !expanded }
+        onExpandedChange = { if (enabled) expanded = !expanded }
     ) {
         OutlinedTextField(
             value = if (selected.isNotBlank()) displayMap[selected] ?: selected.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() } else "",
             onValueChange = {},
             label = { Text(label) },
             readOnly = true,
+            enabled = enabled,
             modifier = Modifier
                 .fillMaxWidth()
                 .menuAnchor()
-                .clickable { expanded = true },
+                .clickable(enabled = enabled) { if (enabled) expanded = true },
             isError = showError,
             supportingText = if (showError) {
                 { Text("Field required", color = MaterialTheme.colorScheme.error) }
             } else null
         )
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            options.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(displayMap[option] ?: option.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }) },
-                    onClick = {
-                        onSelect(option)
-                        expanded = false
-                    }
-                )
+        if (enabled) {
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                options.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(displayMap[option] ?: option.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }) },
+                        onClick = {
+                            onSelect(option)
+                            expanded = false
+                        }
+                    )
+                }
             }
         }
     }
