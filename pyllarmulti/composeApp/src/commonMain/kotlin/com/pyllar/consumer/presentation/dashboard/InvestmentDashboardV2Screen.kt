@@ -1947,6 +1947,12 @@ fun ReferAndEarnCard(
                     modifier = Modifier.fillMaxWidth()
                 )
 
+                Text(
+                    text = "🕐 Offer valid till 30 June",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.White.copy(alpha = 0.8f)
+                )
+
                 // Bottom Row: Pill/Wallet on left, Invite button on right
                 Row(
                     modifier = Modifier.fillMaxWidth(),
