@@ -57,11 +57,16 @@ object InstallReferrerHelper {
                             if (!referrerUrl.isNullOrBlank()) {
                                 val params = parseUtmParams(referrerUrl)
                                 CoroutineScope(Dispatchers.IO).launch {
-                                    saveUtmParams(store, params)
+                                    saveUtmParams(context, store, params)
                                 }
                             } else {
                                 CoroutineScope(Dispatchers.IO).launch {
                                     store.saveValue(KEY_REFERRER_CAPTURED, "true")
+                                    // Also save in session store prefs
+                                    try {
+                                        val sessionPrefs = context.getSharedPreferences("pyllar_session", Context.MODE_PRIVATE)
+                                        sessionPrefs.edit().putString(KEY_REFERRER_CAPTURED, "true").apply()
+                                    } catch (_: Exception) {}
                                 }
                             }
                         } catch (e: Exception) {
@@ -107,12 +112,21 @@ object InstallReferrerHelper {
         return params
     }
 
-    private suspend fun saveUtmParams(store: AndroidLocalOnboardingStore, params: Map<String, String>) {
-        params.forEach { (key, value) ->
-            store.saveValue(key, value)
-            Log.d(TAG, "Saved UTM param: $key = $value")
+    private suspend fun saveUtmParams(context: Context, store: AndroidLocalOnboardingStore, params: Map<String, String>) {
+        try {
+            val sessionPrefs = context.getSharedPreferences("pyllar_session", Context.MODE_PRIVATE)
+            val editor = sessionPrefs.edit()
+            params.forEach { (key, value) ->
+                store.saveValue(key, value)
+                editor.putString(key, value)
+                Log.d(TAG, "Saved UTM param: $key = $value")
+            }
+            store.saveValue(KEY_REFERRER_CAPTURED, "true")
+            editor.putString(KEY_REFERRER_CAPTURED, "true")
+            editor.apply()
+            Log.d(TAG, "UTM params saved successfully")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to save UTM params to session: ${e.message}")
         }
-        store.saveValue(KEY_REFERRER_CAPTURED, "true")
-        Log.d(TAG, "UTM params saved successfully")
     }
 }

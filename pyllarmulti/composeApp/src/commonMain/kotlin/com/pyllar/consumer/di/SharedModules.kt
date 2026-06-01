@@ -68,7 +68,7 @@ val sharedModule: Module = module {
     single { com.pyllar.consumer.data.remote.crypto.createSecureSessionStore() }
     single { com.pyllar.consumer.data.remote.crypto.SecureHandshakeCoordinator({ getApiBaseUrl() }, get(), get()) }
     single<AuthRemoteDataSource> { AuthRemoteDataSourceImpl(get()) }
-    single<AuthRepository> { AuthRepositoryImpl(get(), get<SessionStore>()) }
+    single<AuthRepository> { AuthRepositoryImpl(get(), get<SessionStore>(), get()) }
     single<OnboardingRepository> { OnboardingRepositoryImpl(get(), get()) }
     single<MutualFundRepository> { MutualFundRepositoryImpl(get()) }
     single<FundDetailsRepository> { FundDetailsRepositoryImpl(get()) }

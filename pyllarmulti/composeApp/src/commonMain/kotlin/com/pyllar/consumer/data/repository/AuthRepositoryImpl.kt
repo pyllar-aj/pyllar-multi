@@ -15,9 +15,12 @@ import com.pyllar.consumer.data.remote.parser.ErrorType
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
+import com.pyllar.consumer.platform.AttributionProvider
+
 class AuthRepositoryImpl(
     private val remote: AuthRemoteDataSource,
-    private val sessionStore: SessionStore
+    private val sessionStore: SessionStore,
+    private val attributionProvider: AttributionProvider
 ) : AuthRepository {
 
     override fun checkPreviousAuthUser(): Flow<Resource<AuthToken>> = flow {
@@ -31,7 +34,24 @@ class AuthRepositoryImpl(
 
     override fun sendOtp(request: OtpRegistrationRequest): Flow<Resource<AuthToken>> = flow {
         emit(Resource.Loading())
-        when (val result = remote.sendOtp(request)) {
+        val enrichedRequest = request.copy(
+            utmSource = request.utmSource ?: sessionStore.getValue("utm_source") ?: attributionProvider.getMediaSource(),
+            utmMedium = request.utmMedium ?: sessionStore.getValue("utm_medium") ?: attributionProvider.getChannel(),
+            utmCampaign = request.utmCampaign ?: sessionStore.getValue("utm_campaign") ?: attributionProvider.getCampaign(),
+            utmTerm = request.utmTerm ?: sessionStore.getValue("utm_term"),
+            utmContent = request.utmContent ?: sessionStore.getValue("utm_content") ?: attributionProvider.getAdSet(),
+            utmCampaignId = request.utmCampaignId ?: sessionStore.getValue("utm_campaign_id") ?: attributionProvider.getCampaignId(),
+            gclid = request.gclid ?: sessionStore.getValue("gclid") ?: attributionProvider.getGclid(),
+            gbraid = request.gbraid ?: sessionStore.getValue("gbraid") ?: attributionProvider.getGbraid(),
+            wbraid = request.wbraid ?: sessionStore.getValue("wbraid") ?: attributionProvider.getWbraid(),
+            afMediaSource = request.afMediaSource ?: attributionProvider.getMediaSource(),
+            afCampaign = request.afCampaign ?: attributionProvider.getCampaign(),
+            afCampaignId = request.afCampaignId ?: attributionProvider.getCampaignId(),
+            afAdSet = request.afAdSet ?: attributionProvider.getAdSet(),
+            afStatus = request.afStatus ?: attributionProvider.getAfStatus(),
+            afChannel = request.afChannel ?: attributionProvider.getChannel()
+        )
+        when (val result = remote.sendOtp(enrichedRequest)) {
             is Resource.Success -> {
                 val data = result.data
                 if (data != null) {
@@ -142,7 +162,19 @@ class AuthRepositoryImpl(
 
     override fun updateEmail(email: String, userId: String): Flow<Resource<UpdateEmailResponse>> = flow {
         emit(Resource.Loading())
-        val request = UpdateEmailRequest(email = email, userId = userId)
+        val request = UpdateEmailRequest(
+            email = email,
+            userId = userId,
+            utmSource = sessionStore.getValue("utm_source") ?: attributionProvider.getMediaSource(),
+            utmMedium = sessionStore.getValue("utm_medium") ?: attributionProvider.getChannel(),
+            utmCampaign = sessionStore.getValue("utm_campaign") ?: attributionProvider.getCampaign(),
+            utmTerm = sessionStore.getValue("utm_term"),
+            utmContent = sessionStore.getValue("utm_content") ?: attributionProvider.getAdSet(),
+            utmCampaignId = sessionStore.getValue("utm_campaign_id") ?: attributionProvider.getCampaignId(),
+            gclid = sessionStore.getValue("gclid") ?: attributionProvider.getGclid(),
+            gbraid = sessionStore.getValue("gbraid") ?: attributionProvider.getGbraid(),
+            wbraid = sessionStore.getValue("wbraid") ?: attributionProvider.getWbraid()
+        )
         when (val result = remote.updateEmail(request)) {
             is Resource.Success -> {
                 val data = result.data

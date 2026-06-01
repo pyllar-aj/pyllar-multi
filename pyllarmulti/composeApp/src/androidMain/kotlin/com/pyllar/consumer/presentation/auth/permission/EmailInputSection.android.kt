@@ -5,7 +5,6 @@ import android.app.Activity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
@@ -14,7 +13,6 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -57,51 +55,34 @@ actual fun EmailInputSection(
     }
 
     val launchAccountPicker = {
-        accountPickerLauncher.launch(
-            AccountManager.newChooseAccountIntent(
-                null, null, arrayOf("com.google"), null, null, null, null
+        runCatching {
+            accountPickerLauncher.launch(
+                AccountManager.newChooseAccountIntent(
+                    null, null, arrayOf("com.google"), false, null, null, null, null
+                )
             )
-        )
+        }
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { launchAccountPicker() }
-    ) {
-        OutlinedTextField(
-            value = email,
-            onValueChange = { /* read-only */ },
-            label = { Text(stringResource(Res.string.select_your_email)) },
-            trailingIcon = {
-                Icon(
-                    imageVector = Icons.Default.ArrowDropDown,
-                    contentDescription = "Pick account",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier
-                        .padding(end = 8.dp)
-                        .clickable { launchAccountPicker() }
-                )
-            },
-            readOnly = true,
-            enabled = false,
-            colors = OutlinedTextFieldDefaults.colors(
-                disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                disabledBorderColor = if (showError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline,
-                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                disabledTrailingIconColor = MaterialTheme.colorScheme.primary
-            ),
-            singleLine = true,
-            isError = showError,
-            modifier = Modifier.fillMaxWidth()
-        )
-    }
-    if (showError) {
-        Text(
-            text = stringResource(Res.string.please_select_email),
-            color = MaterialTheme.colorScheme.error,
-            style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.padding(start = 4.dp, top = 2.dp)
-        )
-    }
+    OutlinedTextField(
+        value = email,
+        onValueChange = onEmailChange,
+        label = { Text(stringResource(Res.string.select_your_email)) },
+        placeholder = { Text("Enter your email or select one") },
+        trailingIcon = {
+            Icon(
+                imageVector = Icons.Default.ArrowDropDown,
+                contentDescription = "Pick account",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .padding(end = 8.dp)
+                    .clickable { launchAccountPicker() }
+            )
+        },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+        singleLine = true,
+        isError = showError,
+        modifier = Modifier.fillMaxWidth()
+    )
 }
+

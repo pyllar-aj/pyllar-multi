@@ -10,15 +10,14 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.pyllar.consumer.config.IS_DEBUG
 import org.jetbrains.compose.resources.stringResource
 import pyllar.composeapp.generated.resources.*
-import com.pyllar.consumer.config.IS_DEBUG
 
 @Composable
 actual fun EmailInputSection(
@@ -34,12 +33,13 @@ actual fun EmailInputSection(
         }
     }
 
-    if (IS_DEBUG) {
+    Box(modifier = Modifier.fillMaxWidth()) {
         OutlinedTextField(
             value = email,
             onValueChange = onEmailChange,
-            label = { Text("Email Address") },
-            placeholder = { Text("Enter your email or select one") },
+            readOnly = !IS_DEBUG,
+            label = { Text(stringResource(Res.string.select_your_email)) },
+            placeholder = { Text(if (IS_DEBUG) "Enter your email or select one" else "Select your email") },
             trailingIcon = {
                 Icon(
                     imageVector = Icons.Default.ArrowDropDown,
@@ -55,48 +55,15 @@ actual fun EmailInputSection(
             isError = showError,
             modifier = Modifier.fillMaxWidth()
         )
-    } else {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { triggerPicker() }
-        ) {
-            OutlinedTextField(
-                value = email,
-                onValueChange = { /* read-only */ },
-                label = { Text(stringResource(Res.string.select_your_email)) },
-                trailingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.ArrowDropDown,
-                        contentDescription = "Pick account",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier
-                            .padding(end = 8.dp)
-                            .clickable { triggerPicker() }
-                    )
-                },
-                readOnly = true,
-                enabled = false,
-                colors = OutlinedTextFieldDefaults.colors(
-                    disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                    disabledBorderColor = if (showError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline,
-                    disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    disabledTrailingIconColor = MaterialTheme.colorScheme.primary
-                ),
-                singleLine = true,
-                isError = showError,
-                modifier = Modifier.fillMaxWidth()
+        if (!IS_DEBUG) {
+            // Overlay to detect click on the entire text field area and trigger the picker
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .clickable { triggerPicker() }
             )
         }
     }
-
-    if (showError) {
-        Text(
-            text = stringResource(Res.string.please_select_email),
-            color = MaterialTheme.colorScheme.error,
-            style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.padding(start = 4.dp, top = 2.dp)
-        )
-    }
 }
+
 

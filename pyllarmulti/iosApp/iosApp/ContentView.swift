@@ -278,15 +278,7 @@ extension UIResponder {
 class SwiftGoogleSignInBridge: NSObject, IosGoogleSignInBridge {
     func pickEmail(completion: @escaping (String?) -> Void) {
         DispatchQueue.main.async {
-            // First, try to silently restore a previous session
-            GIDSignIn.sharedInstance.restorePreviousSignIn { user, error in
-                if let email = user?.profile?.email {
-                    completion(email)
-                } else {
-                    // If no previous session, show the interactive picker
-                    self.showInteractiveSignIn(completion: completion)
-                }
-            }
+            self.showInteractiveSignIn(completion: completion)
         }
     }
     
