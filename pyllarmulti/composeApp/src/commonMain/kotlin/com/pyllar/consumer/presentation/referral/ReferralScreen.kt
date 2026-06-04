@@ -42,11 +42,16 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -93,12 +98,15 @@ fun ReferralScreen(
     userId: String,
     uiState: ReferralUiState,
     onBackClick: () -> Unit,
+    onShareClick: () -> Unit = {},
+    onWhatsAppShareClick: () -> Unit = {},
     onWithdrawClick: (Int) -> Unit = {},
-    onDismissSuccessMessage: () -> Unit = {}
+    onDismissSuccessMessage: () -> Unit = {},
+    onRetryClick: () -> Unit = {}
 ) {
     val clipboardManager = LocalClipboardManager.current
     val platformActions: PlatformActions = koinInject()
-    
+
     var showExplainerSheet by remember { mutableStateOf(false) }
     var showWithdrawConfirmSheet by remember { mutableStateOf(false) }
     var showCopiedToast by remember { mutableStateOf(false) }
@@ -184,6 +192,41 @@ fun ReferralScreen(
                             strokeWidth = 3.dp
                         )
                     }
+                } else if (uiState.errorMessage != null) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            modifier = Modifier.padding(32.dp)
+                        ) {
+                            Text(
+                                text = "Connection Error",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = textDark
+                            )
+                            Text(
+                                text = "Check your Internet connection and try again",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = textGray,
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Button(
+                                onClick = onRetryClick,
+                                colors = ButtonDefaults.buttonColors(containerColor = primaryGreen),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text(
+                                    text = "Retry",
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = Color.White
+                                )
+                            }
+                        }
+                    }
                 } else if (!uiState.referralEnabled) {
                     Box(
                         modifier = Modifier.fillMaxSize(),
@@ -220,6 +263,7 @@ fun ReferralScreen(
                                 balanceCoins = uiState.balanceCoins,
                                 lifetimeEarned = uiState.lifetimeEarnedCoins,
                                 withdrawn = uiState.withdrawnCoins,
+                                minimumCashoutAmount = uiState.minimumCashoutAmount,
                                 primaryGreen = primaryGreen,
                                 accentGold = accentGold
                             )
@@ -229,7 +273,9 @@ fun ReferralScreen(
                         if (uiState.balanceCoins == 0 && uiState.referredUsers.isEmpty() && uiState.lifetimeEarnedCoins == 0) {
                             item {
                                 ExplainerStepsSection(
+                                    qualifyingDays = uiState.qualifyingDays,
                                     primaryGreen = primaryGreen,
+                                    accentGold = accentGold,
                                     textDark = textDark,
                                     textGray = textGray
                                 )
@@ -245,18 +291,10 @@ fun ReferralScreen(
                                 accentGoldLight = accentGoldLight,
                                 textDark = textDark,
                                 textGray = textGray,
+                                onShareClick = onShareClick,
+                                onWhatsAppShareClick = onWhatsAppShareClick,
                                 shareUrl = uiState.shareUrl,
-                                shareMessage = uiState.shareMessage,
-                                onCopyClick = { linkText ->
-                                    clipboardManager.setText(AnnotatedString(linkText))
-                                    showCopiedToast = true
-                                },
-                                onWhatsAppClick = { message ->
-                                    platformActions.openWhatsApp("", message)
-                                },
-                                onShareClick = { text ->
-                                    platformActions.shareText(text, "Invite a friend")
-                                }
+                                shareMessage = uiState.shareMessage
                             )
                         }
 
@@ -288,6 +326,7 @@ fun ReferralScreen(
                         // 6. FAQS SECTION
                         item {
                             ReferralFaqsSection(
+                                qualifyingDays = uiState.qualifyingDays,
                                 primaryGreen = primaryGreen,
                                 accentGold = accentGold,
                                 textDark = textDark,
@@ -316,62 +355,18 @@ fun ReferralScreen(
                             )
                             .padding(horizontal = 20.dp, vertical = 16.dp)
                     ) {
-                        val isFirstTime = uiState.balanceCoins == 0 && uiState.referredUsers.isEmpty() && uiState.lifetimeEarnedCoins == 0
-                        val hasEnoughToWithdraw = uiState.balanceCoins >= 1000
-
-                        if (isFirstTime) {
-                            val defaultShareText = uiState.shareMessage.ifBlank {
-                                "Join me on Pyllar! Use code ${uiState.referralCode} and we both earn rewards on your first investment. ${uiState.shareUrl}"
-                            }
-                            Button(
-                                onClick = { platformActions.shareText(defaultShareText, "Invite a friend") },
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.buttonColors(containerColor = primaryGreen),
-                                shape = RoundedCornerShape(14.dp),
-                                contentPadding = PaddingValues(vertical = 16.dp)
-                            ) {
-                                Text(
-                                    text = stringResource(Res.string.referral_btn_invite_first_friend),
-                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                    color = Color.White
-                                )
-                            }
-                        } else if (hasEnoughToWithdraw) {
-                            val withdrawAmount = (uiState.balanceCoins / 1000) * 1000
-                            Button(
-                                onClick = { showWithdrawConfirmSheet = true },
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.buttonColors(containerColor = primaryGreen),
-                                shape = RoundedCornerShape(14.dp),
-                                contentPadding = PaddingValues(vertical = 16.dp)
-                            ) {
-                                Text(
-                                    text = stringResource(Res.string.referral_btn_withdraw_to_bank_format).replace("%1\$d", withdrawAmount.toString()),
-                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                    color = Color.White
-                                )
-                            }
-                        } else {
-                            val remainingCoins = 1000 - uiState.balanceCoins
-                            Button(
-                                onClick = {},
-                                enabled = false,
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.buttonColors(
-                                    disabledContainerColor = Color.LightGray.copy(alpha = 0.5f),
-                                    disabledContentColor = Color.Gray.copy(alpha = 0.8f)
-                                ),
-                                shape = RoundedCornerShape(14.dp),
-                                contentPadding = PaddingValues(vertical = 16.dp)
-                            ) {
-                                Text(
-                                    text = stringResource(Res.string.referral_btn_need_more_format).replace("%1\$d", remainingCoins.toString()),
-                                    style = MaterialTheme.typography.titleMedium.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.Gray
-                                    )
-                                )
-                            }
+                        Button(
+                            onClick = onShareClick,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = primaryGreen),
+                            shape = RoundedCornerShape(14.dp),
+                            contentPadding = PaddingValues(vertical = 16.dp)
+                        ) {
+                            Text(
+                                text = stringResource(Res.string.referral_btn_invite_first_friend),
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = Color.White
+                            )
                         }
                     }
                 }
@@ -461,7 +456,13 @@ fun ReferralScreen(
                             verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
                             item {
-                                ExplainerStepsDetailedList(primaryGreen = primaryGreen, accentGold = accentGold, textDark = textDark, textGray = textGray)
+                                ExplainerStepsDetailedList(
+                                    qualifyingDays = uiState.qualifyingDays,
+                                    primaryGreen = primaryGreen,
+                                    accentGold = accentGold,
+                                    textDark = textDark,
+                                    textGray = textGray
+                                )
                             }
 
                             item {
@@ -469,7 +470,14 @@ fun ReferralScreen(
                             }
 
                             item {
-                                KeyTermsCard(primaryGreen = primaryGreen, accentGold = accentGold, textDark = textDark, textGray = textGray)
+                                KeyTermsCard(
+                                    qualifyingDays = uiState.qualifyingDays,
+                                    primaryGreen = primaryGreen,
+                                    accentGold = accentGold,
+                                    textDark = textDark,
+                                    textGray = textGray,
+                                    minimumCashoutAmount = uiState.minimumCashoutAmount
+                                )
                             }
                         }
 
@@ -498,7 +506,7 @@ fun ReferralScreen(
         // ==========================================
         // WITHDRAW CONFIRMATION OVERLAY
         // ==========================================
-        val withdrawAmount = (uiState.balanceCoins / 1000) * 1000
+        val withdrawAmount = (uiState.balanceCoins / uiState.minimumCashoutAmount) * uiState.minimumCashoutAmount
         AnimatedVisibility(
             visible = showWithdrawConfirmSheet,
             enter = fadeIn(),
@@ -700,6 +708,7 @@ fun WalletCard(
     balanceCoins: Int,
     lifetimeEarned: Int,
     withdrawn: Int,
+    minimumCashoutAmount: Int,
     primaryGreen: Color,
     accentGold: Color
 ) {
@@ -775,8 +784,8 @@ fun WalletCard(
             Column(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                val progress = (balanceCoins.toFloat() / 1000f).coerceAtMost(1.0f)
-                val remaining = 1000 - balanceCoins
+                val progress = (balanceCoins.toFloat() / minimumCashoutAmount.toFloat()).coerceAtMost(1.0f)
+                val remaining = minimumCashoutAmount - balanceCoins
 
                 Box(
                     modifier = Modifier
@@ -804,12 +813,12 @@ fun WalletCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = if (balanceCoins >= 1000) stringResource(Res.string.referral_available_to_withdraw) else stringResource(Res.string.referral_more_to_withdraw_format).replace("%1\$d", remaining.toString()),
+                        text = if (balanceCoins >= minimumCashoutAmount) stringResource(Res.string.referral_available_to_withdraw) else stringResource(Res.string.referral_more_to_withdraw_format).replace("%1\$d", remaining.toString()),
                         style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                        color = if (balanceCoins >= 1000) Color(0xFF81C784) else Color(0xFFFFF59D)
+                        color = if (balanceCoins >= minimumCashoutAmount) Color(0xFF81C784) else Color(0xFFFFF59D)
                     )
                     Text(
-                        text = "$balanceCoins / 1000",
+                        text = "$balanceCoins / $minimumCashoutAmount",
                         style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
                         color = Color(0xFFA5D6A7)
                     )
@@ -854,7 +863,9 @@ fun WalletCard(
 
 @Composable
 fun ExplainerStepsSection(
+    qualifyingDays: Int,
     primaryGreen: Color,
+    accentGold: Color,
     textDark: Color,
     textGray: Color
 ) {
@@ -879,8 +890,18 @@ fun ExplainerStepsSection(
                 color = primaryGreen
             )
 
+            val subtitleRes = if (qualifyingDays == 1) {
+                Res.string.referral_subtitle_one_day
+            } else {
+                Res.string.referral_subtitle_multi_day
+            }
+            val subtitleText = if (qualifyingDays == 1) {
+                stringResource(subtitleRes)
+            } else {
+                stringResource(subtitleRes).replace("%1\$d", qualifyingDays.toString())
+            }
             Text(
-                text = stringResource(Res.string.referral_subtitle),
+                text = subtitleText,
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                 color = textDark
             )
@@ -893,14 +914,22 @@ fun ExplainerStepsSection(
                 color = textDark
             )
 
-            ExplainerStepsList(primaryGreen = primaryGreen, textDark = textDark, textGray = textGray)
+            ExplainerStepsList(
+                qualifyingDays = qualifyingDays,
+                primaryGreen = primaryGreen,
+                accentGold = accentGold,
+                textDark = textDark,
+                textGray = textGray
+            )
         }
     }
 }
 
 @Composable
 fun ExplainerStepsList(
+    qualifyingDays: Int,
     primaryGreen: Color,
+    accentGold: Color,
     textDark: Color,
     textGray: Color
 ) {
@@ -908,40 +937,49 @@ fun ExplainerStepsList(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         StepRowInline(
-            stepNum = "1",
             title = stringResource(Res.string.referral_step1_title),
             description = stringResource(Res.string.referral_step1_desc),
             primaryGreen = primaryGreen,
+            accentGold = accentGold,
             textDark = textDark,
-            textGray = textGray
+            textGray = textGray,
+            icon = { CustomLinkIcon(color = accentGold) }
         )
         StepRowInline(
-            stepNum = "2",
             title = stringResource(Res.string.referral_step2_title),
             description = stringResource(Res.string.referral_step2_desc),
             primaryGreen = primaryGreen,
+            accentGold = accentGold,
             textDark = textDark,
-            textGray = textGray
+            textGray = textGray,
+            icon = { CustomCalendarIcon(color = accentGold) }
         )
+        val step3Desc = if (qualifyingDays == 1) {
+            stringResource(Res.string.referral_step3_desc_one_day)
+        } else {
+            stringResource(Res.string.referral_step3_desc_multi_day).replace("%1\$d", qualifyingDays.toString())
+        }
         StepRowInline(
-            stepNum = "3",
             title = stringResource(Res.string.referral_step3_title),
-            description = stringResource(Res.string.referral_step3_desc),
+            description = step3Desc,
             primaryGreen = primaryGreen,
+            accentGold = accentGold,
             textDark = textDark,
-            textGray = textGray
+            textGray = textGray,
+            icon = { CustomCoinIcon(color = accentGold) }
         )
     }
 }
 
 @Composable
 fun StepRowInline(
-    stepNum: String,
     title: String,
     description: String,
     primaryGreen: Color,
+    accentGold: Color,
     textDark: Color,
-    textGray: Color
+    textGray: Color,
+    icon: @Composable () -> Unit
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -949,20 +987,17 @@ fun StepRowInline(
         verticalAlignment = Alignment.Top
     ) {
         Surface(
-            modifier = Modifier.size(24.dp),
+            modifier = Modifier.size(36.dp),
             shape = CircleShape,
-            color = primaryGreen.copy(alpha = 0.1f)
+            color = Color(0xFFFFFBEA),
+            border = BorderStroke(1.dp, accentGold)
         ) {
             Box(contentAlignment = Alignment.Center) {
-                Text(
-                    text = stepNum,
-                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                    color = primaryGreen
-                )
+                icon()
             }
         }
 
-        Column {
+        Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
                 style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
@@ -980,6 +1015,7 @@ fun StepRowInline(
 
 @Composable
 fun ExplainerStepsDetailedList(
+    qualifyingDays: Int,
     primaryGreen: Color,
     accentGold: Color,
     textDark: Color,
@@ -1010,10 +1046,20 @@ fun ExplainerStepsDetailedList(
             showConnector = true,
             icon = { CustomDownloadIcon(color = accentGold) }
         )
+        val step3Title = if (qualifyingDays == 1) {
+            stringResource(Res.string.referral_step3_detailed_title_one_day)
+        } else {
+            stringResource(Res.string.referral_step3_detailed_title_multi_day).replace("%1\$d", qualifyingDays.toString())
+        }
+        val step3Desc = if (qualifyingDays == 1) {
+            stringResource(Res.string.referral_step3_detailed_desc_one_day)
+        } else {
+            stringResource(Res.string.referral_step3_detailed_desc_multi_day).replace("%1\$d", qualifyingDays.toString())
+        }
         StepRowDetailed(
             stepNum = "3",
-            title = stringResource(Res.string.referral_step3_detailed_title),
-            description = stringResource(Res.string.referral_step3_detailed_desc),
+            title = step3Title,
+            description = step3Desc,
             primaryGreen = primaryGreen,
             accentGold = accentGold,
             textDark = textDark,
@@ -1021,10 +1067,15 @@ fun ExplainerStepsDetailedList(
             showConnector = true,
             icon = { CustomCalendarIcon(color = accentGold) }
         )
+        val step4Desc = if (qualifyingDays == 1) {
+            stringResource(Res.string.referral_step4_detailed_desc_one_day)
+        } else {
+            stringResource(Res.string.referral_step4_detailed_desc_multi_day).replace("%1\$d", qualifyingDays.toString())
+        }
         StepRowDetailed(
             stepNum = "4",
             title = stringResource(Res.string.referral_step4_detailed_title),
-            description = stringResource(Res.string.referral_step4_detailed_desc),
+            description = step4Desc,
             primaryGreen = primaryGreen,
             accentGold = accentGold,
             textDark = textDark,
@@ -1111,6 +1162,7 @@ fun StepRowDetailed(
     }
 }
 
+// Custom step vector drawings to maintain compile safety and premium custom aesthetic
 @Composable
 fun CustomLinkIcon(color: Color) {
     Canvas(modifier = Modifier.fillMaxSize().padding(10.dp)) {
@@ -1141,7 +1193,7 @@ fun CustomDownloadIcon(color: Color) {
     Canvas(modifier = Modifier.fillMaxSize().padding(10.dp)) {
         val strokeWidthPx = 2.dp.toPx()
         val cx = size.width / 2
-        
+
         drawLine(
             color = color,
             start = Offset(cx, size.height * 0.1f),
@@ -1173,7 +1225,7 @@ fun CustomDownloadIcon(color: Color) {
 fun CustomCalendarIcon(color: Color) {
     Canvas(modifier = Modifier.fillMaxSize().padding(10.dp)) {
         val strokeWidthPx = 2.dp.toPx()
-        
+
         drawRoundRect(
             color = color,
             topLeft = Offset(size.width * 0.15f, size.height * 0.25f),
@@ -1218,7 +1270,7 @@ fun CustomCoinIcon(color: Color) {
         val strokeWidthPx = 2.dp.toPx()
         val cx = size.width / 2
         val cy = size.height / 2
-        
+
         drawCircle(
             color = color,
             radius = size.width * 0.42f,
@@ -1231,7 +1283,7 @@ fun CustomCoinIcon(color: Color) {
             center = Offset(cx, cy),
             style = Stroke(width = strokeWidthPx)
         )
-        
+        // Mini rupee symbol drawn inside
         val barW = 4.dp.toPx()
         drawLine(
             color = color,
@@ -1245,7 +1297,7 @@ fun CustomCoinIcon(color: Color) {
             end = Offset(cx + barW, cy - 0.5.dp.toPx()),
             strokeWidth = strokeWidthPx
         )
-        
+        // R Curve
         drawArc(
             color = color,
             startAngle = -90f,
@@ -1255,7 +1307,7 @@ fun CustomCoinIcon(color: Color) {
             size = Size(5.dp.toPx(), 5.dp.toPx()),
             style = Stroke(width = strokeWidthPx)
         )
-        
+        // Slash leg
         drawLine(
             color = color,
             start = Offset(cx - 1.dp.toPx(), cy + 1.dp.toPx()),
@@ -1267,10 +1319,12 @@ fun CustomCoinIcon(color: Color) {
 
 @Composable
 fun KeyTermsCard(
+    qualifyingDays: Int,
     primaryGreen: Color,
     accentGold: Color,
     textDark: Color,
-    textGray: Color
+    textGray: Color,
+    minimumCashoutAmount: Int
 ) {
     Text(
         text = stringResource(Res.string.referral_key_terms_title),
@@ -1294,9 +1348,14 @@ fun KeyTermsCard(
             HorizontalDivider(color = Color.LightGray.copy(alpha = 0.2f), thickness = 0.5.dp)
             KeyTermRow(label = stringResource(Res.string.referral_term_coin_value), value = stringResource(Res.string.referral_term_coin_value_val), textDark = textDark, textGray = textGray)
             HorizontalDivider(color = Color.LightGray.copy(alpha = 0.2f), thickness = 0.5.dp)
-            KeyTermRow(label = stringResource(Res.string.referral_term_qualifying_action), value = stringResource(Res.string.referral_term_qualifying_action_val), textDark = textDark, textGray = textGray)
+            val actionVal = if (qualifyingDays == 1) {
+                stringResource(Res.string.referral_qualifying_action_one_day)
+            } else {
+                stringResource(Res.string.referral_qualifying_action_multi_day).replace("%1\$d", qualifyingDays.toString())
+            }
+            KeyTermRow(label = stringResource(Res.string.referral_term_qualifying_action), value = actionVal, textDark = textDark, textGray = textGray)
             HorizontalDivider(color = Color.LightGray.copy(alpha = 0.2f), thickness = 0.5.dp)
-            KeyTermRow(label = stringResource(Res.string.referral_term_withdrawals), value = stringResource(Res.string.referral_term_withdrawals_val), textDark = textDark, textGray = textGray)
+            KeyTermRow(label = stringResource(Res.string.referral_term_withdrawals), value = stringResource(Res.string.referral_term_withdrawals_val).replace("%d", minimumCashoutAmount.toString()), textDark = textDark, textGray = textGray)
             HorizontalDivider(color = Color.LightGray.copy(alpha = 0.2f), thickness = 0.5.dp)
             KeyTermRow(label = stringResource(Res.string.referral_term_coin_expiry), value = stringResource(Res.string.referral_term_coin_expiry_val), textDark = textDark, textGray = textGray)
             HorizontalDivider(color = Color.LightGray.copy(alpha = 0.2f), thickness = 0.5.dp)
@@ -1342,14 +1401,13 @@ fun ShareLinkBox(
     accentGoldLight: Color,
     textDark: Color,
     textGray: Color,
+    onShareClick: () -> Unit = {},
+    onWhatsAppShareClick: () -> Unit = {},
     shareUrl: String = "",
-    shareMessage: String = "",
-    onCopyClick: (String) -> Unit = {},
-    onWhatsAppClick: (String) -> Unit = {},
-    onShareClick: (String) -> Unit = {}
+    shareMessage: String = ""
 ) {
-    val linkText = shareUrl.ifBlank { "https://pyllar.in/refer?code=$referralCode" }
-    val defaultWhatsappMessageFormat = stringResource(Res.string.referral_whatsapp_message_format)
+    val clipboardManager = LocalClipboardManager.current
+    val linkText = shareUrl.ifBlank { "pyllar.in/refer?code=$referralCode" }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -1395,7 +1453,7 @@ fun ShareLinkBox(
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "PYLLAR-${referralCode.uppercase()}",
+                            text = referralCode.uppercase(),
                             style = MaterialTheme.typography.bodyLarge.copy(
                                 fontWeight = FontWeight.Bold,
                                 fontFamily = FontFamily.Monospace,
@@ -1409,7 +1467,7 @@ fun ShareLinkBox(
                     Surface(
                         modifier = Modifier
                             .clickable {
-                                onCopyClick(linkText)
+                                clipboardManager.setText(AnnotatedString(linkText))
                             },
                         shape = RoundedCornerShape(20.dp),
                         color = accentGoldLight,
@@ -1443,12 +1501,7 @@ fun ShareLinkBox(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Button(
-                    onClick = {
-                        val whatsappMessage = shareMessage.ifBlank {
-                            defaultWhatsappMessageFormat.replace("%1\$s", linkText)
-                        }
-                        onWhatsAppClick(whatsappMessage)
-                    },
+                    onClick = onWhatsAppShareClick,
                     modifier = Modifier.weight(1.5f),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366)), 
                     shape = RoundedCornerShape(12.dp),
@@ -1462,12 +1515,7 @@ fun ShareLinkBox(
                 }
 
                 OutlinedButton(
-                    onClick = {
-                        val fullShareMessage = shareMessage.ifBlank {
-                            "Join me on Pyllar! Use code $referralCode and we both earn rewards on your first investment. $linkText"
-                        }
-                        onShareClick(fullShareMessage)
-                    },
+                    onClick = onShareClick,
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp),
                     border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.6f)),
@@ -1507,64 +1555,67 @@ fun ShareLinkBoxInvitesHeader(
 ) {
     var showAllReferrals by remember { mutableStateOf(false) }
 
-    Card(
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        shape = RoundedCornerShape(20.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(horizontal = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Text(
+                text = stringResource(Res.string.referral_my_referrals_title),
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = textDark
+            )
+
+            if (referredUsers.isNotEmpty()) {
                 Text(
-                    text = stringResource(Res.string.referral_my_referrals_title),
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = textDark
+                    text = stringResource(Res.string.referral_my_referrals_summary_format)
+                        .replace("%1\$d", invitedCount.toString())
+                        .replace("%2\$d", earnedCount.toString()),
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                    color = textGray
                 )
-
-                if (referredUsers.isNotEmpty()) {
-                    Text(
-                        text = stringResource(Res.string.referral_my_referrals_summary_format)
-                            .replace("%1\$d", invitedCount.toString())
-                            .replace("%2\$d", earnedCount.toString()),
-                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                        color = textGray
-                    )
-                }
             }
+        }
 
-            if (referredUsers.isEmpty()) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 20.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text = stringResource(Res.string.referral_no_invites_yet),
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = textDark
-                    )
-                    Text(
-                        text = stringResource(Res.string.referral_no_invites_yet_desc),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = textGray,
-                        textAlign = TextAlign.Center
-                    )
-                }
-            } else {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            shape = RoundedCornerShape(20.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                if (referredUsers.isEmpty()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = stringResource(Res.string.referral_no_invites_yet),
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = textDark
+                        )
+                        Text(
+                            text = stringResource(Res.string.referral_no_invites_yet_desc),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = textGray,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                } else {
                     val displayedUsers = if (showAllReferrals || referredUsers.size <= 2) {
                         referredUsers
                     } else {
@@ -1574,7 +1625,6 @@ fun ShareLinkBoxInvitesHeader(
                     displayedUsers.forEachIndexed { index, user ->
                         ReferralUserRow(
                             user = user,
-                            primaryGreen = primaryGreen,
                             accentGold = accentGold,
                             textDark = textDark,
                             textGray = textGray
@@ -1585,15 +1635,22 @@ fun ShareLinkBoxInvitesHeader(
                     }
 
                     if (referredUsers.size > 2) {
+                        HorizontalDivider(color = Color.LightGray.copy(alpha = 0.2f), thickness = 0.5.dp)
                         TextButton(
                             onClick = { showAllReferrals = !showAllReferrals },
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.textButtonColors(contentColor = primaryGreen)
                         ) {
-                            Text(
-                                text = if (showAllReferrals) stringResource(Res.string.referral_btn_see_less) else stringResource(Res.string.referral_btn_see_all),
-                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Text(
+                                    text = if (showAllReferrals) "See less" else "See all referrals",
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = primaryGreen
+                                )
+                            }
                         }
                     }
                 }
@@ -1605,30 +1662,74 @@ fun ShareLinkBoxInvitesHeader(
 @Composable
 fun ReferralUserRow(
     user: ReferredUser,
-    primaryGreen: Color,
     accentGold: Color,
     textDark: Color,
     textGray: Color
 ) {
+    val isEarned = user.statusType == ReferredUserStatus.EARNED
+    val avatarBg = if (isEarned) Color(0xFFFFFBEA) else Color(0xFFF9F9F8)
+    val avatarBorder = if (isEarned) BorderStroke(1.dp, accentGold) else null
+
+    val rawName = user.name
+    val phonePart = if (rawName.contains("...")) {
+        rawName.substringAfterLast(" ")
+    } else {
+        ""
+    }
+    val namePart = if (phonePart.isNotEmpty()) {
+        rawName.substringBeforeLast(" ")
+    } else {
+        rawName
+    }
+
+    val maskedName = if (namePart.isNotEmpty()) {
+        val uppercaseName = namePart.uppercase()
+        if (uppercaseName.length > 4) "${uppercaseName.take(4)}**" else "${uppercaseName}**"
+    } else {
+        ""
+    }
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.weight(1f)
         ) {
-            Text(
-                text = user.name,
-                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-                color = textDark
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = user.joinDetail,
-                style = MaterialTheme.typography.bodyMedium,
-                color = textGray
-            )
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .background(avatarBg, shape = CircleShape)
+                    .then(if (avatarBorder != null) Modifier.border(avatarBorder, CircleShape) else Modifier),
+                contentAlignment = Alignment.Center
+            ) {
+                val initial = namePart.firstOrNull()?.toString()?.uppercase() ?: "F"
+                Text(
+                    text = initial,
+                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                    color = textDark
+                )
+            }
+
+            Column {
+                Text(
+                    text = maskedName,
+                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                    color = textDark
+                )
+                val detailsText = if (phonePart.isNotEmpty()) "+91 $phonePart" else ""
+                if (detailsText.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = detailsText,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = textGray
+                    )
+                }
+            }
         }
 
         when (user.statusType) {
@@ -1637,41 +1738,36 @@ fun ReferralUserRow(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     modifier = Modifier
-                        .background(Color(0xFFE8F5E9), shape = RoundedCornerShape(12.dp))
-                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                        .background(Color(0xFFF9F9F8), shape = RoundedCornerShape(16.dp))
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Check,
-                        contentDescription = stringResource(Res.string.referral_status_earned),
-                        tint = Color(0xFF2E7D32),
-                        modifier = Modifier.size(14.dp)
-                    )
+                    val coinsText = user.rewardText.replace(" coins", "").replace(" coin", "")
                     Text(
-                        text = user.rewardText,
-                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                        color = Color(0xFF2E7D32)
+                        text = coinsText,
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                        color = textDark
                     )
                 }
             }
-            ReferredUserStatus.IN_PROGRESS -> {
-                Text(
-                    text = user.statusText,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                    color = primaryGreen,
+            else -> {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier
-                        .background(primaryGreen.copy(alpha = 0.1f), shape = RoundedCornerShape(12.dp))
-                        .padding(horizontal = 10.dp, vertical = 6.dp)
-                )
-            }
-            ReferredUserStatus.INVITED -> {
-                Text(
-                    text = user.statusText,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
-                    color = textGray,
-                    modifier = Modifier
-                        .background(Color(0xFFF2F2F2), shape = RoundedCornerShape(12.dp))
-                        .padding(horizontal = 10.dp, vertical = 6.dp)
-                )
+                        .background(Color(0xFFF9F9F8), shape = RoundedCornerShape(16.dp))
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .background(accentGold, shape = CircleShape)
+                    )
+                    Text(
+                        text = "In progress",
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                        color = textDark
+                    )
+                }
             }
         }
     }
@@ -1778,29 +1874,47 @@ fun WithdrawalHistorySection(
 
 @Composable
 fun ReferralFaqsSection(
+    qualifyingDays: Int,
     primaryGreen: Color,
     accentGold: Color,
     textDark: Color,
     textGray: Color
 ) {
+    val platformActions: PlatformActions = koinInject()
     var expandedIndex by remember { mutableStateOf<Int?>(null) }
 
     val faqs = listOf(
         FaqItem(
             question = stringResource(Res.string.referral_faq_q1),
-            answer = stringResource(Res.string.referral_faq_a1)
+            answer = if (qualifyingDays == 1) {
+                stringResource(Res.string.referral_faq_a1_one_day)
+            } else {
+                stringResource(Res.string.referral_faq_a1_multi_day).replace("%1\$d", qualifyingDays.toString())
+            }
         ),
         FaqItem(
             question = stringResource(Res.string.referral_faq_q2),
             answer = stringResource(Res.string.referral_faq_a2)
         ),
         FaqItem(
-            question = stringResource(Res.string.referral_faq_q3),
-            answer = stringResource(Res.string.referral_faq_a3)
+            question = if (qualifyingDays == 1) {
+                stringResource(Res.string.referral_faq_q3_one_day)
+            } else {
+                stringResource(Res.string.referral_faq_q3_multi_day).replace("%1\$d", qualifyingDays.toString())
+            },
+            answer = if (qualifyingDays == 1) {
+                stringResource(Res.string.referral_faq_a3_one_day)
+            } else {
+                stringResource(Res.string.referral_faq_a3_multi_day).replace("%1\$d", qualifyingDays.toString())
+            }
         ),
         FaqItem(
             question = stringResource(Res.string.referral_faq_q4),
-            answer = stringResource(Res.string.referral_faq_a4)
+            answer = if (qualifyingDays == 1) {
+                stringResource(Res.string.referral_faq_a4_one_day)
+            } else {
+                stringResource(Res.string.referral_faq_a4_multi_day).replace("%1\$d", qualifyingDays.toString())
+            }
         ),
         FaqItem(
             question = stringResource(Res.string.referral_faq_q5),
@@ -1882,15 +1996,53 @@ fun ReferralFaqsSection(
 
                         if (isExpanded) {
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = faq.answer,
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontWeight = FontWeight.Normal,
-                                    color = textGray,
-                                    lineHeight = 20.sp
-                                ),
-                                modifier = Modifier.fillMaxWidth()
-                            )
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                Text(
+                                    text = faq.answer,
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontWeight = FontWeight.Normal,
+                                        color = textGray,
+                                        lineHeight = 20.sp
+                                    ),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                if (index == 0) {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    val prefix = stringResource(Res.string.referral_faq_tc_prefix)
+                                    val linkText = stringResource(Res.string.referral_faq_tc_link)
+                                    val suffix = stringResource(Res.string.referral_faq_tc_suffix)
+
+                                    val annotatedText = buildAnnotatedString {
+                                        append(prefix)
+                                        pushStringAnnotation(tag = "URL", annotation = "https://pyllar.in/referral-terms")
+                                        withStyle(
+                                            style = SpanStyle(
+                                                color = primaryGreen,
+                                                fontWeight = FontWeight.SemiBold,
+                                                textDecoration = TextDecoration.Underline
+                                            )
+                                        ) {
+                                            append(linkText)
+                                        }
+                                        pop()
+                                        append(suffix)
+                                    }
+
+                                    ClickableText(
+                                        text = annotatedText,
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            color = textGray,
+                                            lineHeight = 20.sp
+                                        ),
+                                        onClick = { offset ->
+                                            annotatedText.getStringAnnotations(tag = "URL", start = offset, end = offset)
+                                                .firstOrNull()?.let { annotation ->
+                                                    platformActions.openUrl(annotation.item)
+                                                }
+                                        }
+                                    )
+                                }
+                            }
                         }
                     }
 

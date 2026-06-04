@@ -25,7 +25,9 @@ data class ProfileState(
     val deletionRequestMessage: String? = null,
     val deletionRequestError: String? = null,
     val hasPendingDeletionRequest: Boolean = false,
-    val lastDeletionRequest: AccountDeletionResponseDto? = null
+    val lastDeletionRequest: AccountDeletionResponseDto? = null,
+    val referredByCode: String? = null,
+    val referralEnabled: Boolean = false
 )
 
 /**
@@ -85,9 +87,13 @@ class ProfileViewModel(
                                 name = data?.name ?: _profileState.value.name,
                                 email = data?.email ?: _profileState.value.email,
                                 phoneNumber = data?.phoneNumber ?: _profileState.value.phoneNumber,
+                                dob = data?.dob ?: _profileState.value.dob,
+                                gender = data?.gender ?: _profileState.value.gender,
                                 hasPendingDeletionRequest = data?.deletionRequested == true,
                                 deletionRequestMessage = data?.deletionMessage,
                                 lastDeletionRequest = latestDeletion,
+                                referredByCode = data?.referredByCode,
+                                referralEnabled = data?.referralEnabled ?: false,
                                 isLoading = false
                             )
                         }

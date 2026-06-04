@@ -10,6 +10,8 @@ data class ReferralUiState(
     val withdrawnCoins: Int = 0,
     val invitedCount: Int = 0,
     val earnedCount: Int = 0,
+    val minimumCashoutAmount: Int = 1000,
+    val qualifyingDays: Int = 7,
     val referredUsers: List<ReferredUser> = emptyList(),
     val withdrawalHistory: List<WithdrawalHistory> = emptyList(),
     val isCodeLoading: Boolean = true,
@@ -23,7 +25,8 @@ data class ReferredUser(
     val joinDetail: String,
     val statusText: String,
     val rewardText: String,
-    val statusType: ReferredUserStatus
+    val statusType: ReferredUserStatus,
+    val phone: String = ""
 )
 
 enum class ReferredUserStatus {

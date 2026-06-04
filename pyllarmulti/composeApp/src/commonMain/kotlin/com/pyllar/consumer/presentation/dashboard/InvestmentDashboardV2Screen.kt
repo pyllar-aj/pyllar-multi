@@ -323,10 +323,10 @@ fun InvestmentDashboardV2Screen(
                     )
                 }
                 
-                // Promotion Card if there are investments
-                item {
-                    PromotionShareCard(onShareClick = { platformActions.shareText("Join Pyllar and build your wealth! https://pyllar.in", "Share Pyllar") })
-                }
+//                // Promotion Card if there are investments
+//                item {
+//                    PromotionShareCard(onShareClick = { platformActions.shareText("Join Pyllar and build your wealth! https://pyllar.in", "Share Pyllar") })
+//                }
             } else if (!dashboardState.isLoading && dashboardState.primaryGoals.isEmpty()) {
                 // Show Journey Card if no goals
                 item {

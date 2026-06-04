@@ -20,6 +20,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import org.koin.compose.koinInject
 import com.pyllar.consumer.platform.PlatformActions
+import com.pyllar.consumer.platform.DeviceInfoProvider
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -35,7 +36,8 @@ fun ProfileScreen(
     onDeleteAccount: () -> Unit = {},
     onHelpSupport: () -> Unit = {},
     onBack: () -> Unit = {},
-    platformActions: PlatformActions = koinInject()
+    platformActions: PlatformActions = koinInject(),
+    deviceInfoProvider: DeviceInfoProvider = koinInject()
 ) {
     val profileState by viewModel.profileState.collectAsState()
     var showPersonalDetailsSheet by remember { mutableStateOf(false) }
@@ -71,7 +73,8 @@ fun ProfileScreen(
                 userName = profileState.name,
                 email = profileState.email,
                 phoneNumber = profileState.phoneNumber,
-                isLoading = profileState.isLoading
+                isLoading = profileState.isLoading,
+                referredByCode = profileState.referredByCode
             )
 
             // Deletion Status Section
@@ -135,11 +138,22 @@ fun ProfileScreen(
                         platformActions.shareText("Build your wealth with Pyllar! https://pyllar.in", "Share Pyllar")
                     }
                 )
+
+                // Joined via invite Card (only shown if referredByCode is set)
+                if (!profileState.referredByCode.isNullOrBlank()) {
+                    ProfileOptionCard(
+                        title = "Joined via invite",
+                        subtitle = "You were referred by a friend",
+                        icon = Icons.Filled.CardGiftcard,
+                        onClick = null
+                    )
+                }
                 
                 Spacer(modifier = Modifier.height(24.dp))
                 
+                val appVersion = deviceInfoProvider.getAppVersion() ?: "1.0.0"
                 Text(
-                    text = "App Version 1.0.0",
+                    text = "App Version $appVersion",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                     modifier = Modifier.fillMaxWidth(),
@@ -156,6 +170,8 @@ fun ProfileScreen(
             name = profileState.name,
             email = profileState.email,
             phone = profileState.phoneNumber,
+            dob = profileState.dob,
+            gender = profileState.gender,
             onDismiss = { showPersonalDetailsSheet = false }
         )
     }
@@ -180,7 +196,8 @@ fun UserProfileHeader(
     userName: String,
     email: String,
     phoneNumber: String,
-    isLoading: Boolean
+    isLoading: Boolean,
+    referredByCode: String? = null
 ) {
     val firstLetter = if (userName.isNotBlank()) userName.take(1).uppercase() else "U"
 
@@ -233,6 +250,22 @@ fun UserProfileHeader(
                     color = Color.White.copy(alpha = 0.8f)
                 )
             }
+            if (!referredByCode.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Surface(
+                    color = Color.White.copy(alpha = 0.15f),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        text = "Joined via ${referredByCode.uppercase()}'s invite",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            color = Color.White,
+                            fontWeight = FontWeight.Medium
+                        ),
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                    )
+                }
+            }
         }
     }
 }
@@ -242,12 +275,12 @@ fun ProfileOptionCard(
     title: String,
     subtitle: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
-    onClick: () -> Unit
+    onClick: (() -> Unit)? = null
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() },
+            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -278,7 +311,9 @@ fun ProfileOptionCard(
                 Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             
-            Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (onClick != null) {
+                Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
     }
 }
@@ -289,6 +324,8 @@ fun PersonalDetailsBottomSheet(
     name: String,
     email: String,
     phone: String,
+    dob: String,
+    gender: String,
     onDismiss: () -> Unit
 ) {
     ModalBottomSheet(
@@ -307,6 +344,8 @@ fun PersonalDetailsBottomSheet(
             )
             
             PersonalDetailRow("Name", name.ifBlank { "Not available" })
+            PersonalDetailRow("Date of Birth", dob.ifBlank { "Not available" })
+            PersonalDetailRow("Gender", gender.ifBlank { "Not available" })
             PersonalDetailRow("Email", email.ifBlank { "Not available" })
             PersonalDetailRow("Phone", phone.ifBlank { "Not available" })
             

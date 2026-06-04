@@ -25,6 +25,7 @@ import com.pyllar.consumer.data.local.KeyValueConstants
 import com.pyllar.consumer.util.Resource
 import com.pyllar.consumer.util.platformLog
 import org.koin.compose.koinInject
+import com.pyllar.consumer.platform.PlatformActions
 import androidx.compose.ui.platform.LocalUriHandler
 import com.pyllar.consumer.analytics.PlatformAnalyticsLogger
 import com.pyllar.consumer.navigation.ForceUpdateManager
@@ -951,17 +952,31 @@ fun App() {
             is Screen.Referral -> {
                 val referralVm: ReferralViewModel = koinInject()
                 val uiState by referralVm.uiState.collectAsState()
+                val platformActions: PlatformActions = koinInject()
                 ReferralScreen(
                     userId = screen.userId,
                     uiState = uiState,
                     onBackClick = { navigateBack() },
+                    onShareClick = {
+                        val text = uiState.shareMessage.ifBlank {
+                            "Join me on Pyllar! Use code ${uiState.referralCode} and we both earn rewards on your first investment. ${uiState.shareUrl}"
+                        }
+                        platformActions.shareText(text, "Invite a friend")
+                    },
+                    onWhatsAppShareClick = {
+                        val text = uiState.shareMessage.ifBlank {
+                            "Join me on Pyllar! Use code ${uiState.referralCode} and we both earn rewards on your first investment. ${uiState.shareUrl}"
+                        }
+                        platformActions.openWhatsApp("", text)
+                    },
                     onWithdrawClick = { amount ->
                         // Simulate withdrawal success
                         scope.launch {
                             referralVm.dismissSuccessMessage()
                         }
                     },
-                    onDismissSuccessMessage = { referralVm.dismissSuccessMessage() }
+                    onDismissSuccessMessage = { referralVm.dismissSuccessMessage() },
+                    onRetryClick = { referralVm.loadAll() }
                 )
             }
             is Screen.AccountDeletion -> {

@@ -60,13 +60,31 @@ class IosPlatformActions : PlatformActions {
     }
 
     override fun openWhatsApp(phoneNumber: String, message: String) {
-        val baseUrl = "https://wa.me/$phoneNumber"
-        val components = NSURLComponents.componentsWithString(baseUrl)
-        components?.setQueryItems(listOf(NSURLQueryItem.queryItemWithName("text", message)))
-        
-        val url = components?.URL
-        if (url != null) {
-            UIApplication.sharedApplication.openURL(url, options = emptyMap<Any?, Any?>(), completionHandler = null)
+        if (phoneNumber.isBlank()) {
+            val components = NSURLComponents.componentsWithString("whatsapp://send")
+            components?.setQueryItems(listOf(NSURLQueryItem.queryItemWithName("text", message)))
+            val url = components?.URL
+            if (url != null && UIApplication.sharedApplication.canOpenURL(url)) {
+                UIApplication.sharedApplication.openURL(url, options = emptyMap<Any?, Any?>(), completionHandler = null)
+                return
+            }
+            
+            // Fallback to web URL
+            val webComponents = NSURLComponents.componentsWithString("https://api.whatsapp.com/send")
+            webComponents?.setQueryItems(listOf(NSURLQueryItem.queryItemWithName("text", message)))
+            val webUrl = webComponents?.URL
+            if (webUrl != null) {
+                UIApplication.sharedApplication.openURL(webUrl, options = emptyMap<Any?, Any?>(), completionHandler = null)
+            }
+        } else {
+            val baseUrl = "https://wa.me/$phoneNumber"
+            val components = NSURLComponents.componentsWithString(baseUrl)
+            components?.setQueryItems(listOf(NSURLQueryItem.queryItemWithName("text", message)))
+            
+            val url = components?.URL
+            if (url != null) {
+                UIApplication.sharedApplication.openURL(url, options = emptyMap<Any?, Any?>(), completionHandler = null)
+            }
         }
     }
 

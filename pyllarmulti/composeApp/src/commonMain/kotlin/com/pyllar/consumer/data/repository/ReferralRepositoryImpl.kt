@@ -1,6 +1,7 @@
 package com.pyllar.consumer.data.repository
 
 import com.pyllar.consumer.data.remote.model.dto.ReferralCodeDto
+import com.pyllar.consumer.data.remote.model.dto.ReferralDashboardDto
 import com.pyllar.consumer.data.remote.model.dto.ReferralStatsOnlyDto
 import com.pyllar.consumer.data.remote.network.PyllarApiClient
 import com.pyllar.consumer.domain.repository.ReferralRepository
@@ -47,6 +48,28 @@ class ReferralRepositoryImpl(
             is Resource.Error -> emit(
                 Resource.Error(
                     message = result.message ?: "Failed to fetch referral stats",
+                    navigation = result.navigation,
+                    fieldErrors = result.fieldErrors,
+                    errorType = result.errorType
+                )
+            )
+            is Resource.Loading -> emit(Resource.Loading())
+        }
+    }
+
+    override fun getMyDashboard(userId: String): Flow<Resource<ReferralDashboardDto>> = flow {
+        emit(Resource.Loading())
+        when (val result = apiClient.get<ReferralDashboardDto>("api/referral/my-dashboard")) {
+            is Resource.Success -> emit(
+                Resource.Success(
+                    data = result.data,
+                    navigation = result.navigation,
+                    fieldErrors = result.fieldErrors
+                )
+            )
+            is Resource.Error -> emit(
+                Resource.Error(
+                    message = result.message ?: "Failed to fetch referral dashboard",
                     navigation = result.navigation,
                     fieldErrors = result.fieldErrors,
                     errorType = result.errorType
