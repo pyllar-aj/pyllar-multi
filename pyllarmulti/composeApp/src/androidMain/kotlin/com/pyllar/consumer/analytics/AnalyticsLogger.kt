@@ -33,6 +33,9 @@ actual object PlatformAnalyticsLogger {
             // 2. AppsFlyer
             AppsFlyerTracker.logEvent(context, name, params)
 
+            // 3. Singular
+            SingularTracker.logEvent(name, params)
+
             Log.d("PlatformAnalyticsLogger", "✅ Logged event: $name params=$params")
         } catch (e: Throwable) {
             Log.e("PlatformAnalyticsLogger", "❌ Failed to log event: $name", e)
@@ -53,6 +56,9 @@ actual object PlatformAnalyticsLogger {
             // 2. AppsFlyer Screen View (mirroring iOS bridge behavior)
             AppsFlyerTracker.logEvent(context, "screen_view", mapOf("screen_name" to screenName))
 
+            // 3. Singular Screen View
+            SingularTracker.logEvent("screen_view", mapOf("screen_name" to screenName))
+
             Log.d("PlatformAnalyticsLogger", "Logged screen_view: $screenName")
         } catch (_: Throwable) {}
     }
@@ -68,6 +74,9 @@ actual object PlatformAnalyticsLogger {
 
             // 3. AppsFlyer Customer User ID
             AppsFlyerTracker.setUserId(userId)
+
+            // 4. Singular Custom User ID
+            SingularTracker.setUserId(userId)
 
             Log.d("PlatformAnalyticsLogger", "User ID set across platforms: $userId")
         } catch (_: Throwable) {}

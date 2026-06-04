@@ -7,6 +7,7 @@ import com.microsoft.clarity.models.LogLevel
 import com.pyllar.consumer.analytics.AppsFlyerAttributionCache
 import com.pyllar.consumer.analytics.AppsFlyerTracker
 import com.pyllar.consumer.analytics.PlatformAnalyticsLogger
+import com.pyllar.consumer.analytics.SingularTracker
 import com.pyllar.consumer.di.androidPlatformModule
 import com.pyllar.consumer.di.sharedModule
 import com.pyllar.consumer.util.Log
@@ -19,6 +20,14 @@ class PyllarApplication : Application() {
 
         // 1. Seed the application context for the static AnalyticsLogger
         PlatformAnalyticsLogger.applicationContext = this
+
+        // Initialize Singular SDK
+        try {
+            SingularTracker.init(this)
+            Log.d("PyllarApplication", "✅ Singular SDK initialized successfully")
+        } catch (e: Exception) {
+            Log.e("PyllarApplication", "⚠️ Singular SDK initialization failed", e)
+        }
 
         // 2. Initialize Microsoft Clarity
         try {

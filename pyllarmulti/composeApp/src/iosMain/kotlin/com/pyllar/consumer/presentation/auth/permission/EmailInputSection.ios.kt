@@ -12,10 +12,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.pyllar.consumer.config.IS_DEBUG
 import org.jetbrains.compose.resources.stringResource
 import pyllar.composeapp.generated.resources.*
 
@@ -25,6 +25,18 @@ actual fun EmailInputSection(
     onEmailChange: (String) -> Unit,
     showError: Boolean
 ) {
+    // Silently restore previously selected Google account so the user doesn't
+    // have to go through the picker again on every visit.
+    LaunchedEffect(Unit) {
+        if (email.isBlank()) {
+            SwiftGoogleSignInScope.bridge?.tryRestoreEmail { restoredEmail ->
+                if (!restoredEmail.isNullOrBlank()) {
+                    onEmailChange(restoredEmail)
+                }
+            }
+        }
+    }
+
     val triggerPicker = {
         SwiftGoogleSignInScope.bridge?.pickEmail { selectedEmail ->
             if (!selectedEmail.isNullOrBlank()) {
@@ -33,37 +45,26 @@ actual fun EmailInputSection(
         }
     }
 
-    Box(modifier = Modifier.fillMaxWidth()) {
-        OutlinedTextField(
-            value = email,
-            onValueChange = onEmailChange,
-            readOnly = !IS_DEBUG,
-            label = { Text(stringResource(Res.string.select_your_email)) },
-            placeholder = { Text(if (IS_DEBUG) "Enter your email or select one" else "Select your email") },
-            trailingIcon = {
-                Icon(
-                    imageVector = Icons.Default.ArrowDropDown,
-                    contentDescription = "Pick account",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier
-                        .padding(end = 8.dp)
-                        .clickable { triggerPicker() }
-                )
-            },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-            singleLine = true,
-            isError = showError,
-            modifier = Modifier.fillMaxWidth()
-        )
-        if (!IS_DEBUG) {
-            // Overlay to detect click on the entire text field area and trigger the picker
-            Box(
+    OutlinedTextField(
+        value = email,
+        onValueChange = onEmailChange,
+        label = { Text(stringResource(Res.string.select_your_email)) },
+        placeholder = { Text("Choose or enter your email") },
+        trailingIcon = {
+            Icon(
+                imageVector = Icons.Default.ArrowDropDown,
+                contentDescription = "Pick account",
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier
-                    .matchParentSize()
+                    .padding(end = 8.dp)
                     .clickable { triggerPicker() }
             )
-        }
-    }
+        },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+        singleLine = true,
+        isError = showError,
+        modifier = Modifier.fillMaxWidth()
+    )
 }
 
 

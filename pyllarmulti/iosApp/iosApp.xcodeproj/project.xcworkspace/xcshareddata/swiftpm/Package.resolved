@@ -1,5 +1,5 @@
 {
-  "originHash" : "ab7f05fccbd1145a1875e28421edbeedd3e5d6fd97370744d2869a6263e78201",
+  "originHash" : "374b28ed67ea70c7c7320e9783527b0ea74887c1d0c2078843e3ddcbd99ea35a",
   "pins" : [
     {
       "identity" : "app-check",
@@ -25,7 +25,7 @@
       "location" : "https://github.com/AppsFlyerSDK/AppsFlyerFramework",
       "state" : {
         "revision" : "edd3e30e4bafe527bc3df51250479302120510f3",
-        "version" : "6.16.2"
+        "version" : "6.18.1"
       }
     },
     {
@@ -80,6 +80,15 @@
       "state" : {
         "revision" : "540318ecedd63d883069ae7f1ed811a2df00b6ac",
         "version" : "2.4.0"
+      }
+    },
+    {
+      "identity" : "singular-ios-sdk",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/singular-labs/Singular-iOS-SDK",
+      "state" : {
+        "revision" : "c5d3149e5fbe606f1a4f20c843cbfd9394fe507f",
+        "version" : "12.12.0"
       }
     }
   ],

@@ -5,6 +5,7 @@ import CryptoKit
 import GoogleSignIn
 import Clarity
 import AppsFlyerLib
+import Singular
 
 struct ComposeView: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UIViewController {
@@ -276,33 +277,37 @@ extension UIResponder {
 }
 
 class SwiftGoogleSignInBridge: NSObject, IosGoogleSignInBridge {
+    // Called on screen load — silently restores a prior session with no UI.
+    func tryRestoreEmail(completion: @escaping (String?) -> Void) {
+        GIDSignIn.sharedInstance.restorePreviousSignIn { user, _ in
+            completion(user?.profile?.email)
+        }
+    }
+
+    // Called when user explicitly taps the field to pick/change email.
+    // Always shows the interactive account picker so any user on the device
+    // can select their own account, even if another account was auto-filled.
     func pickEmail(completion: @escaping (String?) -> Void) {
         DispatchQueue.main.async {
             self.showInteractiveSignIn(completion: completion)
         }
     }
-    
+
     private func showInteractiveSignIn(completion: @escaping (String?) -> Void) {
         guard let rootVC = self.getTopViewController() else {
             completion(nil)
             return
         }
-        
         GIDSignIn.sharedInstance.signIn(withPresenting: rootVC) { signInResult, error in
             if let error = error {
                 print("Google Sign-In error: \(error.localizedDescription)")
                 completion(nil)
                 return
             }
-            
-            let email = signInResult?.user.profile?.email
-            completion(email)
-            
-            // NOTE: We no longer call GIDSignIn.sharedInstance.signOut() here.
-            // This allows the SDK to remember the user for next time.
+            completion(signInResult?.user.profile?.email)
         }
     }
-    
+
     private func getTopViewController() -> UIViewController? {
         let scenes = UIApplication.shared.connectedScenes
         let windowScene = scenes.first as? UIWindowScene
@@ -320,16 +325,19 @@ class SwiftAnalyticsBridge: NSObject, IosAnalyticsBridge {
     func logEvent(name: String, params: [String : Any]) {
         AppsFlyerLib.shared().logEvent(name, withValues: params)
         ClaritySDK.sendCustomEvent(value: name)
+        Singular.event(name, withArgs: params)
     }
 
     func logScreenView(screenName: String) {
         AppsFlyerLib.shared().logEvent("screen_view", withValues: ["screen_name": screenName])
         ClaritySDK.setCurrentScreenName(screenName)
+        Singular.event("screen_view", withArgs: ["screen_name": screenName])
     }
 
     func setUserId(userId: String) {
         AppsFlyerLib.shared().customerUserID = userId
         ClaritySDK.setCustomUserId(userId)
+        Singular.setCustomUserId(userId)
     }
 
     func generateReferralLink(referrerId: String, onComplete: @escaping (String?) -> Void) {

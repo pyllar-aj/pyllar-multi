@@ -92,6 +92,7 @@ kotlin {
             implementation("com.microsoft.clarity:clarity-compose:3.6.0")
             implementation("com.facebook.android:facebook-android-sdk:17.0.2")
             implementation("com.appsflyer:af-android-sdk:6.16.2")
+            implementation("com.singular.sdk:singular_sdk:12.7.1")
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
@@ -159,16 +160,22 @@ android {
     }
     buildTypes {
         val appsflyerKey = "\"${keystoreProperties["appsflyerDevKey"] ?: ""}\""
+        val singularApiKey = "\"${keystoreProperties["singularApiKey"] ?: ""}\""
+        val singularSecretKey = "\"${keystoreProperties["singularSecretKey"] ?: ""}\""
         debug {
             // Debug / local backend (matches pyllar.flavor=debug)
             buildConfigField("String", "BASE_URL", "\"http://10.222.186.212:8080\"")
             buildConfigField("String", "APPSFLYER_DEV_KEY", appsflyerKey)
+            buildConfigField("String", "SINGULAR_API_KEY", singularApiKey)
+            buildConfigField("String", "SINGULAR_SECRET_KEY", singularSecretKey)
         }
         getByName("release") {
             isMinifyEnabled = false
             // Production backend (matches pyllar.flavor=release)
             buildConfigField("String", "BASE_URL", "\"https://api.pyllar.in\"")
             buildConfigField("String", "APPSFLYER_DEV_KEY", appsflyerKey)
+            buildConfigField("String", "SINGULAR_API_KEY", singularApiKey)
+            buildConfigField("String", "SINGULAR_SECRET_KEY", singularSecretKey)
         }
     }
     compileOptions {

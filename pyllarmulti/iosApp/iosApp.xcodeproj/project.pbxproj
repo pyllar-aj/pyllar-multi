@@ -11,6 +11,7 @@
 		216E2CF92FBEDE88001E32D1 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 216E2CF82FBEDE88001E32D1 /* GoogleSignIn */; };
 		216E2CFB2FBEDE88001E32D1 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 216E2CFA2FBEDE88001E32D1 /* GoogleSignInSwift */; };
 		445C052442747365B7CB2124 /* AppsFlyerLib in Frameworks */ = {isa = PBXBuildFile; productRef = CD67EC4A9FF4F5FF8A2D8772 /* AppsFlyerLib */; };
+		B7C4F6137AC8345E71E92063 /* Singular in Frameworks */ = {isa = PBXBuildFile; productRef = FFA86D5547034AF50240D997 /* Singular */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -52,6 +53,7 @@
 				216E2CFB2FBEDE88001E32D1 /* GoogleSignInSwift in Frameworks */,
 				1C81D6F669B7BB6D2FFCCEB3 /* Clarity in Frameworks */,
 				445C052442747365B7CB2124 /* AppsFlyerLib in Frameworks */,
+				B7C4F6137AC8345E71E92063 /* Singular in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -100,6 +102,7 @@
 				216E2CFA2FBEDE88001E32D1 /* GoogleSignInSwift */,
 				3B850F4D4A0FC5EBEAA700B4 /* Clarity */,
 				CD67EC4A9FF4F5FF8A2D8772 /* AppsFlyerLib */,
+				FFA86D5547034AF50240D997 /* Singular */,
 			);
 			productName = iosApp;
 			productReference = 2A145260C2906617681AD30B /* Pyllar.app */;
@@ -133,6 +136,7 @@
 				216E2CF72FBEDE88001E32D1 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
 				C6FF991712F080C05277BDB8 /* XCRemoteSwiftPackageReference "clarity-apps" */,
 				F44DD97045955BF9FD71A468 /* XCRemoteSwiftPackageReference "AppsFlyerFramework" */,
+				8B412E24250EBAE98BEF6531 /* XCRemoteSwiftPackageReference "Singular-iOS-SDK" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 13A11D9F7DA03C59D8E1222A /* Products */;
@@ -437,6 +441,14 @@
 				minimumVersion = 6.14.0;
 			};
 		};
+		8B412E24250EBAE98BEF6531 /* XCRemoteSwiftPackageReference "Singular-iOS-SDK" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/singular-labs/Singular-iOS-SDK";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.4.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -459,6 +471,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = F44DD97045955BF9FD71A468 /* XCRemoteSwiftPackageReference "AppsFlyerFramework" */;
 			productName = AppsFlyerLib;
+		};
+		FFA86D5547034AF50240D997 /* Singular */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8B412E24250EBAE98BEF6531 /* XCRemoteSwiftPackageReference "Singular-iOS-SDK" */;
+			productName = Singular;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
