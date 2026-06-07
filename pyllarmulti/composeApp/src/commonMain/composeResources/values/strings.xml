@@ -397,4 +397,7 @@
     <string name="referral_faq_a4_multi_day">Both you and your friend receive 100 coins once your friend earns the %1$d-day streak badge.</string>
     <string name="start_nav">Start NAV</string>
     <string name="current_nav">Current NAV</string>
+    <string name="monthly_income">Monthly Income (₹)</string>
+    <string name="monthly_income_invalid">Invalid income amount</string>
 </resources>
+

@@ -76,7 +76,7 @@ class AdditionalKycViewModel(
         maritalStatus: String,
         occupationType: String,
         fatherName: String,
-        annualIncome: String,
+        monthlyIncome: Double,
         isPoliticallyExposed: Boolean,
         nationalityCountry: String,
         placeOfBirth: String,
@@ -97,12 +97,12 @@ class AdditionalKycViewModel(
                 // Recover kycAttemptId if blank (parity with Android)
                 var effectiveKycAttemptId = kycAttemptId
                 if (effectiveKycAttemptId.isBlank()) {
-                    platformLog("AdditionalKycViewModel: \u26a0\ufe0f kycAttemptId is blank, attempting recovery from sessionStore")
+                    platformLog("AdditionalKycViewModel: ⚠️ kycAttemptId is blank, attempting recovery from sessionStore")
                     effectiveKycAttemptId = sessionStore.getValue(com.pyllar.consumer.data.local.KeyValueConstants.KYC_ATTEMPT_ID) ?: ""
-                    platformLog("AdditionalKycViewModel: \ud83d\udd04 Recovered kycAttemptId: '$effectiveKycAttemptId'")
+                    platformLog("AdditionalKycViewModel: 🔄 Recovered kycAttemptId: '$effectiveKycAttemptId'")
                 }
 
-                platformLog("AdditionalKycViewModel: \ud83d\udd0d [submitAdditionalKyc] Called for kycAttemptId: $effectiveKycAttemptId")
+                platformLog("AdditionalKycViewModel: 🔍 [submitAdditionalKyc] Called for kycAttemptId: $effectiveKycAttemptId")
 
                 _submitResult.value = Resource.Loading()
                 val geolocation = if (longitude != null && latitude != null) "$latitude,$longitude" else null
@@ -110,7 +110,7 @@ class AdditionalKycViewModel(
                     maritalStatus = maritalStatus,
                     occupationType = occupationType,
                     fatherName = fatherName,
-                    annualIncome = annualIncome,
+                    monthlyIncome = monthlyIncome,
                     isPoliticallyExposed = isPoliticallyExposed,
                     nationalityCountry = nationalityCountry,
                     placeOfBirth = placeOfBirth,

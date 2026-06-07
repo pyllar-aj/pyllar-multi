@@ -41,6 +41,8 @@ import com.pyllar.consumer.platform.PlatformActions
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import org.jetbrains.compose.resources.stringResource
+import pyllar.composeapp.generated.resources.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -83,7 +85,7 @@ fun AdditionalKycScreen(
     var city by remember { mutableStateOf("") }
     var pincode by remember { mutableStateOf("") }
     var residentialStatus by remember { mutableStateOf("yes") }
-    var incomeSlab by remember { mutableStateOf("") }
+    var monthlyIncome by remember { mutableStateOf("") }
     var nationality by remember { mutableStateOf("yes") }
     var politicallyExposed by remember { mutableStateOf("no") }
     var isConfirmed by remember { mutableStateOf(false) }
@@ -108,7 +110,7 @@ fun AdditionalKycScreen(
     val fieldOrder = listOf(
         "fatherName", "gender", "maritalStatus", "placeOfBirth", "occupationType",
         "addressLine1", "addressLine2", "addressLine3", "city", "pincode",
-        "incomeSlab", "residentialStatus", "nationality", "politicallyExposed", "isConfirmed"
+        "monthlyIncome", "residentialStatus", "nationality", "politicallyExposed", "isConfirmed"
     )
 
     fun onFieldFocusChanged(fieldName: String, isFocused: Boolean) {
@@ -171,7 +173,17 @@ fun AdditionalKycScreen(
             if (maritalStatus.isBlank()) maritalStatus = uiState["maritalStatus"]?.toString() ?: ""
             if (occupationType.isBlank()) occupationType = uiState["occupationType"]?.toString() ?: ""
             if (placeOfBirth.isBlank()) placeOfBirth = uiState["placeOfBirth"]?.toString() ?: ""
-            if (incomeSlab.isBlank()) incomeSlab = uiState["incomeSlab"]?.toString() ?: uiState["annualIncome"]?.toString() ?: ""
+            if (monthlyIncome.isBlank()) {
+                val rawMonthly = uiState["monthlyIncome"]?.toString() ?: uiState["monthly_income"]?.toString() ?: ""
+                if (rawMonthly.isNotBlank()) {
+                    val doubleVal = rawMonthly.toDoubleOrNull()
+                    if (doubleVal != null) {
+                        monthlyIncome = if (doubleVal % 1.0 == 0.0) doubleVal.toLong().toString() else doubleVal.toString()
+                    } else {
+                        monthlyIncome = rawMonthly
+                    }
+                }
+            }
             if (city.isBlank()) city = uiState["city"]?.toString() ?: ""
             if (pincode.isBlank()) {
                 val rawPincode = uiState["pincode"]?.toString() ?: ""
@@ -361,17 +373,22 @@ fun AdditionalKycScreen(
                     )
                 }
 
-                val isIncomeError = shouldShowError("incomeSlab", incomeSlab)
-                ExposedDropdownFieldWithDisplay(
-                    label = "Annual Income",
-                    selected = incomeSlab,
-                    options = incomeOptions,
-                    displayMap = incomeOptions.associateWith { it.replace("_", " ").replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() } },
-                    onSelect = { 
-                        incomeSlab = it
-                        onFieldInteracted("incomeSlab")
+                val isIncomeError = shouldShowError("monthlyIncome", monthlyIncome, { it.isNotBlank() && (it.toDoubleOrNull() ?: 0.0) > 0.0 })
+                OutlinedTextField(
+                    value = monthlyIncome,
+                    onValueChange = { newValue ->
+                        val digitsOnly = newValue.filter { it.isDigit() }
+                        val parsed = digitsOnly.toDoubleOrNull() ?: 0.0
+                        if (parsed <= 10000000.0) { // cap at 1 crore
+                            monthlyIncome = digitsOnly
+                        }
+                        onFieldInteracted("monthlyIncome")
                     },
-                    showError = isIncomeError
+                    label = { Text(stringResource(Res.string.monthly_income)) },
+                    modifier = Modifier.fillMaxWidth().onFocusChanged { onFieldFocusChanged("monthlyIncome", it.isFocused) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
+                    isError = isIncomeError,
+                    supportingText = if (isIncomeError) { { Text(stringResource(Res.string.monthly_income_invalid), color = MaterialTheme.colorScheme.error) } } else null
                 )
 
                 Text("Are you an Indian Resident?", style = MaterialTheme.typography.bodyLarge)
@@ -453,9 +470,10 @@ fun AdditionalKycScreen(
 
                 Button(
                     onClick = {
+                        val parsedIncome = monthlyIncome.toDoubleOrNull() ?: 0.0
                         if (fatherName.isBlank() || gender.isBlank() || maritalStatus.isBlank() || 
                             occupationType.isBlank() || placeOfBirth.isBlank() || city.isBlank() || 
-                            pincode.length != 6 || incomeSlab.isBlank() || !isConfirmed || validationMessage != null) {
+                            pincode.length != 6 || parsedIncome <= 0.0 || !isConfirmed || validationMessage != null) {
                             showValidationErrors = true
                             return@Button
                         }
@@ -504,7 +522,7 @@ fun AdditionalKycScreen(
                                     maritalStatus = maritalStatus,
                                     occupationType = occupationType,
                                     fatherName = fatherName,
-                                    annualIncome = incomeSlab,
+                                    monthlyIncome = parsedIncome,
                                     isPoliticallyExposed = politicallyExposed == "yes",
                                     nationalityCountry = if (nationality == "yes") "IN" else "OTHERS",
                                     placeOfBirth = placeOfBirth,
@@ -527,7 +545,7 @@ fun AdditionalKycScreen(
                                 maritalStatus = maritalStatus,
                                 occupationType = occupationType,
                                 fatherName = fatherName,
-                                annualIncome = incomeSlab,
+                                monthlyIncome = parsedIncome,
                                 isPoliticallyExposed = politicallyExposed == "yes",
                                 nationalityCountry = if (nationality == "yes") "IN" else "OTHERS",
                                 placeOfBirth = placeOfBirth,

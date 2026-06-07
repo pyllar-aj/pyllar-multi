@@ -11,8 +11,8 @@ data class AdditionalKycRequest(
     val occupationType: String,
     @SerialName("fatherName")
     val fatherName: String,
-    @SerialName("annualIncome")
-    val annualIncome: String,
+    @SerialName("monthlyIncome")
+    val monthlyIncome: Double,
     @SerialName("isPoliticallyExposed")
     val isPoliticallyExposed: Boolean,
     @SerialName("nationalityCountry")
