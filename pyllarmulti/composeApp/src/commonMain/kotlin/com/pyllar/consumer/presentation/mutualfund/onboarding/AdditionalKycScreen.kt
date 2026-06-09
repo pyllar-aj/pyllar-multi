@@ -175,19 +175,20 @@ fun AdditionalKycScreen(
             if (placeOfBirth.isBlank()) placeOfBirth = uiState["placeOfBirth"]?.toString() ?: ""
             if (monthlyIncome.isBlank()) {
                 val rawMonthly = uiState["monthlyIncome"]?.toString() ?: uiState["monthly_income"]?.toString() ?: ""
-                if (rawMonthly.isNotBlank()) {
-                    val doubleVal = rawMonthly.toDoubleOrNull()
+                val cleanMonthly = rawMonthly.replace("\"", "").replace("'", "").filter { it.isDigit() }
+                if (cleanMonthly.isNotBlank()) {
+                    val doubleVal = cleanMonthly.toDoubleOrNull()
                     if (doubleVal != null) {
                         monthlyIncome = if (doubleVal % 1.0 == 0.0) doubleVal.toLong().toString() else doubleVal.toString()
                     } else {
-                        monthlyIncome = rawMonthly
+                        monthlyIncome = cleanMonthly
                     }
                 }
             }
             if (city.isBlank()) city = uiState["city"]?.toString() ?: ""
             if (pincode.isBlank()) {
                 val rawPincode = uiState["pincode"]?.toString() ?: ""
-                pincode = rawPincode.filter { it.isDigit() }.take(6)
+                pincode = rawPincode.replace("\"", "").replace("'", "").filter { it.isDigit() }.take(6)
             }
             if (addressLine1.isBlank()) addressLine1 = uiState["addressLine1"]?.toString() ?: ""
             if (addressLine2.isBlank()) addressLine2 = uiState["addressLine2"]?.toString() ?: ""
@@ -358,9 +359,9 @@ fun AdditionalKycScreen(
                     )
                     val isPincodeError = shouldShowError("pincode", pincode, { it.length == 6 && it.all { it.isDigit() } })
                     OutlinedTextField(
-                        value = pincode,
+                        value = pincode.replace("\"", "").replace("'", "").filter { it.isDigit() }.take(6),
                         onValueChange = { newValue ->
-                            val digitsOnly = newValue.filter { it.isDigit() }
+                            val digitsOnly = newValue.replace("\"", "").replace("'", "").filter { it.isDigit() }
                             if (digitsOnly.length <= 6) {
                                 pincode = digitsOnly
                             }
@@ -375,9 +376,9 @@ fun AdditionalKycScreen(
 
                 val isIncomeError = shouldShowError("monthlyIncome", monthlyIncome, { it.isNotBlank() && (it.toDoubleOrNull() ?: 0.0) > 0.0 })
                 OutlinedTextField(
-                    value = monthlyIncome,
+                    value = monthlyIncome.replace("\"", "").replace("'", "").filter { it.isDigit() },
                     onValueChange = { newValue ->
-                        val digitsOnly = newValue.filter { it.isDigit() }
+                        val digitsOnly = newValue.replace("\"", "").replace("'", "").filter { it.isDigit() }
                         val parsed = digitsOnly.toDoubleOrNull() ?: 0.0
                         if (parsed <= 10000000.0) { // cap at 1 crore
                             monthlyIncome = digitsOnly

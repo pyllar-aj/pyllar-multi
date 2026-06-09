@@ -71,8 +71,8 @@ fun BankDetailsScreen(
     }
 
     LaunchedEffect(prefillData) {
-        if (accountNumber.isBlank()) accountNumber = prefillData["accountNumber"] ?: ""
-        if (ifscCode.isBlank()) ifscCode = prefillData["ifscCode"] ?: ""
+        if (accountNumber.isBlank()) accountNumber = (prefillData["accountNumber"] ?: "").replace("\"", "").replace("'", "").filter { it.isDigit() }
+        if (ifscCode.isBlank()) ifscCode = (prefillData["ifscCode"] ?: "").replace("\"", "").replace("'", "").filter { it.isLetterOrDigit() }.uppercase().take(11)
     }
 
     LaunchedEffect(submitResult) {
@@ -124,8 +124,8 @@ fun BankDetailsScreen(
         if (statusResult is Resource.Success) {
             val details = statusResult?.data?.bankDetails
             if (details != null) {
-                accountNumber = details.bankAccount ?: accountNumber
-                ifscCode = details.ifsc ?: ifscCode
+                accountNumber = (details.bankAccount ?: accountNumber).replace("\"", "").replace("'", "").filter { it.isDigit() }
+                ifscCode = (details.ifsc ?: ifscCode).replace("\"", "").replace("'", "").filter { it.isLetterOrDigit() }.uppercase().take(11)
                 rpdVerificationId = null
                 showPaymentSheet = false
                 verificationMode = "MANUAL"
@@ -254,8 +254,10 @@ fun BankDetailsScreen(
                         Text("Enter Bank Details Manually", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
                         
                         OutlinedTextField(
-                            value = accountNumber,
-                            onValueChange = { accountNumber = it.filter { it.isDigit() } },
+                            value = accountNumber.replace("\"", "").replace("'", "").filter { it.isDigit() },
+                            onValueChange = { newValue ->
+                                accountNumber = newValue.replace("\"", "").replace("'", "").filter { it.isDigit() }
+                            },
                             label = { Text("Account Number") },
                             modifier = Modifier.fillMaxWidth(),
                             enabled = !isPolling,
@@ -263,8 +265,10 @@ fun BankDetailsScreen(
                         )
 
                         OutlinedTextField(
-                            value = ifscCode,
-                            onValueChange = { ifscCode = it.uppercase().take(11) },
+                            value = ifscCode.replace("\"", "").replace("'", "").filter { it.isLetterOrDigit() }.uppercase().take(11),
+                            onValueChange = { newValue ->
+                                ifscCode = newValue.replace("\"", "").replace("'", "").filter { it.isLetterOrDigit() }.uppercase().take(11)
+                            },
                             label = { Text("IFSC Code") },
                             modifier = Modifier.fillMaxWidth(),
                             enabled = !isPolling,
