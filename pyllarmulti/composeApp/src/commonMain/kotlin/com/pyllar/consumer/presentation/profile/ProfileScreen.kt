@@ -138,16 +138,6 @@ fun ProfileScreen(
                         platformActions.shareText("Build your wealth with Pyllar! https://pyllar.in", "Share Pyllar")
                     }
                 )
-
-                // Joined via invite Card (only shown if referredByCode is set)
-                if (!profileState.referredByCode.isNullOrBlank()) {
-                    ProfileOptionCard(
-                        title = "Joined via invite",
-                        subtitle = "You were referred by a friend",
-                        icon = Icons.Filled.CardGiftcard,
-                        onClick = null
-                    )
-                }
                 
                 Spacer(modifier = Modifier.height(24.dp))
                 

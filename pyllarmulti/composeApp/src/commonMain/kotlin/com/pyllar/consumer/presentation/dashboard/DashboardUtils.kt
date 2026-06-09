@@ -3,6 +3,7 @@ package com.pyllar.consumer.presentation.dashboard
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import pyllar.composeapp.generated.resources.*
+import com.pyllar.consumer.presentation.ui.theme.V2SuccessGreen
 import org.jetbrains.compose.resources.DrawableResource
 import com.pyllar.consumer.util.*
 import kotlin.math.pow
@@ -17,7 +18,7 @@ fun formatGoalName(name: String): String {
 fun getCorrelationColorForCategory(category: String?, colorTheme: String?): Color {
     // Use colorTheme if available, otherwise use category-based colors
     val themeColor = colorTheme?.toColor()
-    if (themeColor != null && themeColor != Color(0xFF4CAF50)) { // If it's not the default green
+    if (themeColor != null && themeColor != V2SuccessGreen) { // If it's not the default green
         return themeColor
     }
 
@@ -31,7 +32,7 @@ fun getCorrelationColorForCategory(category: String?, colorTheme: String?): Colo
         "SAVINGS_PLUS" -> Color(0xFF2E7D32) // Emerald Green
         "GLOBAL_EXPOSURE" -> Color(0xFF00897B) // Teal
         "ALL_IN_ONE" -> Color(0xFF2C4C9C) // Dark blue
-        else -> Color(0xFF4CAF50) // Default green
+        else -> V2SuccessGreen // Default green
     }
 }
 
@@ -42,10 +43,10 @@ fun getBorderColorForCategory(category: String?): Color {
         "FESTIVAL_SPENDS" -> Color(0xFFFF9800)
         "CHILDRENS_EDUCATION" -> Color(0xFF2196F3)
         "VACATION" -> Color(0xFF9C27B0)
-        "SAVINGS" -> Color(0xFF4CAF50)
+        "SAVINGS" -> V2SuccessGreen
         "GLOBAL_EXPOSURE" -> Color(0xFF00897B)
         "ALL_IN_ONE" -> Color(0xFF2C4C9C) // Match correlation dark blue
-        else -> Color(0xFF4CAF50)
+        else -> V2SuccessGreen
     }
 }
 
@@ -191,7 +192,7 @@ fun String.toColor(): Color {
     }
 
     return when (lower) {
-        "green" -> Color(0xFF4CAF50)
+        "green" -> V2SuccessGreen
         "orange" -> Color(0xFFFF9800)
         "yellow" -> Color(0xFFFFEB3B)
         "gold", "ffd700", "d4af37", "daa520" -> Color(0xFFDAA520)
@@ -200,7 +201,7 @@ fun String.toColor(): Color {
         "blue" -> Color(0xFF2196F3)
         "purple" -> Color(0xFF9C27B0)
         "teal" -> Color(0xFF009688)
-        else -> Color(0xFF4CAF50)
+        else -> V2SuccessGreen
     }
 }
 

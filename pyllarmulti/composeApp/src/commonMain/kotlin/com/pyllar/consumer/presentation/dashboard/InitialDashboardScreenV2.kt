@@ -937,9 +937,9 @@ fun InitialGoalCardV2(
                         .padding(top = 16.dp, end = 16.dp)
                 ) {
                     Surface(
-                        color = Color(0xFFE8F5E9),
+                        color = WarmCreamBackground,
                         shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(1.dp, Color(0xFF4CAF50).copy(alpha = 0.3f))
+                        border = BorderStroke(1.dp, AccentGreen.copy(alpha = 0.3f))
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
@@ -957,7 +957,7 @@ fun InitialGoalCardV2(
                                 style = TextStyle(
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF2E7D32)
+                                    color = AccentGreen
                                 )
                             )
                         }

@@ -25,6 +25,7 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import com.pyllar.consumer.platform.PlatformActions
 import pyllar.composeapp.generated.resources.*
+import com.pyllar.consumer.presentation.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,7 +50,7 @@ fun WithdrawSuccessScreen(
         )
     }
 
-    Scaffold { paddingValues ->
+    Scaffold(containerColor = V2Cream) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -62,8 +63,8 @@ fun WithdrawSuccessScreen(
             // Withdrawal Success Badge
             Surface(
                 shape = RoundedCornerShape(50),
-                color = Color(0xFFE8F5E9).copy(alpha = 0.5f),
-                border = BorderStroke(1.dp, Color(0xFF4CAF50).copy(alpha = 0.3f)),
+                color = V2SubtleBorder.copy(alpha = 0.5f),
+                border = BorderStroke(1.dp, V2SuccessGreen.copy(alpha = 0.3f)),
                 modifier = Modifier.padding(top = 16.dp)
             ) {
                 Row(
@@ -74,7 +75,7 @@ fun WithdrawSuccessScreen(
                     Box(
                         modifier = Modifier
                             .size(8.dp)
-                            .background(Color(0xFF4CAF50), CircleShape)
+                            .background(V2SuccessGreen, CircleShape)
                     )
                     Text(
                         text = stringResource(Res.string.withdrawal_success_title).uppercase(),
@@ -82,7 +83,7 @@ fun WithdrawSuccessScreen(
                             fontWeight = FontWeight.SemiBold,
                             letterSpacing = 0.5.sp
                         ),
-                        color = Color(0xFF4CAF50)
+                        color = V2SuccessGreen
                     )
                 }
             }
@@ -96,14 +97,14 @@ fun WithdrawSuccessScreen(
                 Surface(
                     modifier = Modifier.size(100.dp),
                     shape = CircleShape,
-                    color = Color(0xFFE8F5E9).copy(alpha = 0.5f)
+                    color = V2SubtleBorder.copy(alpha = 0.5f)
                 ) {}
                 
                 // Inner green circle with checkmark
                 Surface(
                     modifier = Modifier.size(64.dp),
                     shape = CircleShape,
-                    color = Color(0xFF4CAF50)
+                    color = V2SuccessGreen
                 ) {
                     Icon(
                         imageVector = Icons.Default.Check,
@@ -136,9 +137,9 @@ fun WithdrawSuccessScreen(
             // Transaction Details Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFF9F9F9)),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
                 shape = RoundedCornerShape(20.dp),
-                border = BorderStroke(1.dp, Color(0xFFF0F0F0))
+                border = BorderStroke(1.dp, V2SubtleBorder)
             ) {
                 Column(
                     modifier = Modifier.padding(vertical = 8.dp)
@@ -151,7 +152,7 @@ fun WithdrawSuccessScreen(
                     HorizontalDivider(
                         modifier = Modifier.padding(horizontal = 16.dp),
                         thickness = 1.dp,
-                        color = Color(0xFFEEEEEE)
+                        color = V2SubtleBorder
                     )
 
                     if (folio != null) {
@@ -162,7 +163,7 @@ fun WithdrawSuccessScreen(
                         HorizontalDivider(
                             modifier = Modifier.padding(horizontal = 16.dp),
                             thickness = 1.dp,
-                            color = Color(0xFFEEEEEE)
+                            color = V2SubtleBorder
                         )
                     }
 
@@ -225,7 +226,7 @@ fun WithdrawSuccessScreen(
                     .height(56.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF4CAF50),
+                    containerColor = V2Obsidian,
                     contentColor = Color.White
                 )
             ) {

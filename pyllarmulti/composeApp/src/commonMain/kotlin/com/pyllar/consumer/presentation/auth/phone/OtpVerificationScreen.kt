@@ -29,6 +29,10 @@ import com.pyllar.consumer.domain.models.AuthUserDTO
 import com.pyllar.consumer.presentation.ui.components.rememberTimeoutState
 import com.pyllar.consumer.util.Resource
 import com.pyllar.otp.OtpField
+import com.pyllar.consumer.presentation.ui.theme.V2Cream
+import com.pyllar.consumer.presentation.ui.theme.V2Obsidian
+import com.pyllar.consumer.presentation.ui.theme.V2Ink
+import com.pyllar.consumer.presentation.ui.theme.V2HelpText
 import kotlinx.coroutines.delay
 
 /**
@@ -102,8 +106,8 @@ fun OtpVerificationScreen(
         }
     }
 
-    val primaryColor = Color(0xFF0A5C36)
-    val emeraldGreen = Color(0xFF0A5C36)
+    val primaryColor = V2Obsidian
+    val emeraldGreen = V2Obsidian
 
     Box(
         modifier = Modifier
@@ -119,13 +123,9 @@ fun OtpVerificationScreen(
         Canvas(modifier = Modifier.fillMaxSize()) {
             val gradient = Brush.verticalGradient(
                 colors = listOf(
-                    Color(0xFF0A5C36),
-                    Color(0xFF1B7A4A),
-                    Color(0xFF2D9A5F),
-                    Color(0xFF3FAF73),
-                    Color(0xFF4FC387),
-                    Color(0xFF003200),
-                    Color(0xFF002800)
+                    V2Obsidian,
+                    Color(0xFF103620),
+                    V2Cream
                 ),
                 startY = 0f,
                 endY = size.height
@@ -272,7 +272,7 @@ fun OtpVerificationScreen(
                         Text(
                             text = "Resend OTP",
                             style = MaterialTheme.typography.bodySmall,
-                            color = primaryColor
+                            color = V2HelpText
                         )
                     }
                 }

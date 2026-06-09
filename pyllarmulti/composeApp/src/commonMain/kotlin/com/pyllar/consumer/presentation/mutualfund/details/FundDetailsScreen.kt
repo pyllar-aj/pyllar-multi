@@ -36,6 +36,7 @@ import org.koin.compose.koinInject
 import kotlinx.coroutines.launch
 import com.pyllar.consumer.presentation.dashboard.InvestmentDashboardV2ViewModel
 import com.pyllar.consumer.presentation.dashboard.KycPendingBottomSheet
+import com.pyllar.consumer.presentation.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -301,7 +302,7 @@ fun FundChartSection(
     state: FundDetailsState,
     onPeriodSelected: (String) -> Unit
 ) {
-    val positiveColor = Color(0xFF4CAF50)
+    val positiveColor = V2SuccessGreen
     val negativeColor = Color(0xFFF44336)
     val lineColor = if (state.isPositiveReturn) positiveColor else negativeColor
 
@@ -594,7 +595,7 @@ fun RiskometerSection(riskLevel: String) {
 
 fun getRiskColor(riskLevel: String): Color {
     return when(riskLevel.uppercase()) {
-        "LOW", "MODERATELY_LOW" -> Color(0xFF4CAF50)
+        "LOW", "MODERATELY_LOW" -> V2SuccessGreen
         "MODERATE" -> Color(0xFFFFC107)
         "MODERATELY_HIGH" -> Color(0xFFFF9800)
         "HIGH", "VERY_HIGH" -> Color(0xFFF44336)

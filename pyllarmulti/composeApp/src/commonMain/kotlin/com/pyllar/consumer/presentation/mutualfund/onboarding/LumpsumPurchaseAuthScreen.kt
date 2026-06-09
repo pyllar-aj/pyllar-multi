@@ -44,6 +44,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.pyllar.consumer.util.*
 import org.koin.compose.koinInject
+import com.pyllar.consumer.presentation.ui.theme.V2SuccessGreen
+import com.pyllar.consumer.presentation.ui.theme.V2SubtleBorder
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalResourceApi::class)
@@ -307,10 +309,10 @@ private fun accentColorsForLumpsumGoal(goalType: GoalType): Pair<Color, Color> {
     return when (goalType) {
         GoalType.GOLD -> Color(0xFFC8860A) to Color(0xFFFFFBF5)
         GoalType.SILVER -> Color(0xFF6B7280) to Color(0xFFF7F8FA)
-        GoalType.SAVINGS -> Color(0xFF4CAF50) to Color(0xFFF3FBF4)
+        GoalType.SAVINGS -> V2SuccessGreen to V2SubtleBorder
         GoalType.FESTIVAL_SPENDS -> Color(0xFFFF9800) to Color(0xFFFFF8E1)
         GoalType.GLOBAL_EXPOSURE -> Color(0xFF00897B) to Color(0xFFE0F2F1)
         GoalType.ALL_IN_ONE -> Color(0xFF1A237E) to Color(0xFFE8EAF6)
-        else -> Color(0xFF4CAF50) to Color(0xFFF3FBF4)
+        else -> V2SuccessGreen to V2SubtleBorder
     }
 }

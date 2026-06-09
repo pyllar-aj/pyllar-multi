@@ -25,6 +25,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
 import com.pyllar.consumer.analytics.PlatformAnalyticsLogger
@@ -94,11 +96,46 @@ fun AdditionalKycScreen(
     var longitude by remember { mutableStateOf<Double?>(null) }
     var isFetchingLocation by remember { mutableStateOf(false) }
 
+    val fatherNameFocusRequester = remember { FocusRequester() }
+    val placeOfBirthFocusRequester = remember { FocusRequester() }
+    val addressLine1FocusRequester = remember { FocusRequester() }
+    val addressLine2FocusRequester = remember { FocusRequester() }
+    val addressLine3FocusRequester = remember { FocusRequester() }
+    val cityFocusRequester = remember { FocusRequester() }
+    val pincodeFocusRequester = remember { FocusRequester() }
+    val monthlyIncomeFocusRequester = remember { FocusRequester() }
+
     val validationMessage = when {
         residentialStatus == "no" -> "We do not support Non-Resident Individuals at this time. We plan to include this feature in future updates."
         nationality == "no" -> "We do not support non-Indian citizens at this time. We plan to include this feature in future updates."
         politicallyExposed == "yes" -> "We do not support Politically Exposed Persons at this time. We plan to include this feature in future updates."
         else -> null
+    }
+
+    val missingFields = remember(
+        fatherName, gender, maritalStatus, occupationType, placeOfBirth,
+        addressLine1, addressLine2, addressLine3, city, pincode,
+        residentialStatus, monthlyIncome, nationality, politicallyExposed
+    ) {
+        val list = mutableListOf<String>()
+        if (fatherName.isBlank()) list.add("Father's Name")
+        if (gender.isBlank()) list.add("Gender")
+        if (maritalStatus.isBlank()) list.add("Marital Status")
+        if (occupationType.isBlank()) list.add("Occupation Type")
+        if (placeOfBirth.isBlank()) list.add("Place of Birth")
+        if (addressLine1.isBlank()) list.add("Address Line 1")
+        if (addressLine2.isBlank()) list.add("Address Line 2")
+        if (addressLine3.isBlank()) list.add("Address Line 3")
+        if (city.isBlank()) list.add("City")
+        if (pincode.length != 6 || !pincode.all { it.isDigit() }) list.add("Pincode")
+        val parsedIncome = monthlyIncome.toDoubleOrNull() ?: 0.0
+        if (monthlyIncome.isBlank() || parsedIncome <= 0.0) {
+            list.add("Monthly Income")
+        }
+        if (residentialStatus != "yes") list.add("Residential Status")
+        if (nationality != "yes") list.add("Nationality")
+        if (politicallyExposed != "no") list.add("Politically Exposed Person")
+        list
     }
     
     var isSubmitting by remember { mutableStateOf(false) }
@@ -201,6 +238,35 @@ fun AdditionalKycScreen(
         }
     }
 
+    // Clear validation errors when all required fields are valid
+    LaunchedEffect(
+        fatherName, gender, maritalStatus, occupationType, placeOfBirth,
+        addressLine1, addressLine2, addressLine3, city, pincode,
+        residentialStatus, monthlyIncome, nationality, politicallyExposed, isConfirmed
+    ) {
+        val parsedIncome = monthlyIncome.toDoubleOrNull() ?: 0.0
+        val isFormValid = fatherName.isNotBlank() &&
+                gender.isNotBlank() &&
+                maritalStatus.isNotBlank() &&
+                occupationType.isNotBlank() &&
+                placeOfBirth.isNotBlank() &&
+                addressLine1.isNotBlank() &&
+                addressLine2.isNotBlank() &&
+                addressLine3.isNotBlank() &&
+                city.isNotBlank() &&
+                pincode.length == 6 && pincode.all { it.isDigit() } &&
+                residentialStatus == "yes" &&
+                nationality == "yes" &&
+                politicallyExposed == "no" &&
+                parsedIncome > 0.0 &&
+                isConfirmed &&
+                validationMessage == null
+        
+        if (isFormValid && showValidationErrors) {
+            showValidationErrors = false
+        }
+    }
+
     val genderOptions = listOf("male", "female", "transgender")
     val maritalOptions = listOf("married", "unmarried", "others")
     val occupationOptions = listOf("business", "professional", "retired", "housewife", "student", "public_sector", "private_sector", "government_sector", "others")
@@ -260,7 +326,7 @@ fun AdditionalKycScreen(
                     value = fatherName,
                     onValueChange = { fatherName = it.uppercase() },
                     label = { Text("Father's Name") },
-                    modifier = Modifier.fillMaxWidth().onFocusChanged { onFieldFocusChanged("fatherName", it.isFocused) },
+                    modifier = Modifier.fillMaxWidth().focusRequester(fatherNameFocusRequester).onFocusChanged { onFieldFocusChanged("fatherName", it.isFocused) },
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters, imeAction = ImeAction.Next),
                     isError = isFatherNameError,
                     supportingText = if (isFatherNameError) { { Text("Field is required", color = MaterialTheme.colorScheme.error) } } else null
@@ -295,7 +361,7 @@ fun AdditionalKycScreen(
                     value = placeOfBirth,
                     onValueChange = { placeOfBirth = it },
                     label = { Text("Place of Birth") },
-                    modifier = Modifier.fillMaxWidth().onFocusChanged { onFieldFocusChanged("placeOfBirth", it.isFocused) },
+                    modifier = Modifier.fillMaxWidth().focusRequester(placeOfBirthFocusRequester).onFocusChanged { onFieldFocusChanged("placeOfBirth", it.isFocused) },
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Next),
                     isError = isPlaceError,
                     supportingText = if (isPlaceError) { { Text("Field is required", color = MaterialTheme.colorScheme.error) } } else null
@@ -319,7 +385,7 @@ fun AdditionalKycScreen(
                     value = addressLine1,
                     onValueChange = { addressLine1 = filterAddress(it) },
                     label = { Text("Address Line 1") },
-                    modifier = Modifier.fillMaxWidth().onFocusChanged { onFieldFocusChanged("addressLine1", it.isFocused) },
+                    modifier = Modifier.fillMaxWidth().focusRequester(addressLine1FocusRequester).onFocusChanged { onFieldFocusChanged("addressLine1", it.isFocused) },
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                     isError = isAddress1Error,
                     supportingText = if (isAddress1Error) { { Text("Field is required", color = MaterialTheme.colorScheme.error) } } else null
@@ -330,7 +396,7 @@ fun AdditionalKycScreen(
                     value = addressLine2,
                     onValueChange = { addressLine2 = filterAddress(it) },
                     label = { Text("Address Line 2") },
-                    modifier = Modifier.fillMaxWidth().onFocusChanged { onFieldFocusChanged("addressLine2", it.isFocused) },
+                    modifier = Modifier.fillMaxWidth().focusRequester(addressLine2FocusRequester).onFocusChanged { onFieldFocusChanged("addressLine2", it.isFocused) },
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                     isError = isAddress2Error,
                     supportingText = if (isAddress2Error) { { Text("Field is required", color = MaterialTheme.colorScheme.error) } } else null
@@ -341,7 +407,7 @@ fun AdditionalKycScreen(
                     value = addressLine3,
                     onValueChange = { addressLine3 = filterAddress(it) },
                     label = { Text("Address Line 3") },
-                    modifier = Modifier.fillMaxWidth().onFocusChanged { onFieldFocusChanged("addressLine3", it.isFocused) },
+                    modifier = Modifier.fillMaxWidth().focusRequester(addressLine3FocusRequester).onFocusChanged { onFieldFocusChanged("addressLine3", it.isFocused) },
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                     isError = isAddress3Error,
                     supportingText = if (isAddress3Error) { { Text("Field is required", color = MaterialTheme.colorScheme.error) } } else null
@@ -353,7 +419,7 @@ fun AdditionalKycScreen(
                         value = city,
                         onValueChange = { city = it },
                         label = { Text("City") },
-                        modifier = Modifier.weight(1f).onFocusChanged { onFieldFocusChanged("city", it.isFocused) },
+                        modifier = Modifier.weight(1f).focusRequester(cityFocusRequester).onFocusChanged { onFieldFocusChanged("city", it.isFocused) },
                         isError = isCityError,
                         supportingText = if (isCityError) { { Text("Required", color = MaterialTheme.colorScheme.error) } } else null
                     )
@@ -367,7 +433,7 @@ fun AdditionalKycScreen(
                             }
                         },
                         label = { Text("Pincode") },
-                        modifier = Modifier.weight(1f).onFocusChanged { onFieldFocusChanged("pincode", it.isFocused) },
+                        modifier = Modifier.weight(1f).focusRequester(pincodeFocusRequester).onFocusChanged { onFieldFocusChanged("pincode", it.isFocused) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         isError = isPincodeError,
                         supportingText = if (isPincodeError) { { Text("Invalid", color = MaterialTheme.colorScheme.error) } } else null
@@ -386,45 +452,98 @@ fun AdditionalKycScreen(
                         onFieldInteracted("monthlyIncome")
                     },
                     label = { Text(stringResource(Res.string.monthly_income)) },
-                    modifier = Modifier.fillMaxWidth().onFocusChanged { onFieldFocusChanged("monthlyIncome", it.isFocused) },
+                    modifier = Modifier.fillMaxWidth().focusRequester(monthlyIncomeFocusRequester).onFocusChanged { onFieldFocusChanged("monthlyIncome", it.isFocused) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
                     isError = isIncomeError,
                     supportingText = if (isIncomeError) { { Text(stringResource(Res.string.monthly_income_invalid), color = MaterialTheme.colorScheme.error) } } else null
                 )
 
-                Text("Are you an Indian Resident?", style = MaterialTheme.typography.bodyLarge)
+                val isResidentialStatusError = shouldShowError("residentialStatus", residentialStatus) { it == "yes" }
+                Text("Are you an Indian Resident?", style = MaterialTheme.typography.bodyLarge, color = if (isResidentialStatusError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface)
                 ContainedButtonBox(
                     options = listOf("yes", "no"),
                     selectedOption = residentialStatus,
                     onOptionSelected = { 
                         residentialStatus = it
                         onFieldInteracted("residentialStatus")
-                    }
+                    },
+                    showError = isResidentialStatusError
                 )
 
-                Text("Are you an Indian National?", style = MaterialTheme.typography.bodyLarge)
+                val isNationalityError = shouldShowError("nationality", nationality) { it == "yes" }
+                Text("Are you an Indian National?", style = MaterialTheme.typography.bodyLarge, color = if (isNationalityError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface)
                 ContainedButtonBox(
                     options = listOf("yes", "no"),
                     selectedOption = nationality,
                     onOptionSelected = { 
                         nationality = it
                         onFieldInteracted("nationality")
-                    }
+                    },
+                    showError = isNationalityError
                 )
 
-                Text("Are you a Politically Exposed Person?", style = MaterialTheme.typography.bodyLarge)
+                val isPoliticallyExposedError = shouldShowError("politicallyExposed", politicallyExposed) { it == "no" }
+                Text("Are you a Politically Exposed Person?", style = MaterialTheme.typography.bodyLarge, color = if (isPoliticallyExposedError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface)
                 ContainedButtonBox(
                     options = listOf("yes", "no"),
                     selectedOption = politicallyExposed,
                     onOptionSelected = { 
                         politicallyExposed = it
                         onFieldInteracted("politicallyExposed")
-                    }
+                    },
+                    showError = isPoliticallyExposedError
                 )
 
+                // Validation Summary for missing fields
+                if (isConfirmed && missingFields.isNotEmpty()) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f))
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Text(
+                                text = "Please fill in the required fields:",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.error,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            missingFields.forEach { field ->
+                                Text(
+                                    text = "• $field",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
+                    }
+                }
+
+                val isConfirmedError = shouldShowError("isConfirmed", if (isConfirmed) "yes" else "no") { it == "yes" }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(checked = isConfirmed, onCheckedChange = { isConfirmed = it })
-                    Text("I confirm that the above details are correct and I am a tax resident of India.")
+                    Checkbox(
+                        checked = isConfirmed,
+                        onCheckedChange = {
+                            isConfirmed = it
+                            onFieldInteracted("isConfirmed")
+                        },
+                        colors = CheckboxDefaults.colors(
+                            checkedColor = if (isConfirmedError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                        )
+                    )
+                    Text(
+                        text = "I confirm that the above details are correct and I am a tax resident of India.",
+                        color = if (isConfirmedError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                if (isConfirmedError) {
+                    Text(
+                        text = "Field is required",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(start = 48.dp)
+                    )
                 }
 
                 if (validationMessage != null) {
@@ -442,6 +561,8 @@ fun AdditionalKycScreen(
                 }
 
                 if (locationStatus != null) {
+                    val isPermissionMissing = locationStatus == "Location permission is required to verify your address. Please grant location access."
+                    val isGpsOff = locationStatus == "Location services/GPS are disabled. Please enable location services in Settings."
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
@@ -453,17 +574,24 @@ fun AdditionalKycScreen(
                             Text(
                                 text = locationStatus!!,
                                 color = MaterialTheme.colorScheme.onErrorContainer,
-                                style = MaterialTheme.typography.bodyMedium
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
                             )
-                            Button(
-                                onClick = { platformActions.openAppSettings() },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.error,
-                                    contentColor = MaterialTheme.colorScheme.onError
-                                ),
-                                modifier = Modifier.align(Alignment.End)
-                            ) {
-                                Text("Open Settings")
+                            if (isPermissionMissing || isGpsOff) {
+                                Text(
+                                    text = stringResource(Res.string.location_description),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f)
+                                )
+                                Button(
+                                    onClick = { platformActions.openAppSettings() },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.primary,
+                                        contentColor = MaterialTheme.colorScheme.onPrimary
+                                    ),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text("Open Settings", fontWeight = FontWeight.Bold)
+                                }
                             }
                         }
                     }
@@ -471,11 +599,58 @@ fun AdditionalKycScreen(
 
                 Button(
                     onClick = {
+                        visitedFields = fieldOrder.toSet()
+                        touchedFields = fieldOrder.toSet()
+
                         val parsedIncome = monthlyIncome.toDoubleOrNull() ?: 0.0
-                        if (fatherName.isBlank() || gender.isBlank() || maritalStatus.isBlank() || 
-                            occupationType.isBlank() || placeOfBirth.isBlank() || city.isBlank() || 
-                            pincode.length != 6 || parsedIncome <= 0.0 || !isConfirmed || validationMessage != null) {
+                        val isFormValid = fatherName.isNotBlank() &&
+                                gender.isNotBlank() &&
+                                maritalStatus.isNotBlank() &&
+                                occupationType.isNotBlank() &&
+                                placeOfBirth.isNotBlank() &&
+                                addressLine1.isNotBlank() &&
+                                addressLine2.isNotBlank() &&
+                                addressLine3.isNotBlank() &&
+                                city.isNotBlank() &&
+                                pincode.length == 6 && pincode.all { it.isDigit() } &&
+                                residentialStatus == "yes" &&
+                                nationality == "yes" &&
+                                politicallyExposed == "no" &&
+                                parsedIncome > 0.0 &&
+                                isConfirmed &&
+                                validationMessage == null
+
+                        if (!isFormValid) {
                             showValidationErrors = true
+                            val firstMissing = fieldOrder.firstOrNull { field ->
+                                when (field) {
+                                    "fatherName" -> fatherName.isBlank()
+                                    "placeOfBirth" -> placeOfBirth.isBlank()
+                                    "addressLine1" -> addressLine1.isBlank()
+                                    "addressLine2" -> addressLine2.isBlank()
+                                    "addressLine3" -> addressLine3.isBlank()
+                                    "city" -> city.isBlank()
+                                    "pincode" -> pincode.length != 6 || !pincode.all { it.isDigit() }
+                                    "monthlyIncome" -> monthlyIncome.isBlank() || (monthlyIncome.toDoubleOrNull() ?: 0.0) <= 0.0
+                                    else -> false
+                                }
+                            }
+                            if (firstMissing != null) {
+                                when (firstMissing) {
+                                    "fatherName" -> fatherNameFocusRequester.requestFocus()
+                                    "placeOfBirth" -> placeOfBirthFocusRequester.requestFocus()
+                                    "addressLine1" -> addressLine1FocusRequester.requestFocus()
+                                    "addressLine2" -> addressLine2FocusRequester.requestFocus()
+                                    "addressLine3" -> addressLine3FocusRequester.requestFocus()
+                                    "city" -> cityFocusRequester.requestFocus()
+                                    "pincode" -> pincodeFocusRequester.requestFocus()
+                                    "monthlyIncome" -> monthlyIncomeFocusRequester.requestFocus()
+                                }
+                            } else {
+                                scope.launch {
+                                    scrollState.animateScrollTo(0)
+                                }
+                            }
                             return@Button
                         }
                         

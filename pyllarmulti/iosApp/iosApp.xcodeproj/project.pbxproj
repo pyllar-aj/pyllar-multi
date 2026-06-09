@@ -10,6 +10,9 @@
 		1C81D6F669B7BB6D2FFCCEB3 /* Clarity in Frameworks */ = {isa = PBXBuildFile; productRef = 3B850F4D4A0FC5EBEAA700B4 /* Clarity */; };
 		216E2CF92FBEDE88001E32D1 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 216E2CF82FBEDE88001E32D1 /* GoogleSignIn */; };
 		216E2CFB2FBEDE88001E32D1 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 216E2CFA2FBEDE88001E32D1 /* GoogleSignInSwift */; };
+		21C9DF262FD80097000F43A1 /* FacebookAEM in Frameworks */ = {isa = PBXBuildFile; productRef = 21C9DF252FD80097000F43A1 /* FacebookAEM */; };
+		21C9DF282FD80097000F43A1 /* FacebookBasics in Frameworks */ = {isa = PBXBuildFile; productRef = 21C9DF272FD80097000F43A1 /* FacebookBasics */; };
+		21C9DF2A2FD80097000F43A1 /* FacebookCore in Frameworks */ = {isa = PBXBuildFile; productRef = 21C9DF292FD80097000F43A1 /* FacebookCore */; };
 		445C052442747365B7CB2124 /* AppsFlyerLib in Frameworks */ = {isa = PBXBuildFile; productRef = CD67EC4A9FF4F5FF8A2D8772 /* AppsFlyerLib */; };
 		B7C4F6137AC8345E71E92063 /* Singular in Frameworks */ = {isa = PBXBuildFile; productRef = FFA86D5547034AF50240D997 /* Singular */; };
 /* End PBXBuildFile section */
@@ -49,11 +52,14 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				21C9DF282FD80097000F43A1 /* FacebookBasics in Frameworks */,
+				21C9DF262FD80097000F43A1 /* FacebookAEM in Frameworks */,
 				216E2CF92FBEDE88001E32D1 /* GoogleSignIn in Frameworks */,
 				216E2CFB2FBEDE88001E32D1 /* GoogleSignInSwift in Frameworks */,
 				1C81D6F669B7BB6D2FFCCEB3 /* Clarity in Frameworks */,
 				445C052442747365B7CB2124 /* AppsFlyerLib in Frameworks */,
 				B7C4F6137AC8345E71E92063 /* Singular in Frameworks */,
+				21C9DF2A2FD80097000F43A1 /* FacebookCore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -103,6 +109,9 @@
 				3B850F4D4A0FC5EBEAA700B4 /* Clarity */,
 				CD67EC4A9FF4F5FF8A2D8772 /* AppsFlyerLib */,
 				FFA86D5547034AF50240D997 /* Singular */,
+				21C9DF252FD80097000F43A1 /* FacebookAEM */,
+				21C9DF272FD80097000F43A1 /* FacebookBasics */,
+				21C9DF292FD80097000F43A1 /* FacebookCore */,
 			);
 			productName = iosApp;
 			productReference = 2A145260C2906617681AD30B /* Pyllar.app */;
@@ -137,6 +146,7 @@
 				C6FF991712F080C05277BDB8 /* XCRemoteSwiftPackageReference "clarity-apps" */,
 				F44DD97045955BF9FD71A468 /* XCRemoteSwiftPackageReference "AppsFlyerFramework" */,
 				8B412E24250EBAE98BEF6531 /* XCRemoteSwiftPackageReference "Singular-iOS-SDK" */,
+				21C9DF242FD80096000F43A1 /* XCRemoteSwiftPackageReference "facebook-ios-sdk" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 13A11D9F7DA03C59D8E1222A /* Products */;
@@ -326,7 +336,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
 				CODE_SIGN_STYLE = Manual;
-				CURRENT_PROJECT_VERSION = 8;
+				CURRENT_PROJECT_VERSION = 9;
 				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
 				DEVELOPMENT_TEAM = "";
 				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = DA7SW7G5XS;
@@ -344,7 +354,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.7;
+				MARKETING_VERSION = 1.0.8;
 				PRODUCT_BUNDLE_IDENTIFIER = com.pyllar.consumer;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "Pyllar Appstore";
@@ -364,7 +374,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
 				CODE_SIGN_STYLE = Manual;
-				CURRENT_PROJECT_VERSION = 8;
+				CURRENT_PROJECT_VERSION = 9;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
 				DEVELOPMENT_TEAM = "";
@@ -383,7 +393,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.7;
+				MARKETING_VERSION = 1.0.8;
 				PRODUCT_BUNDLE_IDENTIFIER = com.pyllar.consumer;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "Pyllar Appstore";
@@ -425,6 +435,22 @@
 				minimumVersion = 9.1.0;
 			};
 		};
+		21C9DF242FD80096000F43A1 /* XCRemoteSwiftPackageReference "facebook-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/facebook/facebook-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 17.0.0;
+			};
+		};
+		8B412E24250EBAE98BEF6531 /* XCRemoteSwiftPackageReference "Singular-iOS-SDK" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/singular-labs/Singular-iOS-SDK";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.4.0;
+			};
+		};
 		C6FF991712F080C05277BDB8 /* XCRemoteSwiftPackageReference "clarity-apps" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/microsoft/clarity-apps";
@@ -441,14 +467,6 @@
 				minimumVersion = 6.14.0;
 			};
 		};
-		8B412E24250EBAE98BEF6531 /* XCRemoteSwiftPackageReference "Singular-iOS-SDK" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/singular-labs/Singular-iOS-SDK";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 12.4.0;
-			};
-		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -461,6 +479,21 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 216E2CF72FBEDE88001E32D1 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
 			productName = GoogleSignInSwift;
+		};
+		21C9DF252FD80097000F43A1 /* FacebookAEM */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 21C9DF242FD80096000F43A1 /* XCRemoteSwiftPackageReference "facebook-ios-sdk" */;
+			productName = FacebookAEM;
+		};
+		21C9DF272FD80097000F43A1 /* FacebookBasics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 21C9DF242FD80096000F43A1 /* XCRemoteSwiftPackageReference "facebook-ios-sdk" */;
+			productName = FacebookBasics;
+		};
+		21C9DF292FD80097000F43A1 /* FacebookCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 21C9DF242FD80096000F43A1 /* XCRemoteSwiftPackageReference "facebook-ios-sdk" */;
+			productName = FacebookCore;
 		};
 		3B850F4D4A0FC5EBEAA700B4 /* Clarity */ = {
 			isa = XCSwiftPackageProductDependency;

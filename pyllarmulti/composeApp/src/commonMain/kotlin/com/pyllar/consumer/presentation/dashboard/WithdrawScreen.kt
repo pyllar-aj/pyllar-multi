@@ -27,6 +27,7 @@ import kotlinx.coroutines.delay
 import org.koin.compose.koinInject
 import pyllar.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
+import com.pyllar.consumer.presentation.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -90,6 +91,7 @@ fun WithdrawScreen(
     val isLoading = !isInitialLoadComplete || state.isLoading
 
     Scaffold(
+        containerColor = V2Cream,
         topBar = {
             TopAppBar(
                 modifier = Modifier.padding(top = 32.dp),
@@ -235,7 +237,7 @@ fun WithdrawScreen(
                         modifier = Modifier.fillMaxWidth().height(56.dp),
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF4CAF50),
+                            containerColor = V2Obsidian,
                             contentColor = Color.White,
                             disabledContainerColor = Color(0xFFB0BEC5),
                             disabledContentColor = Color.White
@@ -264,7 +266,7 @@ fun SelectedGoalCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9)),
+        colors = CardDefaults.cardColors(containerColor = V2SubtleBorder),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         shape = RoundedCornerShape(12.dp)
     ) {
@@ -281,7 +283,7 @@ fun SelectedGoalCard(
                     Text(
                         text = goal.name,
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = Color(0xFF2E7D32)
+                        color = V2SuccessGreen
                     )
                     Text(
                         text = goal.schemeName ?: "Scheme",
@@ -337,13 +339,13 @@ fun BalanceRow(label: String, amount: Double, isHighlighted: Boolean = false) {
     ) {
         Text(
             text = label,
-            style = if (isHighlighted) MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium, color = Color(0xFF2E7D32)) else MaterialTheme.typography.bodyMedium,
-            color = if (isHighlighted) Color(0xFF2E7D32) else MaterialTheme.colorScheme.onSurface
+            style = if (isHighlighted) MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium, color = V2SuccessGreen) else MaterialTheme.typography.bodyMedium,
+            color = if (isHighlighted) V2SuccessGreen else MaterialTheme.colorScheme.onSurface
         )
         Text(
             text = "\u20B9${formatIndian(amount)}",
-            style = if (isHighlighted) MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold, color = Color(0xFF2E7D32)) else MaterialTheme.typography.bodyMedium,
-            color = if (isHighlighted) Color(0xFF2E7D32) else MaterialTheme.colorScheme.onSurface
+            style = if (isHighlighted) MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold, color = V2SuccessGreen) else MaterialTheme.typography.bodyMedium,
+            color = if (isHighlighted) V2SuccessGreen else MaterialTheme.colorScheme.onSurface
         )
     }
 }
@@ -363,9 +365,9 @@ fun InstantWithdrawalCard(
             ) { onSelect() }
             .then(
                 if (isSelected) {
-                    Modifier.border(1.5.dp, Color(0xFF4CAF50), RoundedCornerShape(16.dp))
+                    Modifier.border(1.5.dp, V2GoldDeep, RoundedCornerShape(16.dp))
                 } else {
-                    Modifier.border(1.dp, Color(0xFFEEEEEE), RoundedCornerShape(16.dp))
+                    Modifier.border(1.dp, V2SubtleBorder, RoundedCornerShape(16.dp))
                 }
             ),
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -387,7 +389,7 @@ fun InstantWithdrawalCard(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Surface(
-                        color = Color(0xFF2E7D32),
+                    color = V2SuccessGreen,
                         shape = CircleShape,
                         modifier = Modifier.size(34.dp)
                     ) {
@@ -418,11 +420,11 @@ fun InstantWithdrawalCard(
                 RadioButton(
                     selected = isSelected,
                     onClick = onSelect,
-                    colors = RadioButtonDefaults.colors(selectedColor = Color(0xFF4CAF50))
+                    colors = RadioButtonDefaults.colors(selectedColor = V2Obsidian)
                 )
             }
             
-            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color(0xFFF5F5F5))
+            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = V2SubtleBorder)
             
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -434,13 +436,13 @@ fun InstantWithdrawalCard(
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Surface(
-                    color = Color(0xFFE8F5E9),
+                    color = V2SubtleBorder,
                     shape = RoundedCornerShape(100.dp)
                 ) {
                     Text(
                         text = stringResource(Res.string.eighty_percent_of_balance),
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = Color(0xFF2E7D32),
+                        color = V2SuccessGreen,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
@@ -466,9 +468,9 @@ fun RegularWithdrawalCard(amount: Double, isSelected: Boolean, onSelect: () -> U
         ) { onSelect() }
         .then(
             if (isSelected) {
-                Modifier.border(1.5.dp, Color(0xFF4CAF50), RoundedCornerShape(16.dp))
+                Modifier.border(1.5.dp, V2GoldDeep, RoundedCornerShape(16.dp))
             } else {
-                Modifier.border(1.dp, Color(0xFFEEEEEE), RoundedCornerShape(16.dp))
+                Modifier.border(1.dp, V2SubtleBorder, RoundedCornerShape(16.dp))
             }
         ),
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -490,16 +492,16 @@ fun RegularWithdrawalCard(amount: Double, isSelected: Boolean, onSelect: () -> U
                 RadioButton(
                     selected = isSelected,
                     onClick = onSelect,
-                    colors = RadioButtonDefaults.colors(selectedColor = Color(0xFF4CAF50))
+                    colors = RadioButtonDefaults.colors(selectedColor = V2Obsidian)
                 )
             }
             
-            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color(0xFFF5F5F5))
+            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = V2SubtleBorder)
             
             Text(
                 text = "Up to \u20B9${formatIndian(amount)}", 
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), 
-                color = Color(0xFF2E7D32)
+                color = V2SuccessGreen
             )
         }
     }
@@ -511,7 +513,7 @@ fun SchemeSelectionItem(scheme: WithdrawScheme, isSelected: Boolean, selectedWit
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onSelect() }
-            .then(if (isSelected) Modifier.border(2.dp, Color(0xFF4CAF50), RoundedCornerShape(12.dp)) else Modifier),
+            .then(if (isSelected) Modifier.border(2.dp, V2GoldDeep, RoundedCornerShape(12.dp)) else Modifier),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 4.dp else 2.dp),
         shape = RoundedCornerShape(12.dp)
@@ -520,7 +522,7 @@ fun SchemeSelectionItem(scheme: WithdrawScheme, isSelected: Boolean, selectedWit
             RadioButton(
                 selected = isSelected,
                 onClick = onSelect,
-                colors = RadioButtonDefaults.colors(selectedColor = Color(0xFF4CAF50))
+                colors = RadioButtonDefaults.colors(selectedColor = V2Obsidian)
             )
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -535,7 +537,7 @@ fun SchemeSelectionItem(scheme: WithdrawScheme, isSelected: Boolean, selectedWit
                 } else {
                     (scheme.redeemableAmount - scheme.redemptionInProgress).coerceAtLeast(0.0)
                 }
-                Text("\u20B9${formatIndian(available)}", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), color = Color(0xFF2E7D32))
+                Text("\u20B9${formatIndian(available)}", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), color = V2SuccessGreen)
                 Text("Available", style = MaterialTheme.typography.bodySmall, modifier = Modifier.alpha(0.6f))
             }
         }

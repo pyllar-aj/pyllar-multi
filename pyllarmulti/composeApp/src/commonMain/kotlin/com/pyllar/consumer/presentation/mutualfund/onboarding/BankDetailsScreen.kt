@@ -36,6 +36,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
+import com.pyllar.consumer.presentation.ui.theme.*
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BankDetailsScreen(
@@ -189,7 +191,7 @@ fun BankDetailsScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text("Verify via UPI", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Surface(color = Color(0xFF4CAF50), shape = RoundedCornerShape(4.dp)) {
+                            Surface(color = V2SuccessGreen, shape = RoundedCornerShape(4.dp)) {
                                 Text("FASTEST", color = Color.White, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), style = MaterialTheme.typography.labelSmall)
                             }
                         }
@@ -199,7 +201,7 @@ fun BankDetailsScreen(
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(8.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9))
+                            colors = CardDefaults.cardColors(containerColor = V2SubtleBorder)
                         ) {
                             Row(
                                 modifier = Modifier.padding(12.dp),
@@ -208,7 +210,7 @@ fun BankDetailsScreen(
                                 Icon(
                                     imageVector = Icons.Filled.Info,
                                     contentDescription = "Info",
-                                    tint = Color(0xFF2E7D32),
+                                    tint = V2SuccessGreen,
                                     modifier = Modifier
                                         .size(20.dp)
                                         .padding(end = 8.dp)
@@ -216,7 +218,7 @@ fun BankDetailsScreen(
                                 Text(
                                     text = "₹1 will be debited and refunded within 2 working days.",
                                     style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                                    color = Color(0xFF2E7D32)
+                                    color = V2SuccessGreen
                                 )
                             }
                         }

@@ -67,6 +67,11 @@ import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.text.font.FontFamily
 import org.jetbrains.compose.resources.Font
+import com.pyllar.consumer.presentation.ui.theme.*
+import com.pyllar.consumer.presentation.ui.theme.V2Obsidian
+import com.pyllar.consumer.presentation.ui.theme.V2SuccessGreen
+import com.pyllar.consumer.presentation.ui.theme.V2HelpText
+import com.pyllar.consumer.presentation.ui.theme.V2SubtleBorder
 import com.pyllar.consumer.domain.storage.SessionStore
 import pyllar.composeapp.generated.resources.*
 
@@ -213,20 +218,16 @@ fun InvestmentDashboardV2Screen(
             val halfHeight = size.height / 2f
             val gradient = Brush.verticalGradient(
                 colors = listOf(
-                    Color(0xFF1B5E20),
-                    Color(0xFF2E7D32),
-                    Color(0xFF388E3C),
-                    Color(0xFF4CAF50),
-                    Color(0xFF66BB6A),
-                    Color(0xFFA5D6A7),
-                    Color(0xFFE8F5E9)
+                    V2Obsidian,
+                    Color(0xFF103620), // obsidian soft
+                    V2Cream
                 ),
                 startY = 0f,
                 endY = halfHeight
             )
             drawRect(brush = gradient)
             drawRect(
-                color = Color.White,
+                color = V2Cream,
                 topLeft = Offset(0f, halfHeight)
             )
         }
@@ -258,7 +259,6 @@ fun InvestmentDashboardV2Screen(
                     onMenuClick = { showMenu = true },
                     onDismissMenu = { showMenu = false },
                     onShareClick = { platformActions.shareText("Start your investment journey with Pyllar! Download now: https://pyllar.in", "Share Pyllar") },
-                    onLanguageClick = { /* Handle Language */ },
                     onRateUsClick = { platformActions.requestInAppReview() }
                 )
             }
@@ -419,7 +419,6 @@ fun UserHeader(
     onMenuClick: () -> Unit = {},
     onDismissMenu: () -> Unit = {},
     onShareClick: () -> Unit = {},
-    onLanguageClick: () -> Unit = {},
     onRateUsClick: () -> Unit = {}
 ) {
     Row(
@@ -432,13 +431,13 @@ fun UserHeader(
         Surface(
             modifier = Modifier.size(40.dp),
             shape = CircleShape,
-            color = Color(0xFFE8F5E9)
+            color = Color.White.copy(alpha = 0.15f)
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
                     imageVector = Icons.Default.AccountCircle,
                     contentDescription = null,
-                    tint = Color(0xFF4CAF50),
+                    tint = Color.White,
                     modifier = Modifier.size(32.dp)
                 )
             }
@@ -450,7 +449,7 @@ fun UserHeader(
             Box(modifier = Modifier.width(120.dp).height(20.dp)) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(16.dp),
-                    color = Color(0xFF4CAF50),
+                    color = Color.White,
                     strokeWidth = 2.dp
                 )
             }
@@ -514,19 +513,6 @@ fun UserHeader(
                     onClick = {
                         onDismissMenu()
                         onShareClick()
-                    }
-                )
-                DropdownMenuItem(
-                    text = {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Translate, contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text("Language")
-                        }
-                    },
-                    onClick = {
-                        onDismissMenu()
-                        onLanguageClick()
                     }
                 )
             }
@@ -688,7 +674,7 @@ fun CombinedDashboardCard(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFFC8E6C9))
+                    .background(V2SubtleBorder)
                     .clickable { onTotalClick() }
                     .padding(20.dp)
             ) {
@@ -856,7 +842,7 @@ fun PrimaryGoalCard(
         // Use colorTheme if available, otherwise use category
         goal.colorTheme.toColor()
     } else {
-        Color(0xFF4CAF50) // Default green
+        V2SuccessGreen // Default green
     }
     
     val gradientColors = if (goal != null) {
@@ -1448,9 +1434,9 @@ fun NextGoalCard(
                             Spacer(modifier = Modifier.weight(1f))
                             // Instant Pill
                             Surface(
-                                color = Color(0xFFE8F5E9),
+                                color = V2Cream,
                                 shape = RoundedCornerShape(12.dp),
-                                border = BorderStroke(1.dp, Color(0xFF4CAF50).copy(alpha = 0.3f))
+                                border = BorderStroke(1.dp, V2SuccessGreen.copy(alpha = 0.3f))
                             ) {
                                 Row(
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
@@ -1591,12 +1577,12 @@ fun StartInvestmentJourneyCard(
     onNeedHelpClick: () -> Unit,
     onExploreClick: () -> Unit
 ) {
-    val cardLightGreenTop = Color(0xFFE8F5E9)
-    val cardLightGreenBottom = Color(0xFFC8E6C9)
-    val topBorderGreenDark = Color(0xFF2E7D32)
-    val topBorderGreen = Color(0xFF66BB6A)
-    val rocketGreenDark = Color(0xFF388E3C)
-    val rocketGreen = Color(0xFF66BB6A)
+    val cardLightGreenTop = V2Cream
+    val cardLightGreenBottom = V2SubtleBorder
+    val topBorderGreenDark = V2Obsidian
+    val topBorderGreen = V2Obsidian
+    val rocketGreenDark = V2Obsidian
+    val rocketGreen = V2Obsidian
     val sparkleYellow = Color(0xFFFFC107)
 
     Card(
@@ -1621,11 +1607,11 @@ fun StartInvestmentJourneyCard(
                 ) {
                     Icon(imageVector = Icons.Default.VerifiedUser, contentDescription = null, tint = Color.White)
                 }
-                Text("Start Your Investment Journey", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), color = Color(0xFF1B5E20), textAlign = TextAlign.Center)
+                Text("Start Your Investment Journey", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), color = V2Obsidian, textAlign = TextAlign.Center)
                 Text("Expertly curated investment options", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), textAlign = TextAlign.Center)
                 Text("Grow your wealth with Pyllar. Simple, secure, and smart.", style = MaterialTheme.typography.bodyMedium, color = Color.Gray, textAlign = TextAlign.Center)
                 
-                Button(onClick = onExploreClick, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))) {
+                Button(onClick = onExploreClick, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = V2Obsidian)) {
                     Text("Explore Investment Options", fontWeight = FontWeight.Bold)
                 }
 
@@ -1718,7 +1704,7 @@ fun KycPendingBottomSheet(onDismiss: () -> Unit, onRetryKyc: () -> Unit, kycStat
         Column(modifier = Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text("KYC Verification Pending", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             Text("Your KYC is being processed. This usually takes 24-48 hours.", color = Color.Gray)
-            Button(onClick = onDismiss, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))) {
+            Button(onClick = onDismiss, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = V2Obsidian)) {
                 Text("OK")
             }
             if (kycStatus == "EXPIRED" || kycStatus == "REJECTED") {

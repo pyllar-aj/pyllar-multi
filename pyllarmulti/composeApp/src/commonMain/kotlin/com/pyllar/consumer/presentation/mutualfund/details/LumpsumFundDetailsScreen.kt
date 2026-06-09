@@ -36,6 +36,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import kotlin.math.cos
 import kotlin.math.sin
+import com.pyllar.consumer.presentation.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -357,7 +358,7 @@ fun LumpsumCompanyAllocationSection(companyAllocation: List<CompanyAllocationDto
 }
 
 enum class LumpsumRiskLevel(val label: String, val color: Color) {
-    LOW("Low", Color(0xFF4CAF50)),
+    LOW("Low", V2SuccessGreen),
     LOW_TO_MODERATE("Low to\nModerate", Color(0xFF8BC34A)),
     MODERATE("Moderate", Color(0xFFFFC107)),
     MODERATELY_HIGH("Moderately\nHigh", Color(0xFFFF9800)),

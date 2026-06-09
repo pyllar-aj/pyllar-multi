@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.runtime.compositionLocalOf
+import com.pyllar.consumer.getPlatform
 
 /** Optional saver for language preference (e.g. to local DB). Provided by the root so LanguageLetterButton can persist when user changes language on any screen. */
 val LocalLanguagePreferenceSaver = compositionLocalOf<((String) -> Unit)?> { null }
@@ -84,6 +85,10 @@ fun LanguageLetterButton(
     textColor: Color = MaterialTheme.colorScheme.primary,
     onLanguageChange: ((String) -> Unit)? = null
 ) {
+    if (remember { getPlatform().name.contains("iOS", ignoreCase = true) }) {
+        return
+    }
+
     var showDialog by remember { mutableStateOf(false) }
     val letter = currentLanguageLetter(currentLanguageTag)
 

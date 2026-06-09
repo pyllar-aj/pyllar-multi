@@ -92,10 +92,16 @@ import com.pyllar.consumer.analytics.PlatformAnalyticsLogger
 import com.pyllar.consumer.presentation.ui.components.rememberTimeoutState
 import com.pyllar.consumer.util.Resource
 import com.pyllar.consumer.domain.models.AuthToken
+import com.pyllar.consumer.presentation.ui.theme.V2Cream
+import com.pyllar.consumer.presentation.ui.theme.V2Obsidian
+import com.pyllar.consumer.presentation.ui.theme.V2SuccessGreen
+import com.pyllar.consumer.presentation.ui.theme.V2SubtleBorder
 import org.jetbrains.compose.resources.stringResource
 import pyllar.composeapp.generated.resources.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+
+import com.pyllar.consumer.getPlatform
 
 private data class AssetBannerData(
     val title: String,
@@ -118,7 +124,7 @@ private fun LanguageSelectionDialog(
         confirmButton = {
             Button(
                 onClick = { onContinue(languageOptions[selectedIndex]) },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0A5C36))
+                colors = ButtonDefaults.buttonColors(containerColor = V2Obsidian)
             ) {
                 Text(
                     text = languageOptions[selectedIndex].continueText,
@@ -176,10 +182,10 @@ private fun LanguageSelectionDialog(
                                     .aspectRatio(1.4f)
                                     .clickable { onLanguageSelected(index) },
                                 shape = RoundedCornerShape(16.dp),
-                                color = if (isSelected) Color(0xFF0A5C36).copy(alpha = 0.12f) else Color(0xFFF5F5F5),
+                                color = if (isSelected) V2Obsidian.copy(alpha = 0.12f) else Color(0xFFF5F5F5),
                                 border = BorderStroke(
                                     width = if (isSelected) 2.dp else 1.dp,
-                                    color = if (isSelected) Color(0xFF0A5C36) else Color(0xFFE0E0E0)
+                                    color = if (isSelected) V2Obsidian else Color(0xFFE0E0E0)
                                 )
                             ) {
                                 Box(
@@ -193,7 +199,7 @@ private fun LanguageSelectionDialog(
                                         style = MaterialTheme.typography.titleMedium.copy(
                                             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium
                                         ),
-                                        color = if (isSelected) Color(0xFF0A5C36) else Color(0xFF2D2D2D),
+                                        color = if (isSelected) V2Obsidian else Color(0xFF2D2D2D),
                                         textAlign = TextAlign.Center
                                     )
                                 }
@@ -239,8 +245,9 @@ fun PhoneVerificationScreenV2(
     val focusManager = LocalFocusManager.current
     val focusRequester = remember { FocusRequester() }
 
-    var showLanguagePopup by rememberSaveable(hasLangPref, languagePopupShown) {
-        mutableStateOf(!hasLangPref && !languagePopupShown)
+    val isIos = remember { getPlatform().name.contains("iOS", ignoreCase = true) }
+    var showLanguagePopup by rememberSaveable(hasLangPref, languagePopupShown, isIos) {
+        mutableStateOf(!hasLangPref && !languagePopupShown && !isIos)
     }
     val coroutineScope = rememberCoroutineScope()
 
@@ -362,11 +369,11 @@ fun PhoneVerificationScreenV2(
             // Split background: top half forest green, bottom half soft light green
             Canvas(modifier = Modifier.fillMaxSize()) {
                 drawRect(
-                    color = Color(0xFF075B32),
+                    color = V2Obsidian,
                     size = Size(size.width, size.height * 0.5f)
                 )
                 drawRect(
-                    color = Color(0xFFE8F5E9),
+                    color = V2SubtleBorder,
                     topLeft = Offset(0f, size.height * 0.5f),
                     size = Size(size.width, size.height * 0.5f)
                 )
@@ -607,18 +614,18 @@ fun PhoneVerificationScreenV2(
                                 singleLine = true,
                                 shape = RoundedCornerShape(12.dp),
                                 colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = Color(0xFF0A5C36),
+                                    focusedBorderColor = V2Obsidian,
                                     unfocusedBorderColor = Color(0xFFE0E0E0),
                                     focusedTextColor = Color(0xFF2D2D2D),
                                     unfocusedTextColor = Color(0xFF2D2D2D),
-                                    cursorColor = Color(0xFF0A5C36)
+                                    cursorColor = V2Obsidian
                                 ),
                                 textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp)
                             )
                         }
 
                         val buttonEnabled = verificationResult !is Resource.Loading && phoneNumber.length == 10
-                        val emeraldGreen = Color(0xFF0B5E2D)
+                        val emeraldGreen = V2Obsidian
 
                         LaunchedEffect(verificationResult) {
                             when (verificationResult) {
@@ -713,7 +720,7 @@ fun PhoneVerificationScreenV2(
                                 Icon(
                                     imageVector = Icons.Filled.Shield,
                                     contentDescription = null,
-                                    tint = Color(0xFF0B5E2D),
+                                    tint = V2SuccessGreen,
                                     modifier = Modifier.size(14.dp).padding(top = 1.dp)
                                 )
                                 Text(
@@ -743,7 +750,7 @@ fun PhoneVerificationScreenV2(
                                 Icon(
                                     imageVector = Icons.Filled.Person,
                                     contentDescription = null,
-                                    tint = Color(0xFF0B5E2D),
+                                    tint = V2SuccessGreen,
                                     modifier = Modifier.size(14.dp).padding(top = 1.dp)
                                 )
                                 Text(
@@ -773,7 +780,7 @@ fun PhoneVerificationScreenV2(
                                 Icon(
                                     imageVector = Icons.Filled.Lock,
                                     contentDescription = null,
-                                    tint = Color(0xFF0B5E2D),
+                                    tint = V2SuccessGreen,
                                     modifier = Modifier.size(14.dp).padding(top = 1.dp)
                                 )
                                 Text(

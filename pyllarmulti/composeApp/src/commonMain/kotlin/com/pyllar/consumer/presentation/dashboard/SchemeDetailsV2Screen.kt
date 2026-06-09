@@ -41,6 +41,8 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
+import com.pyllar.consumer.presentation.ui.theme.V2Cream
+import com.pyllar.consumer.presentation.ui.theme.V2SuccessGreen
 import pyllar.composeapp.generated.resources.*
 import kotlin.math.abs
 
@@ -591,9 +593,9 @@ fun MainContentV2(
                         if ((state.instantRedemptionValue ?: 0.0) > 0.0) {
                             Spacer(modifier = Modifier.width(8.dp))
                             Surface(
-                                color = Color(0xFFE8F5E9),
+                                color = V2Cream,
                                 shape = RoundedCornerShape(12.dp),
-                                border = BorderStroke(1.dp, Color(0xFF4CAF50).copy(alpha = 0.3f))
+                                border = BorderStroke(1.dp, V2SuccessGreen.copy(alpha = 0.3f))
                             ) {
                                 Row(
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
@@ -1221,7 +1223,7 @@ fun TransactionItemV2(transaction: TransactionDisplayItem) {
                     Text(
                         text = "₹${formatIndian(transaction.amount)}",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = if (transaction.isCredit) Color(0xFF4CAF50) else Color(0xFFF44336)
+                        color = if (transaction.isCredit) V2SuccessGreen else Color(0xFFF44336)
                     )
                     if (transaction.date != null) {
                         Spacer(modifier = Modifier.height(2.dp))

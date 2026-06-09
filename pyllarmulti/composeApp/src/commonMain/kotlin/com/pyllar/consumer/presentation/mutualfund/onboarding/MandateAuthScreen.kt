@@ -46,6 +46,8 @@ import com.pyllar.consumer.util.platformLog
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.pyllar.consumer.util.*
+import com.pyllar.consumer.presentation.ui.theme.V2SuccessGreen
+import com.pyllar.consumer.presentation.ui.theme.V2SubtleBorder
 import org.koin.compose.koinInject
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -334,13 +336,13 @@ private fun MandateApprovedWaitingContent(mandateUrl: String, progress: Int, isP
     val accentColor = when (goalType) {
         GoalType.GOLD -> Color(0xFFC8860A)
         GoalType.SILVER -> Color(0xFF6B7280)
-        GoalType.SAVINGS -> Color(0xFF4CAF50)
+        GoalType.SAVINGS -> V2SuccessGreen
         GoalType.FESTIVAL_SPENDS -> Color(0xFFFF9800)
         GoalType.ALL_IN_ONE -> Color(0xFF7B1FA2)
         GoalType.GLOBAL_EXPOSURE -> Color(0xFF2196F3)
         else -> MaterialTheme.colorScheme.primary
     }
-    val lightBackground = accentColor.copy(alpha = 0.1f)
+    val lightBackground = V2SubtleBorder
     
     val sipStartDay = remember { getInvestmentStatus() }
 
@@ -384,7 +386,7 @@ private fun WaitingStepRow(title: String, subtitle: String, isDone: Boolean, sho
             Icon(
                 imageVector = if (isDone) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
                 contentDescription = null,
-                tint = if (isDone) Color(0xFF4CAF50) else accentColor
+                tint = if (isDone) V2SuccessGreen else accentColor
             )
             if (showConnector) {
                 Box(modifier = Modifier.width(2.dp).height(20.dp).background(accentColor.copy(alpha = 0.3f)))

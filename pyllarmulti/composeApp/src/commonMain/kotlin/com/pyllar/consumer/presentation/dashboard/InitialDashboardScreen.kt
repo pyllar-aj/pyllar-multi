@@ -47,13 +47,17 @@ import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
+import com.pyllar.consumer.presentation.ui.theme.V2Cream
+import com.pyllar.consumer.presentation.ui.theme.V2Obsidian
+import com.pyllar.consumer.presentation.ui.theme.V2SuccessGreen
+import com.pyllar.consumer.presentation.ui.theme.V2SubtleBorder
 import pyllar.composeapp.generated.resources.*
 
 // ─── DESIGN TOKENS ────────────────────────────────────────────────────────────
 private val GreenDark       = Color(0xFF1A7A42)
 private val GreenMid        = Color(0xFF22924E)
 private val GreenAccent     = Color(0xFF43C17A)   // "big dreams." highlight colour
-private val AppBackground   = Color(0xFFF4F6F8)
+private val AppBackground   = V2Cream
 private val PrimaryText     = Color(0xFF1C1C1E)
 private val SecondaryText   = Color(0xFF5F5F5F)
 private val LabelText       = Color(0xFF6B7280)
@@ -663,9 +667,9 @@ fun InitialGoalCard(
                             Spacer(modifier = Modifier.weight(1f))
                             // Instant Pill
                             Surface(
-                                color = Color(0xFFE8F5E9),
+                                color = V2Cream,
                                 shape = RoundedCornerShape(12.dp),
-                                border = BorderStroke(1.dp, Color(0xFF4CAF50).copy(alpha = 0.3f))
+                                border = BorderStroke(1.dp, V2SuccessGreen.copy(alpha = 0.3f))
                             ) {
                                 Row(
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),

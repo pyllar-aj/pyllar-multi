@@ -49,6 +49,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import org.koin.compose.koinInject
 import pyllar.composeapp.generated.resources.*
+import com.pyllar.consumer.presentation.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
@@ -663,7 +664,7 @@ private fun PreVerificationOtpBottomSheet(
         }
 
         if (otpVerificationResult !is Resource.Loading && isResent && otpVerificationResult !is Resource.Error) {
-             Text("OTP resent successfully!", color = Color(0xFF4CAF50), style = MaterialTheme.typography.bodySmall)
+             Text("OTP resent successfully!", color = V2HelpText, style = MaterialTheme.typography.bodySmall)
         }
 
         if (otpVerificationResult is Resource.Error) {

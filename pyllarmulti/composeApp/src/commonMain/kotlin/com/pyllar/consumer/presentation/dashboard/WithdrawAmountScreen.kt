@@ -37,6 +37,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import pyllar.composeapp.generated.resources.*
+import com.pyllar.consumer.presentation.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -166,6 +167,7 @@ fun WithdrawAmountScreen(
     }
 
     Scaffold(
+        containerColor = V2Cream,
         topBar = {
             TopAppBar(
                 title = { Text("Withdraw", fontWeight = FontWeight.Bold) },
@@ -224,7 +226,7 @@ fun WithdrawAmountScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9))
+                    colors = CardDefaults.cardColors(containerColor = V2SubtleBorder)
                 ) {
                     Row(
                         modifier = Modifier.padding(16.dp),
@@ -235,7 +237,7 @@ fun WithdrawAmountScreen(
                         Text(
                             "₹${formatIndian(withdrawableAmount)}", 
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                            color = Color(0xFF2E7D32)
+                            color = V2SuccessGreen
                         )
                     }
                 }
@@ -252,7 +254,11 @@ fun WithdrawAmountScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Checkbox(checked = withdrawAll, onCheckedChange = { withdrawAll = it })
+                        Checkbox(
+                            checked = withdrawAll,
+                            onCheckedChange = { withdrawAll = it },
+                            colors = CheckboxDefaults.colors(checkedColor = V2Obsidian)
+                        )
                         Text("Withdraw all from this fund", style = MaterialTheme.typography.bodyLarge)
                     }
                 }
@@ -274,7 +280,7 @@ fun WithdrawAmountScreen(
                     enabled = isValidAmount,
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                     shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
+                    colors = ButtonDefaults.buttonColors(containerColor = V2Obsidian)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -392,7 +398,7 @@ fun WithdrawAmountScreen(
                             }
 
                             if (otpGenerationResult is Resource.Success && !canResend && isResent) {
-                                Text("OTP resent successfully!", color = Color(0xFF4CAF50), style = MaterialTheme.typography.bodySmall)
+                                Text("OTP resent successfully!", color = V2HelpText, style = MaterialTheme.typography.bodySmall)
                             }
 
                             if (otpValidationError != null) {

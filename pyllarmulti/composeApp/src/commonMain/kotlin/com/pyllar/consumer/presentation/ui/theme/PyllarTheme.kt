@@ -9,12 +9,22 @@ import androidx.compose.ui.graphics.Color
 
 
 
+val V2Cream = Color(0xFFFBF9F4)
+val V2Ink = Color(0xFF3E2723)
+val V2InkSoft = Color(0xFF6D4C41)
+val V2Obsidian = Color(0xFF0A2415)
+val V2Gold = Color(0xFFD4AF37)
+val V2GoldDeep = Color(0xFF8B6B25)
+val V2SuccessGreen = Color(0xFF2E7D32)
+val V2HelpText = Color(0xFF1A7A42)
+val V2SubtleBorder = Color(0xFFEFEBE9)
+
 private val LightColorScheme = lightColorScheme(
     primary = Color(0xFF26533E),
     onPrimary = Color(0xFFFFFFFF),
     primaryContainer = Color(0xFFB7F5CB),
     onPrimaryContainer = Color(0xFF00391A),
-    secondary = Color(0xFF4CAF50),
+    secondary = Color(0xFF2E7D32), // --v2-success-green
     onSecondary = Color(0xFFFFFFFF),
     secondaryContainer = Color(0xFFD0F8CE),
     onSecondaryContainer = Color(0xFF1B5E20),
@@ -24,7 +34,7 @@ private val LightColorScheme = lightColorScheme(
     onSurface = Color(0xFF1B1B1B),
     error = Color(0xFFB00020),
     onError = Color(0xFFFFFFFF),
-    outline = Color(0xFFBDBDBD),
+    outline = Color(0xFF2E7D32), // --v2-success-green
     surfaceVariant = Color(0xFFF5F5F5),
     inverseSurface = Color.White
 )
@@ -44,7 +54,7 @@ private val DarkColorScheme = darkColorScheme(
     onSurface = Color(0xFFFFFFFF),
     error = Color(0xFFCF6679),
     onError = Color(0xFF1B1B1B),
-    outline = Color(0xFF4CAF50),
+    outline = V2SuccessGreen,
     surfaceVariant = Color(0xFF232323),
     inverseSurface = Color.Black
 )

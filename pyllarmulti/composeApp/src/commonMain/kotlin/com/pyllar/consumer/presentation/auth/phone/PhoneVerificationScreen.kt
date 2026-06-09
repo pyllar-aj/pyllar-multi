@@ -40,7 +40,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pyllar.consumer.presentation.ui.components.rememberTimeoutState
 import com.pyllar.consumer.util.Resource
 import com.pyllar.consumer.domain.models.AuthToken
+import com.pyllar.consumer.presentation.ui.theme.*
 import kotlinx.coroutines.delay
+import com.pyllar.consumer.getPlatform
 
 /**
  * Shared representation of a language option for the language popup.
@@ -103,10 +105,10 @@ private fun LanguageSelectionDialog(
                                 .aspectRatio(1.4f)
                                 .clickable { onLanguageSelected(index) },
                             shape = RoundedCornerShape(16.dp),
-                            color = if (isSelected) Color(0xFF0A5C36).copy(alpha = 0.12f) else Color(0xFFF5F5F5),
+                            color = if (isSelected) V2Obsidian.copy(alpha = 0.12f) else Color(0xFFF5F5F5),
                             border = BorderStroke(
                                 width = if (isSelected) 2.dp else 1.dp,
-                                color = if (isSelected) Color(0xFF0A5C36) else Color(0xFFE0E0E0)
+                                color = if (isSelected) V2Obsidian else Color(0xFFE0E0E0)
                             )
                         ) {
                             Box(
@@ -120,7 +122,7 @@ private fun LanguageSelectionDialog(
                                     style = MaterialTheme.typography.titleMedium.copy(
                                         fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium
                                     ),
-                                    color = if (isSelected) Color(0xFF0A5C36) else Color(0xFF2D2D2D),
+                                    color = if (isSelected) V2Obsidian else Color(0xFF2D2D2D),
                                     textAlign = TextAlign.Center
                                 )
                             }
@@ -168,9 +170,8 @@ fun PhoneVerificationScreen(
     // Prevent double submit: disable button immediately on first tap until result
     var isSubmitting by remember { mutableStateOf(false) }
 
-    // Language selection popup: show only if user hasn't already chosen a language.
-    val hasLangPref = viewModel.hasLanguagePreference.collectAsStateWithLifecycle().value
-    var showLanguagePopup by rememberSaveable(hasLangPref) { mutableStateOf(!hasLangPref) }
+    val isIos = remember { getPlatform().name.contains("iOS", ignoreCase = true) }
+    var showLanguagePopup by rememberSaveable(hasLangPref, isIos) { mutableStateOf(!hasLangPref && !isIos) }
 
     // Guard: hide popup as soon as this screen is no longer the visible destination (e.g. navigation to OTP, or resuming to Dashboard).
     LaunchedEffect(isScreenVisible) {
@@ -256,7 +257,7 @@ fun PhoneVerificationScreen(
         Canvas(modifier = Modifier.fillMaxSize()) {
             val gradient = Brush.verticalGradient(
                 colors = listOf(
-                    Color(0xFF0A5C36), // Dark emerald green (top)
+                    V2Obsidian, // Dark obsidian (top)
                     Color(0xFF1B7A4A), // Medium emerald
                     Color(0xFF2D9A5F), // Lighter emerald
                     Color(0xFF3FAF73), // Light emerald
@@ -441,11 +442,11 @@ fun PhoneVerificationScreen(
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF0A5C36),
+                            focusedBorderColor = V2Obsidian,
                             unfocusedBorderColor = Color(0xFFE0E0E0),
                             focusedTextColor = Color(0xFF2D2D2D),
                             unfocusedTextColor = Color(0xFF2D2D2D),
-                            cursorColor = Color(0xFF0A5C36)
+                            cursorColor = V2Obsidian
                         ),
                         textStyle = MaterialTheme.typography.bodyLarge.copy(
                             fontSize = 16.sp
@@ -455,7 +456,7 @@ fun PhoneVerificationScreen(
 
                 // Continue Button (Emerald Green) with timeout tracking
                 val buttonEnabled = verificationResult !is Resource.Loading && phoneNumber.length == 10
-                val emeraldGreen = Color(0xFF0A5C36)
+                val emeraldGreen = V2Obsidian
 
                 // Track loading state for timeout
                 LaunchedEffect(verificationResult) {

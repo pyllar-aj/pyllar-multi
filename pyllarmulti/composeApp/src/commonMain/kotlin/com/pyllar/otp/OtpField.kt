@@ -15,6 +15,9 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 
+import com.pyllar.consumer.presentation.ui.theme.V2Obsidian
+import com.pyllar.consumer.presentation.ui.theme.V2Ink
+
 @Composable
 fun OtpField(
     length: Int,
@@ -47,12 +50,14 @@ fun OtpField(
         visualTransformation = VisualTransformation.None,
         singleLine = true,
         colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = Color(0xFF0A5C36),
+            focusedBorderColor = V2Obsidian,
             unfocusedBorderColor = Color(0xFF9E9E9E), // Darker grey
             errorBorderColor = Color(0xFFB00020),
-            cursorColor = Color(0xFF0A5C36),
+            cursorColor = V2Obsidian,
             unfocusedContainerColor = Color(0xFFF5F5F5), // Subtle background
             focusedContainerColor = Color.White,
+            focusedTextColor = V2Ink,
+            unfocusedTextColor = V2Ink
         ),
     )
 }

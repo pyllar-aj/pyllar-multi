@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.platform.LocalFocusManager
+import com.pyllar.consumer.presentation.ui.theme.*
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextRange
@@ -812,7 +813,7 @@ fun GrowthRow(label: String, value: Double, isTotal: Boolean = false) {
             "₹${value.toInt()}",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            color = if (isTotal) Color(0xFF4CAF50) else MaterialTheme.colorScheme.onSurface
+            color = if (isTotal) V2SuccessGreen else MaterialTheme.colorScheme.onSurface
         )
     }
 }
@@ -911,7 +912,7 @@ fun FundDetailsBottomSheet(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            Icon(Icons.Default.VerifiedUser, contentDescription = null, tint = Color(0xFF4CAF50))
+                            Icon(Icons.Default.VerifiedUser, contentDescription = null, tint = V2SuccessGreen)
                             Column {
                                 Text("Bank Account", style = MaterialTheme.typography.labelSmall)
                                 val maskedAcc = if (acc.length > 4) {
