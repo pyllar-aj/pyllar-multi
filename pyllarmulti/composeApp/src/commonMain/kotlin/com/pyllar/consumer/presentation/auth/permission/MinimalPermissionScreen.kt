@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -46,11 +47,15 @@ import org.koin.compose.koinInject
 import org.jetbrains.compose.resources.stringResource
 import pyllar.composeapp.generated.resources.*
 
+import com.pyllar.consumer.platform.PlatformActions
+import androidx.compose.foundation.shape.RoundedCornerShape
+
 @Composable
 fun MinimalPermissionScreen(
     userId: String,
     isNewUser: Boolean,
     viewModel: PermissionViewModel = koinInject(),
+    platformActions: PlatformActions = koinInject(),
     onNavigateNext: (nextScreen: String) -> Unit = {},
     onNavigateToHelp: () -> Unit = {},
     onShareApp: () -> Unit = {}
@@ -203,22 +208,13 @@ fun MinimalPermissionScreen(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)
             )
 
-            // Consent checkbox
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
+            // Consent text
+            Text(
+                text = stringResource(Res.string.email_consent_message),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.fillMaxWidth()
-            ) {
-                Checkbox(
-                    checked = state.isConsentChecked,
-                    onCheckedChange = { viewModel.toggleConsent(it) }
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = stringResource(Res.string.email_consent_message),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+            )
 
             // Local permission error messages when denied/disabled
             val showLocalPermissionError = !state.permissionStatus.locationGranted || !state.permissionStatus.gpsEnabled
@@ -232,13 +228,32 @@ fun MinimalPermissionScreen(
                     else ->
                         stringResource(Res.string.gps_required_error)
                 }
-                Text(
-                    text = permissionErrorMsg,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyMedium,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
-                )
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = permissionErrorMsg,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
+                        )
+                        Button(
+                            onClick = { platformActions.openAppSettings() },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            ),
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("Open Settings", fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
             }
 
             // Server error message
@@ -253,24 +268,8 @@ fun MinimalPermissionScreen(
             }
 
             // CTA button
-            val buttonLabel = when (state.permissionFlow) {
-                is PermissionFlowState.Idle ->
-                    if (state.permissionStatus.locationGranted && state.permissionStatus.gpsEnabled)
-                        stringResource(Res.string.btn_continue) else stringResource(Res.string.grant_permissions)
-                is PermissionFlowState.Completed ->
-                    if (state.permissionStatus.locationGranted && state.permissionStatus.gpsEnabled)
-                        stringResource(Res.string.btn_continue) else stringResource(Res.string.go_to_settings)
-                is PermissionFlowState.RequestingNotifications -> stringResource(Res.string.requesting_notifications)
-                is PermissionFlowState.RequestingLocation -> stringResource(Res.string.requesting_location)
-                is PermissionFlowState.CheckingGps -> stringResource(Res.string.checking_gps)
-            }
-            val buttonEnabled = state.isConsentChecked &&
-                    !state.isProcessing &&
-                    state.permissionFlow !is PermissionFlowState.RequestingNotifications &&
-                    state.permissionFlow !is PermissionFlowState.RequestingLocation &&
-                    state.permissionFlow !is PermissionFlowState.CheckingGps
-
-            val finalButtonEnabled = buttonEnabled && !isNavigating
+            val buttonLabel = stringResource(Res.string.btn_continue)
+            val buttonEnabled = !state.isProcessing && !isNavigating
 
             Button(
                 onClick = {
@@ -280,7 +279,7 @@ fun MinimalPermissionScreen(
                         viewModel.onGrantPermissionsTapped(userId)
                     }
                 },
-                enabled = finalButtonEnabled,
+                enabled = buttonEnabled,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)

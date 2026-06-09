@@ -170,6 +170,7 @@ fun PhoneVerificationScreen(
     // Prevent double submit: disable button immediately on first tap until result
     var isSubmitting by remember { mutableStateOf(false) }
 
+    val hasLangPref = viewModel.hasLanguagePreference.collectAsStateWithLifecycle().value
     val isIos = remember { getPlatform().name.contains("iOS", ignoreCase = true) }
     var showLanguagePopup by rememberSaveable(hasLangPref, isIos) { mutableStateOf(!hasLangPref && !isIos) }
 

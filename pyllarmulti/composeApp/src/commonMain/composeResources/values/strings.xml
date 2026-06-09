@@ -23,7 +23,7 @@
     <string name="location_permission_required_error">Location permission is mandatory for KYC verification and fraud prevention.</string>
     <string name="gps_required_error">GPS/Location services must be enabled for KYC verification.</string>
     <string name="location_and_gps_required_error">Location permission and GPS/location services are required for KYC verification.</string>
-    <string name="email_consent_message">I confirm this is my email and consent to receive communications.</string>
+    <string name="email_consent_message">The selected email address will be used for communications from Pyllar Fintech and its partners.</string>
     <string name="btn_continue">Continue</string>
     <string name="grant_permissions">Grant Permissions</string>
     <string name="retry_permissions">Retry Permissions</string>

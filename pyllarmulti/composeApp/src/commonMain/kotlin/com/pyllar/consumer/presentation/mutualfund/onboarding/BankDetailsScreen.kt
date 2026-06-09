@@ -195,33 +195,33 @@ fun BankDetailsScreen(
                                 Text("FASTEST", color = Color.White, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), style = MaterialTheme.typography.labelSmall)
                             }
                         }
-                        Text("We will fetch your bank details securely using a ₹1 verification transaction via UPI.", style = MaterialTheme.typography.bodySmall)
+//                        Text("We will fetch your bank details securely using a ₹1 verification transaction via UPI.", style = MaterialTheme.typography.bodySmall)
                         
-                        // Info banner (green theme) - Parity with Android
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(8.dp),
-                            colors = CardDefaults.cardColors(containerColor = V2SubtleBorder)
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Filled.Info,
-                                    contentDescription = "Info",
-                                    tint = V2SuccessGreen,
-                                    modifier = Modifier
-                                        .size(20.dp)
-                                        .padding(end = 8.dp)
-                                )
-                                Text(
-                                    text = "₹1 will be debited and refunded within 2 working days.",
-                                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                                    color = V2SuccessGreen
-                                )
-                            }
-                        }
+//                        // Info banner (green theme) - Parity with Android
+//                        Card(
+//                            modifier = Modifier.fillMaxWidth(),
+//                            shape = RoundedCornerShape(8.dp),
+//                            colors = CardDefaults.cardColors(containerColor = V2SubtleBorder)
+//                        ) {
+//                            Row(
+//                                modifier = Modifier.padding(12.dp),
+//                                verticalAlignment = Alignment.CenterVertically
+//                            ) {
+//                                Icon(
+//                                    imageVector = Icons.Filled.Info,
+//                                    contentDescription = "Info",
+//                                    tint = V2SuccessGreen,
+//                                    modifier = Modifier
+//                                        .size(20.dp)
+//                                        .padding(end = 8.dp)
+//                                )
+//                                Text(
+//                                    text = "₹1 will be debited and refunded within 2 working days.",
+//                                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+//                                    color = V2SuccessGreen
+//                                )
+//                            }
+//                        }
                         
                         Button(
                             onClick = { 

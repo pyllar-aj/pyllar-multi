@@ -71,11 +71,6 @@ class PermissionViewModel(
             _state.value = current.copy(showEmailError = true)
             return
         }
-        if (!current.isConsentChecked) {
-            com.pyllar.consumer.util.Log.d("PermissionFlow", "Consent not checked")
-            return
-        }
-
         val status = permissionManager.checkStatus()
         com.pyllar.consumer.util.Log.d("PermissionFlow", "Current status: $status")
         if (status.locationGranted && status.gpsEnabled) {
@@ -87,13 +82,8 @@ class PermissionViewModel(
             callUpdateEmailApi(userId)
             return
         }
-        if (current.permissionFlow is PermissionFlowState.Completed) {
-            com.pyllar.consumer.util.Log.d("PermissionFlow", "Flow completed but required permissions still missing, opening settings")
-            platformActions.openAppSettings()
-        } else {
-            com.pyllar.consumer.util.Log.d("PermissionFlow", "Starting permission flow")
-            startPermissionFlow(userId)
-        }
+        com.pyllar.consumer.util.Log.d("PermissionFlow", "Starting permission flow")
+        startPermissionFlow(userId)
     }
 
     private fun startPermissionFlow(userId: String) {
