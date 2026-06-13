@@ -237,5 +237,20 @@ class AndroidPlatformActions(private val context: Context) : PlatformActions {
         }
         return null
     }
+
+    override fun playRedemptionSuccessSound() {
+        try {
+            val resId = context.resources.getIdentifier("redemption_success", "raw", context.packageName)
+            if (resId != 0) {
+                val mp = android.media.MediaPlayer.create(context, resId)
+                mp?.start()
+                mp?.setOnCompletionListener { it.release() }
+            } else {
+                Log.w("AndroidPlatformActions", "redemption_success raw resource not found")
+            }
+        } catch (e: Exception) {
+            Log.e("AndroidPlatformActions", "Failed to play redemption success sound", e)
+        }
+    }
 }
 

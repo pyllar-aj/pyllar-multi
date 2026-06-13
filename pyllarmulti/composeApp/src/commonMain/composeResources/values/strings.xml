@@ -399,5 +399,30 @@
     <string name="current_nav">Current NAV</string>
     <string name="monthly_income">Monthly Income (₹)</string>
     <string name="monthly_income_invalid">Invalid income amount</string>
+
+    <!-- Withdraw Success Screen V2 Status and steps -->
+    <string name="redemption_complete">Redemption Complete</string>
+    <string name="redemption_failed">Redemption Failed</string>
+    <string name="redemption_cancelled">Redemption Cancelled</string>
+    <string name="status_check_timed_out">Status Check Timed Out</string>
+    <string name="processing_your_withdrawal">Processing Your Withdrawal</string>
+    <string name="redemption_complete_msg">Your money is on its way to your bank account.</string>
+    <string name="redemption_failed_msg">Your redemption could not be processed. Please try again. For support, please contact us from help section.</string>
+    <string name="redemption_cancelled_msg">Your redemption was cancelled. Please try again. For support, please contact us from help section.</string>
+    <string name="status_check_timed_out_msg">We\'ll continue processing in the background. Check your dashboard for updates.</string>
+    <string name="tracking_withdrawal_real_time">Tracking your withdrawal in real time...</string>
+    <string name="withdrawal_initiated_step_title">%1$s withdrawal initiated</string>
+    <string name="withdrawal_request_received_desc">Your withdrawal request was received</string>
+    <string name="request_received_step_title">Request Received</string>
+    <string name="processing_now_desc">Processing now</string>
+    <string name="credit_within_30_mins_step_title">Credit Within 30 Mins</string>
+    <string name="credit_by_date_step_title">Credit by %1$s</string>
+    <string name="on_its_way_to_bank_step_title">On Its Way to your Bank</string>
+    <string name="funds_on_way_to_bank_desc">Funds are on their way to your bank account</string>
+    <string name="will_be_credited_within_30_mins_desc">Will be credited within 30 minutes</string>
+    <string name="will_be_credited_within_2_working_days_desc">Will be credited within 2 working days</string>
+    <string name="withdrawal_progress_title">Withdrawal Progress</string>
+    <string name="redemption_complete_toast">Redemption complete!</string>
+    <string name="check_dashboard_for_updates">Check your dashboard for updates</string>
 </resources>
 

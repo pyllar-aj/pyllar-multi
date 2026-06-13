@@ -41,14 +41,14 @@ fi
 echo "==> Flavor: $FLAVOR  (baseUrl: $BASE_URL)"
 
 # ── Simulator config ───────────────────────────────────────────────────────
-SIMULATOR_UDID="0BDF3796-6D9E-44D4-8D1C-F13D0204E4FB"
+SIMULATOR_UDID="A6D26BBA-A765-4A93-9E72-F7730AC04F8A"
 SIMULATOR_NAME="Test iPhone 26.4"
 BUNDLE_ID="com.pyllar.consumer"
 DERIVED_DATA="/tmp/pyllar-ios-build"
 PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
 
 echo "==> Booting simulator if needed..."
-STATUS=$(xcrun simctl list devices | grep "$SIMULATOR_UDID" | grep -o "(Booted\|Shutdown)")
+STATUS=$(xcrun simctl list devices | grep "$SIMULATOR_UDID" | grep -o "(Booted\|Shutdown)" || true)
 if [ "$STATUS" != "(Booted)" ]; then
     xcrun simctl boot "$SIMULATOR_UDID" || true
     open -a Simulator
@@ -72,7 +72,7 @@ xcodebuild \
 
 echo "==> Uninstalling and Installing app..."
 xcrun simctl terminate "$SIMULATOR_UDID" "$BUNDLE_ID" 2>/dev/null || true
-xcrun simctl uninstall "$SIMULATOR_UDID" "$BUNDLE_ID" 2>/dev/null || true
+# xcrun simctl uninstall "$SIMULATOR_UDID" "$BUNDLE_ID" 2>/dev/null || true
 xcrun simctl install "$SIMULATOR_UDID" "$DERIVED_DATA/Build/Products/${XCODE_CONFIGURATION}-iphonesimulator/Pyllar.app"
 
 echo "==> Launching app (console output follows)..."

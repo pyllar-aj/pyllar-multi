@@ -421,7 +421,7 @@ private fun InitialDashboardContentV2(
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
-                                    text = "+48.0%",
+                                    text = "+33.0%",
                                     style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = AccentGreen)
                                 )
                                 Text(
@@ -437,7 +437,7 @@ private fun InitialDashboardContentV2(
                             )
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
-                                    text = "+76.1%",
+                                    text = "+46.7%",
                                     style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = AccentGreen)
                                 )
                                 Text(

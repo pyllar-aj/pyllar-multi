@@ -29,6 +29,7 @@ import com.pyllar.consumer.presentation.dashboard.InvestmentDashboardV2ViewModel
 import com.pyllar.consumer.presentation.dashboard.SchemeDetailsViewModel
 import com.pyllar.consumer.presentation.dashboard.WithdrawAmountViewModel
 import com.pyllar.consumer.presentation.dashboard.WithdrawViewModel
+import com.pyllar.consumer.presentation.dashboard.WithdrawSuccessViewModelV2
 import com.pyllar.consumer.presentation.mutualfund.onboarding.OnboardingViewModel
 import com.pyllar.consumer.presentation.mutualfund.portfolio.PortfolioViewModel
 import com.pyllar.consumer.presentation.mutualfund.sip.SipViewModel
@@ -114,4 +115,5 @@ val sharedModule: Module = module {
     factoryOf(::HelperCodeViewModel)
     factoryOf(::ProfileViewModel)
     factoryOf(::ReferralViewModel)
+    factoryOf(::WithdrawSuccessViewModelV2)
 }

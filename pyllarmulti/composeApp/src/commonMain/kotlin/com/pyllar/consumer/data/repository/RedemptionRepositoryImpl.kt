@@ -16,7 +16,7 @@ class RedemptionRepositoryImpl(
         emit(Resource.Loading())
         when (val result =
             apiClient.post<RedemptionResponse, RedemptionRequest>(
-                path = "api/mf-redemptions",
+                path = "api/mf-redemptions/v2",
                 body = request
             )
         ) {
@@ -54,6 +54,15 @@ class RedemptionRepositoryImpl(
         emit(Resource.Loading())
         val result = apiClient.post<String, com.pyllar.consumer.data.remote.model.dto.RedemptionOtpVerifyRequestDto>(
             path = "api/mf-redemptions/redemption-otp-verify",
+            body = request
+        )
+        emit(result)
+    }
+
+    override fun syncRedemptionStatus(request: Map<String, String>): Flow<Resource<com.pyllar.consumer.presentation.dashboard.RedemptionSyncResponse>> = flow {
+        emit(Resource.Loading())
+        val result = apiClient.post<com.pyllar.consumer.presentation.dashboard.RedemptionSyncResponse, Map<String, String>>(
+            path = "api/mf-redemptions/sync-status",
             body = request
         )
         emit(result)

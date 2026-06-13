@@ -26,3 +26,25 @@ actual fun getCurrentDay(): Int {
     val components = calendar.components(NSCalendarUnitDay, NSDate())
     return components.day.toInt()
 }
+
+actual fun formatCurrentDateV2(): String {
+    val formatter = platform.Foundation.NSDateFormatter().apply {
+        dateFormat = "dd MMM HH:mm a"
+    }
+    return formatter.stringFromDate(NSDate())
+}
+
+actual fun formatProcessingDateV2(daysToAdd: Int): String {
+    val calendar = NSCalendar.currentCalendar
+    val targetDate = calendar.dateByAddingUnit(
+        value = daysToAdd.toLong(),
+        forComponent = NSCalendarUnitDay,
+        toDate = NSDate(),
+        options = 0.toULong()
+    ) ?: NSDate()
+    val formatter = platform.Foundation.NSDateFormatter().apply {
+        dateFormat = "dd MMM yyyy, EEE"
+    }
+    return formatter.stringFromDate(targetDate)
+}
+

@@ -14,5 +14,7 @@ data class RedemptionRequest(
     @SerialName("amount")
     val amount: Double,
     @SerialName("redemptionMode")
-    val mode: String? = null
+    val mode: String? = null,
+    @SerialName("redeemAll")
+    val redeemAll: Boolean = false
 )

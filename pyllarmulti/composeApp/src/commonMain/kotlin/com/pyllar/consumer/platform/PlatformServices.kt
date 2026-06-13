@@ -94,6 +94,7 @@ interface PlatformActions {
         silentFallback: Boolean = false,
         trigger: String = "manual"
     )
+    fun playRedemptionSuccessSound()
 }
 
 /**

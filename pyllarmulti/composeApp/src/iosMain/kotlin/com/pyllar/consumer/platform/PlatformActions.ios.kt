@@ -185,4 +185,9 @@ class IosPlatformActions : PlatformActions {
         val window = UIApplication.sharedApplication.windows.first() as? UIWindow
         return window?.rootViewController
     }
+
+    override fun playRedemptionSuccessSound() {
+        // iOS no-op or system sound play
+        platformLog("IosPlatformActions: playRedemptionSuccessSound called (no-op)")
+    }
 }

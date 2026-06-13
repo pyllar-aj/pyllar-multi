@@ -125,7 +125,8 @@ fun WithdrawAmountScreen(
                 isin = selectedScheme?.isin ?: "",
                 folioNumber = selectedScheme?.folioNo ?: "",
                 amount = effectiveRedemptionAmount,
-                mode = withdrawMode
+                mode = withdrawMode,
+                redeemAll = withdrawAll
             )
             viewModel.createRedemption(request)
         } else if (otpVerificationResult is Resource.Error) {
@@ -208,14 +209,14 @@ fun WithdrawAmountScreen(
                         OutlinedTextField(
                             value = withdrawalAmount,
                             onValueChange = { 
-                                if (it.isEmpty() || it.toDoubleOrNull() != null) {
+                                if (it.isEmpty() || it.all { char -> char.isDigit() }) {
                                     withdrawalAmount = it
                                     withdrawAll = false
                                 }
                             },
                             modifier = Modifier.weight(1f),
-                            placeholder = { Text("0.00", color = Color.Gray.copy(alpha = 0.5f)) },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            placeholder = { Text("0", color = Color.Gray.copy(alpha = 0.5f)) },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             enabled = !withdrawAll,
                             textStyle = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
                         )

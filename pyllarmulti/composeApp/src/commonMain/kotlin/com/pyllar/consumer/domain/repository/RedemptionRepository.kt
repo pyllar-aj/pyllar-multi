@@ -11,5 +11,7 @@ interface RedemptionRepository {
     fun generateRedemptionOtp(userId: String): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.RedemptionOtpResponseDto>>
     
     fun verifyRedemptionOtp(request: com.pyllar.consumer.data.remote.model.dto.RedemptionOtpVerifyRequestDto): Flow<Resource<String>>
+
+    fun syncRedemptionStatus(request: Map<String, String>): Flow<Resource<com.pyllar.consumer.presentation.dashboard.RedemptionSyncResponse>>
 }
 
