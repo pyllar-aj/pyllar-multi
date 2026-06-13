@@ -647,7 +647,8 @@ class InvestmentDashboardV2ViewModel(
                 schemeName = schemeName,
                 folioNo = folioNo,
                 planNumber = planNumber,
-                createdDate = createdDate
+                createdDate = createdDate,
+                isin = isin
             )
             "all_in_one" -> InvestmentGoal(
                 goalId = "all_in_one",
