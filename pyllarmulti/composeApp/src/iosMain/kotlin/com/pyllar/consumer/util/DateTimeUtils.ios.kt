@@ -37,8 +37,8 @@ actual fun formatCurrentDateV2(): String {
 actual fun formatProcessingDateV2(daysToAdd: Int): String {
     val calendar = NSCalendar.currentCalendar
     val targetDate = calendar.dateByAddingUnit(
+        unit = NSCalendarUnitDay,
         value = daysToAdd.toLong(),
-        forComponent = NSCalendarUnitDay,
         toDate = NSDate(),
         options = 0.toULong()
     ) ?: NSDate()

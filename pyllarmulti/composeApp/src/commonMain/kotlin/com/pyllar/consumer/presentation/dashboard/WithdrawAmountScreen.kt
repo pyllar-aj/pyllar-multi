@@ -125,7 +125,7 @@ fun WithdrawAmountScreen(
                 isin = selectedScheme?.isin ?: "",
                 folioNumber = selectedScheme?.folioNo ?: "",
                 amount = effectiveRedemptionAmount,
-                mode = withdrawMode,
+                mode = if (withdrawMode?.uppercase() == "INSTANT") "instant" else "normal",
                 redeemAll = withdrawAll
             )
             viewModel.createRedemption(request)
@@ -152,6 +152,8 @@ fun WithdrawAmountScreen(
                     bankAccountNumber = "", // Not needed for success screen display usually
                     bankAccountIfscCode = "",
                     transactionId = response?.transactionId ?: "Pending",
+                    redemptionId = response?.redemptionId ?: response?.transactionId ?: "Pending",
+                    redemptionGroupId = response?.redemptionGroupId,
                     userId = userId,
                     schemeId = selectedSchemeId ?: "",
                     isin = selectedScheme?.isin ?: "",
@@ -173,7 +175,7 @@ fun WithdrawAmountScreen(
             TopAppBar(
                 title = { Text("Withdraw", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = onNavigateBack, enabled = !showOtpScreen) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
                 }
@@ -217,7 +219,7 @@ fun WithdrawAmountScreen(
                             modifier = Modifier.weight(1f),
                             placeholder = { Text("0", color = Color.Gray.copy(alpha = 0.5f)) },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            enabled = !withdrawAll,
+                            enabled = !withdrawAll && !showOtpScreen,
                             textStyle = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
                         )
                     }
@@ -251,13 +253,14 @@ fun WithdrawAmountScreen(
                     elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                 ) {
                     Row(
-                        modifier = Modifier.fillMaxWidth().clickable { withdrawAll = !withdrawAll }.padding(16.dp),
+                        modifier = Modifier.fillMaxWidth().clickable(enabled = !showOtpScreen) { withdrawAll = !withdrawAll }.padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Checkbox(
                             checked = withdrawAll,
                             onCheckedChange = { withdrawAll = it },
+                            enabled = !showOtpScreen,
                             colors = CheckboxDefaults.colors(checkedColor = V2Obsidian)
                         )
                         Text("Withdraw all from this fund", style = MaterialTheme.typography.bodyLarge)
@@ -278,7 +281,7 @@ fun WithdrawAmountScreen(
 
                 Button(
                     onClick = { showConfirmationSheet = true },
-                    enabled = isValidAmount,
+                    enabled = isValidAmount && !showOtpScreen,
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = V2Obsidian)
@@ -332,7 +335,18 @@ fun WithdrawAmountScreen(
 
             // OTP Overlay
             if (showOtpScreen) {
-                Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)).zIndex(60f)) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.5f))
+                        .clickable(
+                            enabled = true,
+                            onClick = {},
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        )
+                        .zIndex(60f)
+                ) {
                     Card(
                         modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(16.dp),
                         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)

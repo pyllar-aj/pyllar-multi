@@ -58,7 +58,7 @@ class WithdrawSuccessViewModelV2(
         _uiState.value = _uiState.value.copy(isPolling = true)
 
         pollingJob = viewModelScope.launch {
-            val timeoutMillis = 1 * 60 * 1000L // 1 minute
+            val timeoutMillis = 3 * 60 * 1000L // 3 minutes
             val request = buildMap<String, String> {
                 put("userId", userId)
                 if (useGroup) put("redemptionGroupId", redemptionGroupId!!)

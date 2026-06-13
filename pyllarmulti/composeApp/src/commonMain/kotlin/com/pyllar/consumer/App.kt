@@ -78,6 +78,8 @@ sealed class Screen {
         val bankName: String,
         val bankAccountLast4: String,
         val transactionId: String,
+        val redemptionId: String,
+        val redemptionGroupId: String? = null,
         val folio: String?,
         val redemptionMode: String = "NORMAL"
     ) : Screen()
@@ -752,6 +754,8 @@ fun App() {
                                 bankName = data.bankName,
                                 bankAccountLast4 = data.bankAccountLast4,
                                 transactionId = data.transactionId,
+                                redemptionId = data.redemptionId,
+                                redemptionGroupId = data.redemptionGroupId,
                                 folio = data.folio,
                                 redemptionMode = data.mode
                             ))
@@ -763,14 +767,16 @@ fun App() {
                 )
             }
             is Screen.WithdrawSuccess -> {
-                WithdrawSuccessScreen(
+                WithdrawSuccessScreenV2(
                     withdrawalAmount = screen.amount,
                     schemeName = screen.schemeName,
                     bankName = screen.bankName,
                     bankAccountLast4 = screen.bankAccountLast4,
-                    transactionId = screen.transactionId,
+                    redemptionId = screen.redemptionId,
+                    userId = screen.userId,
                     folio = screen.folio,
                     redemptionMode = screen.redemptionMode,
+                    redemptionGroupId = screen.redemptionGroupId,
                     onNavigateToHome = {
                         navigateTo(Screen.InvestmentDashboard(screen.userId), clearStack = true)
                     }

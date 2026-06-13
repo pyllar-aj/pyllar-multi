@@ -424,5 +424,6 @@
     <string name="withdrawal_progress_title">Withdrawal Progress</string>
     <string name="redemption_complete_toast">Redemption complete!</string>
     <string name="check_dashboard_for_updates">Check your dashboard for updates</string>
+    <string name="will_be_processed_after">Will be processed by %1$s</string>
 </resources>
 

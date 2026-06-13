@@ -40,6 +40,8 @@ import com.pyllar.consumer.util.BackHandler
 import com.pyllar.consumer.util.formatCurrentDateV2
 import com.pyllar.consumer.util.formatProcessingDateV2
 import org.koin.compose.koinInject
+import kotlinx.coroutines.delay
+import kotlinx.datetime.*
 
 @Composable
 fun WithdrawSuccessScreenV2(
@@ -103,6 +105,12 @@ fun WithdrawSuccessScreenV2(
         formatProcessingDateV2(daysToAdd)
     }
 
+    var isOneMinuteElapsed by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(60000L)
+        isOneMinuteElapsed = true
+    }
+
     val scrollState = rememberScrollState()
     val isTerminal = uiState.status == RedemptionPollStatus.SUBMITTED ||
             uiState.status == RedemptionPollStatus.SUCCEEDED ||
@@ -121,7 +129,7 @@ fun WithdrawSuccessScreenV2(
                         )
                         onNavigateToHome()
                     },
-                    enabled = isTerminal,
+                    enabled = isTerminal || isOneMinuteElapsed,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 24.dp, vertical = 16.dp)
@@ -142,7 +150,7 @@ fun WithdrawSuccessScreenV2(
                         Icon(imageVector = Icons.Default.Home, contentDescription = null, modifier = Modifier.size(20.dp))
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = if (!isTerminal) stringResource(Res.string.processing) else stringResource(Res.string.go_to_home),
+                            text = if (isTerminal || isOneMinuteElapsed) stringResource(Res.string.go_to_home) else stringResource(Res.string.processing),
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.titleMedium
                         )
