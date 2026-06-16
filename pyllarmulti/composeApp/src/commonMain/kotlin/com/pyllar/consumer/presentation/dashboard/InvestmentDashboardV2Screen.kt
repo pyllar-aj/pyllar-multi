@@ -365,7 +365,10 @@ fun InvestmentDashboardV2Screen(
                 item {
                     ReferAndEarnCard(
                         coinsBalance = 100,
-                        onClick = onNavigateToReferral
+                        onClick = {
+                            PlatformAnalyticsLogger.logEvent("referral_card_tapped")
+                            onNavigateToReferral()
+                        }
                     )
                 }
             }

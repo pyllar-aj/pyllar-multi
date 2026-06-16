@@ -3,6 +3,7 @@ package com.pyllar.consumer.presentation.referral
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pyllar.consumer.domain.storage.SessionStore
+import com.pyllar.consumer.analytics.PlatformAnalyticsLogger
 import com.pyllar.consumer.domain.repository.ReferralRepository
 import com.pyllar.consumer.data.remote.model.dto.ReferredUserEntryDto
 import com.pyllar.consumer.data.remote.model.dto.CoinRedemptionHistoryEntryDto
@@ -214,6 +215,7 @@ class ReferralViewModel(
             referralRepository.requestRedemption(userId, amount).collect { result ->
                 when (result) {
                     is Resource.Success -> {
+                        PlatformAnalyticsLogger.logEvent("referral_withdraw_success", mapOf("amount" to amount))
                         _uiState.value = _uiState.value.copy(
                             isWithdrawLoading = false,
                             successMessage = "Withdrawal request placed! ₹$amount will be credited to your account shortly."
@@ -221,6 +223,10 @@ class ReferralViewModel(
                         loadAll()
                     }
                     is Resource.Error -> {
+                        PlatformAnalyticsLogger.logEvent("referral_withdraw_failed", mapOf(
+                            "amount" to amount,
+                            "error" to (result.message ?: "unknown")
+                        ))
                         _uiState.value = _uiState.value.copy(
                             isWithdrawLoading = false,
                             errorMessage = result.message ?: "Withdrawal failed. Please try again."

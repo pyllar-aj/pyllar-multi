@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pyllar.consumer.platform.PlatformActions
+import com.pyllar.consumer.analytics.PlatformAnalyticsLogger
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
@@ -113,6 +114,10 @@ fun ReferralScreen(
     var showCopiedToast by remember { mutableStateOf(false) }
     var showSuccessToast by remember { mutableStateOf<String?>(null) }
     var showErrorToast by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(Unit) {
+        PlatformAnalyticsLogger.logScreenView("ReferralScreen")
+    }
 
     // Auto dismiss copied notification
     LaunchedEffect(showCopiedToast) {
@@ -316,7 +321,11 @@ fun ReferralScreen(
                                 onShareClick = onShareClick,
                                 onWhatsAppShareClick = onWhatsAppShareClick,
                                 shareUrl = uiState.shareUrl,
-                                shareMessage = uiState.shareMessage
+                                shareMessage = uiState.shareMessage,
+                                onCopyClick = { code ->
+                                    PlatformAnalyticsLogger.logEvent("referral_code_copied", mapOf("code" to code))
+                                    showCopiedToast = true
+                                }
                             )
                         }
 
@@ -378,7 +387,10 @@ fun ReferralScreen(
                             .padding(horizontal = 20.dp, vertical = 16.dp)
                     ) {
                         Button(
-                            onClick = onShareClick,
+                            onClick = {
+                                PlatformAnalyticsLogger.logEvent("referral_share_tapped", mapOf("channel" to "general"))
+                                onShareClick()
+                            },
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.buttonColors(containerColor = primaryGreen),
                             shape = RoundedCornerShape(14.dp),
@@ -657,6 +669,7 @@ fun ReferralScreen(
 
                         Button(
                             onClick = {
+                                PlatformAnalyticsLogger.logEvent("referral_withdraw_tapped", mapOf("amount" to withdrawAmount))
                                 showWithdrawConfirmSheet = false
                                 onWithdrawClick(withdrawAmount)
                             },
@@ -1524,7 +1537,8 @@ fun ShareLinkBox(
     onShareClick: () -> Unit = {},
     onWhatsAppShareClick: () -> Unit = {},
     shareUrl: String = "",
-    shareMessage: String = ""
+    shareMessage: String = "",
+    onCopyClick: (String) -> Unit = {}
 ) {
     val clipboardManager = LocalClipboardManager.current
     val linkText = shareUrl.ifBlank { "pyllar.in/refer?code=$referralCode" }
@@ -1588,6 +1602,7 @@ fun ShareLinkBox(
                         modifier = Modifier
                             .clickable {
                                 clipboardManager.setText(AnnotatedString(linkText))
+                                onCopyClick(referralCode)
                             },
                         shape = RoundedCornerShape(20.dp),
                         color = accentGoldLight,
@@ -1621,7 +1636,10 @@ fun ShareLinkBox(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Button(
-                    onClick = onWhatsAppShareClick,
+                    onClick = {
+                        PlatformAnalyticsLogger.logEvent("referral_share_tapped", mapOf("channel" to "whatsapp"))
+                        onWhatsAppShareClick()
+                    },
                     modifier = Modifier.weight(1.5f),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366)), 
                     shape = RoundedCornerShape(12.dp),
@@ -1635,7 +1653,10 @@ fun ShareLinkBox(
                 }
 
                 OutlinedButton(
-                    onClick = onShareClick,
+                    onClick = {
+                        PlatformAnalyticsLogger.logEvent("referral_share_tapped", mapOf("channel" to "general"))
+                        onShareClick()
+                    },
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp),
                     border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.6f)),
