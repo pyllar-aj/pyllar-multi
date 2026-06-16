@@ -66,7 +66,7 @@
     <string name="state_approved">ACTIVE PLANS</string>
     <string name="state_other">OTHER PLANS</string>
     <string name="no_plans_found">No investment plans found</string>
-    <string name="whats_happening_section">What\'s happening?</string>
+    <string name="whats_happening_section">What's happening?</string>
     <string name="active_badge">ACTIVE</string>
     <string name="processing_badge">PROCESSING</string>
     <string name="saving_since">Saving since</string>
@@ -105,7 +105,7 @@
     <string name="go_to_home">Go to Home</string>
     <string name="otp_consent_message">By entering this OTP, I allow Pyllar Fintech Private Limited to place mutual fund orders on my behalf.</string>
     <string name="pan_fetch_otp_consent_message">By entering this OTP, I authorise Pyllar Fintech Private Limited to fetch my PAN details.</string>
-    <string name="terms_privacy_message">By proceeding, I agree to Pyllar\'s T&amp;C and Privacy Policy</string>
+    <string name="terms_privacy_message">By proceeding, I agree to Pyllar's T&amp;C and Privacy Policy</string>
     <string name="riskometer">RISKOMETER</string>
     <string name="scheme_documents">Scheme Documents</string>
     <string name="disclaimer">Disclaimer</string>
@@ -163,7 +163,7 @@
     <string name="referral_step3_desc">Credited after they invest 7 days in a row. 1 coin = ₹1.</string>
 
     <string name="referral_step1_detailed_title">Share your link</string>
-    <string name="referral_step1_detailed_desc">Tap \"Share on WhatsApp\" — your unique referral link is sent. Your friend doesn\'t need to type a code; it\'s already attached.</string>
+    <string name="referral_step1_detailed_desc">Tap "Share on WhatsApp" — your unique referral link is sent. Your friend doesn't need to type a code; it's already attached.</string>
     <string name="referral_step2_detailed_title">They install &amp; start a SIP</string>
     <string name="referral_step2_detailed_desc">They install Pyllar using your link, complete setup, and start any daily SIP.</string>
     <string name="referral_step3_detailed_title">They earn the 7-day streak badge</string>
@@ -202,7 +202,7 @@
     <string name="referral_my_referrals_title">Your referrals</string>
     <string name="referral_my_referrals_summary_format">%1$d invited · %2$d earned</string>
     <string name="referral_no_invites_yet">No invites yet</string>
-    <string name="referral_no_invites_yet_desc">When friends install via your link, they\'ll show up here.</string>
+    <string name="referral_no_invites_yet_desc">When friends install via your link, they'll show up here.</string>
     <string name="referral_status_invited">Invited</string>
     <string name="referral_status_earned">Earned</string>
     <string name="referral_btn_see_less">See less</string>
@@ -217,7 +217,7 @@
     <string name="referral_btn_need_more_format">Need ₹%1$d more to withdraw</string>
 
     <string name="referral_withdraw_sheet_title">Withdraw coins</string>
-    <string name="referral_withdrawing_header">YOU\'RE WITHDRAWING</string>
+    <string name="referral_withdrawing_header">YOU'RE WITHDRAWING</string>
     <string name="referral_coins_in_wallet">Coins in wallet</string>
     <string name="referral_coins_format">%1$d coins</string>
     <string name="referral_withdrawing_label">Withdrawing</string>
@@ -250,7 +250,7 @@
     <string name="chat_with_us">Chat with us</string>
     <string name="choose_query_chat">Choose a query and chat with us</string>
     <string name="tap_chat">Tap to chat →</string>
-    <string name="whatsapp_tap_any_topic">Tap any topic below — we\'ll open WhatsApp for you, ready to help.</string>
+    <string name="whatsapp_tap_any_topic">Tap any topic below — we'll open WhatsApp for you, ready to help.</string>
     <string name="kyc_verification">KYC Verification</string>
     <string name="bank_account">Bank Account</string>
     <string name="sip_transactions">SIP &amp; Transactions</string>
@@ -269,7 +269,7 @@
     <string name="why_complete_kyc">Why Complete KYC?</string>
     <string name="kyc_mandatory_message">KYC (Know Your Customer) is mandatory as per SEBI and government regulations.</string>
     <string name="what_information_needed">What Information is Needed</string>
-    <string name="kyc_ask_for">To complete your KYC, we\'ll ask for:</string>
+    <string name="kyc_ask_for">To complete your KYC, we'll ask for:</string>
     <string name="pan_card_details">• PAN card details</string>
     <string name="basic_personal_financial">• Basic personal and financial details</string>
     <string name="step_by_step_process">Step by Step Process</string>
@@ -290,7 +290,7 @@
     <string name="how_long_kyc">How Long Does It Take?</string>
     <string name="fill_form_minutes">• Fill the form: 2–5 minutes</string>
     <string name="need_help_kyc">Need Help?</string>
-    <string name="kyc_tap_whatsapp">For KYC verification issues, tap \'KYC Verification\' below to chat with our support team on WhatsApp.</string>
+    <string name="kyc_tap_whatsapp">For KYC verification issues, tap 'KYC Verification' below to chat with our support team on WhatsApp.</string>
     <string name="bank_account_help_title">Bank Account Setup – Help Information</string>
     <string name="why_link_bank">Why link your bank account?</string>
     <string name="we_need_bank_to">We need your bank account details to:</string>
@@ -312,15 +312,15 @@
     <string name="select_invest_regularly">Select how much you want to invest regularly through your SIP.</string>
     <string name="step_3_account_verify">Step 3: Account Verification</string>
     <string name="once_kyc_approved">Once your KYC is completed and approved:</string>
-    <string name="we_ask_verify_bank">• We\'ll ask you to verify your bank account</string>
-    <string name="refundable_1_payment">• You\'ll make a refundable ₹1 payment through your UPI app</string>
+    <string name="we_ask_verify_bank">• We'll ask you to verify your bank account</string>
+    <string name="refundable_1_payment">• You'll make a refundable ₹1 payment through your UPI app</string>
     <string name="refund_2_3_days">• The ₹1 will be refunded to your account within 2-3 business days</string>
     <string name="step_4_start_sip">Step 4: Start Your SIP</string>
     <string name="after_verification_sip">After successful verification, your SIP will be activated and investments will begin.</string>
     <string name="common_question">Common Question</string>
     <string name="what_if_verification_fails">What if verification fails?</string>
     <string name="double_check_account_message">Double-check your account number and IFSC code and make sure the account is held in your name only. Ensure the account is active and has UPI enabled. Contact support if issues persist.</string>
-    <string name="bank_need_help">For bank account verification issues, tap \'Bank Account\' below to chat with our support team on WhatsApp.</string>
+    <string name="bank_need_help">For bank account verification issues, tap 'Bank Account' below to chat with our support team on WhatsApp.</string>
 
     <!-- Initial Dashboard V2 Localized Strings -->
     <string name="choose_goal_subtitle">Invest &amp; withdraw from the same bank account. Add more goals anytime.</string>
@@ -409,7 +409,7 @@
     <string name="redemption_complete_msg">Your money is on its way to your bank account.</string>
     <string name="redemption_failed_msg">Your redemption could not be processed. Please try again. For support, please contact us from help section.</string>
     <string name="redemption_cancelled_msg">Your redemption was cancelled. Please try again. For support, please contact us from help section.</string>
-    <string name="status_check_timed_out_msg">We\'ll continue processing in the background. Check your dashboard for updates.</string>
+    <string name="status_check_timed_out_msg">We'll continue processing in the background. Check your dashboard for updates.</string>
     <string name="tracking_withdrawal_real_time">Tracking your withdrawal in real time...</string>
     <string name="withdrawal_initiated_step_title">%1$s withdrawal initiated</string>
     <string name="withdrawal_request_received_desc">Your withdrawal request was received</string>

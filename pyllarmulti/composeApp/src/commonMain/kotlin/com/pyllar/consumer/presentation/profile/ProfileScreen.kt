@@ -138,6 +138,36 @@ fun ProfileScreen(
                         platformActions.shareText("Build your wealth with Pyllar! https://pyllar.in", "Share Pyllar")
                     }
                 )
+
+                // Rate App Card
+                ProfileOptionCard(
+                    title = "Rate Pyllar",
+                    subtitle = "Love using Pyllar? Rate us",
+                    icon = Icons.Filled.Star,
+                    onClick = {
+                        platformActions.requestInAppReview(screenName = "ProfileScreen", silentFallback = false, trigger = "manual")
+                    }
+                )
+
+                // Terms of Use Card
+                ProfileOptionCard(
+                    title = "Terms of Use",
+                    subtitle = "Terms and conditions of using Pyllar",
+                    icon = Icons.Filled.Description,
+                    onClick = {
+                        platformActions.openUrl("https://www.pyllar.in/terms.html")
+                    }
+                )
+
+                // Privacy Policy Card
+                ProfileOptionCard(
+                    title = "Privacy Policy",
+                    subtitle = "How we protect your data",
+                    icon = Icons.Filled.Shield,
+                    onClick = {
+                        platformActions.openUrl("https://www.pyllar.in/privacy.html")
+                    }
+                )
                 
                 Spacer(modifier = Modifier.height(24.dp))
                 
