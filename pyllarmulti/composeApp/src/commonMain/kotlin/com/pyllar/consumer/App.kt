@@ -367,7 +367,8 @@ fun App() {
                             nextScreen = nextScreen
                         ))
                     },
-                    onNavigateBack = { navigateBack() }
+                    onNavigateBack = { navigateBack() },
+                    onNavigateToHelp = { navigateTo(Screen.HelpSupport("")) }
                 )
             }
             is Screen.MinimalPermission -> {
@@ -380,7 +381,8 @@ fun App() {
                         scope.launch {
                             handleNavigation(nextScreen, screen.userId, sessionStore = sessionStore) { navigateTo(it) }
                         }
-                    }
+                    },
+                    onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId)) }
                 )
             }
             is Screen.PanKyc -> {
@@ -612,7 +614,8 @@ fun App() {
                     pan = screen.pan,
                     email = screen.email,
                     phone = screen.phone,
-                    token = screen.token
+                    token = screen.token,
+                    onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId)) }
                 )
             }
             is Screen.NameDob -> {
@@ -654,7 +657,8 @@ fun App() {
                     pan = screen.pan,
                     email = screen.email,
                     phone = screen.phone,
-                    token = screen.token
+                    token = screen.token,
+                    onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId)) }
                 )
             }
             is Screen.CheckPanPopulatedDetails -> {
@@ -676,7 +680,8 @@ fun App() {
                         scope.launch {
                             handleNavigation(nextScreen, screen.userId, null, null, preVerificationId, sessionStore = sessionStore) { navigateTo(it) }
                         }
-                    }
+                    },
+                    onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId)) }
                 )
             }
             is Screen.UpiAccountLinking -> {
@@ -913,7 +918,8 @@ fun App() {
                     paymentRef = screen.paymentRef,
                     goalId = screen.goalId,
                     onGoToHome = { navigateTo(Screen.InvestmentDashboard(screen.userId), clearStack = true) },
-                    onNavigateBack = { navigateBack() }
+                    onNavigateBack = { navigateBack() },
+                    onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId)) }
                 )
             }
             is Screen.FundDetailsViewOnly -> {
@@ -937,7 +943,8 @@ fun App() {
                     mandateRef = screen.mandateRef,
                     goalId = screen.goalId,
                     onGoToHome = { navigateTo(Screen.InvestmentDashboard(screen.userId), clearStack = true) },
-                    onNavigateBack = { navigateBack() }
+                    onNavigateBack = { navigateBack() },
+                    onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId)) }
                 )
             }
             is Screen.Profile -> {

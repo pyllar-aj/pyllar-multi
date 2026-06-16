@@ -195,6 +195,8 @@ fun BankDetailsScreen(
                                 Text("FASTEST", color = Color.White, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), style = MaterialTheme.typography.labelSmall)
                             }
                         }
+                        Text("Currently unavailable. Please enter the details manually.", style = MaterialTheme.typography.bodySmall)
+
 //                        Text("We will fetch your bank details securely using a ₹1 verification transaction via UPI.", style = MaterialTheme.typography.bodySmall)
                         
 //                        // Info banner (green theme) - Parity with Android
