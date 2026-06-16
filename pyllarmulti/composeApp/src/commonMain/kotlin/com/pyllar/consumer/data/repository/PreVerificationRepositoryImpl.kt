@@ -120,12 +120,13 @@ class PreVerificationRepositoryImpl(
     }
 
     override fun initiatePanFetch(
-        mobileNumber: String
+        mobileNumber: String,
+        force: Boolean
     ): Flow<Resource<PanFetchDataDto>> = flow {
         emit(Resource.Loading())
         val result = apiClient.post<PanFetchDataDto, PanFetchRequestDto>(
             path = "api/userprefill/consent/initiate",
-            body = PanFetchRequestDto(mobileNumber)
+            body = PanFetchRequestDto(mobileNumber, force)
         )
         emit(result)
     }

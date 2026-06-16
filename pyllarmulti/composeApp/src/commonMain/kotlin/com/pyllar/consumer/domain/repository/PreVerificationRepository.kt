@@ -43,7 +43,8 @@ interface PreVerificationRepository {
     ): Flow<Resource<PreVerificationResponseDto>>
 
     fun initiatePanFetch(
-        mobileNumber: String
+        mobileNumber: String,
+        force: Boolean = false
     ): Flow<Resource<PanFetchDataDto>>
 
     fun verifyOtpAndFetchPan(

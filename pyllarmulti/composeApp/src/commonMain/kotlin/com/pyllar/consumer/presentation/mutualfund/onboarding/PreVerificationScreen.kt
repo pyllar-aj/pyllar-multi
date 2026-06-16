@@ -96,6 +96,7 @@ fun PreVerificationScreen(
     var readinessCheckStarted by remember { mutableStateOf(false) }
     var isSubmitting by remember { mutableStateOf(false) }
     var showManualEntryForm by remember { mutableStateOf(false) }
+    var panAutoFetched by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         PlatformAnalyticsLogger.logScreenView("PreVerification")
@@ -186,6 +187,7 @@ fun PreVerificationScreen(
                         fetchedPanName = data.fullName
                         showManualEntryForm = true
                         autoFetchFailed = false
+                        panAutoFetched = true
                         viewModel.clearError()
                     }
                 }
@@ -216,6 +218,7 @@ fun PreVerificationScreen(
                     fetchedPanName = personalDetails?.fullName ?: ""
                     showManualEntryForm = true
                     autoFetchFailed = false
+                    panAutoFetched = true
                     viewModel.clearError()
                 } else {
                     autoFetchFailed = true
@@ -338,7 +341,7 @@ fun PreVerificationScreen(
                                     }
                                 },
                                 modifier = Modifier.fillMaxWidth(),
-                                enabled = uiState.panFetchResult !is Resource.Loading,
+                                enabled = !panAutoFetched && uiState.panFetchResult !is Resource.Loading,
                                 shape = RoundedCornerShape(8.dp),
                                 contentPadding = PaddingValues(vertical = 16.dp)
                             ) {
@@ -565,10 +568,12 @@ fun PreVerificationScreen(
                         }
                     },
                     onResendOtp = { 
-                        currentPrefillId = null
-                        otpFieldValue = TextFieldValue("")
-                        viewModel.clearPanVerifyOtpResult()
-                        viewModel.initiatePanFetch(userPhone) 
+                        if (userPhone.isNotBlank()) {
+                            currentPrefillId = null
+                            otpFieldValue = TextFieldValue("")
+                            viewModel.clearPanVerifyOtpResult()
+                            viewModel.initiatePanFetch(userPhone, force = true) 
+                        }
                     },
                     onDismiss = {
                         otpFieldValue = TextFieldValue("")

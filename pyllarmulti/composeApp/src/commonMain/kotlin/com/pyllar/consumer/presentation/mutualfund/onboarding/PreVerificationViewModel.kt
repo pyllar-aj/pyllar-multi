@@ -127,6 +127,7 @@ class PreVerificationViewModel(
                     when (result) {
                         is Resource.Success -> {
                             platformLog("PreVerificationVM: \u2705 Readiness check response: ${result.data}")
+                            sessionStore.saveValue(KeyValueConstants.PAN, panNumber)
                             val preVerificationId = result.data?.data?.id ?: result.data?.id
                             platformLog("PreVerificationVM: \uD83C\uDD94 ID received: $preVerificationId")
                             if (preVerificationId != null) {
@@ -195,6 +196,7 @@ class PreVerificationViewModel(
                 ).collectLatest { result ->
                     when (result) {
                         is Resource.Success -> {
+                            sessionStore.saveValue(KeyValueConstants.PAN, panNumber)
                             val preVerificationId = result.data?.data?.id
                             if (preVerificationId != null) {
                                 currentPreVerificationId = preVerificationId
@@ -489,14 +491,14 @@ class PreVerificationViewModel(
         }
     }
 
-    fun initiatePanFetch(mobileNumber: String) {
-        platformLog("PreVerificationVM: \uD83D\uDCE1 initiatePanFetch requested for $mobileNumber")
+    fun initiatePanFetch(mobileNumber: String, force: Boolean = false) {
+        platformLog("PreVerificationVM: 📡 initiatePanFetch requested for $mobileNumber, force=$force")
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
                 panFetchResult = Resource.Loading()
             )
             try {
-                preVerificationRepository.initiatePanFetch(mobileNumber).collectLatest { result ->
+                preVerificationRepository.initiatePanFetch(mobileNumber, force).collectLatest { result ->
                     _uiState.value = _uiState.value.copy(panFetchResult = result)
                 }
             } catch (e: Exception) {
