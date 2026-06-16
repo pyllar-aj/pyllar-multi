@@ -69,4 +69,19 @@ class IosLocationProvider : LocationProvider {
             }
         }
     }
+
+    override suspend fun reverseGeocode(latitude: Double, longitude: Double): GeocodedAddress? = suspendCoroutine { continuation ->
+        val geocoder = platform.CoreLocation.CLGeocoder()
+        val location = platform.CoreLocation.CLLocation(latitude = latitude, longitude = longitude)
+        geocoder.reverseGeocodeLocation(location) { placemarks, error ->
+            val placemark = placemarks?.firstOrNull() as? platform.CoreLocation.CLPlacemark
+            if (placemark != null) {
+                val city = placemark.locality ?: placemark.subAdministrativeArea ?: placemark.administrativeArea ?: ""
+                val pincode = placemark.postalCode ?: ""
+                continuation.resume(GeocodedAddress(city = city, pincode = pincode))
+            } else {
+                continuation.resume(null)
+            }
+        }
+    }
 }

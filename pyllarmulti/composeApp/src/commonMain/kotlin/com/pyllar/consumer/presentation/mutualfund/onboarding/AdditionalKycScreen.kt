@@ -63,21 +63,17 @@ fun AdditionalKycScreen(
     var gender by remember { mutableStateOf("") }
     var locationStatus by remember { mutableStateOf<String?>(null) }
 
+    var locationPermissionStatus by remember { mutableStateOf(permissionManager.checkStatus()) }
+    var hasAttemptedLocationAutofill by remember { mutableStateOf(false) }
+
     LaunchedEffect(Unit) {
         while (true) {
-            val status = permissionManager.checkStatus()
-            if (status.locationGranted && status.gpsEnabled) {
-                locationStatus = null
-            } else if (locationStatus != null) {
-                if (!status.locationGranted) {
-                    locationStatus = "Location permission is required to verify your address. Please grant location access."
-                } else if (!status.gpsEnabled) {
-                    locationStatus = "Location services/GPS are disabled. Please enable location services in Settings."
-                }
-            }
+            locationPermissionStatus = permissionManager.checkStatus()
             delay(1000)
         }
     }
+
+
     var maritalStatus by remember { mutableStateOf("") }
     var occupationType by remember { mutableStateOf("") }
     var placeOfBirth by remember { mutableStateOf("") }
@@ -199,19 +195,78 @@ fun AdditionalKycScreen(
     val isLoadingData by viewModel.isLoadingScreenData.collectAsState()
     val submitResult by viewModel.submitResult.collectAsState()
 
+    LaunchedEffect(locationPermissionStatus, isLoadingData) {
+        if (!isLoadingData && locationPermissionStatus.locationGranted && locationPermissionStatus.gpsEnabled) {
+            locationStatus = null
+            if (!hasAttemptedLocationAutofill && (city.isBlank() || pincode.isBlank())) {
+                hasAttemptedLocationAutofill = true
+                platformLog("AdditionalKycScreen: Location is enabled. Fetching location coordinates...")
+                val coords = locationProvider.getCurrentLocation()
+                if (coords != null) {
+                    val address = locationProvider.reverseGeocode(coords.latitude, coords.longitude)
+                    if (address != null) {
+                        platformLog("AdditionalKycScreen: Location-based autofill: city=${address.city}, pincode=${address.pincode}")
+                        if (city.isBlank() && address.city.isNotBlank()) {
+                            city = address.city
+                        }
+                        if (pincode.isBlank() && address.pincode.isNotBlank()) {
+                            pincode = address.pincode
+                        }
+                    }
+                }
+            }
+        } else if (locationStatus != null) {
+            if (!locationPermissionStatus.locationGranted) {
+                locationStatus = "Location permission is required to verify your address. Please grant location access."
+            } else if (!locationPermissionStatus.gpsEnabled) {
+                locationStatus = "Location services/GPS are disabled. Please enable location services in Settings."
+            }
+        }
+    }
+
     LaunchedEffect(Unit) {
         PlatformAnalyticsLogger.logScreenView("AdditionalKyc")
     }
 
     LaunchedEffect(uiState) {
         if (uiState.isNotEmpty()) {
-            if (fatherName.isBlank()) fatherName = uiState["fatherName"]?.toString() ?: ""
-            if (gender.isBlank()) gender = uiState["gender"]?.toString() ?: ""
-            if (maritalStatus.isBlank()) maritalStatus = uiState["maritalStatus"]?.toString() ?: ""
-            if (occupationType.isBlank()) occupationType = uiState["occupationType"]?.toString() ?: ""
-            if (placeOfBirth.isBlank()) placeOfBirth = uiState["placeOfBirth"]?.toString() ?: ""
+            fun cleanPrefill(vararg keys: String): String {
+                for (key in keys) {
+                    val value = uiState[key]?.toString()?.trim()
+                    if (value != null && value.isNotBlank() && !value.equals("null", ignoreCase = true)) {
+                        return value
+                    }
+                }
+                return ""
+            }
+
+            val rawFatherName = cleanPrefill("fatherName", "father_name")
+            if (fatherName.isBlank() && rawFatherName.isNotBlank()) {
+                fatherName = rawFatherName.uppercase()
+            }
+
+            val rawGender = cleanPrefill("gender")
+            if (gender.isBlank() && rawGender.isNotBlank()) {
+                gender = rawGender.lowercase()
+            }
+
+            val rawMaritalStatus = cleanPrefill("maritalStatus", "marital_status")
+            if (maritalStatus.isBlank() && rawMaritalStatus.isNotBlank()) {
+                maritalStatus = rawMaritalStatus.lowercase()
+            }
+
+            val rawOccupationType = cleanPrefill("occupationType", "occupation_type")
+            if (occupationType.isBlank() && rawOccupationType.isNotBlank()) {
+                occupationType = rawOccupationType.lowercase()
+            }
+
+            val rawPlaceOfBirth = cleanPrefill("placeOfBirth", "place_of_birth")
+            if (placeOfBirth.isBlank() && rawPlaceOfBirth.isNotBlank()) {
+                placeOfBirth = rawPlaceOfBirth
+            }
+
             if (monthlyIncome.isBlank()) {
-                val rawMonthly = uiState["monthlyIncome"]?.toString() ?: uiState["monthly_income"]?.toString() ?: ""
+                val rawMonthly = cleanPrefill("monthlyIncome", "monthly_income")
                 val cleanMonthly = rawMonthly.replace("\"", "").replace("'", "").filter { it.isDigit() }
                 if (cleanMonthly.isNotBlank()) {
                     val doubleVal = cleanMonthly.toDoubleOrNull()
@@ -222,19 +277,73 @@ fun AdditionalKycScreen(
                     }
                 }
             }
-            if (city.isBlank()) city = uiState["city"]?.toString() ?: ""
-            if (pincode.isBlank()) {
-                val rawPincode = uiState["pincode"]?.toString() ?: ""
+
+            val rawCity = cleanPrefill("city", "address_city", "addressCity")
+            if (city.isBlank() && rawCity.isNotBlank()) {
+                city = rawCity
+            }
+
+            val rawPincode = cleanPrefill("pincode", "address_pincode", "addressPincode")
+            if (pincode.isBlank() && rawPincode.isNotBlank()) {
                 pincode = rawPincode.replace("\"", "").replace("'", "").filter { it.isDigit() }.take(6)
             }
-            if (addressLine1.isBlank()) addressLine1 = uiState["addressLine1"]?.toString() ?: ""
-            if (addressLine2.isBlank()) addressLine2 = uiState["addressLine2"]?.toString() ?: ""
-            if (addressLine3.isBlank()) addressLine3 = uiState["addressLine3"]?.toString() ?: ""
-            
-            // Handle yes/no status fields
-            uiState["residentialStatus"]?.toString()?.let { residentialStatus = it }
-            uiState["nationality"]?.toString()?.let { nationality = it }
-            uiState["politicallyExposed"]?.toString()?.let { politicallyExposed = it }
+
+            val rawAddressLine1 = cleanPrefill("addressLine1", "address_line1")
+            val rawAddressLine2 = cleanPrefill("addressLine2", "address_line2")
+            val rawAddressLine3 = cleanPrefill("addressLine3", "address_line3")
+
+            if (addressLine1.isBlank() && rawAddressLine1.isNotBlank()) {
+                addressLine1 = rawAddressLine1
+            }
+            if (addressLine2.isBlank() && rawAddressLine2.isNotBlank()) {
+                addressLine2 = rawAddressLine2
+            }
+            if (addressLine3.isBlank() && rawAddressLine3.isNotBlank()) {
+                addressLine3 = rawAddressLine3
+            }
+
+            // Fallback: If address line fields are still blank, check if there is a single long address string
+            if (addressLine1.isBlank()) {
+                val rawAddress = cleanPrefill("address_line", "addressLine", "address")
+                if (rawAddress.isNotBlank()) {
+                    // Split the long address into max 3 lines of 32 characters
+                    val words = rawAddress.split(" ")
+                    val lines = mutableListOf<String>()
+                    var currentLine = StringBuilder()
+                    for (word in words) {
+                        if (currentLine.isEmpty()) {
+                            currentLine.append(word)
+                        } else if (currentLine.length + 1 + word.length <= 32) {
+                            currentLine.append(" ").append(word)
+                        } else {
+                            lines.add(currentLine.toString())
+                            currentLine = StringBuilder(word)
+                        }
+                    }
+                    if (currentLine.isNotEmpty()) {
+                        lines.add(currentLine.toString())
+                    }
+                    if (lines.size > 0) addressLine1 = filterAddress(lines[0])
+                    if (lines.size > 1) addressLine2 = filterAddress(lines[1])
+                    if (lines.size > 2) addressLine3 = filterAddress(lines.drop(2).joinToString(" "))
+                }
+            }
+
+            // Handle yes/no status fields with boolean / string mapping
+            val rawResidential = cleanPrefill("residentialStatus", "residential_status")
+            if (rawResidential.isNotBlank()) {
+                residentialStatus = if (rawResidential == "yes" || rawResidential == "true") "yes" else "no"
+            }
+
+            val rawNationality = cleanPrefill("nationality", "nationality_country", "nationalityCountry")
+            if (rawNationality.isNotBlank()) {
+                nationality = if (rawNationality == "yes" || rawNationality == "true" || rawNationality.uppercase() == "IN" || rawNationality.lowercase() == "india") "yes" else "no"
+            }
+
+            val rawPoliticallyExposed = cleanPrefill("politicallyExposed", "politically_exposed", "isPoliticallyExposed", "is_politically_exposed")
+            if (rawPoliticallyExposed.isNotBlank()) {
+                politicallyExposed = if (rawPoliticallyExposed == "yes" || rawPoliticallyExposed == "true") "yes" else "no"
+            }
         }
     }
 

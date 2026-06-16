@@ -10,6 +10,11 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withTimeoutOrNull
 import com.pyllar.consumer.BuildConfig
 
+import android.location.Geocoder
+import java.util.Locale
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+
 class AndroidLocationProvider(
     private val context: Context
 ) : LocationProvider {
@@ -71,6 +76,27 @@ class AndroidLocationProvider(
                     latitude = it.latitude,
                     longitude = it.longitude
                 )
+            }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    override suspend fun reverseGeocode(latitude: Double, longitude: Double): GeocodedAddress? = withContext(Dispatchers.IO) {
+        try {
+            if (!Geocoder.isPresent()) {
+                return@withContext null
+            }
+            val geocoder = Geocoder(context, Locale.getDefault())
+            @Suppress("DEPRECATION")
+            val addresses = geocoder.getFromLocation(latitude, longitude, 1)
+            if (!addresses.isNullOrEmpty()) {
+                val address = addresses[0]
+                val city = address.locality ?: address.subAdminArea ?: address.adminArea ?: ""
+                val pincode = address.postalCode ?: ""
+                GeocodedAddress(city = city, pincode = pincode)
+            } else {
+                null
             }
         } catch (e: Exception) {
             null

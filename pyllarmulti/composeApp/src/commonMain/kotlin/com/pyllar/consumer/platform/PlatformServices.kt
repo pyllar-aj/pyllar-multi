@@ -122,7 +122,15 @@ data class LocationCoordinates(
 )
 
 /**
- * Abstraction for fetching the current device location.
+ * Platform-independent geocoded address representation.
+ */
+data class GeocodedAddress(
+    val city: String,
+    val pincode: String
+)
+
+/**
+ * Abstraction for fetching the current device location and geocoding.
  *
  * Implementations should handle platform-specific location services
  * (e.g., FusedLocationProvider on Android, CLLocationManager on iOS).
@@ -133,4 +141,9 @@ interface LocationProvider {
      * Returns null if permissions are missing or location services are disabled.
      */
     suspend fun getCurrentLocation(): LocationCoordinates?
+
+    /**
+     * Reverse geocodes coordinates into a city and pincode.
+     */
+    suspend fun reverseGeocode(latitude: Double, longitude: Double): GeocodedAddress?
 }
