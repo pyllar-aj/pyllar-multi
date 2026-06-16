@@ -54,6 +54,13 @@ fun OtpVerificationScreen(
         viewModel.verificationResult.collectAsStateWithLifecycle().value
     val otp: String = viewModel.otp.collectAsStateWithLifecycle().value
 
+    SmsRetrieverEffect(
+        phoneNumber = phoneNumber,
+        onOtpReceived = { code ->
+            viewModel.updateOtp(code)
+        }
+    )
+
     val timeoutState = rememberTimeoutState("OtpVerification", "verify")
     var isSubmitting by remember { mutableStateOf(false) }
 

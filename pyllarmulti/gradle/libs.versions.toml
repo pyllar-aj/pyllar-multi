@@ -52,6 +52,7 @@ play-review = { group = "com.google.android.play", name = "review", version = "2
 play-review-ktx = { group = "com.google.android.play", name = "review-ktx", version = "2.0.2" }
 installreferrer = { group = "com.android.installreferrer", name = "installreferrer", version = "2.2" }
 firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging-ktx", version = "24.0.0" }
+play-services-auth-api-phone = { group = "com.google.android.gms", name = "play-services-auth-api-phone", version = "18.1.0" }
 
 
 

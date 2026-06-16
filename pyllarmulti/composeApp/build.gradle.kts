@@ -75,6 +75,7 @@ kotlin {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.play.services.location)
             implementation(libs.kotlinx.coroutines.play.services)
+            implementation(libs.play.services.auth.api.phone)
             implementation(libs.androidx.core.ktx)
             implementation(libs.play.app.update)
             implementation(libs.play.review)
