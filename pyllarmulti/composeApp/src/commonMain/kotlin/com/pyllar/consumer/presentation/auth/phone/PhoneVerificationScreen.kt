@@ -426,8 +426,15 @@ fun PhoneVerificationScreen(
                     OutlinedTextField(
                         value = phoneNumber,
                         onValueChange = { newValue ->
-                            if (newValue.length <= 10 && newValue.all { it.isDigit() }) {
-                                viewModel.updatePhoneNumber(newValue)
+                            val cleanNumber = newValue.replace(Regex("[^0-9+]"), "")
+                            val parsedNumber = when {
+                                cleanNumber.startsWith("+91") -> cleanNumber.substring(3)
+                                cleanNumber.startsWith("91") && cleanNumber.length > 10 -> cleanNumber.substring(2)
+                                cleanNumber.startsWith("0") && cleanNumber.length > 10 -> cleanNumber.substring(1)
+                                else -> cleanNumber
+                            }
+                            if (parsedNumber.length <= 10 && parsedNumber.all { it.isDigit() }) {
+                                viewModel.updatePhoneNumber(parsedNumber)
                             }
                         },
                         modifier = Modifier

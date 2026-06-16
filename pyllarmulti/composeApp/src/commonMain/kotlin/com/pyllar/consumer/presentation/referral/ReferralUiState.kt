@@ -16,6 +16,7 @@ data class ReferralUiState(
     val withdrawalHistory: List<WithdrawalHistory> = emptyList(),
     val isCodeLoading: Boolean = true,
     val isStatsLoading: Boolean = true,
+    val isWithdrawLoading: Boolean = false,
     val successMessage: String? = null,
     val errorMessage: String? = null
 )

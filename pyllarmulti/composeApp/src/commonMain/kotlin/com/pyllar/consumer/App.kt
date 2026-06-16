@@ -976,12 +976,10 @@ fun App() {
                         platformActions.openWhatsApp("", text)
                     },
                     onWithdrawClick = { amount ->
-                        // Simulate withdrawal success
-                        scope.launch {
-                            referralVm.dismissSuccessMessage()
-                        }
+                        referralVm.requestRedemption(amount)
                     },
                     onDismissSuccessMessage = { referralVm.dismissSuccessMessage() },
+                    onDismissErrorMessage = { referralVm.dismissErrorMessage() },
                     onRetryClick = { referralVm.loadAll() }
                 )
             }

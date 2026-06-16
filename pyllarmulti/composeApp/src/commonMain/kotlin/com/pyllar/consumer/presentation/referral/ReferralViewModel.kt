@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.pyllar.consumer.domain.storage.SessionStore
 import com.pyllar.consumer.domain.repository.ReferralRepository
 import com.pyllar.consumer.data.remote.model.dto.ReferredUserEntryDto
+import com.pyllar.consumer.data.remote.model.dto.CoinRedemptionHistoryEntryDto
+import com.pyllar.consumer.data.remote.model.dto.CoinRedemptionHistoryDto
 import com.pyllar.consumer.util.Resource
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -54,13 +56,13 @@ class ReferralViewModel(
             }
 
             val dashboardDeferred = async {
-                var dashRes: Resource<com.pyllar.consumer.data.remote.model.dto.ReferralDashboardDto> = Resource.Loading()
+                var dashboardRes: Resource<com.pyllar.consumer.data.remote.model.dto.ReferralDashboardDto> = Resource.Loading()
                 referralRepository.getMyDashboard(userId).collect { result ->
                     if (result !is Resource.Loading) {
-                        dashRes = result
+                        dashboardRes = result
                     }
                 }
-                dashRes
+                dashboardRes
             }
 
             val statsDeferred = async {
@@ -73,9 +75,20 @@ class ReferralViewModel(
                 statsRes
             }
 
+            val historyDeferred = async {
+                var historyRes: Resource<com.pyllar.consumer.data.remote.model.dto.CoinRedemptionHistoryDto> = Resource.Loading()
+                referralRepository.getRedemptionHistory(userId).collect { result ->
+                    if (result !is Resource.Loading) {
+                        historyRes = result
+                    }
+                }
+                historyRes
+            }
+
             val codeResult = codeDeferred.await()
             val dashResult = dashboardDeferred.await()
             val statsResult = statsDeferred.await()
+            val historyResult = historyDeferred.await()
 
             // Process codeResult
             when (codeResult) {
@@ -132,6 +145,13 @@ class ReferralViewModel(
                     qualifyingDays = statsResult.data?.qualifyingDays?.toInt() ?: 7
                 )
             }
+
+            // Process historyResult
+            if (historyResult is Resource.Success) {
+                _uiState.value = _uiState.value.copy(
+                    withdrawalHistory = historyResult.data?.requests?.map { mapToWithdrawalHistory(it) } ?: emptyList()
+                )
+            }
         }
     }
 
@@ -171,6 +191,47 @@ class ReferralViewModel(
         )
     }
 
+    private fun mapToWithdrawalHistory(entry: CoinRedemptionHistoryEntryDto): WithdrawalHistory {
+        val displayDate = entry.disbursementTxnDate ?: entry.requestedAt?.substring(0, 10) ?: ""
+        val statusLabel = when (entry.status) {
+            "DISBURSED"  -> "Done"
+            "FAILED"     -> "Failed"
+            "PROCESSING" -> "Processing"
+            else         -> "Pending"
+        }
+        return WithdrawalHistory(
+            amount = entry.coinsRequested.toInt(),
+            date = displayDate,
+            bankDetails = entry.disbursementTxnId ?: "",
+            status = statusLabel
+        )
+    }
+
+    fun requestRedemption(amount: Int) {
+        viewModelScope.launch {
+            val userId = sessionStore.getCurrentUserId()
+            _uiState.value = _uiState.value.copy(isWithdrawLoading = true, errorMessage = null)
+            referralRepository.requestRedemption(userId, amount).collect { result ->
+                when (result) {
+                    is Resource.Success -> {
+                        _uiState.value = _uiState.value.copy(
+                            isWithdrawLoading = false,
+                            successMessage = "Withdrawal request placed! ₹$amount will be credited to your account shortly."
+                        )
+                        loadAll()
+                    }
+                    is Resource.Error -> {
+                        _uiState.value = _uiState.value.copy(
+                            isWithdrawLoading = false,
+                            errorMessage = result.message ?: "Withdrawal failed. Please try again."
+                        )
+                    }
+                    is Resource.Loading -> Unit
+                }
+            }
+        }
+    }
+
     fun dismissSuccessMessage() {
         _uiState.value = _uiState.value.copy(successMessage = null)
     }
@@ -179,3 +240,4 @@ class ReferralViewModel(
         _uiState.value = _uiState.value.copy(errorMessage = null)
     }
 }
+

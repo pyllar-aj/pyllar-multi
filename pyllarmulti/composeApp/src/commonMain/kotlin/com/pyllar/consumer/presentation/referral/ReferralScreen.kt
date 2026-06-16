@@ -102,6 +102,7 @@ fun ReferralScreen(
     onWhatsAppShareClick: () -> Unit = {},
     onWithdrawClick: (Int) -> Unit = {},
     onDismissSuccessMessage: () -> Unit = {},
+    onDismissErrorMessage: () -> Unit = {},
     onRetryClick: () -> Unit = {}
 ) {
     val clipboardManager = LocalClipboardManager.current
@@ -110,12 +111,32 @@ fun ReferralScreen(
     var showExplainerSheet by remember { mutableStateOf(false) }
     var showWithdrawConfirmSheet by remember { mutableStateOf(false) }
     var showCopiedToast by remember { mutableStateOf(false) }
+    var showSuccessToast by remember { mutableStateOf<String?>(null) }
+    var showErrorToast by remember { mutableStateOf<String?>(null) }
 
     // Auto dismiss copied notification
     LaunchedEffect(showCopiedToast) {
         if (showCopiedToast) {
             kotlinx.coroutines.delay(2000)
             showCopiedToast = false
+        }
+    }
+
+    LaunchedEffect(uiState.successMessage) {
+        if (uiState.successMessage != null) {
+            showSuccessToast = uiState.successMessage
+            kotlinx.coroutines.delay(3000)
+            showSuccessToast = null
+            onDismissSuccessMessage()
+        }
+    }
+
+    LaunchedEffect(uiState.errorMessage) {
+        if (uiState.errorMessage != null && uiState.referralCode.isNotEmpty()) {
+            showErrorToast = uiState.errorMessage
+            kotlinx.coroutines.delay(3000)
+            showErrorToast = null
+            onDismissErrorMessage()
         }
     }
 
@@ -192,7 +213,7 @@ fun ReferralScreen(
                             strokeWidth = 3.dp
                         )
                     }
-                } else if (uiState.errorMessage != null) {
+                } else if (uiState.errorMessage != null && uiState.referralCode.isEmpty()) {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -265,7 +286,8 @@ fun ReferralScreen(
                                 withdrawn = uiState.withdrawnCoins,
                                 minimumCashoutAmount = uiState.minimumCashoutAmount,
                                 primaryGreen = primaryGreen,
-                                accentGold = accentGold
+                                accentGold = accentGold,
+                                onWithdrawClick = { showWithdrawConfirmSheet = true }
                             )
                         }
 
@@ -696,6 +718,87 @@ fun ReferralScreen(
                 }
             }
         }
+
+        if (uiState.isWithdrawLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.3f))
+                    .clickable(enabled = false) {},
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    color = primaryGreen,
+                    strokeWidth = 3.dp
+                )
+            }
+        }
+
+        // Custom Success Toast
+        AnimatedVisibility(
+            visible = showSuccessToast != null,
+            enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
+            exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 }),
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 90.dp)
+        ) {
+            Card(
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF0F3E26)), // Forest green for success
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                modifier = Modifier.padding(horizontal = 24.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = null,
+                        tint = Color(0xFF81C784),
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        text = showSuccessToast ?: "",
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                        color = Color.White
+                    )
+                }
+            }
+        }
+
+        // Custom Error Toast
+        AnimatedVisibility(
+            visible = showErrorToast != null,
+            enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
+            exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 }),
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 90.dp)
+        ) {
+            Card(
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFD32F2F)), // Red for error
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                modifier = Modifier.padding(horizontal = 24.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        text = showErrorToast ?: "",
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                        color = Color.White
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -710,7 +813,8 @@ fun WalletCard(
     withdrawn: Int,
     minimumCashoutAmount: Int,
     primaryGreen: Color,
-    accentGold: Color
+    accentGold: Color,
+    onWithdrawClick: () -> Unit = {}
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -821,6 +925,22 @@ fun WalletCard(
                         text = "$balanceCoins / $minimumCashoutAmount",
                         style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
                         color = Color(0xFFA5D6A7)
+                    )
+                }
+            }
+
+            if (balanceCoins >= minimumCashoutAmount) {
+                Button(
+                    onClick = onWithdrawClick,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = accentGold),
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(vertical = 12.dp)
+                ) {
+                    Text(
+                        text = "Withdraw Coins",
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                        color = Color(0xFF1A1A1A)
                     )
                 }
             }

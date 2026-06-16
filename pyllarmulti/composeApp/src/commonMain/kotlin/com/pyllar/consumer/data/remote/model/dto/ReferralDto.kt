@@ -64,3 +64,34 @@ data class CampaignShareInfoDto(
     @SerialName("referrerRewardCoins") val referrerRewardCoins: Long = 0,
     @SerialName("validUntil") val validUntil: String? = null
 )
+
+@Serializable
+data class CoinRedemptionRequestBodyDto(
+    @SerialName("coinsToRedeem") val coinsToRedeem: Int
+)
+
+@Serializable
+data class CoinRedemptionResponseDto(
+    @SerialName("redemptionId") val redemptionId: Long = 0,
+    @SerialName("coinsRedeemed") val coinsRedeemed: Long = 0,
+    @SerialName("coinsRemaining") val coinsRemaining: Long = 0,
+    @SerialName("status") val status: String = "",
+    @SerialName("requestedAt") val requestedAt: String? = null
+)
+
+@Serializable
+data class CoinRedemptionHistoryEntryDto(
+    @SerialName("id") val id: Long = 0,
+    @SerialName("coinsRequested") val coinsRequested: Long = 0,
+    @SerialName("status") val status: String = "PENDING",
+    @SerialName("requestedAt") val requestedAt: String? = null,
+    @SerialName("disbursementTxnId") val disbursementTxnId: String? = null,
+    @SerialName("disbursementTxnDate") val disbursementTxnDate: String? = null,
+    @SerialName("notes") val notes: String? = null
+)
+
+@Serializable
+data class CoinRedemptionHistoryDto(
+    @SerialName("requests") val requests: List<CoinRedemptionHistoryEntryDto> = emptyList()
+)
+
