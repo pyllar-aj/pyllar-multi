@@ -425,5 +425,24 @@
     <string name="redemption_complete_toast">Redemption complete!</string>
     <string name="check_dashboard_for_updates">Check your dashboard for updates</string>
     <string name="will_be_processed_after">Will be processed by %1$s</string>
+    <string name="freq_monthly_label">Monthly</string>
+    <string name="freq_daily_label">Daily</string>
+    <string name="plan_number_label">Plan #%1$d</string>
+    <string name="per_month_suffix">/ month</string>
+    <string name="per_day_suffix">/ day</string>
+    <string name="started_label">Started</string>
+    <string name="next_debit_label">Next Debit</string>
+    <string name="monthly_debit_date_callout_title">Monthly debit on the %1$s</string>
+    <string name="monthly_debit_date_callout_subtitle">Next month's debit will occur on this day.</string>
+    <string name="pause">Pause</string>
+    <string name="cancel_sip">Cancel</string>
+    <string name="resume_sip">Resume</string>
+    <string name="sip_trust_flexibility">Pause, resume, or change amounts anytime</string>
+    <string name="sip_trust_no_lockin">No lock-in period — withdraw anytime</string>
+    <string name="daily_cadence_active">Daily cadence active</string>
+    <string name="daily_cadence_paused">Daily cadence paused</string>
+    <string name="monthly_cadence_active">Monthly runs on %1$s</string>
+    <string name="monthly_cadence_paused">Paused runs on %1$s</string>
+    <string name="monthly_cadence_unknown">Cadence: monthly</string>
 </resources>
 

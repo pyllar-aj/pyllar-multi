@@ -6,6 +6,7 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -343,13 +344,13 @@ fun SchemeDetailsV2Screen(
                     onShowSilverInfo = { showEstimatedSilverInfoPopup = true }
                 )
             }
-
             // Overlays & Sheets
             if (showPlansView) {
                 PlansOverlay(
                     mandates = state.mandates,
                     isLoading = state.isLoading,
                     accentColor = accentColor,
+                    category = category ?: "",
                     onDismiss = { showPlansView = false },
                     onPause = { m ->
                         mandateForPauseSip = m
@@ -389,9 +390,11 @@ fun SchemeDetailsV2Screen(
 
             // SIP Action Overlays
             if (showCancelSipScreen && mandateForCancelSip != null) {
+                val isMonthly = mandateForCancelSip?.frequency?.uppercase() == "MONTHLY"
                 CancelSipInfoScreen(
                     schemeName = displaySchemeName,
-                    dailyAmount = mandateForCancelSip?.amount ?: 0.0,
+                    amount = mandateForCancelSip?.amount ?: 0.0,
+                    isMonthly = isMonthly,
                     onCancelSip = { showCancelReasonScreen = true },
                     onGoBack = { 
                         showCancelSipScreen = false
@@ -416,13 +419,23 @@ fun SchemeDetailsV2Screen(
 
             // Sheets
             if (showCancelSipSuccessSheet) {
-                CancelSipSuccessBottomSheet(onDone = { showCancelSipSuccessSheet = false; reloadData() })
+                val isMonthly = mandateForCancelSip?.frequency?.uppercase() == "MONTHLY"
+                CancelSipSuccessBottomSheet(
+                    isMonthly = isMonthly,
+                    onDone = { 
+                        showCancelSipSuccessSheet = false
+                        mandateForCancelSip = null
+                        reloadData() 
+                    }
+                )
             }
             if (showCancelSipErrorSheet) {
                 CancelSipErrorBottomSheet(onDone = { showCancelSipErrorSheet = false })
             }
             if (showPauseSipQuestionSheet && mandateForPauseSip != null) {
+                val isMonthly = mandateForPauseSip?.frequency?.uppercase() == "MONTHLY"
                 PauseSipConfirmBottomSheet(
+                    isMonthly = isMonthly,
                     isLoading = pauseSipLoading,
                     onCancel = { showPauseSipQuestionSheet = false },
                     onConfirm = { viewModel.pauseSip(userId, mandateForPauseSip?.planId, mandateForPauseSip?.mandateId) }
@@ -435,7 +448,9 @@ fun SchemeDetailsV2Screen(
                 PauseSipErrorBottomSheet(onDone = { showPauseSipErrorSheet = false })
             }
             if (showResumeSipQuestionSheet && mandateForResumeSip != null) {
+                val isMonthly = mandateForResumeSip?.frequency?.uppercase() == "MONTHLY"
                 ResumeSipConfirmBottomSheet(
+                    isMonthly = isMonthly,
                     isLoading = resumeSipLoading,
                     onCancel = { showResumeSipQuestionSheet = false },
                     onConfirm = { viewModel.resumeSip(userId, mandateForResumeSip?.planId, mandateForResumeSip?.mandateId) }
@@ -1006,25 +1021,13 @@ fun PlansOverlay(
     mandates: List<MandateDisplayItem>,
     isLoading: Boolean,
     accentColor: Color,
+    category: String = "",
     onDismiss: () -> Unit,
     onPause: (MandateDisplayItem) -> Unit,
     onResume: (MandateDisplayItem) -> Unit,
     onCancel: (MandateDisplayItem) -> Unit
 ) {
-    val sortedMandates = mandates.sortedByDescending { mandateSortDateMillis(it) }
-
-    val approvedMandates = sortedMandates.filter { m ->
-        val s = m.status?.uppercase().orEmpty()
-        (s.contains("APPROVED") || s.contains("ACTIVE")) && !s.contains("PAUSED")
-    }
-    val pausedMandates = sortedMandates.filter { m ->
-        m.status?.uppercase()?.contains("PAUSED") == true
-    }
-    val otherMandates = sortedMandates.filter { m ->
-        val s = m.status?.uppercase().orEmpty()
-        !((s.contains("APPROVED") || s.contains("ACTIVE")) && !s.contains("PAUSED")) && !s.contains("PAUSED") && !s.contains("INITIATED")
-    }
-
+    val categoryUpper = category.uppercase()
 
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Scaffold(
@@ -1035,7 +1038,7 @@ fun PlansOverlay(
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
                 )
             },
-            containerColor = Color(0xFFF8F9FA)
+            containerColor = Color(0xFFFBF9F4)
         ) { padding ->
             if (isLoading) {
                 Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
@@ -1048,35 +1051,304 @@ fun PlansOverlay(
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
                     contentPadding = PaddingValues(vertical = 16.dp)
                 ) {
                     item {
                         SipPlansSummaryStrip(
                             mandates = mandates,
                             goalColor = accentColor,
-                            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
                         )
                     }
 
-                    if (pausedMandates.isNotEmpty()) {
-                        item { Text(stringResource(Res.string.state_paused), style = MaterialTheme.typography.labelLarge, color = Color.Gray, modifier = Modifier.padding(bottom = 4.dp)) }
-                        items(pausedMandates) { mandate ->
-                            MandateItemV2(mandate, accentColor, onPause, onResume, onCancel)
+                    fun planStatusRank(m: MandateDisplayItem): Int {
+                        val s = m.status?.uppercase().orEmpty()
+                        return when {
+                            s.contains("PAUSED") -> 1
+                            (s.contains("APPROVED") || s.contains("ACTIVE")) -> 0
+                            else -> 2
                         }
-                        item { Spacer(modifier = Modifier.height(8.dp)) }
                     }
-                    if (approvedMandates.isNotEmpty()) {
-                        item { Text(stringResource(Res.string.state_approved), style = MaterialTheme.typography.labelLarge, color = Color.Gray, modifier = Modifier.padding(bottom = 4.dp)) }
-                        items(approvedMandates) { mandate ->
-                            MandateItemV2(mandate, accentColor, onPause, onResume, onCancel)
+
+                    val sortedMandates = mandates.sortedWith(
+                        compareBy<MandateDisplayItem> { planStatusRank(it) }
+                            .thenByDescending { mandateSortDateMillis(it) }
+                    )
+
+                    itemsIndexed(sortedMandates) { index, mandate ->
+                        val rank = planStatusRank(mandate)
+                        SipPlanCardV2(
+                            mandate = mandate,
+                            planNumber = index + 1,
+                            goalColor = accentColor,
+                            category = categoryUpper,
+                            onPause = if (rank == 0) onPause else null,
+                            onResume = if (rank == 1) onResume else null,
+                            onCancel = if (rank == 0 || rank == 1) onCancel else null
+                        )
+                    }
+
+                    item {
+                        SipPlansTrustStripV2()
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SipPlanCardV2(
+    mandate: MandateDisplayItem,
+    planNumber: Int,
+    goalColor: Color,
+    modifier: Modifier = Modifier,
+    category: String = "",
+    onPause: ((MandateDisplayItem) -> Unit)? = null,
+    onResume: ((MandateDisplayItem) -> Unit)? = null,
+    onCancel: ((MandateDisplayItem) -> Unit)? = null
+) {
+    val cardGradientColors = when (category) {
+        "GOLD" -> listOf(Color(0xFFFFFDF7), Color(0xFFFBF6E8), Color(0xFFF5EDD4))
+        "SILVER" -> listOf(Color(0xFFF8FBFD), Color(0xFFEEF4F8), Color(0xFFE2EDF4))
+        else -> listOf(Color(0xFFF5FBF7), Color(0xFFEAF7EE), Color(0xFFD9F0E2))
+    }
+    val cardBorderColor = when (category) {
+        "GOLD" -> Color(0xFFD4AF37).copy(alpha = 0.28f)
+        "SILVER" -> Color(0xFF6A9AB0).copy(alpha = 0.28f)
+        else -> Color(0xFF27AE60).copy(alpha = 0.28f)
+    }
+
+    val shimmerTransition = rememberInfiniteTransition(label = "sipPlanCardShimmer")
+    val shimmerProgress by shimmerTransition.animateFloat(
+        initialValue = -1f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 4000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "sipPlanCardShimmerProgress"
+    )
+
+    val statusUpper = mandate.status?.uppercase().orEmpty()
+    val isActive = (statusUpper.contains("APPROVED") || statusUpper.contains("ACTIVE")) && !statusUpper.contains("PAUSED")
+    val isPaused = statusUpper.contains("PAUSED")
+    val isMonthly = mandate.frequency?.uppercase() == "MONTHLY"
+
+    val statusLabel = when {
+        isActive -> stringResource(Res.string.status_active)
+        isPaused -> stringResource(Res.string.status_paused)
+        statusUpper.contains("PENDING") -> stringResource(Res.string.status_pending)
+        statusUpper.contains("CANCELLED") -> stringResource(Res.string.status_cancelled)
+        statusUpper.contains("REJECTED") -> stringResource(Res.string.status_rejected)
+        statusUpper.contains("FAILED") -> stringResource(Res.string.status_failed)
+        else -> statusUpper.replace("_", " ")
+    }
+    val statusColor = when {
+        isActive -> Color(0xFF1A7A42)
+        isPaused -> Color(0xFF8B6B25)
+        else -> Color(0xFF616161)
+    }
+    val statusBg = when {
+        isActive -> Color(0xFF1A7A42).copy(alpha = 0.10f)
+        isPaused -> Color(0xFF8B6B25).copy(alpha = 0.10f)
+        else -> Color(0xFFF5F5F5)
+    }
+
+    val sipDateOrdinal = if (isMonthly) dayOfMonthOrdinal(mandate.nextSipDate) else null
+    val cadenceDesc = when {
+        !isMonthly && isPaused -> stringResource(Res.string.daily_cadence_paused)
+        !isMonthly -> stringResource(Res.string.daily_cadence_active)
+        sipDateOrdinal != null && isPaused -> stringResource(Res.string.monthly_cadence_paused, sipDateOrdinal)
+        sipDateOrdinal != null -> stringResource(Res.string.monthly_cadence_active, sipDateOrdinal)
+        else -> stringResource(Res.string.monthly_cadence_unknown)
+    }
+
+    val startedText = formatDate(mandate.mandateCreatedDate ?: mandate.mandateApprovedDate).ifBlank { "—" }
+    val nextDebitRaw = mandate.nextSipDate?.takeIf { it.isNotBlank() && it != "null" }
+    val nextDebitText = nextDebitRaw?.let { formatDate(it) } ?: "—"
+
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        border = BorderStroke(1.dp, cardBorderColor)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Brush.linearGradient(cardGradientColors))
+        ) {
+            // Shimmer sweep overlay
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(Color.Transparent, Color.White.copy(alpha = 0.15f), Color.Transparent),
+                            start = Offset(shimmerProgress * 800f - 400f, 0f),
+                            end = Offset(shimmerProgress * 800f + 400f, 300f)
+                        )
+                    )
+            )
+            Column(modifier = Modifier.padding(16.dp)) {
+                // Top row: freq pill + status pill + plan number
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Surface(color = goalColor.copy(alpha = 0.12f), shape = RoundedCornerShape(50)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (isMonthly) Icons.Default.DateRange else Icons.Default.FlashOn,
+                                contentDescription = null,
+                                tint = goalColor,
+                                modifier = Modifier.size(11.dp)
+                            )
+                            Text(
+                                text = if (isMonthly) stringResource(Res.string.freq_monthly_label) else stringResource(Res.string.freq_daily_label),
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.sp, letterSpacing = 0.7.sp),
+                                color = goalColor
+                            )
                         }
-                        item { Spacer(modifier = Modifier.height(8.dp)) }
                     }
-                    if (otherMandates.isNotEmpty()) {
-                        item { Text(stringResource(Res.string.state_other), style = MaterialTheme.typography.labelLarge, color = Color.Gray, modifier = Modifier.padding(bottom = 4.dp)) }
-                        items(otherMandates) { mandate ->
-                            MandateItemV2(mandate, accentColor, onPause, onResume, onCancel)
+                    Surface(color = statusBg, shape = RoundedCornerShape(50)) {
+                        Text(
+                            text = statusLabel,
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.sp, letterSpacing = 0.7.sp),
+                            color = statusColor,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.weight(1f))
+                    Text(
+                        text = stringResource(Res.string.plan_number_label, planNumber),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Amount + cadence description
+                Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Text(
+                        text = "₹${formatIndian(mandate.amount)}",
+                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Black, fontSize = 30.sp, letterSpacing = (-1.2).sp),
+                        color = Color(0xFF3E2723)
+                    )
+                    Text(
+                        text = if (isMonthly) stringResource(Res.string.per_month_suffix) else stringResource(Res.string.per_day_suffix),
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                        color = Color(0xFF3E2723).copy(alpha = 0.45f)
+                    )
+                }
+                Text(
+                    text = cadenceDesc,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFF3E2723).copy(alpha = 0.5f),
+                    modifier = Modifier.padding(top = 2.dp, bottom = 14.dp)
+                )
+
+                HorizontalDivider(color = Color(0xFFF0EBE7))
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Date grid: Started | Next debit
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SipDateCell(label = stringResource(Res.string.started_label), value = startedText, modifier = Modifier.weight(1f))
+                    SipDateCell(label = stringResource(Res.string.next_debit_label), value = nextDebitText, modifier = Modifier.weight(1f))
+                }
+
+                // Monthly-only debit date callout
+                if (isMonthly && sipDateOrdinal != null) {
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFD4AF37).copy(alpha = 0.07f)),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, Color(0xFFD4AF37).copy(alpha = 0.2f)),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.Top,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier.padding(horizontal = 13.dp, vertical = 10.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.DateRange,
+                                contentDescription = null,
+                                tint = Color(0xFF8B6B25),
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Column {
+                                Text(
+                                    text = stringResource(Res.string.monthly_debit_date_callout_title, sipDateOrdinal),
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                    color = Color(0xFF8B6B25)
+                                )
+                                Text(
+                                    text = stringResource(Res.string.monthly_debit_date_callout_subtitle),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color(0xFF3E2723).copy(alpha = 0.4f),
+                                    modifier = Modifier.padding(top = 1.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Actions: Pause+Cancel for active, Resume+Cancel for paused, none otherwise
+                if (isActive && (onPause != null || onCancel != null)) {
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (onPause != null) {
+                            SipPlanActionPillV2(
+                                modifier = Modifier.weight(1f),
+                                icon = Icons.Filled.Pause,
+                                label = stringResource(Res.string.pause).trim(),
+                                tint = Color(0xFF8B6B25),
+                                background = Color(0xFFF5F0EA),
+                                onClick = { onPause(mandate) }
+                            )
+                        }
+                        if (onCancel != null) {
+                            SipPlanActionPillV2(
+                                modifier = Modifier.weight(1f),
+                                icon = Icons.Filled.Cancel,
+                                label = stringResource(Res.string.cancel_sip).trim(),
+                                tint = Color(0xFFC0392B),
+                                background = Color(0xFFFFF0F0),
+                                onClick = { onCancel(mandate) }
+                            )
+                        }
+                    }
+                } else if (isPaused && (onResume != null || onCancel != null)) {
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (onResume != null) {
+                            SipPlanActionPillV2(
+                                modifier = Modifier.weight(1f),
+                                icon = Icons.Filled.PlayArrow,
+                                label = stringResource(Res.string.resume_sip).trim(),
+                                tint = goalColor,
+                                background = Color(0xFFE8F5E9),
+                                border = BorderStroke(1.5.dp, goalColor),
+                                onClick = { onResume(mandate) }
+                            )
+                        }
+                        if (onCancel != null) {
+                            SipPlanActionPillV2(
+                                modifier = Modifier.weight(1f),
+                                icon = Icons.Filled.Cancel,
+                                label = stringResource(Res.string.cancel_sip).trim(),
+                                tint = Color(0xFFC0392B),
+                                background = Color(0xFFFFF0F0),
+                                onClick = { onCancel(mandate) }
+                            )
                         }
                     }
                 }
@@ -1086,81 +1358,90 @@ fun PlansOverlay(
 }
 
 @Composable
-fun MandateItemV2(
-    mandate: MandateDisplayItem,
-    accentColor: Color,
-    onPause: (MandateDisplayItem) -> Unit,
-    onResume: (MandateDisplayItem) -> Unit,
-    onCancel: (MandateDisplayItem) -> Unit
-) {
-    val statusUpper = mandate.status?.uppercase().orEmpty()
-    val isApproved = statusUpper.contains("APPROVED") || statusUpper.contains("ACTIVE")
-    val isPaused = statusUpper.contains("PAUSED")
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+private fun SipDateCell(label: String, value: String, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .background(Color.White.copy(alpha = 0.85f), RoundedCornerShape(10.dp))
+            .border(1.dp, Color.White.copy(alpha = 0.90f), RoundedCornerShape(10.dp))
+            .padding(horizontal = 10.dp, vertical = 9.dp)
     ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = "₹${formatIndian(mandate.amount)}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    
-                    val displayStatus = when {
-                        statusUpper.contains("ACTIVE") -> stringResource(Res.string.status_active)
-                        statusUpper.contains("APPROVED") -> stringResource(Res.string.status_approved)
-                        statusUpper.contains("PAUSED") -> stringResource(Res.string.status_paused)
-                        statusUpper.contains("PENDING") -> stringResource(Res.string.status_pending)
-                        statusUpper.contains("CANCELLED") -> stringResource(Res.string.status_cancelled)
-                        statusUpper.contains("REJECTED") -> stringResource(Res.string.status_rejected)
-                        statusUpper.contains("FAILED") -> stringResource(Res.string.status_failed)
-                        else -> statusUpper.replace("_", " ")
-                    }
+        Text(
+            text = label.uppercase(),
+            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 8.sp, letterSpacing = 0.7.sp),
+            color = Color(0xFF3E2723).copy(alpha = 0.35f)
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 12.sp),
+            color = Color(0xFF3E2723),
+            modifier = Modifier.padding(top = 2.dp)
+        )
+    }
+}
 
-                    val badgeColor = when {
-                        statusUpper.contains("ACTIVE") -> Color(0xFFE3F2FD)
-                        statusUpper.contains("APPROVED") -> Color(0xFFE8F5E9)
-                        statusUpper.contains("PAUSED") || statusUpper.contains("PENDING") -> Color(0xFFFFF3E0)
-                        else -> Color(0xFFFFEBEE)
-                    }
-                    val badgeTextColor = when {
-                        statusUpper.contains("ACTIVE") -> Color(0xFF1976D2)
-                        statusUpper.contains("APPROVED") -> Color(0xFF2E7D32)
-                        statusUpper.contains("PAUSED") || statusUpper.contains("PENDING") -> Color(0xFFF57C00)
-                        else -> Color(0xFFD32F2F)
-                    }
-
-                    Surface(color = badgeColor, shape = RoundedCornerShape(8.dp)) {
-                        Text(
-                            text = displayStatus,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = badgeTextColor,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-                
-                Text(text = "Daily Saving Plan", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-            }
-            
-            if (isApproved || isPaused) {
-                val debouncedCancel = rememberDebouncedClick { onCancel(mandate) }
-                val debouncedPauseResume = rememberDebouncedClick { if (isPaused) onResume(mandate) else onPause(mandate) }
-                HorizontalDivider(color = Color.LightGray.copy(alpha = 0.2f))
-                Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp), horizontalArrangement = Arrangement.End) {
-                    TextButton(onClick = debouncedCancel) {
-                        Text("CANCEL", style = MaterialTheme.typography.labelMedium, color = Color.Red, fontWeight = FontWeight.Bold)
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    TextButton(onClick = debouncedPauseResume) {
-                        Text(if (isPaused) "RESUME" else "PAUSE", style = MaterialTheme.typography.labelMedium, color = accentColor, fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
+@Composable
+private fun SipPlanActionPillV2(
+    modifier: Modifier = Modifier,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    tint: Color,
+    background: Color,
+    border: BorderStroke? = null,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = modifier.clickable(onClick = onClick),
+        color = background,
+        shape = RoundedCornerShape(10.dp),
+        border = border
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(38.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Icon(imageVector = icon, contentDescription = null, tint = tint, modifier = Modifier.size(13.dp))
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 12.sp),
+                color = tint
+            )
         }
+    }
+}
+
+@Composable
+private fun SipPlansTrustStripV2(modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(Color.White.copy(alpha = 0.70f), RoundedCornerShape(14.dp))
+            .border(1.dp, Color.White.copy(alpha = 0.90f), RoundedCornerShape(14.dp))
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(5.dp)
+    ) {
+        SipTrustLine(stringResource(Res.string.sip_trust_flexibility))
+        SipTrustLine(stringResource(Res.string.sip_trust_no_lockin))
+    }
+}
+
+@Composable
+private fun SipTrustLine(text: String) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+        Icon(
+            imageVector = Icons.Default.Check,
+            contentDescription = null,
+            tint = Color(0xFF1A7A42),
+            modifier = Modifier.size(12.dp)
+        )
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelSmall,
+            color = Color(0xFF3E2723).copy(alpha = 0.55f)
+        )
     }
 }
 
@@ -1812,10 +2093,13 @@ fun WhatsHappeningRowV2(
 @Composable
 fun CancelSipInfoScreen(
     schemeName: String,
-    dailyAmount: Double,
+    amount: Double,
+    isMonthly: Boolean,
     onCancelSip: () -> Unit,
     onGoBack: () -> Unit
 ) {
+    val planType = if (isMonthly) "Monthly" else "Daily"
+    val planTypeLower = if (isMonthly) "monthly" else "daily"
     Dialog(onDismissRequest = onGoBack, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(modifier = Modifier.fillMaxSize(), color = Color.White) {
             Column(
@@ -1825,10 +2109,10 @@ fun CancelSipInfoScreen(
             ) {
                 Icon(Icons.Default.Warning, null, tint = Color.Red, modifier = Modifier.size(64.dp))
                 Spacer(modifier = Modifier.height(24.dp))
-                Text("Cancel Daily Plan?", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Text("Cancel $planType Plan?", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    "Are you sure you want to cancel your daily saving of ₹${formatIndian(dailyAmount)} in $schemeName?",
+                    "Are you sure you want to cancel your $planTypeLower saving of ₹${formatIndian(amount)} in $schemeName?",
                     textAlign = TextAlign.Center, color = Color.Gray
                 )
                 Spacer(modifier = Modifier.height(40.dp))
@@ -1838,7 +2122,7 @@ fun CancelSipInfoScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
                     shape = RoundedCornerShape(16.dp)
                 ) {
-                    Text("Cancel Daily Saving", fontWeight = FontWeight.Bold)
+                    Text("Cancel $planType Saving", fontWeight = FontWeight.Bold)
                 }
                 TextButton(onClick = onGoBack) { Text("Keep Saving", color = Color.Black) }
             }
@@ -1893,12 +2177,13 @@ fun CancelSipReasonScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CancelSipSuccessBottomSheet(onDone: () -> Unit) {
+fun CancelSipSuccessBottomSheet(isMonthly: Boolean, onDone: () -> Unit) {
+    val planTypeLower = if (isMonthly) "monthly" else "daily"
     ModalBottomSheet(onDismissRequest = onDone) {
         Column(modifier = Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(Icons.Default.CheckCircle, null, tint = Color(0xFF2E7D32), modifier = Modifier.size(64.dp))
             Text("Plan Cancelled", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Text("Your daily saving plan has been successfully cancelled.", textAlign = TextAlign.Center)
+            Text("Your $planTypeLower saving plan has been successfully cancelled.", textAlign = TextAlign.Center)
             Spacer(modifier = Modifier.height(24.dp))
             Button(onClick = onDone, modifier = Modifier.fillMaxWidth()) { Text("Done") }
         }
@@ -1921,11 +2206,12 @@ fun CancelSipErrorBottomSheet(onDone: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PauseSipConfirmBottomSheet(isLoading: Boolean, onCancel: () -> Unit, onConfirm: () -> Unit) {
+fun PauseSipConfirmBottomSheet(isMonthly: Boolean, isLoading: Boolean, onCancel: () -> Unit, onConfirm: () -> Unit) {
+    val planType = if (isMonthly) "Monthly" else "Daily"
     val debouncedConfirm = rememberDebouncedClick(onClick = onConfirm)
     ModalBottomSheet(onDismissRequest = onCancel) {
         Column(modifier = Modifier.fillMaxWidth().padding(24.dp)) {
-            Text("Pause Daily Saving?", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text("Pause $planType Saving?", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Text("You can resume your savings at any time.", color = Color.Gray)
             Spacer(modifier = Modifier.height(24.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -1967,12 +2253,14 @@ fun PauseSipErrorBottomSheet(onDone: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ResumeSipConfirmBottomSheet(isLoading: Boolean, onCancel: () -> Unit, onConfirm: () -> Unit) {
+fun ResumeSipConfirmBottomSheet(isMonthly: Boolean, isLoading: Boolean, onCancel: () -> Unit, onConfirm: () -> Unit) {
+    val planType = if (isMonthly) "Monthly" else "Daily"
+    val planTypeLower = if (isMonthly) "monthly" else "daily"
     val debouncedConfirm = rememberDebouncedClick(onClick = onConfirm)
     ModalBottomSheet(onDismissRequest = onCancel) {
         Column(modifier = Modifier.fillMaxWidth().padding(24.dp)) {
-            Text("Resume Daily Saving?", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Text("Start saving daily again towards your goal.", color = Color.Gray)
+            Text("Resume $planType Saving?", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text("Start saving $planTypeLower again towards your goal.", color = Color.Gray)
             Spacer(modifier = Modifier.height(24.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) { Text("Go Back") }
