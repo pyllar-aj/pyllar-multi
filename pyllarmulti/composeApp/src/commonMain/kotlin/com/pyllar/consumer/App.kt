@@ -852,23 +852,31 @@ fun App() {
                 )
             }
             is Screen.SipAmountV2 -> {
-                SipAmountScreenV2(
+                SipAmountScreenV3(
                     userId = screen.userId,
                     kycAttemptId = screen.kycAttemptId,
                     investorId = screen.investorId,
                     goalId = screen.goalId,
                     isExistingInvestment = screen.isExistingInvestment,
-                    onSipCreated = { amount, url, id, ref ->
-                        navigateTo(Screen.MandateAuth(
-                            userId = screen.userId,
-                            kycAttemptId = screen.kycAttemptId,
-                            investorId = screen.investorId,
-                            amount = amount,
-                            mandateUrl = url ?: "",
-                            mandateId = id ?: 0L,
-                            mandateRef = ref ?: 0L,
-                            goalId = screen.goalId
-                        ))
+                    onSipCreated = { amount, nextScreen, mandate ->
+                        if (nextScreen == com.pyllar.consumer.navigation.ScreenNames.MANDATE_AUTH && mandate != null) {
+                            navigateTo(Screen.MandateAuth(
+                                userId = screen.userId,
+                                kycAttemptId = screen.kycAttemptId,
+                                investorId = screen.investorId,
+                                amount = amount,
+                                mandateUrl = mandate.uri ?: "",
+                                mandateId = mandate.mandateId ?: 0L,
+                                mandateRef = mandate.finMandateId ?: 0L,
+                                goalId = screen.goalId
+                            ))
+                        } else if (nextScreen != null) {
+                            scope.launch {
+                                handleNavigation(nextScreen, screen.userId, screen.kycAttemptId, screen.investorId, sessionStore = sessionStore) { navigateTo(it) }
+                            }
+                        } else {
+                            navigateTo(Screen.InvestmentDashboard(screen.userId), clearStack = true)
+                        }
                     },
                     onNavigateBack = { navigateBack() },
                     onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId)) },

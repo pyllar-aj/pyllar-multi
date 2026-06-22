@@ -139,4 +139,26 @@ class FundDetailsRepositoryImpl(
         }
         emit(result)
     }
+
+    override fun getPastPerformance(
+        userId: String,
+        goalType: String
+    ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.PastPerformanceResponseDto>> = flow {
+        emit(Resource.Loading())
+        val result = apiClient.get<com.pyllar.consumer.data.remote.model.dto.PastPerformanceResponseDto>(
+            path = "api/funds/past-performance?userId=$userId&goalType=$goalType"
+        )
+        emit(result)
+    }
+
+    override fun createPurchasePlan(
+        request: com.pyllar.consumer.data.remote.model.dto.CreatePurchasePlanRequestDto
+    ): Flow<Resource<MandateWrapper>> = flow {
+        emit(Resource.Loading())
+        val result = apiClient.post<MandateWrapper, com.pyllar.consumer.data.remote.model.dto.CreatePurchasePlanRequestDto>(
+            path = "api/mf-purchase-plans/create-purchase-plan",
+            body = request
+        )
+        emit(result)
+    }
 }

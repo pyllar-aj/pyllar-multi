@@ -38,6 +38,7 @@ import com.pyllar.consumer.domain.storage.SessionStore
 import com.pyllar.consumer.data.local.KeyValueConstants
 import com.pyllar.consumer.navigation.AppRoutes
 import kotlinx.coroutines.launch
+import kotlinx.datetime.toInstant
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
@@ -1010,14 +1011,16 @@ fun PlansOverlay(
     onResume: (MandateDisplayItem) -> Unit,
     onCancel: (MandateDisplayItem) -> Unit
 ) {
-    val approvedMandates = mandates.filter { m ->
+    val sortedMandates = mandates.sortedByDescending { mandateSortDateMillis(it) }
+
+    val approvedMandates = sortedMandates.filter { m ->
         val s = m.status?.uppercase().orEmpty()
         (s.contains("APPROVED") || s.contains("ACTIVE")) && !s.contains("PAUSED")
     }
-    val pausedMandates = mandates.filter { m ->
+    val pausedMandates = sortedMandates.filter { m ->
         m.status?.uppercase()?.contains("PAUSED") == true
     }
-    val otherMandates = mandates.filter { m ->
+    val otherMandates = sortedMandates.filter { m ->
         val s = m.status?.uppercase().orEmpty()
         !((s.contains("APPROVED") || s.contains("ACTIVE")) && !s.contains("PAUSED")) && !s.contains("PAUSED") && !s.contains("INITIATED")
     }
@@ -1048,6 +1051,14 @@ fun PlansOverlay(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     contentPadding = PaddingValues(vertical = 16.dp)
                 ) {
+                    item {
+                        SipPlansSummaryStrip(
+                            mandates = mandates,
+                            goalColor = accentColor,
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                        )
+                    }
+
                     if (pausedMandates.isNotEmpty()) {
                         item { Text(stringResource(Res.string.state_paused), style = MaterialTheme.typography.labelLarge, color = Color.Gray, modifier = Modifier.padding(bottom = 4.dp)) }
                         items(pausedMandates) { mandate ->
@@ -2002,9 +2013,182 @@ fun ResumeSipErrorBottomSheet(onDone: () -> Unit) {
 
 
 private fun formatDate(dateString: String?): String {
-    if (dateString.isNullOrBlank()) return ""
-    return dateString
+    if (dateString.isNullOrBlank() || dateString == "null") return ""
+    return try {
+        val parts = dateString.substringBefore("T").split("-")
+        if (parts.size < 3) return dateString
+        val year = parts[0]
+        val monthNum = parts[1].toInt()
+        val day = parts[2].toInt()
+        val monthName = when (monthNum) {
+            1 -> "Jan"
+            2 -> "Feb"
+            3 -> "Mar"
+            4 -> "Apr"
+            5 -> "May"
+            6 -> "Jun"
+            7 -> "Jul"
+            8 -> "Aug"
+            9 -> "Sep"
+            10 -> "Oct"
+            11 -> "Nov"
+            12 -> "Dec"
+            else -> ""
+        }
+        "$monthName $day, $year"
+    } catch (e: Exception) {
+        dateString
+    }
 }
+
+private fun dayOfMonthOrdinal(dateString: String?): String? {
+    if (dateString.isNullOrBlank() || dateString == "null") return null
+    val parts = dateString.split("-")
+    if (parts.size < 3) return null
+    val dayPart = parts[2]
+    val dayStr = if (dayPart.contains("T")) dayPart.substringBefore("T") else dayPart
+    val day = dayStr.toIntOrNull() ?: return null
+    val suffix = when {
+        day in 11..13 -> "th"
+        day % 10 == 1 -> "st"
+        day % 10 == 2 -> "nd"
+        day % 10 == 3 -> "rd"
+        else -> "th"
+    }
+    return "$day$suffix"
+}
+
+private fun mandateSortDateMillis(mandate: MandateDisplayItem): Long {
+    val raw = mandate.mandateCreatedDate?.takeIf { it.isNotBlank() }
+        ?: mandate.mandateApprovedDate?.takeIf { it.isNotBlank() }
+        ?: return 0L
+    return try {
+        val cleanRaw = if (raw.contains("T")) {
+            raw.substringBefore(".")
+        } else {
+            "${raw}T00:00:00"
+        }
+        val localDateTime = kotlinx.datetime.LocalDateTime.parse(cleanRaw)
+        localDateTime.toInstant(kotlinx.datetime.TimeZone.UTC).toEpochMilliseconds()
+    } catch (_: Exception) {
+        0L
+    }
+}
+
+@Composable
+private fun SipPlansSummaryStrip(
+    mandates: List<MandateDisplayItem>,
+    goalColor: Color,
+    modifier: Modifier = Modifier
+) {
+    val dailyMandates = mandates.filter { it.frequency?.uppercase() != "MONTHLY" }
+    val monthlyMandates = mandates.filter { it.frequency?.uppercase() == "MONTHLY" }
+
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        SipFrequencySummaryRow(freqMandates = dailyMandates, isMonthly = false, goalColor = goalColor)
+        SipFrequencySummaryRow(freqMandates = monthlyMandates, isMonthly = true, goalColor = goalColor)
+    }
+}
+
+@Composable
+private fun SipFrequencySummaryRow(
+    freqMandates: List<MandateDisplayItem>,
+    isMonthly: Boolean,
+    goalColor: Color
+) {
+    if (freqMandates.isEmpty()) return
+
+    val activePlans = freqMandates.filter { m ->
+        val s = m.status?.uppercase().orEmpty()
+        (s.contains("APPROVED") || s.contains("ACTIVE")) && !s.contains("PAUSED")
+    }
+    val pausedPlans = freqMandates.filter { it.status?.uppercase()?.contains("PAUSED") == true }
+    val activeTotal = activePlans.sumOf { it.amount }
+    val pausedTotal = pausedPlans.sumOf { it.amount }
+    val displayAmount = "₹${(if (activeTotal > 0) activeTotal else pausedTotal).toInt()}"
+
+    val allPaused = activePlans.isEmpty() && pausedPlans.isNotEmpty()
+    val statusText = when {
+        allPaused -> "All Paused"
+        pausedPlans.isNotEmpty() -> "${activePlans.size} Active · ${pausedPlans.size} Paused"
+        else -> "${activePlans.size} Active"
+    }
+    val statusColor = if (allPaused) Color(0xFF7A5200) else Color(0xFF0B6B30)
+    val statusBg = if (allPaused) Color(0xFFFFC850).copy(alpha = 0.35f) else Color(0xFF0B6B30).copy(alpha = 0.10f)
+
+    val detailText = if (!isMonthly) {
+        if (allPaused) "Daily cadence paused" else "Daily cadence active"
+    } else {
+        val activeDays = activePlans.mapNotNull { dayOfMonthOrdinal(it.nextSipDate) }.distinct()
+        when {
+            activeDays.isNotEmpty() -> "Monthly runs on ${activeDays.joinToString(" & ")}"
+            else -> {
+                val pausedDays = pausedPlans.mapNotNull { dayOfMonthOrdinal(it.nextSipDate) }.distinct()
+                if (pausedDays.isNotEmpty()) "Paused runs on ${pausedDays.joinToString(" & ")}" else "Cadence: monthly"
+            }
+        }
+    }
+
+    val nextActive = activePlans
+        .filter { !it.nextSipDate.isNullOrBlank() && it.nextSipDate != "null" }
+        .minByOrNull { it.nextSipDate!! }
+    val nextText = if (nextActive != null) {
+        "Next: ${formatDate(nextActive.nextSipDate)}"
+    } else {
+        "No upcoming debit"
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(goalColor.copy(alpha = 0.07f), RoundedCornerShape(13.dp))
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Icon(
+            imageVector = if (isMonthly) Icons.Default.DateRange else Icons.Default.FlashOn,
+            contentDescription = null,
+            tint = goalColor,
+            modifier = Modifier.size(18.dp)
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = displayAmount,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black),
+                    color = Color(0xFF3E2723)
+                )
+                Text(
+                    text = if (isMonthly) "/ month" else "/ day",
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                    color = Color(0xFF3E2723).copy(alpha = 0.6f)
+                )
+            }
+            Text(
+                text = detailText,
+                style = MaterialTheme.typography.labelSmall,
+                color = Color(0xFF3E2723).copy(alpha = 0.5f)
+            )
+        }
+        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Surface(color = statusBg, shape = RoundedCornerShape(50)) {
+                Text(
+                    text = statusText,
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 9.sp),
+                    color = statusColor,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                )
+            }
+            Text(
+                text = nextText,
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                color = Color(0xFF3E2723).copy(alpha = 0.45f)
+            )
+        }
+    }
+}
+
 
 fun getGradientForCategory(goalType: GoalType): List<Color> {
     return when (goalType) {

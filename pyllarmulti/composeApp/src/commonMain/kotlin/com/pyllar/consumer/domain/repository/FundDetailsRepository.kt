@@ -37,5 +37,14 @@ interface FundDetailsRepository {
     fun pollPurchasePlanStatus(
         request: com.pyllar.consumer.data.remote.requests.PlanPollRequest
     ): Flow<Resource<Boolean>>
+
+    fun getPastPerformance(
+        userId: String,
+        goalType: String
+    ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.PastPerformanceResponseDto>>
+
+    fun createPurchasePlan(
+        request: com.pyllar.consumer.data.remote.model.dto.CreatePurchasePlanRequestDto
+    ): Flow<Resource<MandateWrapper>>
 }
 

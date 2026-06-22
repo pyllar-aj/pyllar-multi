@@ -195,6 +195,88 @@ class FundDetailsViewModel(
         _uiState.value = _uiState.value.copy(sipError = null)
     }
 
+    fun loadPastPerformance(userId: String, goalType: String) {
+        viewModelScope.launch {
+            repository.getPastPerformance(userId, goalType).collect { resource ->
+                when (resource) {
+                    is Resource.Success -> {
+                        _uiState.value = _uiState.value.copy(
+                            pastPerformanceLoading = false,
+                            pastPerformance = resource.data,
+                            pastPerformanceError = null
+                        )
+                    }
+                    is Resource.Error -> {
+                        _uiState.value = _uiState.value.copy(
+                            pastPerformanceLoading = false,
+                            pastPerformanceError = resource.message
+                        )
+                    }
+                    is Resource.Loading -> {
+                        _uiState.value = _uiState.value.copy(pastPerformanceLoading = true)
+                    }
+                }
+            }
+        }
+    }
+
+    suspend fun createPurchasePlan(
+        userId: String,
+        kycAttemptId: String,
+        investorId: String,
+        amount: Double,
+        frequency: String,
+        installmentDay: Int? = null,
+        numberOfInstallments: Int? = null
+    ): SipCreationResult {
+        _uiState.value = _uiState.value.copy(isSipCreating = true, sipError = null)
+        
+        val userPurposeId = try {
+            sessionStore.getValue(com.pyllar.consumer.data.local.KeyValueConstants.USER_PURPOSE_ID)
+        } catch (e: Exception) {
+            null
+        }
+        
+        val request = com.pyllar.consumer.data.remote.model.dto.CreatePurchasePlanRequestDto(
+            userId = userId,
+            kycAttemptId = kycAttemptId,
+            investorId = investorId,
+            amount = amount,
+            userInvPurpose = userPurposeId ?: "",
+            frequency = frequency,
+            installmentDay = installmentDay,
+            numberOfInstallments = numberOfInstallments
+        )
+        
+        var finalResult: SipCreationResult = SipCreationResult.Failure("Failed to create purchase plan")
+        
+        repository.createPurchasePlan(request).collect { resource ->
+            when (resource) {
+                is Resource.Success -> {
+                    _uiState.value = _uiState.value.copy(isSipCreating = false)
+                    try {
+                        sessionStore.saveValue("sip_amount", amount.toString())
+                    } catch (e: Exception) {
+                        platformLog("FundDetailsViewModel: ⚠️ Failed to save sip amount: ${e.message}")
+                    }
+                    finalResult = SipCreationResult.Success(
+                        message = "Purchase plan created successfully!",
+                        nextScreen = resource.navigation?.nextScreen,
+                        mandateWrapper = resource.data
+                    )
+                }
+                is Resource.Error -> {
+                    _uiState.value = _uiState.value.copy(isSipCreating = false, sipError = resource.message)
+                    finalResult = SipCreationResult.Failure(resource.message ?: "Failed to create purchase plan")
+                }
+                is Resource.Loading -> {
+                    _uiState.value = _uiState.value.copy(isSipCreating = true)
+                }
+            }
+        }
+        return finalResult
+    }
+
     private fun mapPeriodToKey(period: String): String {
         return when (period) {
             "1Y" -> "oneYear"
@@ -238,5 +320,8 @@ data class FundDetailsState(
     val sipError: String? = null,
     val bankAccountNumber: String? = null,
     val bankIfscCode: String? = null,
-    val bankName: String? = null
+    val bankName: String? = null,
+    val pastPerformance: com.pyllar.consumer.data.remote.model.dto.PastPerformanceResponseDto? = null,
+    val pastPerformanceLoading: Boolean = false,
+    val pastPerformanceError: String? = null
 )

@@ -124,3 +124,18 @@ fun formatDecimal(value: Double, decimals: Int): String {
     val rounded = (value * factor).toLong() / factor
     return rounded.toString()
 }
+
+fun getNextAllocationDayName(): String {
+    val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+    val dayOfWeek = today.dayOfWeek
+    return when (dayOfWeek) {
+        DayOfWeek.MONDAY -> "Tuesday"
+        DayOfWeek.TUESDAY -> "Wednesday"
+        DayOfWeek.WEDNESDAY -> "Thursday"
+        DayOfWeek.THURSDAY -> "Friday"
+        DayOfWeek.FRIDAY, DayOfWeek.SATURDAY -> "Monday"
+        DayOfWeek.SUNDAY -> "Tuesday"
+        else -> "Tomorrow"
+    }
+}
+
