@@ -84,5 +84,10 @@ interface OnboardingRepository {
     fun getProfileDetails(
         userId: String
     ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.ProfileResponseDto>>
+
+    fun fetchUserDetails(
+        userId: String,
+        request: com.pyllar.consumer.data.remote.requests.UserDetailsFetchRequest
+    ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.UserDetailsFetchResponseDto>>
 }
 

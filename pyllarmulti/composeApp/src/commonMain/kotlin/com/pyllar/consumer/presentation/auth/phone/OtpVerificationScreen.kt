@@ -64,6 +64,8 @@ fun OtpVerificationScreen(
     val timeoutState = rememberTimeoutState("OtpVerification", "verify")
     var isSubmitting by remember { mutableStateOf(false) }
 
+    var isChecked by remember { mutableStateOf(true) }
+
     var otpFieldValue by remember { 
         mutableStateOf(TextFieldValue(otp, selection = TextRange(otp.length))) 
     }
@@ -231,12 +233,34 @@ fun OtpVerificationScreen(
                     onOtpComplete = {
                         keyboardController?.hide()
                         focusManager.clearFocus()
-                        if (!isSubmitting) {
-                            isSubmitting = true
-                            viewModel.verifyOtp()
-                        }
                     }
                 )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Checkbox(
+                        checked = isChecked,
+                        onCheckedChange = { isChecked = it },
+                        colors = CheckboxDefaults.colors(
+                            checkedColor = emeraldGreen,
+                            uncheckedColor = Color(0xFF9E9E9E),
+                            checkmarkColor = Color.White
+                        )
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "I authorise Pyllar Money to validate my bank details via the penny drop mechanism. An amount of Rs. 0.01 may be credited to your primary bank/UPI that is linked to the mobile number shared.",
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontSize = 12.sp,
+                            lineHeight = 16.sp
+                        ),
+                        color = Color(0xFF2D2D2D)
+                    )
+                }
 
                 if (verificationResult is Resource.Error) {
                     val errorMsg = verificationResult.message.orEmpty()
@@ -293,9 +317,9 @@ fun OtpVerificationScreen(
                     }
                 }
 
-                val buttonEnabled = otp.length == 6 && verificationResult !is Resource.Loading
+                val buttonEnabled = otp.length == 6 && isChecked && verificationResult !is Resource.Loading
                 val finalEnabled = if (timeoutState.isTimeoutActive()) {
-                    true
+                    isChecked
                 } else {
                     buttonEnabled && !timeoutState.isTimeoutActive()
                 }

@@ -1,5 +1,10 @@
 package com.pyllar.consumer
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.*
 import kotlinx.coroutines.launch
 import com.pyllar.consumer.navigation.ScreenNames
@@ -120,6 +125,7 @@ sealed class Screen {
     data class NotificationWebView(val url: String, val title: String) : Screen()
     data class KycWebView(val userId: String, val url: String, val kycAttemptId: String? = null) : Screen()
     data class EsignWebView(val userId: String, val url: String, val kycAttemptId: String? = null) : Screen()
+    data class PennyDropLoading(val userId: String) : Screen()
     object Home : Screen()
 }
 
@@ -158,6 +164,7 @@ fun App() {
                     is Screen.MinDetails -> ScreenNames.MIN_DETAILS
                     is Screen.CheckPanPopulatedDetails -> ScreenNames.CHECK_PAN_POPULATED_DETAILS
                     is Screen.UpiAccountLinking -> ScreenNames.MANDATE_AUTH // Fallback
+                    is Screen.PennyDropLoading -> ScreenNames.PENNY_DROP_LOADING
                     else -> null
                 }
                 if (action != null) {
@@ -401,20 +408,30 @@ fun App() {
                 )
             }
             is Screen.PreVerification -> {
-                PreVerificationScreen(
-                    onNavigateNext = { /* handled via screen result */ },
+                val preVerVm: PreVerificationViewModel = koinInject()
+                PreVerificationScreenV2(
+                    viewModel = preVerVm,
+                    onNavigateNext = { navigateTo(Screen.PanKyc(screen.userId, null)) },
                     onNavigateBack = { navigateBack() },
-                    onNavigateToScreen = { nextScreen ->
-                        scope.launch {
-                            handleNavigation(nextScreen, screen.userId, sessionStore = sessionStore) { navigateTo(it) }
-                        }
+                    onNavigateToHelp = {
+                        navigateTo(Screen.HelpSupport(screen.userId, showKycHelp = true))
                     },
-                    onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId, showKycHelp = true)) },
-                    onNavigateToKycInfo = { navigateTo(Screen.HelpSupport(screen.userId, showKycHelp = true)) }
+                    onNavigateToKycInfo = {
+                        navigateTo(Screen.HelpSupport(screen.userId, showOnlyKycInfo = true))
+                    },
+                    onNavigateToScreen = { serverScreenName ->
+                        scope.launch {
+                            handleNavigation(
+                                action = serverScreenName,
+                                userId = screen.userId,
+                                sessionStore = sessionStore
+                            ) { navigateTo(it) }
+                        }
+                    }
                 )
             }
             is Screen.AdditionalKyc -> {
-                AdditionalKycScreen(
+                AdditionalKycScreenV2(
                     kycAttemptId = screen.kycAttemptId,
                     token = "", // Token retrieved from session in VM
                     onNext = { nextScreen, attemptId ->
@@ -422,7 +439,8 @@ fun App() {
                             handleNavigation(nextScreen, screen.userId, attemptId, sessionStore = sessionStore) { navigateTo(it) }
                         }
                     },
-                    onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId, showKycHelp = true)) }
+                    onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId, showKycHelp = true)) },
+                    onBack = { navigateBack() }
                 )
             }
             is Screen.NomineeDetails -> {
@@ -457,7 +475,7 @@ fun App() {
                 )
             }
             is Screen.BankDetails -> {
-                BankDetailsScreen(
+                BankDetailsScreenV2(
                     userId = screen.userId,
                     kycAttemptId = screen.kycAttemptId,
                     onNext = { nextScreen, investorId ->
@@ -471,7 +489,8 @@ fun App() {
                             ) { navigateTo(it) }
                         }
                     },
-                    onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId, showBankHelp = true)) }
+                    onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId, showBankHelp = true)) },
+                    onBack = { navigateBack() }
                 )
             }
             is Screen.KycInformation -> {
@@ -600,11 +619,14 @@ fun App() {
             }
             is Screen.MinDetails -> {
                 val minVm: MinDetailsViewModel = koinInject()
-                MinDetailsScreen(
-                    onNext = { nextScreen, kycAttemptId ->
+                MinDetailsScreenV2(
+                    onNext = { nextScreen, kycAttemptId, confirmedEmail ->
                         scope.launch {
                             if (!kycAttemptId.isNullOrBlank()) {
                                 sessionStore.saveValue(com.pyllar.consumer.data.local.KeyValueConstants.KYC_ATTEMPT_ID, kycAttemptId)
+                            }
+                            if (confirmedEmail.isNotBlank()) {
+                                sessionStore.saveValue(com.pyllar.consumer.data.local.KeyValueConstants.EMAIL, confirmedEmail)
                             }
                             handleNavigation(nextScreen, screen.userId, kycAttemptId, null, null, sessionStore = sessionStore) { navigateTo(it) }
                         }
@@ -620,8 +642,8 @@ fun App() {
             }
             is Screen.NameDob -> {
                 val nameVm: NameDobViewModel = koinInject()
-                NameDobScreen(
-                    onKycSubmitted = { name, dob, navInfo, data ->
+                NameDobScreenV2(
+                    onKycSubmitted = { name, dob, confirmedEmail, navInfo, data ->
                         val reUrl = navInfo?.getParam("reUrl") ?: (data as? com.pyllar.consumer.data.remote.model.MinimalKycResponse)?.reUrl
                         
                         scope.launch {
@@ -633,6 +655,9 @@ fun App() {
                             }
                             if (!reUrl.isNullOrBlank()) {
                                 sessionStore.saveValue(com.pyllar.consumer.data.local.KeyValueConstants.RE_URL, reUrl)
+                            }
+                            if (confirmedEmail.isNotBlank()) {
+                                sessionStore.saveValue(com.pyllar.consumer.data.local.KeyValueConstants.EMAIL, confirmedEmail)
                             }
                             
                             // Save name and dob for potential DigiLink retry
@@ -1019,6 +1044,18 @@ fun App() {
                     onBack = { navigateBack() }
                 )
             }
+            is Screen.PennyDropLoading -> {
+                PennyDropLoadingScreen(
+                    userId = screen.userId,
+                    onBack = { navigateBack() },
+                    onComplete = { nextScreen ->
+                        scope.launch {
+                            navigateBack()
+                            handleNavigation(nextScreen, screen.userId, sessionStore = sessionStore) { navigateTo(it) }
+                        }
+                    }
+                )
+            }
             is Screen.Home -> {
                 HomeScreen(
                     onNavigateToMutualFund = { navigateTo(Screen.InitialDashboard(""), clearStack = true) }
@@ -1110,6 +1147,10 @@ private suspend fun handleNavigation(
         ScreenNames.CHECK_PAN_POPULATED_DETAILS -> {
             platformLog("AppNav: Matched CHECK_PAN_POPULATED_DETAILS")
             onNavigate(Screen.CheckPanPopulatedDetails(userId, effectivePreVerificationId))
+        }
+        ScreenNames.PENNY_DROP_LOADING -> {
+            platformLog("AppNav: Matched PENNY_DROP_LOADING")
+            onNavigate(Screen.PennyDropLoading(userId))
         }
         ScreenNames.INITIAL_DASHBOARD -> {
             platformLog("AppNav: Matched INITIAL_DASHBOARD")

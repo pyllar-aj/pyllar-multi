@@ -29,5 +29,6 @@ object ScreenNames {
     const val INITIAL_DASHBOARD = "initial_dashboard"
     const val WITHDRAW = "withdraw"
     const val LUMPSUM_PURCHASE_AUTH = "lumpsum_purchase_auth"
+    const val PENNY_DROP_LOADING = "penny_drop_loading"
     const val HOME = "home"
 }

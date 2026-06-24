@@ -354,4 +354,19 @@ class OnboardingRepositoryImpl(
         )
         emit(result)
     }
+
+    override fun fetchUserDetails(
+        userId: String,
+        request: com.pyllar.consumer.data.remote.requests.UserDetailsFetchRequest
+    ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.UserDetailsFetchResponseDto>> = flow {
+        emit(Resource.Loading())
+        if (userId.isNotBlank() && userId != "anonymous") {
+            sessionStore.saveUserId(userId)
+        }
+        val result = apiClient.post<com.pyllar.consumer.data.remote.model.dto.UserDetailsFetchResponseDto, com.pyllar.consumer.data.remote.requests.UserDetailsFetchRequest>(
+            path = "api/device/user-details-fetch",
+            body = request
+        )
+        emit(result)
+    }
 }

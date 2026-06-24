@@ -36,6 +36,7 @@ import com.pyllar.consumer.presentation.mutualfund.sip.SipViewModel
 import com.pyllar.consumer.presentation.mutualfund.details.FundDetailsViewModel
 import com.pyllar.consumer.presentation.mutualfund.onboarding.MinDetailsViewModel
 import com.pyllar.consumer.presentation.mutualfund.onboarding.NameDobViewModel
+import com.pyllar.consumer.presentation.mutualfund.onboarding.UserInfoViewModel
 import com.pyllar.consumer.presentation.mutualfund.onboarding.NomineeDetailsViewModel
 import com.pyllar.consumer.presentation.mutualfund.onboarding.PanKycViewModel
 import com.pyllar.consumer.presentation.mutualfund.onboarding.AdditionalKycViewModel
@@ -49,6 +50,7 @@ import com.pyllar.consumer.data.repository.PreVerificationRepositoryImpl
 import com.pyllar.consumer.presentation.mutualfund.onboarding.MandateAuthModel
 import com.pyllar.consumer.presentation.mutualfund.onboarding.LumpsumPurchaseAuthViewModel
 import com.pyllar.consumer.presentation.mutualfund.onboarding.CheckPanPopulatedDetailsViewModel
+import com.pyllar.consumer.presentation.mutualfund.onboarding.PennyDropLoadingModel
 import com.pyllar.consumer.presentation.profile.ProfileViewModel
 import com.pyllar.consumer.navigation.ForceUpdateManager
 import com.pyllar.consumer.presentation.referral.ReferralViewModel
@@ -93,6 +95,7 @@ val sharedModule: Module = module {
     factoryOf(::FundDetailsViewModel)
     factoryOf(::MinDetailsViewModel)
     factoryOf(::NameDobViewModel)
+    factoryOf(::UserInfoViewModel)
     factoryOf(::NomineeDetailsViewModel)
     factoryOf(::PanKycViewModel)
     factoryOf(::AdditionalKycViewModel)
@@ -101,6 +104,7 @@ val sharedModule: Module = module {
     factoryOf(::SipAmountScreenV2ViewModel)
     factoryOf(::PreVerificationViewModel)
     factoryOf(::CheckPanPopulatedDetailsViewModel)
+    factoryOf(::PennyDropLoadingModel)
     factory { MandateAuthModel(get(), CoroutineScope(Dispatchers.Main)) }
     factoryOf(::LumpsumPurchaseAuthViewModel)
     factory { WithdrawAmountViewModel(get(), get()) }
