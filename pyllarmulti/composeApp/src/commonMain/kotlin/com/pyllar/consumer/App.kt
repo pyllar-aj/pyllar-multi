@@ -368,11 +368,17 @@ fun App() {
                     viewModel = otpVm,
                     onNavigateToPermissionScreen = { isNewUser, nextScreen, userId ->
                         PlatformAnalyticsLogger.setUserId(userId)
-                        navigateTo(Screen.MinimalPermission(
-                            userId = userId,
-                            isNewUser = isNewUser,
-                            nextScreen = nextScreen
-                        ))
+                        if (isNewUser || nextScreen == "minimal_permission" || nextScreen == "permission" || nextScreen.isNullOrBlank()) {
+                            navigateTo(Screen.MinimalPermission(
+                                userId = userId,
+                                isNewUser = isNewUser,
+                                nextScreen = nextScreen
+                            ))
+                        } else {
+                            scope.launch {
+                                handleNavigation(nextScreen, userId, sessionStore = sessionStore) { navigateTo(it) }
+                            }
+                        }
                     },
                     onNavigateBack = { navigateBack() },
                     onNavigateToHelp = { navigateTo(Screen.HelpSupport("")) }
@@ -395,40 +401,120 @@ fun App() {
             is Screen.PanKyc -> {
                 val panVm: PanKycViewModel = koinInject()
                 PanKycScreen(
-                    onPanVerified = { pan, nextScreen, _, _, _ ->
-                        navigateTo(Screen.MinDetails(
-                            userId = screen.userId,
-                            pan = pan,
-                            email = "", 
-                            phone = "",
-                            token = ""
-                        ))
+                    onPanVerified = { panValue, nextScreen, panHolderName, navigationInfo, serverResponseData ->
+                        scope.launch {
+                            if (!panHolderName.isNullOrBlank()) {
+                                sessionStore.saveValue(KeyValueConstants.PAN_HOLDER_NAME, panHolderName)
+                            }
+                            sessionStore.saveValue(KeyValueConstants.PAN, panValue)
+                            
+                            var reUrl = ""
+                            var kycAttemptId = ""
+                            if (serverResponseData is com.pyllar.consumer.data.remote.model.MinimalKycResponse) {
+                                reUrl = serverResponseData.reUrl ?: ""
+                                kycAttemptId = serverResponseData.kycAttemptId ?: ""
+                            } else if (serverResponseData is Map<*, *>) {
+                                reUrl = serverResponseData["reUrl"] as? String ?: ""
+                                kycAttemptId = serverResponseData["kycAttemptId"] as? String ?: ""
+                            }
+                            
+                            if (kycAttemptId.isNotBlank()) {
+                                sessionStore.saveValue(KeyValueConstants.KYC_ATTEMPT_ID, kycAttemptId)
+                            }
+                            if (reUrl.isNotBlank()) {
+                                sessionStore.saveValue(KeyValueConstants.RE_URL, reUrl)
+                            }
+                            
+                            if (reUrl.isNotBlank()) {
+                                navigateTo(Screen.KycInformation(screen.userId, reUrl, kycAttemptId))
+                            } else {
+                                val nextAction = navigationInfo?.nextScreen ?: nextScreen
+                                handleNavigation(
+                                    action = nextAction,
+                                    userId = screen.userId,
+                                    kycAttemptId = kycAttemptId,
+                                    sessionStore = sessionStore,
+                                    reUrl = reUrl
+                                ) { navigateTo(it) }
+                            }
+                        }
                     },
                     viewModel = panVm
                 )
             }
             is Screen.PreVerification -> {
-                val preVerVm: PreVerificationViewModel = koinInject()
-                PreVerificationScreenV2(
-                    viewModel = preVerVm,
-                    onNavigateNext = { navigateTo(Screen.PanKyc(screen.userId, null)) },
-                    onNavigateBack = { navigateBack() },
-                    onNavigateToHelp = {
-                        navigateTo(Screen.HelpSupport(screen.userId, showKycHelp = true))
-                    },
-                    onNavigateToKycInfo = {
-                        navigateTo(Screen.HelpSupport(screen.userId, showOnlyKycInfo = true))
-                    },
-                    onNavigateToScreen = { serverScreenName ->
-                        scope.launch {
-                            handleNavigation(
-                                action = serverScreenName,
-                                userId = screen.userId,
-                                sessionStore = sessionStore
-                            ) { navigateTo(it) }
-                        }
+                val userInfoVm: UserInfoViewModel = koinInject()
+                var effectiveUserId by remember { mutableStateOf("") }
+                var effectivePhone by remember { mutableStateOf("") }
+                var effectiveEmail by remember { mutableStateOf("") }
+                var effectiveToken by remember { mutableStateOf("") }
+                var isInitialized by remember { mutableStateOf(false) }
+
+                LaunchedEffect(Unit) {
+                    effectiveUserId = sessionStore.getCurrentUserId()
+                    effectivePhone = sessionStore.getCurrentPhone()
+                    effectiveEmail = sessionStore.getCurrentEmail()
+                    effectiveToken = sessionStore.getCurrentToken()
+                    isInitialized = true
+                }
+
+                if (!isInitialized) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
                     }
-                )
+                } else {
+                    UserInfoScreen(
+                        viewModel = userInfoVm,
+                        userId = effectiveUserId,
+                        email = effectiveEmail,
+                        phone = effectivePhone,
+                        token = effectiveToken,
+                        onNavigateToHelp = {
+                            navigateTo(Screen.HelpSupport(effectiveUserId, showKycHelp = true))
+                        },
+                        onKycSubmitted = { name, dob, email, navigationInfo, serverData ->
+                            scope.launch {
+                                sessionStore.saveValue(KeyValueConstants.FULL_NAME, name)
+                                sessionStore.saveValue(KeyValueConstants.DOB, dob)
+                                if (email.isNotBlank()) {
+                                    sessionStore.saveValue(KeyValueConstants.EMAIL, email)
+                                }
+
+                                var reUrl = ""
+                                var kycAttemptId = ""
+
+                                if (serverData is com.pyllar.consumer.data.remote.model.MinimalKycResponse) {
+                                    reUrl = serverData.reUrl ?: ""
+                                    kycAttemptId = serverData.kycAttemptId ?: ""
+                                } else if (serverData is Map<*, *>) {
+                                    reUrl = serverData["reUrl"] as? String ?: ""
+                                    kycAttemptId = serverData["kycAttemptId"] as? String ?: ""
+                                }
+
+                                if (kycAttemptId.isNotBlank()) {
+                                    sessionStore.saveValue(KeyValueConstants.KYC_ATTEMPT_ID, kycAttemptId)
+                                }
+                                if (reUrl.isNotBlank()) {
+                                    sessionStore.saveValue(KeyValueConstants.RE_URL, reUrl)
+                                }
+
+                                if (reUrl.isNotBlank()) {
+                                    navigateTo(Screen.KycInformation(effectiveUserId, reUrl, kycAttemptId))
+                                } else if (navigationInfo != null) {
+                                    handleNavigation(
+                                        action = navigationInfo.nextScreen,
+                                        userId = effectiveUserId,
+                                        kycAttemptId = kycAttemptId,
+                                        sessionStore = sessionStore,
+                                        reUrl = reUrl
+                                    ) { navigateTo(it) }
+                                } else {
+                                    navigateTo(Screen.KycInformation(effectiveUserId, null, kycAttemptId))
+                                }
+                            }
+                        }
+                    )
+                }
             }
             is Screen.AdditionalKyc -> {
                 AdditionalKycScreenV2(
@@ -465,6 +551,7 @@ fun App() {
                         scope.launch {
                             if (!redirectUrl.isNullOrBlank()) {
                                 sessionStore.saveValue(KeyValueConstants.RE_URL, redirectUrl)
+                                sessionStore.saveValue(KeyValueConstants.ESIGN_URL, redirectUrl)
                                 navigateTo(Screen.EsignInformation(screen.userId))
                             } else {
                                 handleNavigation(nextScreen, screen.userId, screen.kycAttemptId, screen.investorId, sessionStore = sessionStore) { navigateTo(it) }
@@ -549,10 +636,6 @@ fun App() {
                             }
                         }
                     },
-                    onOpenWebSignIn = {
-                        platformLog("App: Opening DigiLocker signup in browser")
-                        uriHandler.openUri("https://accounts.digilocker.gov.in/signup/mobile/--en")
-                    },
                     onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId, showKycHelp = true)) }
                 )
                 
@@ -603,11 +686,13 @@ fun App() {
                 EsignInformationScreen(
                     onProceed = {
                         scope.launch {
+                            val esignUrl = sessionStore.getValue(KeyValueConstants.ESIGN_URL)
                             val reUrl = sessionStore.getValue(KeyValueConstants.RE_URL)
+                            val finalUrl = esignUrl ?: reUrl
                             val kycAttemptId = sessionStore.getValue(KeyValueConstants.KYC_ATTEMPT_ID)
-                            if (!reUrl.isNullOrBlank()) {
-                                platformLog("App: Found saved esign URL in sessionStore: $reUrl. Navigating directly to EsignWebView.")
-                                navigateTo(Screen.EsignWebView(screen.userId, reUrl, kycAttemptId))
+                            if (!finalUrl.isNullOrBlank()) {
+                                platformLog("App: Found saved esign URL: $finalUrl. Navigating directly to EsignWebView.")
+                                navigateTo(Screen.EsignWebView(screen.userId, finalUrl, kycAttemptId))
                             } else {
                                 platformLog("App: No saved esign URL in sessionStore. Refreshing state via PreVerification.")
                                 navigateTo(Screen.PreVerification(screen.userId))
@@ -700,9 +785,18 @@ fun App() {
             is Screen.InitialDashboard -> {
                 InitialDashboardScreenV2(
                     userId = screen.userId,
-                    onNavigateToOnboarding = { _, _ -> /* Fallback */ },
+                    onNavigateToOnboarding = { goalId, userId ->
+                        scope.launch {
+                            sessionStore.saveValue(KeyValueConstants.SELECTED_GOAL_ID, goalId)
+                            navigateTo(Screen.MinimalPermission(userId = userId, isNewUser = true))
+                        }
+                    },
                     onNavigateToRoute = { nextScreen, preVerificationId ->
                         scope.launch {
+                            if (!preVerificationId.isNullOrBlank()) {
+                                sessionStore.saveValue("pre_verification_id", preVerificationId)
+                                sessionStore.saveValue(KeyValueConstants.USER_PURPOSE_ID, preVerificationId)
+                            }
                             handleNavigation(nextScreen, screen.userId, null, null, preVerificationId, sessionStore = sessionStore) { navigateTo(it) }
                         }
                     },

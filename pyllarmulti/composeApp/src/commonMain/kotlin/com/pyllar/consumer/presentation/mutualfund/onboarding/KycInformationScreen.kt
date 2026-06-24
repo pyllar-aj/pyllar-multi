@@ -34,7 +34,6 @@ import kotlinx.coroutines.launch
 fun KycInformationScreen(
     onProceed: () -> Unit,
     onNavigateToHelp: () -> Unit = {},
-    onOpenWebSignIn: () -> Unit = {},
     errorMessage: String? = null
 ) {
     val scrollState = rememberScrollState()
@@ -150,23 +149,6 @@ fun KycInformationScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.fillMaxWidth()
                     )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Button(
-                        onClick = {
-                            PlatformAnalyticsLogger.logEvent("kyc_information_web_signin_clicked")
-                            instructionsExpanded = false
-                            onOpenWebSignIn()
-                        },
-                        modifier = Modifier.fillMaxWidth().height(48.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                    ) {
-                        Text(
-                            text = "Complete via Web Sign-Up",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                        )
-                    }
 
                     Spacer(modifier = Modifier.height(16.dp))
 

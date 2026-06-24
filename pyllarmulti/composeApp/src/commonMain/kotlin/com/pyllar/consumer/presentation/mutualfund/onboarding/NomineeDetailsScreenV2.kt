@@ -47,6 +47,7 @@ import com.pyllar.consumer.domain.storage.SessionStore
 import com.pyllar.consumer.navigation.ScreenNames
 import com.pyllar.consumer.presentation.components.LoadingScreen
 import com.pyllar.consumer.presentation.ui.components.LanguageLetterButton
+import com.pyllar.consumer.presentation.ui.components.HierarchicalDatePicker
 import com.pyllar.consumer.util.Resource
 import com.pyllar.consumer.util.filterEnglishName
 import com.pyllar.consumer.util.filterEnglishPan
@@ -688,9 +689,9 @@ fun NomineeDetailsScreenV2(
     }
 
     // ── Date Picker ──
-    showNomineeDatePicker?.let { nomineeIndex ->
+    showNomineeDatePicker?.let { nomineeIndex: Int ->
         HierarchicalDatePicker(
-            onDateSelected = { year, month, day ->
+            onDateSelected = { year: Int, month: Int, day: Int ->
                 val formattedDate = "$year-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}"
                 nominees = nominees.toMutableList().apply {
                     this[nomineeIndex] = this[nomineeIndex].copy(dateOfBirth = formattedDate)
@@ -712,10 +713,10 @@ fun NomineeDetailsScreenV2(
             selectedYear = nomineeSelectedYear,
             selectedMonth = nomineeSelectedMonth,
             selectedDay = nomineeSelectedDay,
-            onStepChange = { nomineeDatePickerStep = it },
-            onYearSelected = { nomineeSelectedYear = it },
-            onMonthSelected = { nomineeSelectedMonth = it },
-            onDaySelected = { nomineeSelectedDay = it }
+            onStepChange = { step: Int -> nomineeDatePickerStep = step },
+            onYearSelected = { year: Int -> nomineeSelectedYear = year },
+            onMonthSelected = { month: Int -> nomineeSelectedMonth = month },
+            onDaySelected = { day: Int -> nomineeSelectedDay = day }
         )
     }
 }
@@ -906,7 +907,7 @@ private fun NMV2OtpBottomSheet(
                 onClick = {
                     keyboardController?.hide()
                     focusManager.clearFocus()
-                    PlatformAnalyticsLogger.logEvent("otp_verify_clicked", mapOf("otp_length" to otpCode.length, "screen_version" to "v4"))
+                    PlatformAnalyticsLogger.logEvent("otp_verify_clicked", mapOf("otp_length" to otpFieldValue.text.length, "screen_version" to "v4"))
                     val currentOtp = otpFieldValue.text.take(6)
                     if (currentOtp.length == 6) onVerifyOtp(currentOtp)
                 },
