@@ -55,6 +55,7 @@ import kotlinx.coroutines.delay
 import kotlinx.datetime.Clock
 import org.koin.compose.koinInject
 import com.pyllar.consumer.platform.PlatformActions
+import com.pyllar.consumer.platform.PermissionManager
 import kotlin.math.ceil
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.DrawableResource
@@ -91,6 +92,7 @@ fun InvestmentDashboardV2Screen(
     onRetryKyc: () -> Unit = {},
     viewModel: InvestmentDashboardV2ViewModel = koinInject(),
     platformActions: PlatformActions = koinInject(),
+    permissionManager: PermissionManager = koinInject(),
     sessionStore: SessionStore = koinInject()
 ) {
     Log.d("InvestmentDashboardV2", "🎨 COMPOSABLE CALLED - userId: '$userId'")
@@ -188,6 +190,23 @@ fun InvestmentDashboardV2Screen(
     LaunchedEffect(userId) {
         if (userId.isNotBlank()) {
             viewModel.loadDashboardData(userId)
+        }
+    }
+
+    // Check and request notification permission once if never asked before
+    LaunchedEffect(dashboardState.isLoading) {
+        if (!dashboardState.isLoading) {
+            try {
+                val hasAsked = sessionStore.getValue("has_asked_notifications") != null
+                val isGranted = permissionManager.checkStatus().notificationsGranted
+                if (!isGranted && !hasAsked) {
+                    Log.d("InvestmentDashboardV2", "User has never been asked for notification permission before, prompting now...")
+                    sessionStore.saveValue("has_asked_notifications", "true")
+                    permissionManager.requestNotifications()
+                }
+            } catch (e: Exception) {
+                Log.e("InvestmentDashboardV2", "Failed to check or request notification permission", e)
+            }
         }
     }
 

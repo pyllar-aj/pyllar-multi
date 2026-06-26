@@ -24,7 +24,7 @@ fun getCorrelationColorForCategory(category: String?, colorTheme: String?): Colo
 
     return when (category?.uppercase()) {
         "GOLD" -> Color(0xFFA27915) // Gold color
-        "SILVER" -> Color(0xFF818181) // Silver/gray color
+        "SILVER" -> Color(0xFF6A9AB0) // Bluish silver color
         "FESTIVAL_SPENDS" -> Color(0xFFFF9800) // Orange
         "CHILDRENS_EDUCATION" -> Color(0xFF2196F3) // Blue
         "VACATION" -> Color(0xFF9C27B0) // Purple
@@ -39,7 +39,7 @@ fun getCorrelationColorForCategory(category: String?, colorTheme: String?): Colo
 fun getBorderColorForCategory(category: String?): Color {
     return when (category?.uppercase()) {
         "GOLD" -> Color(0xFFFFD700)
-        "SILVER" -> Color(0xFFC0C0C0)
+        "SILVER" -> Color(0xFF6A9AB0) // Bluish silver color
         "FESTIVAL_SPENDS" -> Color(0xFFFF9800)
         "CHILDRENS_EDUCATION" -> Color(0xFF2196F3)
         "VACATION" -> Color(0xFF9C27B0)
@@ -66,9 +66,9 @@ fun getGoalGradientColors(category: String?, colorTheme: String?): List<Color> {
             Color(0xFFFFE8B8)  // Vibrant golden amber
         )
         "SILVER" -> listOf(
-            Color(0xFFFAFAFA), // White smoke
-            Color(0xFFF5F5F5), // Very light grey
-            Color(0xFFE8E8E8)  // Light silver
+            Color(0xFFF8FBFD), // Bluish silver start
+            Color(0xFFEEF4F8), // Mid bluish silver
+            Color(0xFFE2EDF4)  // Bluish silver end
         )
         "FESTIVAL_SPENDS" -> listOf(
             Color(0xFFFFF5F5), // Very light pink-red
@@ -117,7 +117,7 @@ fun getGoalGradientColors(category: String?, colorTheme: String?): List<Color> {
 fun getIconBackgroundColorForCategory(category: String?, colorTheme: String?): Color {
     return when (category?.uppercase()) {
         "GOLD" -> Color(0xFFFFF4D6) // Rich golden yellow
-        "SILVER" -> Color(0xFFF5F5F5) // Light silver/gray
+        "SILVER" -> Color(0xFFEEF4F8) // Bluish silver light background
         "FESTIVAL_SPENDS" -> Color(0xFFFFE8E8) // Light rose
         "CHILDRENS_EDUCATION" -> Color(0xFFBBDEFB) // Light blue
         "VACATION" -> Color(0xFFE1BEE7) // Light purple

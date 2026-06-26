@@ -486,6 +486,22 @@
     <string name="permission_v2_trust_sebi">✓ SEBI registered</string>
     <string name="trust_data_encrypted">✓ Data encrypted</string>
     <string name="permission_v2_trust_no_spam">✓ No spam</string>
+    <string name="permission_v2_step_indicator">STEP 2 OF 4</string>
+    <string name="permission_v2_eyebrow">QUICK SETUP</string>
+    <string name="permission_v2_title">Set up in 30 seconds</string>
+    <string name="permission_v2_subtitle">Allow access and add your email so your investments stay connected.</string>
+    <string name="permission_v2_notif_title">Stay informed</string>
+    <string name="permission_v2_notif_desc">SIP confirmations, price alerts &amp; milestones</string>
+    <string name="permission_v2_location_title">KYC verification</string>
+    <string name="permission_v2_location_desc">Used once for identity check. Never tracked.</string>
+    <string name="permission_v2_change_anytime">You can change these in Settings anytime.</string>
+    <string name="permission_v2_allow">Allow</string>
+    <string name="permission_v2_email_placeholder">Enter your email</string>
+    <string name="permission_v2_email_invalid">Please enter a valid email address</string>
+    <string name="permission_v2_use_detected_email">Use detected email instead</string>
+    <string name="permission_v2_type_different_email">Type a different email instead</string>
+    <string name="permission_v2_email_note">Used for investment updates and KYC documents only. No spam.</string>
+    <string name="permission_v2_trust_change_anytime">✓ Change anytime</string>
     <string name="select_year">Select year</string>
     <string name="select_month_format">%1$s — Select month</string>
     <string name="select_day_format">%1$s %2$s — Select day</string>
@@ -575,5 +591,18 @@
     <string name="bullet">• </string>
     <string name="use_individual_savings_account">Please use an individual savings bank account held in your name only.</string>
     <string name="do_not_use_joint_account">Do not use a joint bank account.</string>
+
+    <!-- Signature V2 (cream/gold theme) -->
+    <string name="digital_signature">Digital Signature</string>
+    <string name="signature_description">Please provide your signature in the box below to complete your onboarding</string>
+    <string name="clear">Clear Signature</string>
+    <string name="connection_failed_try_again">Connection failed. Try again.</string>
+    <string name="failed_to_save_signature_try_again">Failed to save signature. Try again.</string>
+    <string name="esign_will_follow_title">Aadhaar e-sign will follow</string>
+    <string name="esign_will_follow_description">After submitting your signature, you\'ll be redirected to complete Aadhaar-based e-signing.</string>
+    <string name="your_signature_label">YOUR SIGNATURE</string>
+    <string name="sign_here_placeholder">Sign here</string>
+    <string name="signature_consent_note">By continuing, I authorise Pyllar to use my signature for KYC documents as required by SEBI regulations.</string>
+    <string name="final_step_label">FINAL STEP</string>
 </resources>
 

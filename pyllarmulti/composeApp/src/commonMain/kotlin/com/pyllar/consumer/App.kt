@@ -10,7 +10,7 @@ import kotlinx.coroutines.launch
 import com.pyllar.consumer.navigation.ScreenNames
 import com.pyllar.consumer.presentation.auth.permission.PermissionViewModel
 import com.pyllar.consumer.presentation.auth.permission.MinimalPermissionScreen
-import com.pyllar.consumer.presentation.auth.phone.PhoneVerificationScreenV2
+import com.pyllar.consumer.presentation.auth.phone.PhoneVerificationScreenV3
 import com.pyllar.consumer.presentation.auth.phone.PhoneVerificationViewModel
 import com.pyllar.consumer.presentation.auth.phone.OtpVerificationScreen
 import com.pyllar.consumer.presentation.auth.phone.OtpVerificationViewModel
@@ -346,7 +346,7 @@ fun App() {
             null -> { /* Handled by isInitializing */ }
             is Screen.PhoneVerification -> {
                 val phoneVm: PhoneVerificationViewModel = koinInject()
-                PhoneVerificationScreenV2(
+                PhoneVerificationScreenV3(
                     viewModel = phoneVm,
                     onPhoneVerified = { number ->
                         val authToken = phoneVm.verificationResult.value
@@ -368,7 +368,7 @@ fun App() {
                     viewModel = otpVm,
                     onNavigateToPermissionScreen = { isNewUser, nextScreen, userId ->
                         PlatformAnalyticsLogger.setUserId(userId)
-                        if (isNewUser || nextScreen == "minimal_permission" || nextScreen == "permission" || nextScreen.isNullOrBlank()) {
+                        if (nextScreen == "minimal_permission" || nextScreen == "permission" || nextScreen.isNullOrBlank()) {
                             navigateTo(Screen.MinimalPermission(
                                 userId = userId,
                                 isNewUser = isNewUser,
@@ -386,7 +386,7 @@ fun App() {
             }
             is Screen.MinimalPermission -> {
                 val permVm: PermissionViewModel = koinInject()
-                MinimalPermissionScreen(
+                PermissionV2Screen(
                     userId = screen.userId,
                     isNewUser = screen.isNewUser,
                     viewModel = permVm,
@@ -395,7 +395,8 @@ fun App() {
                             handleNavigation(nextScreen, screen.userId, sessionStore = sessionStore) { navigateTo(it) }
                         }
                     },
-                    onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId)) }
+                    onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId)) },
+                    onBack = { navigateBack() }
                 )
             }
             is Screen.PanKyc -> {
@@ -543,7 +544,7 @@ fun App() {
                 )
             }
             is Screen.Signature -> {
-                SignatureScreen(
+                SignatureScreenV2(
                     userId = screen.userId,
                     kycAttemptId = screen.kycAttemptId,
                     investorId = screen.investorId,

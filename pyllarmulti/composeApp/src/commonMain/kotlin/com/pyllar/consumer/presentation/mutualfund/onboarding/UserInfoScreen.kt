@@ -55,6 +55,8 @@ import com.pyllar.consumer.util.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import org.jetbrains.compose.resources.stringResource
+import pyllar.composeapp.generated.resources.*
 
 // V2 visual language — same cream/gold/obsidian palette used by
 // PreVerificationScreenV2 / NameDobScreenV2, the two screens this combines.
@@ -271,7 +273,7 @@ fun UserInfoScreen(
     val panFourthError = pan.length >= 4 && !isFourthLetterValid
     val nameValid = name.trim().length >= 2
     val dobValid = dob.matches(Regex("\\d{4}-\\d{2}-\\d{2}"))
-    val emailValid = if (emailMode == "chip") detectedEmail.isNotBlank() else isValidEmail(manualEmail)
+    val emailValid = isValidEmail(effectiveEmail())
     val canSubmit = nameValid && panValid && dobValid && emailValid && !isBusy
     val hasPrefilled = namePrefilled || panPrefilled
 
@@ -594,7 +596,7 @@ fun UserInfoScreen(
                         .border(1.dp, V2PrivacyBorder, RoundedCornerShape(10.dp))
                         .padding(horizontal = 12.dp, vertical = 10.dp)
                 ) {
-                    Text("Your email will be used for sending mutual fund statements, transactional updates, and portfolio statements.", fontSize = 11.sp, color = V2BronzeMuted, lineHeight = 17.sp)
+                    Text(stringResource(Res.string.email_usage_note), fontSize = 11.sp, color = V2BronzeMuted, lineHeight = 17.sp)
                 }
 
                 Box(

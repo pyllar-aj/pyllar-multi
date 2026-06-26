@@ -62,6 +62,10 @@ class PermissionViewModel(
         _state.value = _state.value.copy(isConsentChecked = checked)
     }
 
+    fun triggerEmailError() {
+        _state.value = _state.value.copy(showEmailError = true)
+    }
+
     /** Main entry point — called when user taps the CTA button. */
     fun onGrantPermissionsTapped(userId: String) {
         com.pyllar.consumer.util.Log.d("PermissionFlow", "onGrantPermissionsTapped called - userId: $userId")
@@ -126,6 +130,10 @@ class PermissionViewModel(
                 com.pyllar.consumer.util.Log.d("PermissionFlow", "Permissions NOT fully granted, staying on permission screen")
             }
         }
+    }
+
+    fun submitEmail(userId: String) {
+        callUpdateEmailApi(userId)
     }
 
     private fun callUpdateEmailApi(userId: String) {

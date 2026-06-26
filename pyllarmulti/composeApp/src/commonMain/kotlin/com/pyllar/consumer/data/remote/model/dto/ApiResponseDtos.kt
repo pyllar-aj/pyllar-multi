@@ -36,7 +36,9 @@ data class AuthUserResponseDto(
     @SerialName("role")
     val role: String,
     @SerialName("authToken")
-    val authToken: String
+    val authToken: String,
+    @SerialName("newUser")
+    val newUser: Boolean? = null
 )
 
 // ========== KYC RESPONSE DTOS ==========

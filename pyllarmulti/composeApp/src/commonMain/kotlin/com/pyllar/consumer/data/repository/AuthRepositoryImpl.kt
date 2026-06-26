@@ -119,7 +119,7 @@ class AuthRepositoryImpl(
                         email = "",
                         firstName = "",
                         lastName = "",
-                        newUser = true
+                        newUser = data.newUser ?: false
                     )
                     // Persist token via SessionStore
                     val finalPhone = if (data.phoneNumber.isNotBlank()) data.phoneNumber else request.phoneNumber
