@@ -578,7 +578,7 @@ fun App() {
                             ) { navigateTo(it) }
                         }
                     },
-                    onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId)) },
+                    onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId, showBankHelp = true)) },
                     onBack = { navigateBack() }
                 )
             }
