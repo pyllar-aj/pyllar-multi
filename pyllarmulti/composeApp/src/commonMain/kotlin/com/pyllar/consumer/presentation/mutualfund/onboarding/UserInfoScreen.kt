@@ -213,13 +213,17 @@ fun UserInfoScreen(
         }
     }
 
+    var isNavigating by remember { mutableStateOf(false) }
+
     val submitState by viewModel.submitState.collectAsState()
     val isBusy = submitState is UserInfoViewModel.SubmitState.CheckingPan ||
-        submitState is UserInfoViewModel.SubmitState.SubmittingDetails
+        submitState is UserInfoViewModel.SubmitState.SubmittingDetails ||
+        isNavigating
 
     LaunchedEffect(submitState) {
         when (val state = submitState) {
             is UserInfoViewModel.SubmitState.Success -> {
+                isNavigating = true
                 sessionStore.saveValue(KeyValueConstants.PAN, pan)
                 PlatformAnalyticsLogger.logEvent("user_info_submit_success", mapOf("pan_last4" to pan.takeLast(4)))
                 onKycSubmitted(name, dob, confirmedEmail, state.navigation, state.data)
@@ -322,7 +326,7 @@ fun UserInfoScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize().background(V2Cream)) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
             // Top bar: wordmark + language + help
             Row(
                 modifier = Modifier
@@ -436,7 +440,7 @@ fun UserInfoScreen(
                                 namePrefilled = false
                                 nameError = null
                             },
-                            placeholder = { Text("e.g. RAHUL KUMAR SHARMA") },
+                            placeholder = { Text("e.g. RAHUL KUMAR SHARMA", color = V2MutedText) },
                             singleLine = true,
                             isError = nameError != null,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii, imeAction = ImeAction.Next),
@@ -463,7 +467,7 @@ fun UserInfoScreen(
                                 panPrefilled = false
                                 panError = null
                             },
-                            placeholder = { Text("e.g. ABCDE1234F") },
+                            placeholder = { Text("e.g. ABCDE1234F", color = V2MutedText) },
                             singleLine = true,
                             isError = panError != null || panFourthError,
                             keyboardOptions = when (pan.length) {
@@ -562,9 +566,29 @@ fun UserInfoScreen(
                             OutlinedTextField(
                                 value = manualEmail,
                                 onValueChange = { manualEmail = it; emailError = null },
-                                placeholder = { Text("e.g. name@email.com") },
+                                placeholder = { Text("e.g. name@email.com", color = V2MutedText) },
                                 singleLine = true,
                                 isError = emailError != null,
+                                trailingIcon = {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.padding(end = 12.dp)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .width(1.dp)
+                                                .height(20.dp)
+                                                .background(V2WarmGreyBorder)
+                                        )
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        GoogleAccountPickerButton(
+                                            onEmailPicked = { 
+                                                manualEmail = it
+                                                emailError = null
+                                            }
+                                        )
+                                    }
+                                },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Done),
                                 modifier = Modifier
                                     .fillMaxWidth()

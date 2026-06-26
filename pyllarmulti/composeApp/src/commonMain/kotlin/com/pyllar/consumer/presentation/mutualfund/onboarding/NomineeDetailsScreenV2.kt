@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
@@ -267,7 +268,7 @@ fun NomineeDetailsScreenV2(
                         focusManager.clearFocus()
                     }
             ) {
-                Column(modifier = Modifier.fillMaxSize()) {
+                Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
                     // ── Top App Bar ──
                     Row(
                         modifier = Modifier
@@ -275,8 +276,9 @@ fun NomineeDetailsScreenV2(
                             .height(48.dp)
                             .padding(horizontal = 16.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        horizontalArrangement = Arrangement.End
                     ) {
+                        /*
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.clickable { onBack() }
@@ -285,6 +287,7 @@ fun NomineeDetailsScreenV2(
                             Spacer(modifier = Modifier.width(4.dp))
                             Text("Back", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = NMV2LinkGreen)
                         }
+                        */
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             LanguageLetterButton(textColor = NMV2LinkGreen)
                             TextButton(onClick = onNavigateToHelp) {
@@ -493,33 +496,37 @@ fun NomineeDetailsScreenV2(
 
                                         // Date of Birth
                                         Text("Nominee Date of Birth", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = NMV2BronzeMuted, modifier = Modifier.padding(bottom = 5.dp))
-                                        val dobInteractionSource = remember { MutableInteractionSource() }
-                                        LaunchedEffect(dobInteractionSource) {
-                                            dobInteractionSource.interactions.collect { interaction ->
-                                                if (interaction is PressInteraction.Release) {
+                                        val nomineeDobValid = nominee.dateOfBirth.matches(Regex("\\d{4}-\\d{2}-\\d{2}"))
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(54.dp)
+                                                .border(1.5.dp, if (nomineeDobValid) NMV2SuccessGreen else NMV2FieldBorder, RoundedCornerShape(12.dp))
+                                                .clickable {
+                                                    focusManager.clearFocus()
                                                     showNomineeDatePicker = index
+                                                    nomineeDatePickerStep = 0
+                                                    try {
+                                                        val parts = nominee.dateOfBirth.split("-")
+                                                        if (parts.size == 3) {
+                                                            nomineeSelectedYear = parts[0].toIntOrNull()
+                                                            nomineeSelectedMonth = parts[1].toIntOrNull()
+                                                            nomineeSelectedDay = parts[2].toIntOrNull()
+                                                        }
+                                                    } catch (e: Exception) { /* ignore parse error */ }
                                                 }
-                                            }
-                                        }
-                                        OutlinedTextField(
-                                            value = nominee.dateOfBirth,
-                                            onValueChange = {},
-                                            placeholder = { Text("YYYY-MM-DD", color = NMV2FieldBorder.copy(alpha = 0.6f), fontSize = 14.sp) },
-                                            singleLine = true,
-                                            readOnly = true,
-                                            interactionSource = dobInteractionSource,
-                                            shape = RoundedCornerShape(12.dp),
-                                            modifier = Modifier.fillMaxWidth(),
-                                            trailingIcon = {
-                                                Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Pick date", tint = NMV2GoldAccent)
-                                            },
-                                            colors = OutlinedTextFieldDefaults.colors(
-                                                focusedBorderColor = NMV2LinkGreen,
-                                                unfocusedBorderColor = NMV2FieldBorder,
-                                                focusedTextColor = NMV2BronzeInk,
-                                                unfocusedTextColor = NMV2BronzeInk
+                                                .padding(horizontal = 14.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Text(
+                                                text = if (nomineeDobValid) formatDobDisplay(nominee.dateOfBirth) else "Tap to select date",
+                                                fontSize = 14.sp,
+                                                fontWeight = if (nomineeDobValid) FontWeight.Medium else FontWeight.Normal,
+                                                color = if (nomineeDobValid) NMV2BronzeInk else NMV2FieldBorder.copy(alpha = 0.6f)
                                             )
-                                        )
+                                            Icon(Icons.Filled.DateRange, contentDescription = "Pick date", tint = NMV2GoldAccent, modifier = Modifier.size(18.dp))
+                                        }
                                     }
                                 }
                             }
@@ -718,6 +725,19 @@ fun NomineeDetailsScreenV2(
             onMonthSelected = { month: Int -> nomineeSelectedMonth = month },
             onDaySelected = { day: Int -> nomineeSelectedDay = day }
         )
+    }
+}
+
+private fun formatDobDisplay(dobIso: String): String {
+    return try {
+        val parts = dobIso.split("-")
+        if (parts.size != 3) return ""
+        val months = listOf("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December")
+        val day = parts[2].toInt()
+        val month = months[parts[1].toInt() - 1]
+        "$day $month ${parts[0]}"
+    } catch (e: Exception) {
+        ""
     }
 }
 

@@ -34,7 +34,7 @@ actual fun GoogleAccountPickerButton(
             painter = painterResource(Res.drawable.ic_google),
             contentDescription = "Pick Google account",
             tint = Color(0xFF8B6B25), // V2GoldDeep
-            modifier = Modifier.size(18.dp)
+            modifier = Modifier.size(22.dp)
         )
     }
 }

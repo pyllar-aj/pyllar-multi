@@ -378,7 +378,7 @@ fun AdditionalKycScreenV2(
     }
 
     Box(modifier = Modifier.fillMaxSize().background(AKV2Cream)) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
             // ── Top bar ──
             Row(
                 modifier = Modifier
@@ -386,8 +386,9 @@ fun AdditionalKycScreenV2(
                     .height(48.dp)
                     .padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.End
             ) {
+                /*
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.clickable { onBack() }
@@ -396,6 +397,7 @@ fun AdditionalKycScreenV2(
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("Back", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = AKV2LinkGreen)
                 }
+                */
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(
                         onClick = {

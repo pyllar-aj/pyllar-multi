@@ -53,7 +53,7 @@ fun KycInformationScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
             // Top Bar
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp),
@@ -126,27 +126,9 @@ fun KycInformationScreen(
 
                 if (instructionsExpanded) {
                     Text(
-                        text = "New to DigiLocker? If you don't have an account,",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Text(
                         text = "1. To get started, verify your Aadhaar using DigiLocker.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(modifier = Modifier.height(6.dp))
-
-                    Text(
-                        text = "Create your account on the web and link your Aadhaar.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -220,14 +202,6 @@ fun KycInformationScreen(
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                 }
-
-                Text(
-                    text = "Created your DigiLocker account? Click below to allow access and verify your identity.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
 
                 Spacer(modifier = Modifier.height(12.dp))
 

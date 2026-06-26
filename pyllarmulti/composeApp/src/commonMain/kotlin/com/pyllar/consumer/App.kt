@@ -526,12 +526,12 @@ fun App() {
                             handleNavigation(nextScreen, screen.userId, attemptId, sessionStore = sessionStore) { navigateTo(it) }
                         }
                     },
-                    onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId, showKycHelp = true)) },
+                    onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId)) },
                     onBack = { navigateBack() }
                 )
             }
             is Screen.NomineeDetails -> {
-                NomineeDetailsScreen(
+                NomineeDetailsScreenV2(
                     onNext = { nextScreen ->
                         scope.launch {
                             handleNavigation(nextScreen ?: "", screen.userId, screen.kycAttemptId, screen.investorId, sessionStore = sessionStore) { navigateTo(it) }
@@ -540,7 +540,8 @@ fun App() {
                     userId = screen.userId,
                     kycAttemptId = screen.kycAttemptId,
                     investorId = screen.investorId,
-                    onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId, showKycHelp = true)) }
+                    onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId)) },
+                    onBack = { navigateBack() }
                 )
             }
             is Screen.Signature -> {
@@ -559,7 +560,7 @@ fun App() {
                             }
                         }
                     },
-                    onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId, showKycHelp = true)) }
+                    onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId)) }
                 )
             }
             is Screen.BankDetails -> {
@@ -577,7 +578,7 @@ fun App() {
                             ) { navigateTo(it) }
                         }
                     },
-                    onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId, showBankHelp = true)) },
+                    onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId)) },
                     onBack = { navigateBack() }
                 )
             }
@@ -637,7 +638,7 @@ fun App() {
                             }
                         }
                     },
-                    onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId, showKycHelp = true)) }
+                    onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId)) }
                 )
                 
                 if (isDigiLinkLoading) {
@@ -700,7 +701,7 @@ fun App() {
                             }
                         }
                     },
-                    onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId, showKycHelp = true)) }
+                    onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId)) }
                 )
             }
             is Screen.MinDetails -> {

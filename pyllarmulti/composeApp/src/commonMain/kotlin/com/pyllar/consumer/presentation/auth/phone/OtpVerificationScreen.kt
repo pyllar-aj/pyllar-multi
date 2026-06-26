@@ -160,12 +160,6 @@ fun OtpVerificationScreen(
             horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(
-                onClick = onShareApp,
-                modifier = Modifier.size(40.dp)
-            ) {
-                Text(text = "Share", color = Color.White, style = MaterialTheme.typography.labelLarge)
-            }
             TextButton(onClick = onNavigateToHelp) {
                 Text(
                     text = "Help",

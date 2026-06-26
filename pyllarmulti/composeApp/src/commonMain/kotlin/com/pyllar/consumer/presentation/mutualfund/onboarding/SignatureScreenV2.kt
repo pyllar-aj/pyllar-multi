@@ -96,7 +96,7 @@ fun SignatureScreenV2(
     val completedStep = if (hasSignature) 4 else 3
 
     Box(modifier = Modifier.fillMaxSize().background(SGV2Cream)) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
             // ── Top bar ──
             Row(
                 modifier = Modifier

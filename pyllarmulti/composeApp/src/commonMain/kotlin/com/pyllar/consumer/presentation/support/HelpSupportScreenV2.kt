@@ -72,6 +72,7 @@ fun HelpSupportScreenV2(
     }
 
     Scaffold(
+        modifier = Modifier.statusBarsPadding(),
         topBar = {
             TopAppBar(
                 title = {

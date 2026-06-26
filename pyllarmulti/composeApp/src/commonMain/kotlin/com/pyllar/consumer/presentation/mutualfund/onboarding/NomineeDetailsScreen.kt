@@ -191,7 +191,7 @@ fun NomineeDetailsScreen(
                 }
             }
         ) {
-            Column(modifier = Modifier.fillMaxSize()) {
+            Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
                 // Top Action Bar
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp),

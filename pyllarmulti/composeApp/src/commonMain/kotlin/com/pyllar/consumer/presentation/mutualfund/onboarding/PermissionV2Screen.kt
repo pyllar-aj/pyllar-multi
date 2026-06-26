@@ -167,6 +167,7 @@ fun PermissionV2Screen(
         modifier = Modifier
             .fillMaxSize()
             .background(V2Cream)
+            .statusBarsPadding()
     ) {
         // App bar
         Row(

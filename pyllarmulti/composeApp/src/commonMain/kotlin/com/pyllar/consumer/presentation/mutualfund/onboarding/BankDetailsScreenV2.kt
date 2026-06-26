@@ -186,15 +186,16 @@ fun BankDetailsScreenV2(
     val completedStep = if (isCompleted) 3 else 2
 
     Box(modifier = Modifier.fillMaxSize().background(BDV2Cream)) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)
                     .padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.End
             ) {
+                /*
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.clickable { onBack() }
@@ -213,6 +214,7 @@ fun BankDetailsScreenV2(
                         color = BDV2LinkGreen
                     )
                 }
+                */
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     LanguageLetterButton(textColor = BDV2LinkGreen)
                     TextButton(onClick = {

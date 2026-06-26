@@ -103,8 +103,8 @@ fun PanKycScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            Spacer(modifier = Modifier.height(32.dp + WindowInsets.statusBars.asPaddingValues().calculateTopPadding()))
+        Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
+            Spacer(modifier = Modifier.height(32.dp))
             Surface(
                 color = MaterialTheme.colorScheme.surface, 
                 shadowElevation = 8.dp, 
