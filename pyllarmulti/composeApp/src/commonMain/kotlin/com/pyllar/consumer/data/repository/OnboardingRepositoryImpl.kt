@@ -21,19 +21,24 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.json.JsonObject
 
+import io.ktor.client.request.header
+
 class OnboardingRepositoryImpl(
     private val apiClient: PyllarApiClient,
     private val sessionStore: SessionStore
 ) : OnboardingRepository {
 
     override fun selectGoal(
-        request: com.pyllar.consumer.data.remote.requests.GoalSelectionRequest
+        request: com.pyllar.consumer.data.remote.requests.GoalSelectionRequest,
+        currentScreen: String
     ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.GoalSelectionResponseDto>> = flow {
         emit(Resource.Loading())
         val result = apiClient.post<com.pyllar.consumer.data.remote.model.dto.GoalSelectionResponseDto, com.pyllar.consumer.data.remote.requests.GoalSelectionRequest>(
             path = "api/kyc/onboarding/select-goal",
             body = request
-        )
+        ) {
+            header("X-Current-Screen", currentScreen)
+        }
         emit(result)
     }
 

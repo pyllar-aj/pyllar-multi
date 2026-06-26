@@ -12,6 +12,8 @@ import com.pyllar.consumer.domain.models.PhoneVerificationRequest
 import com.pyllar.consumer.data.remote.model.dto.PhoneVerificationResponseDto
 import com.pyllar.consumer.util.Resource
 
+import io.ktor.client.request.header
+
 interface AuthRemoteDataSource {
     suspend fun sendOtp(request: OtpRegistrationRequest): Resource<OtpSendResponseDto>
     suspend fun verifyPhone(request: PhoneVerificationRequest): Resource<PhoneVerificationResponseDto>
@@ -34,7 +36,9 @@ class AuthRemoteDataSourceImpl(
     }
 
     override suspend fun verifyOtp(request: OtpVerificationRequest): Resource<AuthUserResponseDto> {
-        return apiClient.post("api/auth/verify-otp", request)
+        return apiClient.post("api/auth/verify-otp", request) {
+            header("X-Current-Screen", "otp_v2")
+        }
     }
 
     override suspend fun updateEmail(request: UpdateEmailRequest): Resource<UpdateEmailResponseDto> {

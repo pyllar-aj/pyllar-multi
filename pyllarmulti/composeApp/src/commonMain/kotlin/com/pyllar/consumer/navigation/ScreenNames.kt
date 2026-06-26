@@ -7,6 +7,10 @@ package com.pyllar.consumer.navigation
 object ScreenNames {
     const val PHONE_VERIFICATION = "phone_verification"
     const val OTP_VERIFICATION = "otp_verification"
+    const val OTP_V2 = "otp_v2"
+    const val ONBOARDING_GOALS = "onboarding_goals"
+    const val ONBOARDING_GOALS_V2 = "onboarding_goals_v2"
+    const val ONBOARDING_GOALS_V3 = "onboarding_goals_v3"
     const val MINIMAL_PERMISSION = "minimal_permission"
     const val PRE_VERIFICATION = "pre_verification"
     const val PAN_KYC = "pan_kyc"

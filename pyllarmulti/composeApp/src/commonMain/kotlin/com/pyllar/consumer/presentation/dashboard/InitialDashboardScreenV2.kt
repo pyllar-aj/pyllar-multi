@@ -191,7 +191,11 @@ fun InitialDashboardScreenV2(
             errorMessage = null
             coroutineScope.launch {
                 try {
-                    val result = viewModel.selectGoal(userId = userId, goalId = goalId)
+                    val result = viewModel.selectGoal(
+                        userId = userId,
+                        goalId = goalId,
+                        currentScreen = com.pyllar.consumer.navigation.ScreenNames.ONBOARDING_GOALS_V3
+                    )
                     when (result) {
                         is Resource.Success -> {
                             val nextScreen = result.navigation?.nextScreen

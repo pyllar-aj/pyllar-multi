@@ -273,11 +273,11 @@ fun UserInfoScreen(
     val panFourthError = pan.length >= 4 && !isFourthLetterValid
     val nameValid = name.trim().length >= 2
     val dobValid = dob.matches(Regex("\\d{4}-\\d{2}-\\d{2}"))
+    fun effectiveEmail(): String = if (emailMode == "chip") detectedEmail else manualEmail
+
     val emailValid = isValidEmail(effectiveEmail())
     val canSubmit = nameValid && panValid && dobValid && emailValid && !isBusy
     val hasPrefilled = namePrefilled || panPrefilled
-
-    fun effectiveEmail(): String = if (emailMode == "chip") detectedEmail else manualEmail
 
     fun submit() {
         if (isBusy) return

@@ -481,7 +481,7 @@
     <string name="type_different_email">Type a different email</string>
     <string name="email_placeholder_demo">name@domain.com</string>
     <string name="use_detected_account_instead">Use detected account instead</string>
-    <string name="email_usage_note">We\'ll send important mutual fund transaction and statement updates to this email address.</string>
+    <string name="email_usage_note">Please use an email address that you check regularly and personally use. Important communications such as purchase confirmations, withdrawal updates, and account statements will be sent to this email address.</string>
     <string name="verifying_dots">Verifying…</string>
     <string name="permission_v2_trust_sebi">✓ SEBI registered</string>
     <string name="trust_data_encrypted">✓ Data encrypted</string>

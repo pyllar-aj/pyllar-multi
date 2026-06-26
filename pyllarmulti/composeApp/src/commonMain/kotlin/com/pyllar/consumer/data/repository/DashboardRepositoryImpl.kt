@@ -7,6 +7,7 @@ import com.pyllar.consumer.domain.repository.DashboardRepository
 import com.pyllar.consumer.util.Resource
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import io.ktor.client.request.header
 
 class DashboardRepositoryImpl(
     private val apiClient: PyllarApiClient
@@ -124,7 +125,9 @@ class DashboardRepositoryImpl(
         val result = apiClient.post<Unit, com.pyllar.consumer.data.remote.requests.ActionPollRequest>(
             path = "api/invDashboard/poll-as",
             body = request
-        )
+        ) {
+            header("X-Current-Screen", "planpoll")
+        }
         emit(result)
     }
 

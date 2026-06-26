@@ -61,7 +61,8 @@ interface OnboardingRepository {
     ): Flow<Resource<Unit>>
 
     fun selectGoal(
-        request: com.pyllar.consumer.data.remote.requests.GoalSelectionRequest
+        request: com.pyllar.consumer.data.remote.requests.GoalSelectionRequest,
+        currentScreen: String = com.pyllar.consumer.navigation.ScreenNames.ONBOARDING_GOALS_V3
     ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.GoalSelectionResponseDto>>
 
     fun submitBankDetails(

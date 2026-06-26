@@ -213,7 +213,8 @@ class InitialDashboardViewModel(
 
     suspend fun selectGoal(
         userId: String,
-        goalId: String
+        goalId: String,
+        currentScreen: String = com.pyllar.consumer.navigation.ScreenNames.ONBOARDING_GOALS_V3
     ): Resource<GoalSelectionResponseDto> {
         val request = GoalSelectionRequest(
             userId = userId,
@@ -222,7 +223,7 @@ class InitialDashboardViewModel(
         
         var finalResult: Resource<GoalSelectionResponseDto> = Resource.Loading()
         
-        onboardingRepository.selectGoal(request).collectLatest { result ->
+        onboardingRepository.selectGoal(request, currentScreen).collectLatest { result ->
             finalResult = result
             when (result) {
                 is Resource.Success -> {
