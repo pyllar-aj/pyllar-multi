@@ -25,5 +25,8 @@ data class PastPerformanceMilestoneDto(
     @SerialName("monthlyBaselinePortfolioValue") val monthlyBaselinePortfolioValue: Double,
     @SerialName("monthlyBaselineInvestedValue") val monthlyBaselineInvestedValue: Double,
     @SerialName("dailyBaselineGrams") val dailyBaselineGrams: Double? = null,
-    @SerialName("monthlyBaselineGrams") val monthlyBaselineGrams: Double? = null
+    @SerialName("monthlyBaselineGrams") val monthlyBaselineGrams: Double? = null,
+    @SerialName("onetimeBaselinePortfolioValue") val onetimeBaselinePortfolioValue: Double? = null,
+    @SerialName("onetimeBaselineInvestedValue") val onetimeBaselineInvestedValue: Double? = null,
+    @SerialName("onetimeBaselineGrams") val onetimeBaselineGrams: Double? = null
 )

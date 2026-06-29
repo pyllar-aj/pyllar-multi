@@ -1007,7 +1007,7 @@ fun App() {
                 )
             }
             is Screen.LumpsumAmountV2 -> {
-                LumpsumAmountScreenV2(
+                LumpsumAmountScreenV3(
                     userId = screen.userId,
                     kycAttemptId = screen.kycAttemptId,
                     investorId = screen.investorId,
