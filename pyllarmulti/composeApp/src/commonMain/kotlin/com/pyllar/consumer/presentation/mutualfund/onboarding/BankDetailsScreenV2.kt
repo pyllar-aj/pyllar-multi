@@ -193,9 +193,8 @@ fun BankDetailsScreenV2(
                     .height(48.dp)
                     .padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.End
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                /*
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.clickable { onBack() }
@@ -214,7 +213,6 @@ fun BankDetailsScreenV2(
                         color = BDV2LinkGreen
                     )
                 }
-                */
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     LanguageLetterButton(textColor = BDV2LinkGreen)
                     TextButton(onClick = {

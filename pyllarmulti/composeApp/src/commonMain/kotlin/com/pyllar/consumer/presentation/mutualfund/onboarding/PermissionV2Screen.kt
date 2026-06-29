@@ -176,8 +176,12 @@ fun PermissionV2Screen(
                 .height(56.dp)
                 .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.End
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(text = "Pyllar ", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = V2DarkGreen, letterSpacing = (-0.5).sp)
+                Text(text = "Money", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = V2Gold, letterSpacing = (-0.5).sp)
+            }
             TextButton(
                 onClick = {
                     focusManager.clearFocus()

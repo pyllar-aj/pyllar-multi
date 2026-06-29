@@ -1,13 +1,12 @@
 package com.pyllar.consumer.presentation.auth.phone
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.BorderStroke
+import com.pyllar.consumer.getPlatform
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -16,6 +15,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -40,7 +40,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -57,11 +56,9 @@ import com.pyllar.consumer.presentation.ui.components.rememberTimeoutState
 import com.pyllar.consumer.util.Resource
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
 import pyllar.composeapp.generated.resources.*
-import com.pyllar.consumer.getPlatform
-import androidx.compose.foundation.basicMarquee
 
 // ── Design tokens ────────────────────────────────────────────────────────────
 
@@ -130,10 +127,22 @@ private val REVIEWS = listOf(
     ),
 )
 
+// ── Language helpers (mirrors V2) ─────────────────────────────────────────────
+
+private data class LanguageOptionV3(val displayName: String, val continueText: String, val languageTag: String)
+
+private val LANGUAGE_OPTIONS_V3 = listOf(
+    LanguageOptionV3("English", "Continue", "en"),
+    LanguageOptionV3("हिंदी", "जारी रखें", "hi"),
+    LanguageOptionV3("தமிழ்", "தொடரவும்", "ta"),
+    LanguageOptionV3("മലയാളം", "തുടരുക", "ml"),
+    LanguageOptionV3("ಕನ್ನಡ", "ಮುಂದುವರಿಸಿ", "kn"),
+    LanguageOptionV3("తెలుగు", "కొనసాగించండి", "te")
+)
+
 @Composable
 private fun LanguageDialogV3(
     selectedIndex: Int,
-    languageOptions: List<LanguageOption>,
     onLanguageSelected: (Int) -> Unit,
     onContinue: () -> Unit,
     onDismiss: () -> Unit,
@@ -156,7 +165,7 @@ private fun LanguageDialogV3(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,
-                        contentDescription = stringResource(Res.string.content_description_close),
+                        contentDescription = "Close",
                         tint = Color(0xFF757575),
                         modifier = Modifier.size(18.dp),
                     )
@@ -183,7 +192,7 @@ private fun LanguageDialogV3(
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        itemsIndexed(languageOptions) { index, option ->
+                        itemsIndexed(LANGUAGE_OPTIONS_V3) { index, option ->
                             val isSelected = selectedIndex == index
                             Surface(
                                 modifier = Modifier
@@ -223,7 +232,7 @@ private fun LanguageDialogV3(
                         ),
                     ) {
                         Text(
-                            text = languageOptions[selectedIndex].continueText,
+                            text = LANGUAGE_OPTIONS_V3[selectedIndex].continueText,
                             style = MaterialTheme.typography.bodyLarge.copy(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 16.sp,
@@ -238,37 +247,17 @@ private fun LanguageDialogV3(
 
 // ── Main screen ───────────────────────────────────────────────────────────────
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun PhoneVerificationScreenV3(
-    viewModel: PhoneVerificationViewModel,
     onPhoneVerified: (String) -> Unit = {},
+    viewModel: PhoneVerificationViewModel? = null,
     isScreenVisible: Boolean = true,
-    currentLanguageTag: String = "en",
-    languageOptions: List<LanguageOption> = listOf(
-        LanguageOption("en", "English", "Continue"),
-        LanguageOption("hi", "हिंदी", "जारी रखें"),
-        LanguageOption("ta", "தமிழ்", "தொடரவும்"),
-        LanguageOption("ml", "മലയാളം", "തുടരുക"),
-        LanguageOption("kn", "ಕನ್ನಡ", "ಮುಂದುవರಿಸಿ"),
-        LanguageOption("te", "తెలుగు", "కొనసాగించండి")
-    ),
-    onLanguageConfirmed: (LanguageOption) -> Unit = {}
 ) {
-    val isInPreview = LocalInspectionMode.current
+    if (viewModel == null) return
 
-    var previewPhoneNumber by remember { mutableStateOf("") }
-
-    val verificationResult: Resource<AuthToken>? = if (isInPreview) {
-        null
-    } else {
-        viewModel.verificationResult.collectAsStateWithLifecycle().value
-    }
-
-    val phoneNumber: String = if (isInPreview) {
-        previewPhoneNumber
-    } else {
-        viewModel.phoneNumber.collectAsStateWithLifecycle().value
-    }
+    val verificationResult by viewModel.verificationResult.collectAsStateWithLifecycle()
+    val phoneNumber by viewModel.phoneNumber.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
         PlatformAnalyticsLogger.logScreenView("PhoneVerificationV4")
@@ -283,9 +272,9 @@ fun PhoneVerificationScreenV3(
 
     LaunchedEffect(verificationResult) {
         when (verificationResult) {
-            is Resource.Loading<*> -> timeoutState.startLoadingTracking()
-            is Resource.Error<*> -> timeoutState.stopLoadingTracking()
-            is Resource.Success<*> -> timeoutState.stopLoadingTracking()
+            is Resource.Loading -> timeoutState.startLoadingTracking()
+            is Resource.Error -> timeoutState.stopLoadingTracking()
+            is Resource.Success -> timeoutState.stopLoadingTracking()
             null -> {}
         }
     }
@@ -299,8 +288,10 @@ fun PhoneVerificationScreenV3(
     val coroutineScope = rememberCoroutineScope()
 
     // Language popup
-    val hasLangPref = viewModel.hasLanguagePreference.collectAsStateWithLifecycle().value
-    val languagePopupShown = viewModel.languagePopupShown.collectAsStateWithLifecycle().value
+    val hasLangPref by viewModel.hasLanguagePreference.collectAsStateWithLifecycle()
+    val languagePopupShown by viewModel.languagePopupShown.collectAsStateWithLifecycle()
+    
+    // Auto-dialog on KMP only if not iOS (as per native spec comments, iOS locale behaves differently)
     val isIos = remember { getPlatform().name.contains("iOS", ignoreCase = true) }
     var showLanguagePopup by rememberSaveable(hasLangPref, languagePopupShown, isIos) {
         mutableStateOf(!hasLangPref && !languagePopupShown && !isIos)
@@ -320,23 +311,18 @@ fun PhoneVerificationScreenV3(
         }
     }
 
-    val initialLangIndex = remember(currentLanguageTag, languageOptions) {
-        languageOptions.indexOfFirst { it.languageTag == currentLanguageTag }.takeIf { it >= 0 } ?: 0
-    }
-    var selectedLanguageIndex by remember { mutableIntStateOf(initialLangIndex) }
+    var selectedLanguageIndex by remember { mutableIntStateOf(0) }
 
     if (showLanguagePopup && isScreenVisible) {
         LanguageDialogV3(
             selectedIndex = selectedLanguageIndex,
-            languageOptions = languageOptions,
             onLanguageSelected = { selectedLanguageIndex = it },
             onContinue = {
-                val option = languageOptions[selectedLanguageIndex]
+                val option = LANGUAGE_OPTIONS_V3[selectedLanguageIndex]
                 coroutineScope.launch {
                     viewModel.saveLanguagePreference(option.languageTag)
                     viewModel.markLanguagePopupShown()
                     showLanguagePopup = false
-                    onLanguageConfirmed(option)
                 }
             },
             onDismiss = {
@@ -351,23 +337,17 @@ fun PhoneVerificationScreenV3(
 
     LaunchedEffect(verificationResult) {
         when (verificationResult) {
-            is Resource.Success<*> -> {
+            is Resource.Success -> {
                 isSubmitting = false
-                PlatformAnalyticsLogger.logEvent(
-                    "phone_verify_success",
-                    mapOf("phone_last4" to phoneNumber.takeLast(4))
-                )
+                PlatformAnalyticsLogger.logEvent("phone_verify_success", mapOf("phone_last4" to phoneNumber.takeLast(4)))
                 onPhoneVerified(phoneNumber)
             }
-            is Resource.Error<*> -> {
+            is Resource.Error -> {
                 isSubmitting = false
                 timeoutState.triggerTimeout()
-                PlatformAnalyticsLogger.logEvent(
-                    "phone_verify_error",
-                    mapOf("phone_last4" to phoneNumber.takeLast(4))
-                )
+                PlatformAnalyticsLogger.logEvent("phone_verify_error", mapOf("phone_last4" to phoneNumber.takeLast(4)))
             }
-            is Resource.Loading<*> -> {}
+            is Resource.Loading -> {}
             null -> {}
         }
     }
@@ -380,6 +360,8 @@ fun PhoneVerificationScreenV3(
             reviewIndex = (reviewIndex + 1) % REVIEWS.size
         }
     }
+
+    val invalidPhoneNumberMsg = stringResource(Res.string.invalid_phone_number)
 
     if (!showLanguagePopup) {
         Scaffold(
@@ -407,18 +389,16 @@ fun PhoneVerificationScreenV3(
                                     delay(1500)
                                     showLocalLoading = false
                                     isSubmitting = false
-                                    localErrorText = org.jetbrains.compose.resources.getString(Res.string.invalid_phone_number)
+                                    localErrorText = invalidPhoneNumberMsg
                                 }
                                 return@click
                             }
-                            if (!isInPreview) {
-                                isSubmitting = true
-                                PlatformAnalyticsLogger.logEvent(
-                                    "phone_verify_attempt",
-                                    mapOf("phone_last4" to phoneNumber.takeLast(4)),
-                                )
-                                viewModel.verifyPhoneNumber()
-                            }
+                            isSubmitting = true
+                            PlatformAnalyticsLogger.logEvent(
+                                "phone_verify_attempt",
+                                mapOf("phone_last4" to phoneNumber.takeLast(4)),
+                            )
+                            viewModel.verifyPhoneNumber()
                         },
                         enabled = finalEnabled && !isSubmitting,
                         modifier = Modifier.fillMaxWidth().height(54.dp),
@@ -602,8 +582,7 @@ fun PhoneVerificationScreenV3(
                         )
                     }
 
-                    // Phone input + error + marquee — grouped only for spacing; the
-                    // keyboard-avoidance scroll below targets the outer scrollState directly
+                    // Phone input + error + marquee ───────────────────────────
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -614,13 +593,10 @@ fun PhoneVerificationScreenV3(
                         ) {
                             val interactionSource = remember { MutableInteractionSource() }
                             val isFocused by interactionSource.collectIsFocusedAsState()
-                            
-                            // Scroll all the way to the bottom of the content (not just the input
-                            // row) so the marquee below it stays visible above the keyboard too.
-                            // Called twice to re-settle once the IME inset animation finishes
-                            // growing the scrollable range.
-                            LaunchedEffect(isFocused) {
-                                if (isFocused) {
+                            val imeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
+
+                            LaunchedEffect(isFocused, imeVisible) {
+                                if (isFocused && imeVisible) {
                                     delay(300)
                                     scrollState.animateScrollTo(scrollState.maxValue)
                                     delay(250)
@@ -672,11 +648,7 @@ fun PhoneVerificationScreenV3(
                                         }
                                         val filtered = digits.take(10)
                                         localErrorText = null
-                                        if (isInPreview) {
-                                            previewPhoneNumber = filtered
-                                        } else {
-                                            viewModel.updatePhoneNumber(filtered)
-                                        }
+                                        viewModel.updatePhoneNumber(filtered)
                                     },
                                     modifier = Modifier
                                         .weight(1f)
@@ -718,8 +690,7 @@ fun PhoneVerificationScreenV3(
                         } else if (verificationResult is Resource.Error) {
                             val error = verificationResult as Resource.Error<*>
                             val errorMsg = error.message ?: ""
-                            val isNetworkError = error.isNetworkError ||
-                                    errorMsg.contains("Network", ignoreCase = true) ||
+                            val isNetworkError = errorMsg.contains("Network", ignoreCase = true) ||
                                     errorMsg.contains("timeout", ignoreCase = true) ||
                                     errorMsg.contains("connection", ignoreCase = true) ||
                                     errorMsg.contains("Failed to connect", ignoreCase = true) ||
@@ -757,11 +728,7 @@ fun PhoneVerificationScreenV3(
 
 @Composable
 private fun ReviewCard(reviewIndex: Int) {
-    AnimatedContent(
-        targetState = reviewIndex,
-        transitionSpec = { fadeIn() togetherWith fadeOut() },
-        label = "review",
-    ) { index ->
+    Crossfade(targetState = reviewIndex, label = "review") { index ->
         val review = REVIEWS[index]
         val firstName = firstNameFrom(review.name)
         val initial = firstName.firstOrNull() ?: '?'
@@ -854,14 +821,22 @@ private fun ReviewCard(reviewIndex: Int) {
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun V3TrustMarquee() {
+    val scrollState = rememberScrollState()
+    val isHeapConstrained = remember {
+        // maxMemory limit checking fallback
+        false
+    }
+    val rowModifier = if (isHeapConstrained) {
+        Modifier.fillMaxWidth().horizontalScroll(scrollState)
+    } else {
+        Modifier.fillMaxWidth().basicMarquee(iterations = Int.MAX_VALUE, velocity = 45.dp)
+    }
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .basicMarquee(iterations = Int.MAX_VALUE, velocity = 45.dp),
+        modifier = rowModifier,
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(20.dp),
     ) {
-        repeat(4) { V3TrustContent() }
+        repeat(2) { V3TrustContent() }
     }
 }
 

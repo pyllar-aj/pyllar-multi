@@ -24,7 +24,7 @@ fun getCorrelationColorForCategory(category: String?, colorTheme: String?): Colo
 
     return when (category?.uppercase()) {
         "GOLD" -> Color(0xFFA27915) // Gold color
-        "SILVER" -> Color(0xFF6A9AB0) // Bluish silver color
+        "SILVER" -> Color(0xFF000000) // Black text color for silver
         "FESTIVAL_SPENDS" -> Color(0xFFFF9800) // Orange
         "CHILDRENS_EDUCATION" -> Color(0xFF2196F3) // Blue
         "VACATION" -> Color(0xFF9C27B0) // Purple
@@ -39,7 +39,7 @@ fun getCorrelationColorForCategory(category: String?, colorTheme: String?): Colo
 fun getBorderColorForCategory(category: String?): Color {
     return when (category?.uppercase()) {
         "GOLD" -> Color(0xFFFFD700)
-        "SILVER" -> Color(0xFF6A9AB0) // Bluish silver color
+        "SILVER" -> Color(0xFF000000) // Black for silver to match plans without blue
         "FESTIVAL_SPENDS" -> Color(0xFFFF9800)
         "CHILDRENS_EDUCATION" -> Color(0xFF2196F3)
         "VACATION" -> Color(0xFF9C27B0)
@@ -53,6 +53,7 @@ fun getBorderColorForCategory(category: String?): Color {
 fun getDarkBorderColorForCategory(category: String?, colorTheme: String?): Color {
     val cat = category?.uppercase().orEmpty()
     if (cat == "SAVINGS_PLUS") return Color(0xFF1B5E20) // Forest Green
+    if (cat == "SILVER") return Color(0xFF000000) // Black for silver border to match plans
     
     val baseColor = colorTheme?.toColor() ?: getBorderColorForCategory(category)
     return baseColor.copy(alpha = 0.8f)
@@ -117,7 +118,7 @@ fun getGoalGradientColors(category: String?, colorTheme: String?): List<Color> {
 fun getIconBackgroundColorForCategory(category: String?, colorTheme: String?): Color {
     return when (category?.uppercase()) {
         "GOLD" -> Color(0xFFFFF4D6) // Rich golden yellow
-        "SILVER" -> Color(0xFFEEF4F8) // Bluish silver light background
+        "SILVER" -> Color(0xFFF5F5F5) // Light silver/gray
         "FESTIVAL_SPENDS" -> Color(0xFFFFE8E8) // Light rose
         "CHILDRENS_EDUCATION" -> Color(0xFFBBDEFB) // Light blue
         "VACATION" -> Color(0xFFE1BEE7) // Light purple

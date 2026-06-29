@@ -258,38 +258,44 @@ private fun InitialDashboardContentV2(
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End,
+                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Share button
-                        IconButton(
-                            onClick = onShareClick,
-                            modifier = Modifier.size(40.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.Share,
-                                contentDescription = stringResource(Res.string.content_description_share),
-                                tint = GreenDark,
-                                modifier = Modifier.size(20.dp)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(text = "Pyllar ", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF11381E), letterSpacing = (-0.5).sp)
+                            Text(text = "Money", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = LuxuryGold, letterSpacing = (-0.5).sp)
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            // Share button
+                            IconButton(
+                                onClick = onShareClick,
+                                modifier = Modifier.size(40.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Share,
+                                    contentDescription = stringResource(Res.string.content_description_share),
+                                    tint = GreenDark,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.width(4.dp))
+                            LanguageLetterButton(textColor = GreenDark)
+                            Spacer(modifier = Modifier.width(4.dp))
+
+                            // Help text action
+                            Text(
+                                text = stringResource(Res.string.help),
+                                style = TextStyle(
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = GreenDark
+                                ),
+                                modifier = Modifier
+                                    .clickable { onNavigateToHelp() }
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
                             )
                         }
-
-                        Spacer(modifier = Modifier.width(4.dp))
-                        LanguageLetterButton(textColor = GreenDark)
-                        Spacer(modifier = Modifier.width(4.dp))
-
-                        // Help text action
-                        Text(
-                            text = stringResource(Res.string.help),
-                            style = TextStyle(
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = GreenDark
-                            ),
-                            modifier = Modifier
-                                .clickable { onNavigateToHelp() }
-                                .padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))

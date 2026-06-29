@@ -665,7 +665,7 @@ fun UserInfoScreen(
                     .fillMaxSize()
                     .background(V2ScrimOverlay)
                     .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) {
-                        showDatePicker = false
+                        // Only close via X button
                     },
                 contentAlignment = Alignment.BottomCenter
             ) {

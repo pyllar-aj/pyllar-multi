@@ -3,7 +3,7 @@ package com.pyllar.consumer.util
 import com.pyllar.consumer.config.IS_DEBUG
 
 actual fun platformLog(message: String) {
-    if (IS_DEBUG) {
+    if (IS_DEBUG || message.contains("[ERROR]")) {
         println(message)
     }
 }

@@ -58,6 +58,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.koinInject
+import com.pyllar.consumer.presentation.ui.components.LanguageLetterButton
 import pyllar.composeapp.generated.resources.Res
 import pyllar.composeapp.generated.resources.aditya
 import pyllar.composeapp.generated.resources.axis_lo
@@ -378,8 +379,13 @@ fun SipAmountScreenV3(
     Scaffold(
         topBar = {
             TopAppBar(
-                modifier = Modifier.padding(top = 25.dp),
-                title = { Text("Set SIP Amount", fontWeight = FontWeight.Bold) },
+                modifier = Modifier.padding(top = 2.dp),
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = "Pyllar ", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = SipHeroObsidian, letterSpacing = (-0.5).sp)
+                        Text(text = "Money", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = SipGold, letterSpacing = (-0.5).sp)
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
@@ -389,6 +395,7 @@ fun SipAmountScreenV3(
                     IconButton(onClick = { platformActions.shareText("Start your investment journey with Pyllar! https://pyllar.in") }) {
                         Icon(Icons.Default.Share, contentDescription = "Share", tint = MaterialTheme.colorScheme.primary)
                     }
+                    LanguageLetterButton(textColor = MaterialTheme.colorScheme.primary)
                     TextButton(onClick = onNavigateToHelp) {
                         Text("Help", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                     }
