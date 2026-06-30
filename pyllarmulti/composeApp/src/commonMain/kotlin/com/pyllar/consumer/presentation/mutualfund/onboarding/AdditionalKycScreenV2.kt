@@ -458,18 +458,6 @@ fun AdditionalKycScreenV2(
                     Spacer(modifier = Modifier.height(8.dp))
                 }
 
-                val submitResultValue = submitResult
-                val apiErrorValue = apiError
-                val isNetworkError = (submitResultValue is Resource.Error && (submitResultValue.message?.contains("Network", ignoreCase = true) == true ||
-                        submitResultValue.message?.contains("timeout", ignoreCase = true) == true ||
-                        submitResultValue.message?.contains("connection", ignoreCase = true) == true ||
-                        submitResultValue.message == "NETWORK_ERROR")) ||
-                        apiErrorValue == "NETWORK_ERROR"
-                if (isNetworkError) {
-                    AKV2ErrorBanner(text = stringResource(Res.string.check_internet_connection))
-                    Spacer(modifier = Modifier.height(12.dp))
-                }
-
                 // ── PERSONAL DETAILS CARD ──
                 AKV2SectionLabel("PERSONAL DETAILS")
                 Spacer(modifier = Modifier.height(6.dp))
@@ -797,6 +785,18 @@ fun AdditionalKycScreenV2(
                             }
                         }
                     }
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+
+                val submitResultValue = submitResult
+                val apiErrorValue = apiError
+                val isNetworkError = (submitResultValue is Resource.Error && (submitResultValue.message?.contains("Network", ignoreCase = true) == true ||
+                        submitResultValue.message?.contains("timeout", ignoreCase = true) == true ||
+                        submitResultValue.message?.contains("connection", ignoreCase = true) == true ||
+                        submitResultValue.message == "NETWORK_ERROR")) ||
+                        apiErrorValue == "NETWORK_ERROR"
+                if (isNetworkError) {
+                    AKV2ErrorBanner(text = stringResource(Res.string.check_internet_connection))
                     Spacer(modifier = Modifier.height(12.dp))
                 }
 

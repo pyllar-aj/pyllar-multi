@@ -604,5 +604,14 @@
     <string name="sign_here_placeholder">Sign here</string>
     <string name="signature_consent_note">By continuing, I authorise Pyllar to use my signature for KYC documents as required by SEBI regulations.</string>
     <string name="final_step_label">FINAL STEP</string>
+    <!-- UserInfoScreen custom validation and placeholder strings -->
+    <string name="user_info_name_empty_error">Please enter your full name</string>
+    <string name="user_info_dob_empty_error">Please select your date of birth</string>
+    <string name="user_info_email_empty_error">Please enter a valid email address</string>
+    <string name="user_info_name_placeholder">e.g. RAHUL KUMAR SHARMA</string>
+    <string name="user_info_dob_placeholder">Tap to select date</string>
+    <string name="user_info_btn_confirm_continue">Confirm &amp; continue</string>
+    <string name="user_info_pan_empty_error">Please enter your PAN number</string>
+    <string name="user_info_pan_incomplete_error">Please enter a valid 10-digit PAN number</string>
 </resources>
 

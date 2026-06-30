@@ -9,6 +9,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -135,6 +136,15 @@ fun UserInfoScreen(
     val timeoutState = rememberTimeoutState("UserInfo", "continue")
     val sessionStore: SessionStore = koinInject()
 
+    val nameEmptyError = stringResource(Res.string.user_info_name_empty_error)
+    val dobEmptyError = stringResource(Res.string.user_info_dob_empty_error)
+    val emailEmptyError = stringResource(Res.string.user_info_email_empty_error)
+    val panEmptyError = stringResource(Res.string.user_info_pan_empty_error)
+    val panIncompleteError = stringResource(Res.string.user_info_pan_incomplete_error)
+    val panInvalidFourthCharacterError = stringResource(Res.string.pan_invalid_fourth_character)
+    val verificationFailedTryAgain = stringResource(Res.string.verification_failed_try_again)
+    val checkInternetConnection = stringResource(Res.string.check_internet_connection)
+
     var name by remember { mutableStateOf("") }
     var pan by remember { mutableStateOf("") }
     var dob by remember { mutableStateOf("") }
@@ -147,7 +157,13 @@ fun UserInfoScreen(
     var emailMode by remember { mutableStateOf(if (email.isNotBlank()) "chip" else "manual") }
     var manualEmail by remember { mutableStateOf("") }
     var confirmedEmail by remember { mutableStateOf("") }
+    val nameFocusRequester = remember { FocusRequester() }
+    val panFocusRequester = remember { FocusRequester() }
+    val dobFocusRequester = remember { FocusRequester() }
     val emailFocusRequester = remember { FocusRequester() }
+    var isNameFocused by remember { mutableStateOf(false) }
+    var isPanFocused by remember { mutableStateOf(false) }
+    var isDobFocused by remember { mutableStateOf(false) }
     var isEmailFocused by remember { mutableStateOf(false) }
 
     var nameError by remember { mutableStateOf<String?>(null) }
@@ -160,6 +176,33 @@ fun UserInfoScreen(
     var datePickerStep by remember { mutableStateOf(0) } // 0: year, 1: month, 2: day
     var selectedYear by remember { mutableStateOf<Int?>(null) }
     var selectedMonth by remember { mutableStateOf<Int?>(null) }
+
+    LaunchedEffect(isNameFocused) {
+        if (isNameFocused) {
+            for (i in 1..8) {
+                delay(120)
+                scrollState.animateScrollTo(0)
+            }
+        }
+    }
+
+    LaunchedEffect(isPanFocused) {
+        if (isPanFocused) {
+            for (i in 1..8) {
+                delay(120)
+                scrollState.animateScrollTo(scrollState.maxValue / 2)
+            }
+        }
+    }
+
+    LaunchedEffect(isDobFocused) {
+        if (isDobFocused) {
+            for (i in 1..8) {
+                delay(120)
+                scrollState.animateScrollTo((scrollState.maxValue * 0.75f).toInt())
+            }
+        }
+    }
 
     LaunchedEffect(isEmailFocused) {
         if (isEmailFocused) {
@@ -237,29 +280,48 @@ fun UserInfoScreen(
                 genericError = null
 
                 var hasSpecificError = false
+                var firstErrorField: String? = null
                 state.fieldErrors?.forEach { fieldError ->
                     when {
                         fieldError.field.equals("name", ignoreCase = true) -> {
                             nameError = fieldError.message; hasSpecificError = true
+                            if (firstErrorField == null) firstErrorField = "name"
                         }
                         fieldError.field.equals("dateOfBirth", ignoreCase = true) ||
                             fieldError.field.equals("dob", ignoreCase = true) -> {
                             dobError = fieldError.message; hasSpecificError = true
+                            if (firstErrorField == null) firstErrorField = "dob"
                         }
                         fieldError.field.equals("panNumber", ignoreCase = true) ||
                             fieldError.field.equals("pan", ignoreCase = true) -> {
                             panError = fieldError.message; hasSpecificError = true
+                            if (firstErrorField == null) firstErrorField = "pan"
                         }
                         fieldError.field.equals("emailAddress", ignoreCase = true) -> {
                             emailError = fieldError.message; hasSpecificError = true
+                            if (firstErrorField == null) firstErrorField = "email"
                         }
                     }
                 }
+                if (hasSpecificError) {
+                    when (firstErrorField) {
+                        "name" -> nameFocusRequester.requestFocus()
+                        "pan" -> panFocusRequester.requestFocus()
+                        "dob" -> dobFocusRequester.requestFocus()
+                        "email" -> emailFocusRequester.requestFocus()
+                    }
+                }
                 if (!hasSpecificError) {
-                    if (state.stage == UserInfoViewModel.Stage.PAN) {
-                        panError = state.message ?: "Verification failed. Please try again."
+                    val rawMsg = state.message ?: verificationFailedTryAgain
+                    val friendlyMsg = if (rawMsg.contains("HTTP", ignoreCase = true)) {
+                        checkInternetConnection
                     } else {
-                        genericError = state.message ?: "Verification failed. Please try again."
+                        rawMsg
+                    }
+                    if (state.stage == UserInfoViewModel.Stage.PAN) {
+                        panError = friendlyMsg
+                    } else {
+                        genericError = friendlyMsg
                     }
                 }
                 PlatformAnalyticsLogger.logEvent(
@@ -280,7 +342,7 @@ fun UserInfoScreen(
     fun effectiveEmail(): String = if (emailMode == "chip") detectedEmail else manualEmail
 
     val emailValid = isValidEmail(effectiveEmail())
-    val canSubmit = nameValid && panValid && dobValid && emailValid && !isBusy
+    val canSubmit = !isBusy
     val hasPrefilled = namePrefilled || panPrefilled
 
     fun submit() {
@@ -291,12 +353,40 @@ fun UserInfoScreen(
         emailError = null
         genericError = null
 
-        var hasErr = false
-        if (!nameValid) { nameError = "Please enter your full name"; hasErr = true }
-        if (!panValid) { panError = "Invalid PAN format"; hasErr = true }
-        if (!dobValid) { dobError = "Please select your date of birth"; hasErr = true }
-        if (!emailValid) { emailError = "Please enter a valid email address"; hasErr = true }
-        if (hasErr) return
+        if (!nameValid) {
+            nameError = nameEmptyError
+            nameFocusRequester.requestFocus()
+            return
+        }
+        if (pan.isBlank()) {
+            panError = panEmptyError
+            panFocusRequester.requestFocus()
+            return
+        }
+        if (pan.length < 10) {
+            if (pan.length >= 4 && pan[3] != 'P') {
+                panError = panInvalidFourthCharacterError
+            } else {
+                panError = panIncompleteError
+            }
+            panFocusRequester.requestFocus()
+            return
+        }
+        if (!panValid) {
+            panError = panInvalidFourthCharacterError
+            panFocusRequester.requestFocus()
+            return
+        }
+        if (!dobValid) {
+            dobError = dobEmptyError
+            dobFocusRequester.requestFocus()
+            return
+        }
+        if (!emailValid) {
+            emailError = emailEmptyError
+            emailFocusRequester.requestFocus()
+            return
+        }
 
         PlatformAnalyticsLogger.logEvent("user_info_submit_attempt", mapOf("pan_last4" to pan.takeLast(4)))
 
@@ -342,7 +432,7 @@ fun UserInfoScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     LanguageLetterButton(textColor = V2SuccessGreen)
                     TextButton(onClick = onNavigateToHelp) {
-                        Text(text = "Help", style = MaterialTheme.typography.labelLarge, color = V2SuccessGreen)
+                        Text(text = stringResource(Res.string.help), style = MaterialTheme.typography.labelLarge, color = V2SuccessGreen)
                     }
                 }
             }
@@ -393,19 +483,6 @@ fun UserInfoScreen(
                     }
                 }
 
-                if (genericError != null) {
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f)),
-                        modifier = Modifier.fillMaxWidth().border(1.dp, V2ErrorRed, RoundedCornerShape(8.dp))
-                    ) {
-                        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Filled.Warning, contentDescription = "Error", tint = V2ErrorRed)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(text = genericError!!, color = V2ErrorRed, style = MaterialTheme.typography.bodyMedium)
-                        }
-                    }
-                }
-
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
@@ -440,11 +517,14 @@ fun UserInfoScreen(
                                 namePrefilled = false
                                 nameError = null
                             },
-                            placeholder = { Text("e.g. RAHUL KUMAR SHARMA", color = V2MutedText) },
+                            placeholder = { Text(stringResource(Res.string.user_info_name_placeholder), color = V2MutedText) },
                             singleLine = true,
                             isError = nameError != null,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii, imeAction = ImeAction.Next),
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .focusRequester(nameFocusRequester)
+                                .onFocusChanged { isNameFocused = it.isFocused },
                             shape = RoundedCornerShape(12.dp),
                             colors = fieldColors(isError = nameError != null, isPrefilled = namePrefilled, isValid = nameValid)
                         )
@@ -492,12 +572,15 @@ fun UserInfoScreen(
                                     }
                                 }
                             },
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .focusRequester(panFocusRequester)
+                                .onFocusChanged { isPanFocused = it.isFocused },
                             shape = RoundedCornerShape(12.dp),
                             colors = fieldColors(isError = panError != null || panFourthError, isPrefilled = panPrefilled, isValid = panValid)
                         )
                         FieldFootnote(
-                            error = panError ?: if (panFourthError) "4th character of PAN must be P" else null,
+                            error = panError ?: if (panFourthError) stringResource(Res.string.pan_invalid_fourth_character) else null,
                             hint = if (panPrefilled) "PAN verified" else "10-digit Permanent Account Number"
                         )
 
@@ -513,13 +596,16 @@ fun UserInfoScreen(
                                 .fillMaxWidth()
                                 .height(54.dp)
                                 .border(1.5.dp, if (dobError != null) V2ErrorRed else if (dobValid) V2SuccessGreen else V2WarmGreyBorder, RoundedCornerShape(12.dp))
+                                .focusRequester(dobFocusRequester)
+                                .focusable()
+                                .onFocusChanged { isDobFocused = it.isFocused }
                                 .clickable { focusManager.clearFocus(); showDatePicker = true; datePickerStep = 0 }
                                 .padding(horizontal = 14.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                text = if (dobValid) formatDobDisplay(dob) else "Tap to select date",
+                                text = if (dobValid) formatDobDisplay(dob) else stringResource(Res.string.user_info_dob_placeholder),
                                 fontSize = 15.sp,
                                 fontWeight = if (dobValid) FontWeight.Medium else FontWeight.Normal,
                                 color = if (dobValid) V2BronzeInk else V2MutedText
@@ -623,6 +709,19 @@ fun UserInfoScreen(
                     Text(stringResource(Res.string.email_usage_note), fontSize = 11.sp, color = V2BronzeMuted, lineHeight = 17.sp)
                 }
 
+                if (genericError != null) {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f)),
+                        modifier = Modifier.fillMaxWidth().border(1.dp, V2ErrorRed, RoundedCornerShape(8.dp))
+                    ) {
+                        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Filled.Warning, contentDescription = "Error", tint = V2ErrorRed)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(text = genericError!!, color = V2ErrorRed, style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                }
+
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -644,7 +743,7 @@ fun UserInfoScreen(
                         shape = RoundedCornerShape(11.dp)
                     ) {
                         Text(
-                            text = if (hasPrefilled) "Confirm & continue" else "Continue",
+                            text = if (hasPrefilled) stringResource(Res.string.user_info_btn_confirm_continue) else stringResource(Res.string.btn_continue),
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold
                         )

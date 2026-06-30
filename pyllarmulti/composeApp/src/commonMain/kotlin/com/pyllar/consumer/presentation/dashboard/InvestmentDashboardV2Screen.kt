@@ -130,18 +130,22 @@ fun InvestmentDashboardV2Screen(
     }
     val hasStatusCard = !dashboardState.isLoading && (isKycPending || hasPendingMandates)
 
-    var scrollIndex = 2 // 0: UserHeader, 1: CombinedDashboardCard
-    if (hasMilestone) scrollIndex++
-    if (!dashboardState.isLoading) scrollIndex++ // StatusInfoCard slot
+    var scrollIndex = 3 // 0: Spacer, 1: Spacer + UserHeader, 2: CombinedDashboardCard
+    if (hasStatusCard) {
+        scrollIndex++
+    }
     
     val activeGoalsIndex = scrollIndex
     
     if (!dashboardState.isLoading && dashboardState.primaryGoals.isNotEmpty()) {
-        scrollIndex += 1 // Header text
+        scrollIndex += 1 // Header text "Your Active Goals"
         scrollIndex += dashboardState.primaryGoals.size
-        scrollIndex += 1 // Promotion card
-    } else if (!dashboardState.isLoading) {
-        scrollIndex += 1 // Journey card
+    } else if (!dashboardState.isLoading && dashboardState.primaryGoals.isEmpty() && dashboardState.kycStatus.equals("SUCCESS", ignoreCase = true)) {
+        scrollIndex += 1 // KycApprovedReadyToInvestCard
+    }
+    
+    if (hasMilestone) {
+        scrollIndex++
     }
     val nextGoalsIndex = scrollIndex
 
@@ -370,21 +374,10 @@ fun InvestmentDashboardV2Screen(
 //                    PromotionShareCard(onShareClick = { platformActions.shareText("Join Pyllar and build your wealth! https://pyllar.in", "Share Pyllar") })
 //                }
             } else if (!dashboardState.isLoading && dashboardState.primaryGoals.isEmpty()) {
-                if (dashboardState.kycStatus.equals("COMPLETED", ignoreCase = true)) {
+                if (dashboardState.kycStatus.equals("SUCCESS", ignoreCase = true)) {
                     item {
                         KycApprovedReadyToInvestCard(
                             onChooseGoalClick = {
-                                coroutineScope.launch {
-                                    listState.animateScrollToItem(nextGoalsIndex, scrollOffset = scrollOffsetPx)
-                                }
-                            }
-                        )
-                    }
-                } else {
-                    item {
-                        StartInvestmentJourneyCard(
-                            onNeedHelpClick = { platformActions.openWhatsApp("917676596301", "Hello, I need assistance with starting my investment journey.") },
-                            onExploreClick = { 
                                 coroutineScope.launch {
                                     listState.animateScrollToItem(nextGoalsIndex, scrollOffset = scrollOffsetPx)
                                 }
