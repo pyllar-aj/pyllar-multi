@@ -75,6 +75,19 @@ import com.pyllar.consumer.presentation.ui.theme.V2HelpText
 import com.pyllar.consumer.presentation.ui.theme.V2SubtleBorder
 import com.pyllar.consumer.domain.storage.SessionStore
 import pyllar.composeapp.generated.resources.*
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Schedule
+import com.pyllar.consumer.presentation.ui.theme.getCursiveFontFamily
 
 
 
@@ -315,12 +328,22 @@ fun InvestmentDashboardV2Screen(
             }
 
             if (!dashboardState.isLoading) {
-                item {
-                    StatusInfoCard(
-                        kycStatus = dashboardState.kycStatus,
-                        mandateStatuses = dashboardState.fundDetails.mapNotNull { it.mandateStatus }.distinct(),
-                        onRetryKyc = onRetryKyc
-                    )
+                if (dashboardState.kycStatus.equals("IN_PROGRESS", ignoreCase = true)) {
+                    item {
+                        KycSubmittedAwaitingApprovalCard(
+                            onContactSupport = {
+                                platformActions.openWhatsApp("917676596301", "Hello, my KYC has been submitted and is currently awaiting approval.")
+                            }
+                        )
+                    }
+                } else {
+                    item {
+                        StatusInfoCard(
+                            kycStatus = dashboardState.kycStatus,
+                            mandateStatuses = dashboardState.fundDetails.mapNotNull { it.mandateStatus }.distinct(),
+                            onRetryKyc = onRetryKyc
+                        )
+                    }
                 }
             }
 
@@ -347,16 +370,27 @@ fun InvestmentDashboardV2Screen(
 //                    PromotionShareCard(onShareClick = { platformActions.shareText("Join Pyllar and build your wealth! https://pyllar.in", "Share Pyllar") })
 //                }
             } else if (!dashboardState.isLoading && dashboardState.primaryGoals.isEmpty()) {
-                // Show Journey Card if no goals
-                item {
-                    StartInvestmentJourneyCard(
-                        onNeedHelpClick = { platformActions.openWhatsApp("917676596301", "Hello, I need assistance with starting my investment journey.") },
-                        onExploreClick = { 
-                            coroutineScope.launch {
-                                listState.animateScrollToItem(nextGoalsIndex, scrollOffset = scrollOffsetPx)
+                if (dashboardState.kycStatus.equals("COMPLETED", ignoreCase = true)) {
+                    item {
+                        KycApprovedReadyToInvestCard(
+                            onChooseGoalClick = {
+                                coroutineScope.launch {
+                                    listState.animateScrollToItem(nextGoalsIndex, scrollOffset = scrollOffsetPx)
+                                }
                             }
-                        }
-                    )
+                        )
+                    }
+                } else {
+                    item {
+                        StartInvestmentJourneyCard(
+                            onNeedHelpClick = { platformActions.openWhatsApp("917676596301", "Hello, I need assistance with starting my investment journey.") },
+                            onExploreClick = { 
+                                coroutineScope.launch {
+                                    listState.animateScrollToItem(nextGoalsIndex, scrollOffset = scrollOffsetPx)
+                                }
+                            }
+                        )
+                    }
                 }
             }
 
@@ -2046,6 +2080,411 @@ fun ReferAndEarnCard(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun KycSubmittedAwaitingApprovalCard(
+    onContactSupport: () -> Unit = {}
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "kyc_ring")
+    val rotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 4000, easing = LinearEasing)
+        ),
+        label = "ring_rotation"
+    )
+
+    val cream = Color(0xFFFFFBF0)
+    val goldBorder = Color(0xFFC9973A)
+    val goldText = Color(0xFFA27915)
+    val obsidian = Color(0xFF0A2415)
+    val doneGreen = Color(0xFF388E3C)
+    val inProgressGold = Color(0xFFF59E0B)
+    val successGreen = Color(0xFF2E7D32)
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = cream),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        border = BorderStroke(1.dp, goldBorder.copy(alpha = 0.5f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Rotating dashed ring + clock icon
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.size(80.dp)
+            ) {
+                Canvas(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .rotate(rotation)
+                ) {
+                    drawArc(
+                        color = goldBorder,
+                        startAngle = 0f,
+                        sweepAngle = 360f,
+                        useCenter = false,
+                        style = Stroke(
+                            width = 3.dp.toPx(),
+                            pathEffect = PathEffect.dashPathEffect(
+                                intervals = floatArrayOf(14f, 9f),
+                                phase = 0f
+                            )
+                        )
+                    )
+                }
+                Surface(
+                    shape = CircleShape,
+                    color = Color(0xFFFFF3C4),
+                    modifier = Modifier.size(58.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                        Icon(
+                            imageVector = Icons.Filled.Schedule,
+                            contentDescription = null,
+                            tint = goldBorder,
+                            modifier = Modifier.size(30.dp)
+                        )
+                    }
+                }
+            }
+
+            // Title + cursive subtitle
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = "KYC submitted",
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    color = obsidian,
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    text = "being verified",
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontFamily = getCursiveFontFamily(),
+                        fontStyle = FontStyle.Italic
+                    ),
+                    color = goldText,
+                    textAlign = TextAlign.Center
+                )
+            }
+
+            Text(
+                text = "We'll send you a notification the moment it's approved. Most verifications complete in a few minutes.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
+                textAlign = TextAlign.Center
+            )
+
+            // Steps checklist
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = Color.White,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) {
+                    KycVerificationStep(label = "PAN verified", done = true, doneColor = doneGreen)
+                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFF000000).copy(alpha = 0.06f)))
+                    KycVerificationStep(label = "Aadhaar e-KYC", done = true, doneColor = doneGreen)
+                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFF000000).copy(alpha = 0.06f)))
+                    KycVerificationStep(label = "Final approval", done = false, inProgressColor = inProgressGold)
+                }
+            }
+
+            // Notification callout
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = obsidian.copy(alpha = 0.04f),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.Top,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Notifications,
+                        contentDescription = null,
+                        tint = obsidian.copy(alpha = 0.6f),
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        text = "You’ll receive a push notification and a WhatsApp message once your KYC is approved.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    )
+                }
+            }
+
+            // Help link
+            TextButton(
+                onClick = onContactSupport,
+                contentPadding = PaddingValues(horizontal = 0.dp)
+            ) {
+                Text(
+                    text = "Need help? Contact support →",
+                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                    color = successGreen
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun KycVerificationStep(
+    label: String,
+    done: Boolean,
+    doneColor: Color = Color(0xFF388E3C),
+    inProgressColor: Color = Color(0xFFF59E0B)
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        if (done) {
+            Icon(
+                imageVector = Icons.Filled.CheckCircle,
+                contentDescription = null,
+                tint = doneColor,
+                modifier = Modifier.size(22.dp)
+            )
+        } else {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(22.dp)
+                    .border(2.dp, inProgressColor, CircleShape)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .background(inProgressColor, CircleShape)
+                )
+            }
+        }
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = if (done) MaterialTheme.colorScheme.onSurface else inProgressColor,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            text = if (done) "Done" else "IN PROGRESS",
+            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+            color = if (done) doneColor else inProgressColor
+        )
+    }
+}
+
+@Composable
+fun KycApprovedReadyToInvestCard(
+    onChooseGoalClick: () -> Unit
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "approved_halo")
+    val pulseScale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.55f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 2500, easing = LinearOutSlowInEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "halo_scale"
+    )
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.45f,
+        targetValue = 0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 2500, easing = LinearOutSlowInEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "halo_alpha"
+    )
+
+    val cardBg = Color(0xFFF7FAF7)
+    val haloGreen = Color(0xFF2E7D32)
+    val iconCircleBg = Color(0xFFC8DFC8)
+    val shieldGreen = Color(0xFF3E7A3E)
+    val titleDark = Color(0xFF1A3820)
+    val goldCursive = Color(0xFFBF9028)
+    val bodyMuted = Color(0xFF607060)
+    val achievementBg = Color(0xFFDEEBDE)
+    val achievementBorder = Color(0xFFB5CBB5)
+    val achievementTitleGreen = Color(0xFF2A562A)
+    val achievementSubGreen = Color(0xFF4A7A4A)
+    val obsidian = Color(0xFF0A2415)
+    val buttonGoldRing = Color(0xFFCBA030)
+    val goldMicro = Color(0xFFBF9028)
+    val sparkleGold = Color(0xFFB8902A)
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = cardBg),
+        elevation = CardDefaults.cardElevation(defaultElevation = 5.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 28.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            // Icon circle with pulsing green halo
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.size(84.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(64.dp)
+                        .scale(pulseScale)
+                        .background(haloGreen.copy(alpha = pulseAlpha), CircleShape)
+                )
+                Surface(
+                    shape = CircleShape,
+                    color = iconCircleBg,
+                    modifier = Modifier.size(64.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                        Icon(
+                            imageVector = Icons.Filled.VerifiedUser,
+                            contentDescription = null,
+                            tint = shieldGreen,
+                            modifier = Modifier.size(36.dp)
+                        )
+                    }
+                }
+            }
+
+            // Title
+            Text(
+                text = "KYC approved!",
+                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                color = titleDark,
+                textAlign = TextAlign.Center
+            )
+
+            // Cursive subtitle
+            Text(
+                text = "you're all set",
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontFamily = getCursiveFontFamily(),
+                    fontStyle = FontStyle.Italic
+                ),
+                color = goldCursive,
+                textAlign = TextAlign.Center
+            )
+
+            // Description
+            Text(
+                text = "You've already done the hard part. Your first investment is just one tap away.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = bodyMuted,
+                textAlign = TextAlign.Center
+            )
+
+            // Identity verified row card
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = achievementBg,
+                border = BorderStroke(1.dp, achievementBorder),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(text = "🎉", style = MaterialTheme.typography.titleMedium)
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = "Identity verified",
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                            color = achievementTitleGreen
+                        )
+                        Text(
+                            text = "Explore the investment options below",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = achievementSubGreen
+                        )
+                    }
+                }
+            }
+
+            // Sparkle divider
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(1.dp)
+                        .background(sparkleGold.copy(alpha = 0.25f))
+                )
+                Text(
+                    text = "✦   ✦   ✦",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = sparkleGold.copy(alpha = 0.55f),
+                    modifier = Modifier.padding(horizontal = 10.dp)
+                )
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(1.dp)
+                        .background(sparkleGold.copy(alpha = 0.25f))
+                )
+            }
+
+            // Primary CTA — pill button with gold outer ring
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.5.dp, buttonGoldRing, RoundedCornerShape(50.dp))
+                    .padding(3.dp)
+            ) {
+                Button(
+                    onClick = onChooseGoalClick,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(50.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = obsidian,
+                        contentColor = Color.White
+                    ),
+                    contentPadding = PaddingValues(vertical = 16.dp)
+                ) {
+                    Text(
+                        text = "Choose your first goal",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+                }
+            }
+
+            // Micro-step hint in gold
+            Text(
+                text = "⚡ Start with ₹21/day",
+                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                color = goldMicro,
+                textAlign = TextAlign.Center
+            )
         }
     }
 }
