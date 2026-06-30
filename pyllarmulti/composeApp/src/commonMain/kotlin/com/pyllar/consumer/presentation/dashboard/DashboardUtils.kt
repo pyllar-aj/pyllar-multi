@@ -16,6 +16,10 @@ fun formatGoalName(name: String): String {
 }
 
 fun getCorrelationColorForCategory(category: String?, colorTheme: String?): Color {
+    if (category?.uppercase() == "SILVER") {
+        return Color(0xFF000000) // Black text color for silver goal name
+    }
+
     // Use colorTheme if available, otherwise use category-based colors
     val themeColor = colorTheme?.toColor()
     if (themeColor != null && themeColor != V2SuccessGreen) { // If it's not the default green
