@@ -303,6 +303,7 @@ fun SipAmountScreenV3(
                             }
                             if (response.userPurposeId.isNotBlank()) {
                                 sessionStore.saveValue(KeyValueConstants.USER_PURPOSE_ID, response.userPurposeId)
+                                fundDetailsViewModel.setActiveUserPurposeId(response.userPurposeId)
                                 viewModel.fetchInvestmentLimits(response.userPurposeId)
                             }
                         }
@@ -379,67 +380,75 @@ fun SipAmountScreenV3(
         onNavigateBack()
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                modifier = Modifier.padding(top = 2.dp),
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(text = "Pyllar ", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = SipHeroObsidian, letterSpacing = (-0.5).sp)
-                        Text(text = "Money", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = SipGold, letterSpacing = (-0.5).sp)
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { platformActions.shareText("Start your investment journey with Pyllar! https://pyllar.in") }) {
-                        Icon(Icons.Default.Share, contentDescription = "Share", tint = MaterialTheme.colorScheme.primary)
-                    }
-                    LanguageLetterButton(textColor = MaterialTheme.colorScheme.primary)
-                    TextButton(onClick = onNavigateToHelp) {
-                        Text("Help", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-                    }
-                }
-            )
-        },
-        bottomBar = {
-            val canContinue = !isFetching
-            Column(
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (isFetching) {
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                    .fillMaxSize()
+                    .background(Color.White.copy(alpha = 0.9f))
+                    .zIndex(10f)
             ) {
-                Button(
-                    onClick = { showDetailsBottomSheet = true },
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
-                    enabled = canContinue,
-                    shape = RoundedCornerShape(12.dp)
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            }
+        } else {
+            Column(modifier = Modifier.fillMaxSize()) {
+                Spacer(modifier = Modifier.height(25.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Continue", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(
+                                imageVector = Icons.Default.ArrowBack,
+                                contentDescription = "Back",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(text = "Pyllar ", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = SipHeroObsidian, letterSpacing = (-0.5).sp)
+                            Text(text = "Money", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = SipGold, letterSpacing = (-0.5).sp)
+                        }
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(
+                            onClick = {
+                                platformActions.shareText("Start your investment journey with Pyllar! https://pyllar.in")
+                            },
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Share,
+                                contentDescription = "Share",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        LanguageLetterButton(textColor = MaterialTheme.colorScheme.primary)
+                        TextButton(onClick = onNavigateToHelp) {
+                            Text(
+                                text = "Help",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
                 }
 
-                Text(
-                    "You can change or stop your SIP anytime.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                )
-            }
-        }
-    ) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            if (isFetching) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-            } else {
                 Column(
                     modifier = Modifier
-                        .fillMaxSize()
+                        .weight(1f)
+                        .fillMaxWidth()
                         .verticalScroll(scrollState)
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .padding(horizontal = 16.dp)
+                        .padding(top = 8.dp)
+                        .padding(bottom = 24.dp)
                         .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) {
                             keyboardController?.hide()
                             focusManager.clearFocus()
@@ -546,43 +555,43 @@ fun SipAmountScreenV3(
                                                 }
                                             }
                                         }
-                                        Spacer(modifier = Modifier.height(15.dp))
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
-                                            horizontalArrangement = Arrangement.spacedBy(16.dp)
-                                        ) {
-                                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                                Text(
-                                                    text = "INVESTED",
-                                                    fontSize = 9.sp,
-                                                    fontWeight = FontWeight.SemiBold,
-                                                    letterSpacing = 0.6.sp,
-                                                    color = Color.White.copy(alpha = 0.35f)
-                                                )
-                                                Text(
-                                                    text = formatRupeesShort(navInvestedVal),
-                                                    fontSize = 14.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = Color.White.copy(alpha = 0.75f)
-                                                )
-                                            }
-                                            Box(modifier = Modifier.fillMaxHeight().width(1.dp).background(Color.White.copy(alpha = 0.08f)))
-                                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                                Text(
-                                                    text = "PROFIT",
-                                                    fontSize = 9.sp,
-                                                    fontWeight = FontWeight.SemiBold,
-                                                    letterSpacing = 0.6.sp,
-                                                    color = Color.White.copy(alpha = 0.35f)
-                                                )
-                                                Text(
-                                                    text = formatRupeesShort(navGainVal),
-                                                    fontSize = 14.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = Color(0xFF6FCF97)
-                                                )
-                                            }
-                                        }
+//                                        Spacer(modifier = Modifier.height(15.dp))
+//                                        Row(
+//                                            modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+//                                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+//                                        ) {
+//                                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+//                                                Text(
+//                                                    text = "INVESTED",
+//                                                    fontSize = 9.sp,
+//                                                    fontWeight = FontWeight.SemiBold,
+//                                                    letterSpacing = 0.6.sp,
+//                                                    color = Color.White.copy(alpha = 0.35f)
+//                                                )
+//                                                Text(
+//                                                    text = formatRupeesShort(navInvestedVal),
+//                                                    fontSize = 14.sp,
+//                                                    fontWeight = FontWeight.Bold,
+//                                                    color = Color.White.copy(alpha = 0.75f)
+//                                                )
+//                                            }
+//                                            Box(modifier = Modifier.fillMaxHeight().width(1.dp).background(Color.White.copy(alpha = 0.08f)))
+//                                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+//                                                Text(
+//                                                    text = "PROFIT",
+//                                                    fontSize = 9.sp,
+//                                                    fontWeight = FontWeight.SemiBold,
+//                                                    letterSpacing = 0.6.sp,
+//                                                    color = Color.White.copy(alpha = 0.35f)
+//                                                )
+//                                                Text(
+//                                                    text = formatRupeesShort(navGainVal),
+//                                                    fontSize = 14.sp,
+//                                                    fontWeight = FontWeight.Bold,
+//                                                    color = Color(0xFF6FCF97)
+//                                                )
+//                                            }
+//                                        }
                                         Spacer(modifier = Modifier.height(12.dp))
                                         Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(theme.dividerColor))
                                         Spacer(modifier = Modifier.height(12.dp))
@@ -727,6 +736,32 @@ fun SipAmountScreenV3(
                                     currentInstalmentDay
                                 )
                             }
+                        )
+                    }
+
+                    // ── BOTTOM CTA ─────────────────────────────────────────────────
+                    val canContinue = !isFetching
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                            .padding(bottom = 16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = { showDetailsBottomSheet = true },
+                            modifier = Modifier.fillMaxWidth().height(56.dp),
+                            enabled = canContinue,
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Continue", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                        }
+
+                        Text(
+                            "You can change or stop your SIP anytime.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         )
                     }
                 }

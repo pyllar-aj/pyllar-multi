@@ -245,6 +245,7 @@ fun LumpsumAmountScreenV3(
                                 result.data?.let { response ->
                                     if (response.userPurposeId.isNotBlank()) {
                                         sessionStore.saveValue(KeyValueConstants.USER_PURPOSE_ID, response.userPurposeId)
+                                        fundDetailsViewModel.setActiveUserPurposeId(response.userPurposeId)
                                     }
                                 }
                             }
@@ -302,25 +303,29 @@ fun LumpsumAmountScreenV3(
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Top bar — Share / language / help
+            Spacer(modifier = Modifier.height(25.dp))
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .padding(top = 32.dp, bottom = 4.dp),
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = onNavigateBack) {
-                    Icon(
-                        imageVector = Icons.Default.ArrowBack,
-                        contentDescription = "Back",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = "Pyllar ", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = LumpsumHeroObsidian, letterSpacing = (-0.5).sp)
-                    Text(text = "Money", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = LumpsumGold, letterSpacing = (-0.5).sp)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Back",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = "Pyllar ", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = LumpsumHeroObsidian, letterSpacing = (-0.5).sp)
+                        Text(text = "Money", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = LumpsumGold, letterSpacing = (-0.5).sp)
+                    }
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(
@@ -439,20 +444,20 @@ fun LumpsumAmountScreenV3(
                                                 fontWeight = FontWeight.Medium,
                                                 color = Color.White.copy(alpha = 0.5f)
                                             )
-                                            Spacer(modifier = Modifier.height(12.dp))
-                                            Text(
-                                                text = "RETURNS",
-                                                fontSize = 12.sp,
-                                                fontWeight = FontWeight.SemiBold,
-                                                letterSpacing = 0.6.sp,
-                                                color = Color.White.copy(alpha = 0.6f)
-                                            )
-                                            Text(
-                                                text = formatRupeesShort(navGainVal),
-                                                fontSize = 15.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = Color(0xFF6FCF97)
-                                            )
+//                                            Spacer(modifier = Modifier.height(12.dp))
+//                                            Text(
+//                                                text = "RETURNS",
+//                                                fontSize = 12.sp,
+//                                                fontWeight = FontWeight.SemiBold,
+//                                                letterSpacing = 0.6.sp,
+//                                                color = Color.White.copy(alpha = 0.6f)
+//                                            )
+//                                            Text(
+//                                                text = formatRupeesShort(navGainVal),
+//                                                fontSize = 15.sp,
+//                                                fontWeight = FontWeight.Bold,
+//                                                color = Color(0xFF6FCF97)
+//                                            )
                                         }
                                         Column(horizontalAlignment = Alignment.End) {
                                             Text(
@@ -474,22 +479,22 @@ fun LumpsumAmountScreenV3(
                                                 fontWeight = FontWeight.Bold,
                                                 color = Color(0xFF6FCF97)
                                             )
-                                            if (gramsValueLabel != null && gramsSuffixLabel != null) {
-                                                Row(modifier = Modifier.padding(top = 4.dp)) {
-                                                    Text(
-                                                        text = gramsValueLabel,
-                                                        fontSize = 11.sp,
-                                                        fontWeight = FontWeight.ExtraBold,
-                                                        color = theme.accentColor
-                                                    )
-                                                    Text(
-                                                        text = " $gramsSuffixLabel",
-                                                        fontSize = 11.sp,
-                                                        fontWeight = FontWeight.Medium,
-                                                        color = theme.accentColor.copy(alpha = 0.75f)
-                                                    )
-                                                }
-                                            }
+//                                            if (gramsValueLabel != null && gramsSuffixLabel != null) {
+//                                                Row(modifier = Modifier.padding(top = 4.dp)) {
+//                                                    Text(
+//                                                        text = gramsValueLabel,
+//                                                        fontSize = 11.sp,
+//                                                        fontWeight = FontWeight.ExtraBold,
+//                                                        color = theme.accentColor
+//                                                    )
+//                                                    Text(
+//                                                        text = " $gramsSuffixLabel",
+//                                                        fontSize = 11.sp,
+//                                                        fontWeight = FontWeight.Medium,
+//                                                        color = theme.accentColor.copy(alpha = 0.75f)
+//                                                    )
+//                                                }
+//                                            }
                                         }
                                     }
                                     Spacer(modifier = Modifier.height(12.dp))

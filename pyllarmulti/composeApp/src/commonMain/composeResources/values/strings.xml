@@ -81,7 +81,7 @@
     <string name="total_gain_disclaimer_silver">Includes unrealized profit/loss from your silver units</string>
     <string name="available_gain">Available gain</string>
     <string name="withdrawn_gain">Withdrawn gain</string>
-    <string name="can_i_take_it_out">Can I take it out?</string>
+    <string name="can_i_take_it_out">Can I withdraw money?</string>
     <string name="yes_anytime">Yes, anytime</string>
     <string name="sebi_mutual_fund_disclaimer">Mutual fund investments are subject to market risks, read all scheme related documents carefully.</string>
     <string name="units_allotted">UNITS ALLOTTED</string>

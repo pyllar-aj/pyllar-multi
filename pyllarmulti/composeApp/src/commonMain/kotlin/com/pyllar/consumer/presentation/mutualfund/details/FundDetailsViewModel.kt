@@ -32,6 +32,12 @@ class FundDetailsViewModel(
     private val _uiState = MutableStateFlow(FundDetailsState())
     val uiState: StateFlow<FundDetailsState> = _uiState.asStateFlow()
 
+    private var activeUserPurposeId: String = ""
+
+    fun setActiveUserPurposeId(id: String) {
+        activeUserPurposeId = id
+    }
+
     companion object {
         private const val TAG = "FundDetailsViewModel"
     }
@@ -111,10 +117,12 @@ class FundDetailsViewModel(
     ): SipCreationResult {
         _uiState.value = _uiState.value.copy(isSipCreating = true, sipError = null)
         
-        val userPurposeId = try {
-            sessionStore.getValue(com.pyllar.consumer.data.local.KeyValueConstants.USER_PURPOSE_ID)
-        } catch (e: Exception) {
-            null
+        val userPurposeId = activeUserPurposeId.ifBlank {
+            try {
+                sessionStore.getValue(com.pyllar.consumer.data.local.KeyValueConstants.USER_PURPOSE_ID)
+            } catch (e: Exception) {
+                null
+            }
         }
         
         val request = CreateDailySipRequestDto(
@@ -155,10 +163,12 @@ class FundDetailsViewModel(
     ): SipCreationResult {
         _uiState.value = _uiState.value.copy(isSipCreating = true, sipError = null)
         
-        val userPurposeId = try {
-            sessionStore.getValue(com.pyllar.consumer.data.local.KeyValueConstants.USER_PURPOSE_ID)
-        } catch (e: Exception) {
-            null
+        val userPurposeId = activeUserPurposeId.ifBlank {
+            try {
+                sessionStore.getValue(com.pyllar.consumer.data.local.KeyValueConstants.USER_PURPOSE_ID)
+            } catch (e: Exception) {
+                null
+            }
         }
         
         val request = com.pyllar.consumer.data.remote.model.dto.CreateLumpsumPurchaseRequestDto(
@@ -231,10 +241,12 @@ class FundDetailsViewModel(
     ): SipCreationResult {
         _uiState.value = _uiState.value.copy(isSipCreating = true, sipError = null)
         
-        val userPurposeId = try {
-            sessionStore.getValue(com.pyllar.consumer.data.local.KeyValueConstants.USER_PURPOSE_ID)
-        } catch (e: Exception) {
-            null
+        val userPurposeId = activeUserPurposeId.ifBlank {
+            try {
+                sessionStore.getValue(com.pyllar.consumer.data.local.KeyValueConstants.USER_PURPOSE_ID)
+            } catch (e: Exception) {
+                null
+            }
         }
         
         val request = com.pyllar.consumer.data.remote.model.dto.CreatePurchasePlanRequestDto(

@@ -314,6 +314,7 @@ fun InvestmentDashboardV2Screen(
                     goldUnitsInGm = goldGoal?.unitsInGm,
                     silverUnitsInGm = silverGoal?.unitsInGm,
                     isLoading = dashboardState.isLoading,
+                    enabled = !isSelectingGoal,
                     onTotalClick = {
                         coroutineScope.launch {
                             val target = if (nextGoals.isNotEmpty()) nextGoalsIndex else if (dashboardState.primaryGoals.isNotEmpty()) activeGoalsIndex else 0
@@ -514,11 +515,11 @@ fun UserHeader(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Text(
-                    text = " >",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Medium),
-                    color = Color.White.copy(alpha = 0.6f)
-                )
+//                Text(
+//                    text = " >",
+//                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Medium),
+//                    color = Color.White.copy(alpha = 0.6f)
+//                )
             }
         }
 
@@ -577,6 +578,7 @@ fun CombinedDashboardCard(
     goldUnitsInGm: Double?,
     silverUnitsInGm: Double?,
     isLoading: Boolean,
+    enabled: Boolean = true,
     onTotalClick: () -> Unit = {},
     onGoldClick: () -> Unit = {},
     onSilverClick: () -> Unit = {}
@@ -599,7 +601,7 @@ fun CombinedDashboardCard(
                     modifier = Modifier
                         .weight(1f)
                         .background(Color(0xFFFFF9E6))
-                        .clickable { onGoldClick() }
+                        .clickable(enabled = enabled && !isLoading) { onGoldClick() }
                         .padding(vertical = 16.dp, horizontal = 8.dp),
                     contentAlignment = Alignment.Center
                 ) {
@@ -661,7 +663,7 @@ fun CombinedDashboardCard(
                     modifier = Modifier
                         .weight(1f)
                         .background(Color(0xFFFAFAFA))
-                        .clickable { onSilverClick() }
+                        .clickable(enabled = enabled && !isLoading) { onSilverClick() }
                         .padding(vertical = 16.dp, horizontal = 8.dp),
                     contentAlignment = Alignment.Center
                 ) {

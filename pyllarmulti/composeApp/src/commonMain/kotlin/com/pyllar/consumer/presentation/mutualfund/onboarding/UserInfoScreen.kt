@@ -261,12 +261,14 @@ fun UserInfoScreen(
         }
     }
 
+    var isSubmitting by remember { mutableStateOf(false) }
     var isNavigating by remember { mutableStateOf(false) }
 
     val submitState by viewModel.submitState.collectAsState()
     val isBusy = submitState is UserInfoViewModel.SubmitState.CheckingPan ||
         submitState is UserInfoViewModel.SubmitState.SubmittingDetails ||
-        isNavigating
+        isNavigating ||
+        isSubmitting
 
     LaunchedEffect(submitState) {
         when (val state = submitState) {
@@ -277,6 +279,7 @@ fun UserInfoScreen(
                 onKycSubmitted(name, dob, confirmedEmail, state.navigation, state.data)
             }
             is UserInfoViewModel.SubmitState.Failed -> {
+                isSubmitting = false
                 timeoutState.triggerTimeout()
                 nameError = null
                 panError = null
@@ -392,6 +395,8 @@ fun UserInfoScreen(
             emailFocusRequester.requestFocus()
             return
         }
+
+        isSubmitting = true
 
         PlatformAnalyticsLogger.logEvent("user_info_submit_attempt", mapOf("pan_last4" to pan.takeLast(4)))
 
@@ -637,7 +642,7 @@ fun UserInfoScreen(
                                 shape = RoundedCornerShape(12.dp),
                                 colors = OutlinedTextFieldDefaults.colors(
                                     disabledBorderColor = V2GoldAccent,
-                                    disabledContainerColor = V2CreamTint,
+                                    disabledContainerColor = Color.White,
                                     disabledTextColor = V2BronzeInk
                                 )
                             )

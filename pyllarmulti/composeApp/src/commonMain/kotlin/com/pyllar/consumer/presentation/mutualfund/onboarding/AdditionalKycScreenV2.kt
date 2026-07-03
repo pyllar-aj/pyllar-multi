@@ -379,22 +379,23 @@ fun AdditionalKycScreenV2(
 
     Box(modifier = Modifier.fillMaxSize().background(AKV2Cream)) {
         Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
-            // ── Top bar ──
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp)
-                    .padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.clickable { onBack() }
-                ) {
-                    Icon(Icons.Filled.ArrowBack, contentDescription = "Back", tint = AKV2LinkGreen, modifier = Modifier.size(15.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Back", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = AKV2LinkGreen)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = AKV2LinkGreen,
+                        modifier = Modifier.size(20.dp).clickable { onBack() }
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(text = "Pyllar ", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = AKV2Obsidian, letterSpacing = (-0.5).sp)
+                    Text(text = "Money", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = AKV2GoldAccent, letterSpacing = (-0.5).sp)
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(
@@ -413,7 +414,7 @@ fun AdditionalKycScreenV2(
                     }
                     LanguageLetterButton(textColor = AKV2LinkGreen)
                     TextButton(onClick = onNavigateToHelp) {
-                        Text("Help", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = AKV2LinkGreen)
+                        Text("Help", style = MaterialTheme.typography.labelLarge, color = AKV2LinkGreen)
                     }
                 }
             }

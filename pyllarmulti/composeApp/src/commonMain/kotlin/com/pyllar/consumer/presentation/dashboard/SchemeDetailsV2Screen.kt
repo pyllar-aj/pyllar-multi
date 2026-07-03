@@ -1814,13 +1814,13 @@ fun SchemeDetailsPopupContentV2(
                                 stringResource(Res.string.next_deduction_pending)
                             }
 
-                            WhatsHappeningRowV2(
-                                title = stringResource(Res.string.saving_amount_freq, formatIndian(totalDaily), freq),
-                                subtitle = nextDeduction,
-                                badgeText = stringResource(Res.string.active_badge),
-                                badgeBg = Color(0xFFE8F5E9),
-                                badgeFg = Color(0xFF2E7D32)
-                            )
+//                            WhatsHappeningRowV2(
+//                                title = stringResource(Res.string.saving_amount_freq, formatIndian(totalDaily), freq),
+//                                subtitle = nextDeduction,
+//                                badgeText = stringResource(Res.string.active_badge),
+//                                badgeBg = Color(0xFFE8F5E9),
+//                                badgeFg = Color(0xFF2E7D32)
+//                            )
                             needDivider = true
                         }
 

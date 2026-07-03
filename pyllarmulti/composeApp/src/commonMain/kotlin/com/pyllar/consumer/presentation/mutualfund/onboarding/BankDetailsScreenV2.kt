@@ -190,28 +190,20 @@ fun BankDetailsScreenV2(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp)
-                    .padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.clickable { onBack() }
-                ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        Icons.Filled.ArrowBack,
+                        imageVector = Icons.Filled.ArrowBack,
                         contentDescription = stringResource(Res.string.back),
                         tint = BDV2LinkGreen,
-                        modifier = Modifier.size(15.dp)
+                        modifier = Modifier.size(20.dp).clickable { onBack() }
                     )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        stringResource(Res.string.back),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = BDV2LinkGreen
-                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(text = "Pyllar ", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = BDV2Obsidian, letterSpacing = (-0.5).sp)
+                    Text(text = "Money", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = BDV2GoldAccent, letterSpacing = (-0.5).sp)
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     LanguageLetterButton(textColor = BDV2LinkGreen)
@@ -228,8 +220,7 @@ fun BankDetailsScreenV2(
                     }) {
                         Text(
                             stringResource(Res.string.help),
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium,
+                            style = MaterialTheme.typography.labelLarge,
                             color = BDV2LinkGreen
                         )
                     }

@@ -10,6 +10,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Lock
@@ -101,15 +102,25 @@ fun SignatureScreenV2(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp)
-                    .padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.End
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = SGV2LinkGreen,
+                        modifier = Modifier.size(20.dp).clickable { onBack() }
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(text = "Pyllar ", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = SGV2Obsidian, letterSpacing = (-0.5).sp)
+                    Text(text = "Money", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = SGV2GoldAccent, letterSpacing = (-0.5).sp)
+                }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     LanguageLetterButton(textColor = SGV2LinkGreen)
                     TextButton(onClick = onNavigateToHelp) {
-                        Text(stringResource(Res.string.help), fontSize = 12.sp, fontWeight = FontWeight.Medium, color = SGV2LinkGreen)
+                        Text(stringResource(Res.string.help), style = MaterialTheme.typography.labelLarge, color = SGV2LinkGreen)
                     }
                 }
             }

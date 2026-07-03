@@ -171,7 +171,7 @@ class PyllarApiClient(
             parseStandardResponse<T>(parsed)
         } catch (e: Exception) {
             platformLog("PyllarApiClient: [Multipart] ❌ FATAL ERROR: ${e::class.simpleName}: ${e.message}")
-            Resource.Error(e.message ?: "Multipart upload failed")
+            Resource.Error(getFriendlyNetworkErrorMessage(e))
         }
     }
 
@@ -316,7 +316,7 @@ class PyllarApiClient(
                 platformLog("HTTPSecure(Pyllar) SecureChannelException details: ${e.message}")
             }
             Resource.Error(
-                message = e.message ?: "Network error",
+                message = getFriendlyNetworkErrorMessage(e),
                 errorType = ErrorType.NETWORK_ERROR
             )
         }
@@ -392,6 +392,26 @@ class PyllarApiClient(
             "SERVER_ERROR" -> ErrorType.SERVER_ERROR
             "NETWORK_ERROR" -> ErrorType.NETWORK_ERROR
             else -> ErrorType.UNKNOWN_ERROR
+        }
+    }
+
+    @PublishedApi
+    internal fun getFriendlyNetworkErrorMessage(e: Throwable): String {
+        val msg = e.message ?: ""
+        val isTimeoutOrConnection = msg.contains("timeout", ignoreCase = true) ||
+                msg.contains("connect", ignoreCase = true) ||
+                msg.contains("handshake", ignoreCase = true) ||
+                msg.contains("refused", ignoreCase = true) ||
+                msg.contains("host", ignoreCase = true) ||
+                e::class.simpleName?.contains("Timeout", ignoreCase = true) == true ||
+                e::class.simpleName?.contains("Connect", ignoreCase = true) == true ||
+                e::class.simpleName?.contains("IOException", ignoreCase = true) == true ||
+                e::class.simpleName?.contains("Socket", ignoreCase = true) == true
+
+        return if (isTimeoutOrConnection) {
+            "Unable to connect to the server. Please check your internet connection or try again."
+        } else {
+            e.message ?: "Unknown network error"
         }
     }
 }
