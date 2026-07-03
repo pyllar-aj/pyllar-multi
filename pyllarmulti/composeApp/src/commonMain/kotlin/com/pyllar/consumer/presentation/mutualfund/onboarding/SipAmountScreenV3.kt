@@ -45,9 +45,12 @@ import com.pyllar.consumer.data.local.KeyValueConstants
 import com.pyllar.consumer.data.remote.model.dto.MandateWrapper
 import com.pyllar.consumer.domain.storage.SessionStore
 import com.pyllar.consumer.platform.PlatformActions
+import com.pyllar.consumer.presentation.mutualfund.details.BankDetailsCard
 import com.pyllar.consumer.presentation.mutualfund.details.FundDetailsViewModel
+import com.pyllar.consumer.presentation.mutualfund.details.FundHeader
 import com.pyllar.consumer.presentation.mutualfund.details.SipCreationResult
 import com.pyllar.consumer.presentation.dashboard.InvestmentDashboardV2ViewModel
+import com.pyllar.consumer.presentation.dashboard.getFundLogo
 import com.pyllar.consumer.presentation.ui.theme.*
 import com.pyllar.consumer.util.*
 import kotlinx.coroutines.delay
@@ -188,7 +191,7 @@ fun SipAmountScreenV3(
     onSipCreated: (Double, String?, MandateWrapper?) -> Unit = { _, _, _ -> },
     onNavigateBack: () -> Unit = {},
     onNavigateToHelp: () -> Unit = {},
-    onNavigateToFundDetails: (userId: String, goalId: String, amount: Double, kycAttemptId: String, investorId: String) -> Unit = { _, _, _, _, _ -> },
+    onNavigateToFundDetails: (userId: String, goalId: String, amount: Double, kycAttemptId: String, investorId: String, frequency: String, installmentDay: Int?) -> Unit = { _, _, _, _, _, _, _ -> },
     viewModel: SipAmountScreenV2ViewModel = koinInject(),
     fundDetailsViewModel: FundDetailsViewModel = koinInject(),
     dashboardViewModel: InvestmentDashboardV2ViewModel = koinInject(),
@@ -712,12 +715,16 @@ fun SipAmountScreenV3(
                             category = fundDetailsState.fundDetails?.category,
                             isLoading = fundDetailsState.isLoading,
                             onClick = {
+                                val currentFreq = if (isMonthly) "monthly" else "daily"
+                                val currentInstalmentDay = if (isMonthly) sipDate else null
                                 onNavigateToFundDetails(
                                     effectiveUserId,
                                     effectiveGoalId,
                                     currentAmount.toDouble(),
                                     effectiveKycAttemptId,
-                                    effectiveInvestorId
+                                    effectiveInvestorId,
+                                    currentFreq,
+                                    currentInstalmentDay
                                 )
                             }
                         )
@@ -1413,54 +1420,111 @@ private fun FundDetailsBottomSheet(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(
-                text = "Confirm Details",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = SipInk
-            )
-
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(text = "Amount", color = SipInk.copy(alpha = 0.6f))
-                Text(text = "₹${amount.toInt()}", fontWeight = FontWeight.Bold, color = SipInk)
+            val title = when (goalType) {
+                GoalType.GOLD -> "Gold SIP Investment"
+                GoalType.SILVER -> "Silver SIP Investment"
+                GoalType.SAVINGS, GoalType.SAVINGS_PLUS -> "SIP Investment"
+                GoalType.FESTIVAL_SPENDS -> "SIP Investment"
+                GoalType.GLOBAL_EXPOSURE -> "Global Exposure SIP Investment"
+                GoalType.ALL_IN_ONE -> "All-in-One SIP Investment"
+                else -> "SIP Investment"
             }
 
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(text = "Frequency", color = SipInk.copy(alpha = 0.6f))
-                Text(text = if (isMonthly) "Monthly" else "Daily", fontWeight = FontWeight.Bold, color = SipInk)
-            }
-
-            if (isMonthly) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(text = "Installment Date", color = SipInk.copy(alpha = 0.6f))
-                    Text(text = ordinalSuffix(sipDate), fontWeight = FontWeight.Bold, color = SipInk)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.weight(1f)) {
+                    Text(text = title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = SipInk)
+                    fundDetailsState.fundDetails?.fundName?.let { fundName ->
+                        Text(
+                            text = "powered by $fundName",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                fundDetailsState.fundDetails?.fundName?.let { fundName ->
+                    val logo = getFundLogo(fundName)
+                    Image(
+                        painter = painterResource(logo),
+                        contentDescription = "Fund Logo",
+                        modifier = Modifier.size(60.dp).padding(start = 16.dp)
+                    )
                 }
             }
 
-            if (!sheetError.isNullOrBlank()) {
-                Text(
-                    text = sheetError,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
+            if (fundDetailsState.isLoading) {
+                Box(modifier = Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            } else {
+                if (fundDetailsState.fundDetails != null) {
+                    FundHeader(fundDetailsState.fundDetails!!)
+                }
 
-            Button(
-                onClick = onConfirm,
-                modifier = Modifier.fillMaxWidth().height(50.dp),
-                enabled = !isSheetLoading
-            ) {
-                if (isSheetLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
-                } else {
-                    Text(text = "Confirm & Setup Mandate", fontWeight = FontWeight.Bold)
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(text = "Amount", color = SipInk.copy(alpha = 0.6f))
+                    Text(text = "₹${amount.toInt()}", fontWeight = FontWeight.Bold, color = SipInk)
+                }
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(text = "Frequency", color = SipInk.copy(alpha = 0.6f))
+                    Text(text = if (isMonthly) "Monthly" else "Daily", fontWeight = FontWeight.Bold, color = SipInk)
+                }
+
+                if (isMonthly) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(text = "Installment Date", color = SipInk.copy(alpha = 0.6f))
+                        Text(text = ordinalSuffix(sipDate), fontWeight = FontWeight.Bold, color = SipInk)
+                    }
+                }
+
+                val bankDetails = fundDetailsState.fundDetails?.bankDetails
+                if (bankDetails != null) {
+                    BankDetailsCard(
+                        accountNumber = bankDetails.accountNumber,
+                        ifscCode = bankDetails.ifscCode,
+                        bankName = bankDetails.bankName
+                    )
+                } else if (fundDetailsState.bankAccountNumber != null) {
+                    BankDetailsCard(
+                        accountNumber = fundDetailsState.bankAccountNumber,
+                        ifscCode = fundDetailsState.bankIfscCode,
+                        bankName = fundDetailsState.bankName
+                    )
+                }
+
+                if (!sheetError.isNullOrBlank()) {
+                    Text(
+                        text = sheetError,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+
+                Button(
+                    onClick = onConfirm,
+                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    enabled = !isSheetLoading
+                ) {
+                    if (isSheetLoading) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
+                    } else {
+                        Text(text = "Confirm & Setup Mandate", fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }

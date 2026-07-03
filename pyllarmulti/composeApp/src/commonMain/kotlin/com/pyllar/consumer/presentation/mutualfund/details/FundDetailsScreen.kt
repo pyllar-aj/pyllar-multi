@@ -48,6 +48,8 @@ fun FundDetailsScreen(
     kycAttemptId: String = "",
     investorId: String = "",
     fromSipAmount: Boolean = false,
+    frequency: String = "daily",
+    installmentDay: Int? = null,
     onBackClick: () -> Unit = {},
     onSipCreated: (Double, String?, com.pyllar.consumer.data.remote.model.dto.MandateWrapper?) -> Unit = { _, _, _ -> },
     viewModel: FundDetailsViewModel = koinInject(),
@@ -123,12 +125,23 @@ fun FundDetailsScreen(
                         }
 
                         coroutineScope.launch {
-                            val result = viewModel.createSip(
-                                userId = userId,
-                                kycAttemptId = kycAttemptId,
-                                investorId = investorId,
-                                amount = sipAmount
-                            )
+                            val result = if (frequency.equals("monthly", ignoreCase = true)) {
+                                viewModel.createPurchasePlan(
+                                    userId = userId,
+                                    kycAttemptId = kycAttemptId,
+                                    investorId = investorId,
+                                    amount = sipAmount,
+                                    frequency = "monthly",
+                                    installmentDay = installmentDay
+                                )
+                            } else {
+                                viewModel.createSip(
+                                    userId = userId,
+                                    kycAttemptId = kycAttemptId,
+                                    investorId = investorId,
+                                    amount = sipAmount
+                                )
+                            }
                             if (result is SipCreationResult.Success) {
                                 onSipCreated(sipAmount, result.nextScreen, result.mandateWrapper)
                             }

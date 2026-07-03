@@ -23,14 +23,17 @@ class AndroidSessionStore(
         authToken: String,
         fullName: String
     ) {
-        prefs.edit()
-            .putString(KEY_USER_ID, userId)
-            .putString(KEY_EMAIL, email)
-            .putString(KEY_PHONE, phone)
-            .putString(KEY_AUTH_TOKEN, authToken)
-            .putString(KEY_FULL_NAME, fullName)
-            .putBoolean(KEY_LOGGED_IN, true)
-            .apply()
+        // Blank args are skipped rather than overwriting an existing value, matching
+        // IosSessionStore.saveUserSession — callers (e.g. verifyOtp) may not have every
+        // field yet and shouldn't wipe out ones saved by an earlier step.
+        prefs.edit().apply {
+            if (userId.isNotBlank()) putString(KEY_USER_ID, userId)
+            if (email.isNotBlank()) putString(KEY_EMAIL, email)
+            if (phone.isNotBlank()) putString(KEY_PHONE, phone)
+            if (authToken.isNotBlank()) putString(KEY_AUTH_TOKEN, authToken)
+            if (fullName.isNotBlank()) putString(KEY_FULL_NAME, fullName)
+            putBoolean(KEY_LOGGED_IN, true)
+        }.apply()
     }
 
     override suspend fun getCurrentToken(): String =

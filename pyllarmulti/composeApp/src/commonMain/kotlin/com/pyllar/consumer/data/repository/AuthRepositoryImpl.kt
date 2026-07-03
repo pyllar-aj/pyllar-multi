@@ -121,16 +121,18 @@ class AuthRepositoryImpl(
                         lastName = "",
                         newUser = data.newUser ?: false
                     )
-                    // Persist token via SessionStore
+                    // Persist token + mark session as logged in, same as OTP success on native Android
+                    // (OnboardingRepository.saveUserSession is invoked right after saveOtpData there).
+                    // Deferring this to updateEmail()/KYC submit left isLoggedIn() == false for anyone
+                    // killed mid-onboarding, bouncing them back to phone verification on relaunch.
                     val finalPhone = if (data.phoneNumber.isNotBlank()) data.phoneNumber else request.phoneNumber
                     platformLog("AuthRepository: Saving AuthToken with finalPhone: $finalPhone (from response: ${data.phoneNumber}, from request: ${request.phoneNumber})")
-                    sessionStore.saveAuthToken(
-                        AuthToken(
-                            auth_token = data.authToken,
-                            token = data.authToken,
-                            userId = bestUserId,
-                            phoneNumber = finalPhone
-                        )
+                    sessionStore.saveUserSession(
+                        userId = bestUserId,
+                        email = sessionStore.getCurrentEmail(),
+                        phone = finalPhone,
+                        authToken = data.authToken,
+                        fullName = sessionStore.getCurrentFullName()
                     )
                     emit(Resource.Success(domainUser, result.navigation, result.fieldErrors))
                 } else {

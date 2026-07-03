@@ -85,8 +85,13 @@ private val V2PrivacyBorder = Color(0x120A2415)
 
 private fun isValidEmail(value: String): Boolean {
     val emailRegex = "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}\$".toRegex()
-    return value.isNotBlank() && emailRegex.matches(value)
+    if (value.isBlank() || !emailRegex.matches(value)) return false
+    val lastDot = value.lastIndexOf('.')
+    if (lastDot == -1 || lastDot >= value.length - 2) return false
+    val tld = value.substring(lastDot + 1)
+    return tld.length in 2..6 && tld.all { it.isLetter() }
 }
+
 
 private fun formatDobDisplay(dobIso: String): String {
     return try {
@@ -872,8 +877,8 @@ private fun fieldColors(isError: Boolean, isPrefilled: Boolean, isValid: Boolean
         focusedBorderColor = borderColor,
         unfocusedBorderColor = borderColor,
         errorBorderColor = V2ErrorRed,
-        focusedContainerColor = if (isPrefilled) V2CreamTint else Color.White,
-        unfocusedContainerColor = if (isPrefilled) V2CreamTint else Color.White
+        focusedContainerColor = Color.White,
+        unfocusedContainerColor = Color.White
     )
 }
 

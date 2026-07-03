@@ -88,7 +88,17 @@ sealed class Screen {
         val folio: String?,
         val redemptionMode: String = "NORMAL"
     ) : Screen()
-    data class FundDetails(val isin: String, val userId: String, val goalId: String, val sipAmount: Double, val kycAttemptId: String = "", val investorId: String = "", val fromSipAmount: Boolean = false) : Screen()
+    data class FundDetails(
+        val isin: String,
+        val userId: String,
+        val goalId: String,
+        val sipAmount: Double,
+        val kycAttemptId: String = "",
+        val investorId: String = "",
+        val fromSipAmount: Boolean = false,
+        val frequency: String = "daily",
+        val installmentDay: Int? = null
+    ) : Screen()
     data class FundDetailsViewOnly(val isin: String, val userId: String, val goalId: String) : Screen()
     data class LumpsumFundDetails(val isin: String, val userId: String, val goalId: String, val lumpsumAmount: Double, val kycAttemptId: String = "", val investorId: String = "") : Screen()
     data class SipAmountV2(val userId: String, val kycAttemptId: String, val investorId: String, val goalId: String, val fromDashboard: Boolean = false, val isExistingInvestment: Boolean = false) : Screen()
@@ -917,6 +927,8 @@ fun App() {
                     kycAttemptId = screen.kycAttemptId,
                     investorId = screen.investorId,
                     fromSipAmount = screen.fromSipAmount,
+                    frequency = screen.frequency,
+                    installmentDay = screen.installmentDay,
                     onBackClick = { navigateBack() },
                     onSipCreated = { amount, nextScreen, mandate ->
                         // Refresh or navigate forward after SIP creation
@@ -1001,8 +1013,8 @@ fun App() {
                     },
                     onNavigateBack = { navigateBack() },
                     onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId)) },
-                    onNavigateToFundDetails = { userId, goalId, amt, kycId, invId ->
-                        navigateTo(Screen.FundDetails("", userId, goalId, amt, kycAttemptId = kycId, investorId = invId, fromSipAmount = true))
+                    onNavigateToFundDetails = { userId, goalId, amt, kycId, invId, freq, day ->
+                        navigateTo(Screen.FundDetails("", userId, goalId, amt, kycAttemptId = kycId, investorId = invId, fromSipAmount = true, frequency = freq, installmentDay = day))
                     }
                 )
             }
