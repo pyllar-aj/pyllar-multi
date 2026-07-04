@@ -131,6 +131,10 @@ class FundDetailsViewModel(
             when (resource) {
                 is Resource.Success -> {
                     _uiState.value = _uiState.value.copy(isSipCreating = false)
+                    try {
+                        sessionStore.saveValue("sip_frequency", "daily")
+                        sessionStore.saveValue("sip_installment_day", "")
+                    } catch (_: Exception) {}
                     finalResult = SipCreationResult.Success(
                         message = "SIP created successfully!",
                         nextScreen = resource.navigation?.nextScreen,
@@ -256,8 +260,10 @@ class FundDetailsViewModel(
                     _uiState.value = _uiState.value.copy(isSipCreating = false)
                     try {
                         sessionStore.saveValue("sip_amount", amount.toString())
+                        sessionStore.saveValue("sip_frequency", "monthly")
+                        sessionStore.saveValue("sip_installment_day", installmentDay?.toString() ?: "")
                     } catch (e: Exception) {
-                        platformLog("FundDetailsViewModel: ⚠️ Failed to save sip amount: ${e.message}")
+                        platformLog("FundDetailsViewModel: ⚠️ Failed to save sip values: ${e.message}")
                     }
                     finalResult = SipCreationResult.Success(
                         message = "Purchase plan created successfully!",

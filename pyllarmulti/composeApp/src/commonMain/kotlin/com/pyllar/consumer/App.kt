@@ -972,7 +972,7 @@ fun App() {
                                 paymentUrl = mandate.uri ?: "",
                                 paymentId = mandate.mandateId ?: 0L,
                                 paymentRef = mandate.finMandateId ?: 0L,
-                                goalId = if (!nextScreen.isNullOrBlank()) nextScreen else screen.goalId
+                                goalId = screen.goalId
                             ))
                         } else if (nextScreen != null) {
                             scope.launch {
@@ -1035,7 +1035,7 @@ fun App() {
                                 paymentUrl = mandate.uri ?: "",
                                 paymentId = mandate.mandateId ?: 0L,
                                 paymentRef = mandate.finMandateId ?: 0L,
-                                goalId = if (!nextScreen.isNullOrBlank()) nextScreen else screen.goalId
+                                goalId = screen.goalId
                             ))
                         } else {
                             navigateTo(Screen.InvestmentDashboard(screen.userId), clearStack = true)

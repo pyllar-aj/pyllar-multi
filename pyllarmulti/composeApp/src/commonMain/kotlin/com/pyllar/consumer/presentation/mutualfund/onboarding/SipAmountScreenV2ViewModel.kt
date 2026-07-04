@@ -114,8 +114,10 @@ class SipAmountScreenV2ViewModel(
                         platformLog("SipAmountScreenV2ViewModel: ✅ Success received")
                         try {
                             sessionStore.saveValue("sip_amount", amount.toString())
+                            sessionStore.saveValue("sip_frequency", "daily")
+                            sessionStore.saveValue("sip_installment_day", "")
                         } catch (e: Exception) {
-                            platformLog("SipAmountScreenV2ViewModel: ⚠️ Failed to save sip amount: ${e.message}")
+                            platformLog("SipAmountScreenV2ViewModel: ⚠️ Failed to save sip values: ${e.message}")
                         }
                         val mandateWrapper = result.data
                         val nextScreen = result.navigation?.nextScreen

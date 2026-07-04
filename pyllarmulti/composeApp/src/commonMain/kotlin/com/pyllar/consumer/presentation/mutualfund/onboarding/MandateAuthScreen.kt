@@ -46,6 +46,7 @@ import com.pyllar.consumer.util.platformLog
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.pyllar.consumer.util.*
+import com.pyllar.consumer.domain.storage.SessionStore
 import com.pyllar.consumer.presentation.ui.theme.V2SuccessGreen
 import com.pyllar.consumer.presentation.ui.theme.V2SubtleBorder
 import org.koin.compose.koinInject
@@ -70,6 +71,10 @@ fun MandateAuthScreen(
     val uiState by viewModel.uiState.collectAsState()
     val scope = rememberCoroutineScope()
     
+    val sessionStore: SessionStore = koinInject()
+    var sipFrequency by remember { mutableStateOf("daily") }
+    var sipInstallmentDay by remember { mutableStateOf("") }
+    
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     var upiAppClicked by remember { mutableStateOf(false) }
     
@@ -86,6 +91,13 @@ fun MandateAuthScreen(
     LaunchedEffect(Unit) {
         platformLog("MandateAuthScreen: \uD83D\uDCCB Received Parameters - mandateId: $mandateId, mandateRef: $mandateRef, mandateUrl: $mandateUrl")
         availableUpiApps = platformActions.getInstalledUpiApps()
+        try {
+            sipFrequency = sessionStore.getValue("sip_frequency") ?: "daily"
+            sipInstallmentDay = sessionStore.getValue("sip_installment_day") ?: ""
+            platformLog("MandateAuthScreen: Loaded sipFrequency='$sipFrequency', sipInstallmentDay='$sipInstallmentDay'")
+        } catch (e: Exception) {
+            platformLog("MandateAuthScreen: Failed to load sip frequency: ${e.message}")
+        }
     }
 
     LaunchedEffect(selectedTabIndex) {
@@ -162,7 +174,10 @@ fun MandateAuthScreen(
                                 progress = uiState.planSetupProgress,
                                 isPlanReady = uiState.isPlanReady,
                                 isPlanResponseResolved = uiState.planPollingResolved,
-                                goalType = goalType
+                                goalType = goalType,
+                                sipFrequency = sipFrequency,
+                                sipInstallmentDay = sipInstallmentDay,
+                                amount = amount
                             )
                         } else {
                             StatusDisplay(
@@ -329,10 +344,17 @@ private fun MoreUpiAppsBottomSheet(apps: List<UpiAppInfo>, onDismiss: () -> Unit
     }
 }
 
-
-
 @Composable
-private fun MandateApprovedWaitingContent(mandateUrl: String, progress: Int, isPlanReady: Boolean, isPlanResponseResolved: Boolean, goalType: GoalType) {
+private fun MandateApprovedWaitingContent(
+    mandateUrl: String,
+    progress: Int,
+    isPlanReady: Boolean,
+    isPlanResponseResolved: Boolean,
+    goalType: GoalType,
+    sipFrequency: String = "daily",
+    sipInstallmentDay: String = "",
+    amount: Double
+) {
     val accentColor = when (goalType) {
         GoalType.GOLD -> Color(0xFFC8860A)
         GoalType.SILVER -> Color(0xFF6B7280)
@@ -345,6 +367,51 @@ private fun MandateApprovedWaitingContent(mandateUrl: String, progress: Int, isP
     val lightBackground = V2SubtleBorder
     
     val sipStartDay = remember { getInvestmentStatus() }
+    val isMonthly = sipFrequency.lowercase() == "monthly"
+    val amountVal = amount.toString()
+
+    val step2Title = if (isPlanReady) {
+        "Saving plan created"
+    } else {
+        if (isMonthly) "Setting up your monthly plan" else "Setting up your saving plan"
+    }
+
+    val step2Subtitle = if (isPlanReady) {
+        if (isMonthly) "₹$amountVal/month saving is registered" else "₹$amountVal/day saving is registered"
+    } else {
+        if (isMonthly) "Registering ₹$amountVal/month saving with your bank" else "Registering ₹$amountVal/day saving with your bank"
+    }
+
+    val step3Title = if (isPlanReady) {
+        if (isMonthly) "Monthly saving is ready!" else "Daily saving is ready!"
+    } else {
+        if (isMonthly) "Monthly saving ready" else "Daily saving ready"
+    }
+
+    val step3Subtitle = if (isMonthly) {
+        val dayText = if (sipInstallmentDay.isNotBlank()) {
+            try {
+                val day = sipInstallmentDay.toInt()
+                val suffix = ordinalSuffix(day)
+                "$day$suffix of every month"
+            } catch (_: Exception) {
+                "chosen day of every month"
+            }
+        } else {
+            "chosen day of every month"
+        }
+        if (isPlanReady) {
+            "Your monthly SIP of ₹$amountVal will start on $dayText"
+        } else {
+            "First debit of ₹$amountVal will happen on $dayText"
+        }
+    } else {
+        if (isPlanReady) {
+            if (sipStartDay == "Tomorrow") "First ₹$amountVal deducted tomorrow" else "First ₹$amountVal deducted on $sipStartDay"
+        } else {
+            if (sipStartDay == "Tomorrow") "First ₹$amountVal deduction pending — first debit tomorrow" else "First ₹$amountVal deduction pending — first debit on $sipStartDay"
+        }
+    }
 
     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Card(
@@ -353,7 +420,13 @@ private fun MandateApprovedWaitingContent(mandateUrl: String, progress: Int, isP
             border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
         ) {
             Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Text("Setup in Progress...", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                Text(
+                    text = if (isMonthly) "Setting up your Pyllar saving..." else "Setup in Progress...",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
                 
                 LinearProgressIndicator(
                     progress = { progress / 100f },
@@ -371,11 +444,22 @@ private fun MandateApprovedWaitingContent(mandateUrl: String, progress: Int, isP
 
                 Divider()
 
-                WaitingStepRow("SIP Approved", "Your daily SIP is authorized.", true, true, accentColor)
-                WaitingStepRow("Order Placed", "Sent to the fund house.", isPlanReady, true, accentColor)
-                WaitingStepRow("SIP Starts", "Expected by $sipStartDay.", isPlanReady, false, accentColor)
+                WaitingStepRow("SIP Approved", if (isMonthly) "Your monthly SIP is authorized." else "Your daily SIP is authorized.", true, true, accentColor)
+                WaitingStepRow(step2Title, step2Subtitle, isPlanReady, true, accentColor)
+                WaitingStepRow(step3Title, step3Subtitle, isPlanReady, false, accentColor)
             }
         }
+    }
+}
+
+private fun ordinalSuffix(value: Int): String {
+    return if (value in 11..13) {
+        "th"
+    } else when (value % 10) {
+        1 -> "st"
+        2 -> "nd"
+        3 -> "rd"
+        else -> "th"
     }
 }
 

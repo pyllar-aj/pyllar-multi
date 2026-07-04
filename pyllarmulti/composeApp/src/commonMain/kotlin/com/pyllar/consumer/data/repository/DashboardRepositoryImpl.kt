@@ -120,9 +120,9 @@ class DashboardRepositoryImpl(
         emit(result)
     }
 
-    override fun pollActionStatus(request: com.pyllar.consumer.data.remote.requests.ActionPollRequest): Flow<Resource<Unit>> = flow {
+    override fun pollActionStatus(request: com.pyllar.consumer.data.remote.requests.ActionPollRequest): Flow<Resource<Boolean>> = flow {
         emit(Resource.Loading())
-        val result = apiClient.post<Unit, com.pyllar.consumer.data.remote.requests.ActionPollRequest>(
+        val result = apiClient.post<Boolean, com.pyllar.consumer.data.remote.requests.ActionPollRequest>(
             path = "api/invDashboard/poll-as",
             body = request
         ) {
