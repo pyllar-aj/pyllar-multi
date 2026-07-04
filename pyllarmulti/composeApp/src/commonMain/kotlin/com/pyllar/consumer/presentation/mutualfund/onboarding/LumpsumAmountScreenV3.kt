@@ -418,42 +418,6 @@ fun LumpsumAmountScreenV3(
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.Bottom
                                     ) {
-                                        Column {
-                                            Text(
-                                                text = "INVESTED",
-                                                fontSize = 12.sp,
-                                                fontWeight = FontWeight.SemiBold,
-                                                letterSpacing = 0.6.sp,
-                                                color = Color.White.copy(alpha = 0.6f)
-                                            )
-                                            Text(
-                                                text = formatRupeesShort(navInvestedVal),
-                                                fontSize = 15.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = Color.White.copy(alpha = 0.85f)
-                                            )
-                                            Spacer(modifier = Modifier.height(2.dp))
-                                            Text(
-                                                text = "on ${pastPerformance.startLabel}",
-                                                fontSize = 11.sp,
-                                                fontWeight = FontWeight.Medium,
-                                                color = Color.White.copy(alpha = 0.5f)
-                                            )
-                                            Spacer(modifier = Modifier.height(12.dp))
-                                            Text(
-                                                text = "RETURNS",
-                                                fontSize = 12.sp,
-                                                fontWeight = FontWeight.SemiBold,
-                                                letterSpacing = 0.6.sp,
-                                                color = Color.White.copy(alpha = 0.6f)
-                                            )
-                                            Text(
-                                                text = formatRupeesShort(navGainVal),
-                                                fontSize = 15.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = Color(0xFF6FCF97)
-                                            )
-                                        }
                                         Column(horizontalAlignment = Alignment.End) {
                                             Text(
                                                 text = "WORTH TODAY",

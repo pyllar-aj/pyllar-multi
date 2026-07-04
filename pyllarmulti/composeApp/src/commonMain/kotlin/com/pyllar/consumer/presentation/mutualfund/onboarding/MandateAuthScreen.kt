@@ -89,18 +89,39 @@ fun MandateAuthScreen(
     val goalType = remember(goalId) { identifyGoalType(goalId) }
 
     LaunchedEffect(Unit) {
-        platformLog("MandateAuthScreen: \uD83D\uDCCB Received Parameters - mandateId: $mandateId, mandateRef: $mandateRef, mandateUrl: $mandateUrl")
+        platformLog("MandateAuthScreen: 📋 Received Parameters - mandateId: $mandateId, mandateRef: $mandateRef, mandateUrl: $mandateUrl")
         availableUpiApps = platformActions.getInstalledUpiApps()
         try {
             sipFrequency = sessionStore.getValue("sip_frequency") ?: "daily"
             sipInstallmentDay = sessionStore.getValue("sip_installment_day") ?: ""
             platformLog("MandateAuthScreen: Loaded sipFrequency='$sipFrequency', sipInstallmentDay='$sipInstallmentDay'")
+            
+            val storedTabIndex = sessionStore.getValue("selected_tab_index_${mandateId}")
+            if (storedTabIndex != null) {
+                selectedTabIndex = storedTabIndex.toInt()
+            }
+            
+            val mandateStatusVal = sessionStore.getValue("mandate_status_${mandateId}")
+            if (mandateStatusVal == "APPROVED") {
+                viewModel.startMandateSync(userId, mandateId, mandateRef)
+            } else {
+                val clicked = sessionStore.getValue("upi_app_clicked_${mandateId}") == "true"
+                if (clicked) {
+                    upiAppClicked = true
+                    viewModel.startMandateSync(userId, mandateId, mandateRef)
+                }
+            }
         } catch (e: Exception) {
-            platformLog("MandateAuthScreen: Failed to load sip frequency: ${e.message}")
+            platformLog("MandateAuthScreen: Failed to load state: ${e.message}")
         }
     }
 
     LaunchedEffect(selectedTabIndex) {
+        scope.launch {
+            try {
+                sessionStore.saveValue("selected_tab_index_${mandateId}", selectedTabIndex.toString())
+            } catch (_: Exception) {}
+        }
         if (selectedTabIndex == 1 && mandateId > 0L && mandateRef > 0L) {
             viewModel.startMandateSync(userId, mandateId, mandateRef)
         } else if (selectedTabIndex == 0 && !upiAppClicked) {
@@ -110,6 +131,11 @@ fun MandateAuthScreen(
 
     LaunchedEffect(uiState.mandateStatus) {
         if (uiState.mandateStatus == MandateStatus.APPROVED) {
+            scope.launch {
+                try {
+                    sessionStore.saveValue("mandate_status_${mandateId}", "APPROVED")
+                } catch (_: Exception) {}
+            }
             delay(30_000L)
             is30SecondsPassed = true
         }
@@ -274,6 +300,11 @@ fun MandateAuthScreen(
                                 apps = availableUpiApps,
                                 onAppClick = { app ->
                                     upiAppClicked = true
+                                    scope.launch {
+                                        try {
+                                            sessionStore.saveValue("upi_app_clicked_${mandateId}", "true")
+                                        } catch (_: Exception) {}
+                                    }
                                     platformActions.openUpiUrl(mandateUrl, app.packageName)
                                     scope.launch {
                                         delay(1000L) // Shorter delay before showing loading
@@ -298,6 +329,11 @@ fun MandateAuthScreen(
             onAppClick = { app ->
                 showMoreUpiAppsSheet = false
                 upiAppClicked = true
+                scope.launch {
+                    try {
+                        sessionStore.saveValue("upi_app_clicked_${mandateId}", "true")
+                    } catch (_: Exception) {}
+                }
                 platformActions.openUpiUrl(mandateUrl, app.packageName)
                 scope.launch {
                     delay(1000L)

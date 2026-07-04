@@ -546,43 +546,6 @@ fun SipAmountScreenV3(
                                                 }
                                             }
                                         }
-                                        Spacer(modifier = Modifier.height(15.dp))
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
-                                            horizontalArrangement = Arrangement.spacedBy(16.dp)
-                                        ) {
-                                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                                Text(
-                                                    text = "INVESTED",
-                                                    fontSize = 9.sp,
-                                                    fontWeight = FontWeight.SemiBold,
-                                                    letterSpacing = 0.6.sp,
-                                                    color = Color.White.copy(alpha = 0.35f)
-                                                )
-                                                Text(
-                                                    text = formatRupeesShort(navInvestedVal),
-                                                    fontSize = 14.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = Color.White.copy(alpha = 0.75f)
-                                                )
-                                            }
-                                            Box(modifier = Modifier.fillMaxHeight().width(1.dp).background(Color.White.copy(alpha = 0.08f)))
-                                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                                Text(
-                                                    text = "PROFIT",
-                                                    fontSize = 9.sp,
-                                                    fontWeight = FontWeight.SemiBold,
-                                                    letterSpacing = 0.6.sp,
-                                                    color = Color.White.copy(alpha = 0.35f)
-                                                )
-                                                Text(
-                                                    text = formatRupeesShort(navGainVal),
-                                                    fontSize = 14.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = Color(0xFF6FCF97)
-                                                )
-                                            }
-                                        }
                                         Spacer(modifier = Modifier.height(12.dp))
                                         Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(theme.dividerColor))
                                         Spacer(modifier = Modifier.height(12.dp))
@@ -1420,8 +1383,12 @@ private fun FundDetailsBottomSheet(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true
+    )
     ModalBottomSheet(
         onDismissRequest = onDismiss,
+        sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
     ) {
@@ -1523,7 +1490,7 @@ private fun FundDetailsBottomSheet(
                     if (isSheetLoading) {
                         CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
                     } else {
-                        Text(text = "Confirm & Setup Mandate", fontWeight = FontWeight.Bold)
+                        Text(text = "Confirm", fontWeight = FontWeight.Bold)
                     }
                 }
             }
