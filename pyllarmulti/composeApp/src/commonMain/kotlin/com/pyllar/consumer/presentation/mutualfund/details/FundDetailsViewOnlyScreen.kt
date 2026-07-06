@@ -20,6 +20,20 @@ import com.pyllar.consumer.analytics.PlatformAnalyticsLogger
 import org.jetbrains.compose.resources.stringResource
 import pyllar.composeapp.generated.resources.*
 
+// ── V2 visual language: cream surface, dark bronze ink, luxury gold accents ──
+private val V2Cream = Color(0xFFFBF9F4)
+private val V2CreamTint = Color(0xFFF5EEDB)
+private val V2BronzeInk = Color(0xFF3E2723)
+private val V2BronzeMuted = Color(0xFF6D4C41)
+private val V2GoldDeep = Color(0xFF8B6B25)
+private val V2GoldAccent = Color(0xFFD4AF37)
+private val V2Obsidian = Color(0xFF0A2415)
+private val V2LinkGreen = Color(0xFF1A7A42)
+private val V2VolatilityRed = Color(0xFFC62828)
+private val V2SuccessGreen = Color(0xFF2E7D32)
+private val V2FieldBorder = Color(0xFFD7CCC8)
+private val V2CardBorder = Color(0xFFEFEBE9)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FundDetailsViewOnlyScreen(
@@ -68,19 +82,50 @@ fun FundDetailsViewOnlyScreen(
         )
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                modifier = Modifier.padding(top = 32.dp),
-                title = { Text(state.fundDetails?.fundName ?: "Fund Details", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, "Back")
-                    }
-                }
-            )
-        }
-    ) { paddingValues ->
+    val v2ColorScheme = MaterialTheme.colorScheme.copy(
+        background = V2Cream,
+        surface = V2Cream,
+        surfaceVariant = Color.White,
+        inverseSurface = Color.White, // for cardBackground
+        onSurface = V2BronzeInk,
+        onSurfaceVariant = V2BronzeMuted,
+        primary = Color(0xFF26533E), // Dark forest green
+        primaryContainer = Color.White,
+        onPrimaryContainer = V2BronzeInk
+    )
+
+    MaterialTheme(colorScheme = v2ColorScheme) {
+        Scaffold(
+            containerColor = V2Cream,
+            topBar = {
+                TopAppBar(
+                    modifier = Modifier.padding(top = 32.dp),
+                    title = {
+                        Text(
+                            text = state.fundDetails?.fundName ?: "Fund Details",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = V2BronzeInk,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onBackClick) {
+                            Icon(
+                                imageVector = Icons.Default.ArrowBack,
+                                contentDescription = "Back",
+                                tint = V2BronzeInk
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = V2Cream,
+                        titleContentColor = V2BronzeInk,
+                        navigationIconContentColor = V2BronzeInk
+                    )
+                )
+            }
+        ) { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -131,7 +176,7 @@ fun FundDetailsViewOnlyScreen(
                                 text = stringResource(Res.string.riskometer),
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.Black
+                                color = V2BronzeInk
                             )
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally
@@ -145,7 +190,7 @@ fun FundDetailsViewOnlyScreen(
                                     text = riskLevel.label.replace("\n", " "),
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.onSurface
+                                    color = V2BronzeInk
                                 )
                             }
                         }
@@ -164,7 +209,7 @@ fun FundDetailsViewOnlyScreen(
                                 Text(
                                     text = stringResource(Res.string.scheme_documents),
                                     style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.primary,
+                                    color = V2LinkGreen,
                                     fontWeight = FontWeight.Medium,
                                     modifier = Modifier.clickable {
                                         uriHandler.openUri(details.schemeDocumentUrl)
@@ -177,7 +222,7 @@ fun FundDetailsViewOnlyScreen(
                             Text(
                                 text = stringResource(Res.string.disclaimer),
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = V2BronzeMuted,
                                 modifier = Modifier
                                     .clickable { showDisclaimerDialog = true }
                                     .padding(4.dp)
@@ -188,4 +233,5 @@ fun FundDetailsViewOnlyScreen(
             }
         }
     }
+}
 }

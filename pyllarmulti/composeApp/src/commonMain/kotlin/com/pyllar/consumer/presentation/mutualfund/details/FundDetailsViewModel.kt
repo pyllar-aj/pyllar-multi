@@ -294,7 +294,12 @@ class FundDetailsViewModel(
 
     private fun sampleChartData(data: List<NavChartDataDto>?, period: String): List<NavChartDataDto> {
         if (data.isNullOrEmpty()) return emptyList()
-        val targetPoints = 12
+        val targetPoints = when (period) {
+            "1Y" -> 60
+            "3Y" -> 180
+            "5Y" -> 300
+            else -> 150
+        }
         if (data.size <= targetPoints) return data
         val step = (data.size - 1).toFloat() / (targetPoints - 1)
         val sampled = mutableListOf<NavChartDataDto>()

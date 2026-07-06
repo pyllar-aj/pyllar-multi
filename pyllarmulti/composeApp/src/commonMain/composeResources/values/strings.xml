@@ -613,5 +613,6 @@
     <string name="user_info_btn_confirm_continue">Confirm &amp; continue</string>
     <string name="user_info_pan_empty_error">Please enter your PAN number</string>
     <string name="user_info_pan_incomplete_error">Please enter a valid 10-digit PAN number</string>
+    <string name="amount_cannot_exceed">Amount cannot exceed %1$s</string>
 </resources>
 

@@ -38,6 +38,20 @@ import com.pyllar.consumer.presentation.dashboard.InvestmentDashboardV2ViewModel
 import com.pyllar.consumer.presentation.dashboard.KycPendingBottomSheet
 import com.pyllar.consumer.presentation.ui.theme.*
 
+// ── V2 visual language: cream surface, dark bronze ink, luxury gold accents ──
+private val V2Cream = Color(0xFFFBF9F4)
+private val V2CreamTint = Color(0xFFF5EEDB)
+private val V2BronzeInk = Color(0xFF3E2723)
+private val V2BronzeMuted = Color(0xFF6D4C41)
+private val V2GoldDeep = Color(0xFF8B6B25)
+private val V2GoldAccent = Color(0xFFD4AF37)
+private val V2Obsidian = Color(0xFF0A2415)
+private val V2LinkGreen = Color(0xFF1A7A42)
+private val V2VolatilityRed = Color(0xFFC62828)
+private val V2SuccessGreen = Color(0xFF2E7D32)
+private val V2FieldBorder = Color(0xFFD7CCC8)
+private val V2CardBorder = Color(0xFFEFEBE9)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FundDetailsScreen(
@@ -91,17 +105,48 @@ fun FundDetailsScreen(
         )
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(state.fundDetails?.fundName ?: "Fund Details", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, "Back")
-                    }
-                }
-            )
-        },
+    val v2ColorScheme = MaterialTheme.colorScheme.copy(
+        background = V2Cream,
+        surface = V2Cream,
+        surfaceVariant = Color.White,
+        inverseSurface = Color.White, // for cardBackground
+        onSurface = V2BronzeInk,
+        onSurfaceVariant = V2BronzeMuted,
+        primary = Color(0xFF26533E), // Dark forest green
+        primaryContainer = Color.White,
+        onPrimaryContainer = V2BronzeInk
+    )
+
+    MaterialTheme(colorScheme = v2ColorScheme) {
+        Scaffold(
+            containerColor = V2Cream,
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = state.fundDetails?.fundName ?: "Fund Details",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = V2BronzeInk,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onBackClick) {
+                            Icon(
+                                imageVector = Icons.Default.ArrowBack,
+                                contentDescription = "Back",
+                                tint = V2BronzeInk
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = V2Cream,
+                        titleContentColor = V2BronzeInk,
+                        navigationIconContentColor = V2BronzeInk
+                    )
+                )
+            },
         bottomBar = {
             if (fromSipAmount) {
                 FundDetailsBottomBar(
@@ -109,6 +154,9 @@ fun FundDetailsScreen(
                     isFetching = state.isLoading,
                     isEnabled = state.fundDetails != null,
                     sipAmount = sipAmount,
+                    accountNumber = state.bankAccountNumber,
+                    ifscCode = state.bankIfscCode,
+                    bankName = state.bankName,
                     onInvestClick = {
                         if (sipAmount <= 0) return@FundDetailsBottomBar
                         
@@ -173,7 +221,6 @@ fun FundDetailsScreen(
                             .padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(24.dp)
                     ) {
-                        Spacer(modifier = Modifier.height(10.dp))
                         FundHeader(details.fundName ?: "", details.category ?: "")
                         
                         FundChartSection(
@@ -195,6 +242,7 @@ fun FundDetailsScreen(
             }
         }
     }
+}
 }
 
 @Composable
@@ -244,27 +292,66 @@ fun FundDetailsBottomBar(
     isFetching: Boolean,
     isEnabled: Boolean,
     sipAmount: Double,
+    accountNumber: String?,
+    ifscCode: String?,
+    bankName: String?,
     onInvestClick: () -> Unit
 ) {
-    Surface(tonalElevation = 4.dp, shadowElevation = 8.dp) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+    Surface(
+        tonalElevation = 4.dp, 
+        shadowElevation = 8.dp,
+        color = V2Cream
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text("SIP Amount", style = MaterialTheme.typography.labelSmall, modifier = Modifier.alpha(0.6f))
-                Text("₹$sipAmount", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            // Bank Details (if available)
+            if (accountNumber != null || ifscCode != null) {
+                BankDetailsCard(
+                    accountNumber = accountNumber,
+                    ifscCode = ifscCode,
+                    bankName = bankName
+                )
             }
-            Button(
-                onClick = onInvestClick,
-                modifier = Modifier.height(56.dp).weight(1.5f),
-                enabled = !isLoading && !isFetching && isEnabled
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                if (isLoading || isFetching) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
-                } else {
-                    Text("Invest Now", fontWeight = FontWeight.Bold)
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("SIP Amount", style = MaterialTheme.typography.labelSmall, color = V2BronzeMuted)
+                    Text("₹$sipAmount", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = V2BronzeInk)
+                }
+                Box(
+                    modifier = Modifier
+                        .weight(1.5f)
+                        .background(Brush.linearGradient(listOf(V2GoldAccent, V2GoldDeep)), RoundedCornerShape(50))
+                        .padding(1.5.dp)
+                ) {
+                    Button(
+                        onClick = onInvestClick,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        enabled = !isLoading && !isFetching && isEnabled,
+                        shape = RoundedCornerShape(50),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = V2Obsidian,
+                            contentColor = V2Cream,
+                            disabledContainerColor = V2Obsidian,
+                            disabledContentColor = V2Cream
+                        )
+                    ) {
+                        if (isLoading || isFetching) {
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), color = V2Cream)
+                        } else {
+                            Text("Invest Now", fontWeight = FontWeight.Bold)
+                        }
+                    }
                 }
             }
         }
@@ -315,9 +402,19 @@ fun FundChartSection(
     state: FundDetailsState,
     onPeriodSelected: (String) -> Unit
 ) {
-    val positiveColor = V2SuccessGreen
-    val negativeColor = Color(0xFFF44336)
-    val lineColor = if (state.isPositiveReturn) positiveColor else negativeColor
+    val category = state.fundDetails?.category?.uppercase() ?: ""
+    val fundName = state.fundDetails?.fundName?.uppercase() ?: ""
+    val isGold = category.contains("GOLD") || fundName.contains("GOLD")
+    val isSilver = category.contains("SILVER") || fundName.contains("SILVER")
+    
+    val positiveColor = when {
+        isGold -> Color(0xFFD4AF37) // Gold
+        isSilver -> Color(0xFF6A9AB0) // Blue-grey silverish
+        else -> V2SuccessGreen
+    }
+    val negativeColor = V2VolatilityRed  // Red
+    val lineColor = if (state.isPositiveReturn || isGold || isSilver) positiveColor else negativeColor
+    val statusColor = if (state.isPositiveReturn) V2SuccessGreen else V2VolatilityRed
 
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Row(
@@ -347,7 +444,7 @@ fun FundChartSection(
                 "5Y" -> returns.fiveYear
                 else -> 0.0
             } ?: 0.0
-            val returnColor = if (returnVal >= 0) positiveColor else negativeColor
+            val returnColor = if (returnVal >= 0) V2SuccessGreen else V2VolatilityRed
             val sign = if (returnVal >= 0) "+" else ""
             
             Text(
@@ -407,7 +504,7 @@ fun FundChartSection(
                             text = "₹${formatDecimal(currentNav)}",
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
-                            color = lineColor
+                            color = statusColor
                         )
                     }
                 }
@@ -451,20 +548,23 @@ fun SimpleNavChart(
             val minNav = reversedData.minOf { it.nav }.toFloat()
             val maxNav = reversedData.maxOf { it.nav }.toFloat()
             val navRange = maxNav - minNav
+
+            val minYVal = if (navRange > 0) (minNav - navRange * 0.2f) else (minNav * 0.8f)
+            val maxYVal = if (navRange > 0) (maxNav + navRange * 0.05f) else (maxNav * 1.02f)
+            val yRange = maxYVal - minYVal
             
             val width = size.width
             val height = size.height
             val padding = 8.dp.toPx()
             
-            val usableWidth = width - (2 * padding)
             val usableHeight = height - (2 * padding)
 
             val myPath = Path()
             val fillPath = Path()
 
             val points = reversedData.mapIndexed { index, point ->
-                val x = padding + (index.toFloat() / (reversedData.size - 1)) * usableWidth
-                val y = padding + usableHeight - ((point.nav.toFloat() - minNav) / navRange.coerceAtLeast(0.1f)) * usableHeight
+                val x = (index.toFloat() / (reversedData.size - 1)) * width
+                val y = padding + usableHeight - ((point.nav.toFloat() - minYVal) / yRange.coerceAtLeast(0.1f)) * usableHeight
                 Offset(x, y)
             }
 
@@ -500,8 +600,8 @@ fun SimpleNavChart(
             )
 
             touchX?.let { tx ->
-                val relativeX = tx - padding
-                val index = (relativeX / usableWidth * (reversedData.size - 1))
+                val relativeX = tx
+                val index = (relativeX / width * (reversedData.size - 1))
                     .roundToInt()
                     .coerceIn(0, reversedData.size - 1)
                 

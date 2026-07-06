@@ -231,17 +231,33 @@ fun WithdrawAmountScreen(
                     shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(containerColor = V2SubtleBorder)
                 ) {
-                    Row(
+                    Column(
                         modifier = Modifier.padding(16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text("Available to withdraw ", style = MaterialTheme.typography.bodyMedium)
-                        Text(
-                            "₹${formatIndian(withdrawableAmount)}", 
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                            color = V2SuccessGreen
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("Available to withdraw ", style = MaterialTheme.typography.bodyMedium)
+                            Text(
+                                "₹${formatIndian(withdrawableAmount)}", 
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = V2SuccessGreen
+                            )
+                        }
+
+                        if (withdrawalAmount.isNotBlank() && !withdrawAll) {
+                            val enteredAmount = withdrawalAmount.toDoubleOrNull() ?: 0.0
+                            if (enteredAmount > withdrawableAmount) {
+                                Text(
+                                    text = org.jetbrains.compose.resources.stringResource(Res.string.amount_cannot_exceed, "₹${formatIndian(withdrawableAmount)}"),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
                     }
                 }
 

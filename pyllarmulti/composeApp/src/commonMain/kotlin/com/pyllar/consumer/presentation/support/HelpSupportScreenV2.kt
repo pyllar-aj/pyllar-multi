@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontStyle
@@ -37,6 +38,20 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import pyllar.composeapp.generated.resources.Res
 import pyllar.composeapp.generated.resources.*
+
+// ── V2 visual language: cream surface, dark bronze ink, luxury gold accents ──
+private val V2Cream = Color(0xFFFBF9F4)
+private val V2CreamTint = Color(0xFFF5EEDB)
+private val V2BronzeInk = Color(0xFF3E2723)
+private val V2BronzeMuted = Color(0xFF6D4C41)
+private val V2GoldDeep = Color(0xFF8B6B25)
+private val V2GoldAccent = Color(0xFFD4AF37)
+private val V2Obsidian = Color(0xFF0A2415)
+private val V2LinkGreen = Color(0xFF1A7A42)
+private val V2VolatilityRed = Color(0xFFC62828)
+private val V2SuccessGreen = Color(0xFF2E7D32)
+private val V2FieldBorder = Color(0xFFD7CCC8)
+private val V2CardBorder = Color(0xFFEFEBE9)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,215 +86,232 @@ fun HelpSupportScreenV2(
         index // header section is at this index
     }
 
-    Scaffold(
-        modifier = Modifier.statusBarsPadding(),
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = stringResource(Res.string.help_support),
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = rememberDebouncedClick {
-                        PlatformAnalyticsLogger.logEvent(
-                            "help_support_close_clicked_v2",
-                            mapOf(
-                                "screen" to "help_support_v2",
-                                "show_kyc_help" to showKycHelp,
-                                "show_bank_help" to showBankHelp,
-                                "show_only_kyc_info" to showOnlyKycInfo
-                            )
+    val v2ColorScheme = MaterialTheme.colorScheme.copy(
+        background = V2Cream,
+        surface = V2Cream,
+        surfaceVariant = Color.White,
+        inverseSurface = Color.White, // for cardBackground
+        onSurface = V2BronzeInk,
+        onSurfaceVariant = V2BronzeMuted,
+        primary = Color(0xFF26533E), // Dark forest green
+        primaryContainer = Color.White,
+        onPrimaryContainer = V2BronzeInk
+    )
+
+    MaterialTheme(colorScheme = v2ColorScheme) {
+        Scaffold(
+            modifier = Modifier.statusBarsPadding(),
+            containerColor = V2Cream,
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = stringResource(Res.string.help_support),
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                            color = V2BronzeInk
                         )
-                        onClose()
-                    }) {
-                        Icon(
-                            imageVector = Icons.Filled.Close,
-                            contentDescription = "Close"
-                        )
-                    }
-                },
-                actions = {
-                    if ((showKycHelp || showBankHelp) && !showOnlyKycInfo) {
-                        TextButton(onClick = rememberDebouncedClick {
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = rememberDebouncedClick {
                             PlatformAnalyticsLogger.logEvent(
-                                "help_support_chat_with_us_clicked_v2",
+                                "help_support_close_clicked_v2",
                                 mapOf(
                                     "screen" to "help_support_v2",
                                     "show_kyc_help" to showKycHelp,
-                                    "show_bank_help" to showBankHelp
+                                    "show_bank_help" to showBankHelp,
+                                    "show_only_kyc_info" to showOnlyKycInfo
                                 )
                             )
-                            scope.launch {
-                                listState.animateScrollToItem(supportCategoriesIndex)
-                            }
+                            onClose()
                         }) {
-                            Text(
-                                text = stringResource(Res.string.chat_with_us),
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.primary
+                            Icon(
+                                imageVector = Icons.Filled.Close,
+                                contentDescription = "Close",
+                                tint = V2BronzeInk
                             )
                         }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White
+                    },
+                    actions = {
+                        if ((showKycHelp || showBankHelp) && !showOnlyKycInfo) {
+                            TextButton(onClick = rememberDebouncedClick {
+                                PlatformAnalyticsLogger.logEvent(
+                                    "help_support_chat_with_us_clicked_v2",
+                                    mapOf(
+                                        "screen" to "help_support_v2",
+                                        "show_kyc_help" to showKycHelp,
+                                        "show_bank_help" to showBankHelp
+                                    )
+                                )
+                                scope.launch {
+                                    listState.animateScrollToItem(supportCategoriesIndex)
+                                }
+                            }) {
+                                Text(
+                                    text = stringResource(Res.string.chat_with_us),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = Color(0xFF26533E)
+                                )
+                            }
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = V2Cream
+                    )
                 )
-            )
-        }
-    ) { paddingValues ->
-        LazyColumn(
-            state = listState,
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.White)
-                .padding(paddingValues),
-            contentPadding = PaddingValues(
-                start = 16.dp,
-                top = 16.dp,
-                end = 16.dp,
-                bottom = 16.dp
-            ),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            // KYC Help Information Section (only shown when opened from PreVerificationScreen)
-            if (showKycHelp) {
-                item {
-                    KycHelpInformationCardV2()
-                }
-                item {
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
             }
-
-            // Bank Account Help Information Section (only shown when opened from BankDetailsScreen)
-            if (showBankHelp) {
-                item {
-                    BankHelpInformationCardV2()
-                }
-                item {
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-            }
-
-            // Only show support categories and chat options if not in read-only mode
-            if (!showOnlyKycInfo) {
-                item(key = supportCategoriesKey) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = stringResource(Res.string.choose_query_chat),
-                            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold, fontSize = 24.sp),
-                            color = MaterialTheme.colorScheme.primary,
-                            textAlign = TextAlign.Center
-                        )
+        ) { paddingValues ->
+            LazyColumn(
+                state = listState,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(V2Cream)
+                    .padding(paddingValues),
+                contentPadding = PaddingValues(
+                    start = 16.dp,
+                    top = 16.dp,
+                    end = 16.dp,
+                    bottom = 16.dp
+                ),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // KYC Help Information Section (only shown when opened from PreVerificationScreen)
+                if (showKycHelp) {
+                    item {
+                        KycHelpInformationCardV2()
+                    }
+                    item {
+                        Spacer(modifier = Modifier.height(8.dp))
                     }
                 }
 
-                item {
-                    Spacer(modifier = Modifier.height(8.dp))
+                // Bank Account Help Information Section (only shown when opened from BankDetailsScreen)
+                if (showBankHelp) {
+                    item {
+                        BankHelpInformationCardV2()
+                    }
+                    item {
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
                 }
 
-                item {
-                    SupportCategoryCardV2(
-                        title = stringResource(Res.string.kyc_verification),
-                        description = stringResource(Res.string.help_support_kyc_description),
-                        onClick = {
-                            PlatformAnalyticsLogger.logEvent(
-                                "help_support_category_clicked_v2",
-                                mapOf(
-                                    "category" to "kyc_verification",
-                                    "screen" to "help_support_v2"
-                                )
-                            )
-                            selectedTopic = "KYC Verification"
-                        }
-                    )
-                }
-
-                item {
-                    SupportCategoryCardV2(
-                        title = stringResource(Res.string.bank_account),
-                        description = stringResource(Res.string.help_support_bank_description),
-                        onClick = {
-                            PlatformAnalyticsLogger.logEvent(
-                                "help_support_category_clicked_v2",
-                                mapOf(
-                                    "category" to "bank_account",
-                                    "screen" to "help_support_v2"
-                                )
-                            )
-                            selectedTopic = "Bank Account"
-                        }
-                    )
-                }
-
-                item {
-                    SupportCategoryCardV2(
-                        title = stringResource(Res.string.sip_transactions),
-                        description = stringResource(Res.string.help_support_sip_description),
-                        onClick = {
-                            PlatformAnalyticsLogger.logEvent(
-                                "help_support_category_clicked_v2",
-                                mapOf(
-                                    "category" to "sip_transactions",
-                                    "screen" to "help_support_v2"
-                                )
-                            )
-                            selectedTopic = "SIP Transactions"
-                        }
-                    )
-                }
-
-                item {
-                    SupportCategoryCardV2(
-                        title = stringResource(Res.string.redemption),
-                        description = stringResource(Res.string.help_support_redemption_description),
-                        onClick = {
-                            PlatformAnalyticsLogger.logEvent(
-                                "help_support_category_clicked_v2",
-                                mapOf(
-                                    "category" to "redemption",
-                                    "screen" to "help_support_v2"
-                                )
-                            )
-                            selectedTopic = "Redemption"
-                        }
-                    )
-                }
-
-                item {
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-
-                // WhatsApp Support Section
-                item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-                        shape = RoundedCornerShape(12.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                    ) {
+                // Only show support categories and chat options if not in read-only mode
+                if (!showOnlyKycInfo) {
+                    item(key = supportCategoriesKey) {
                         Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Text(
-                                text = stringResource(Res.string.whatsapp_support),
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                                text = stringResource(Res.string.choose_query_chat),
+                                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold, fontSize = 24.sp),
+                                color = MaterialTheme.colorScheme.primary,
+                                textAlign = TextAlign.Center
                             )
-                            Text(
-                                text = stringResource(Res.string.whatsapp_support_description),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
-                            )
+                        }
+                    }
+
+                    item {
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+
+                    item {
+                        SupportCategoryCardV2(
+                            title = stringResource(Res.string.kyc_verification),
+                            description = stringResource(Res.string.help_support_kyc_description),
+                            onClick = {
+                                PlatformAnalyticsLogger.logEvent(
+                                    "help_support_category_clicked_v2",
+                                    mapOf(
+                                        "category" to "kyc_verification",
+                                        "screen" to "help_support_v2"
+                                    )
+                                )
+                                selectedTopic = "KYC Verification"
+                            }
+                        )
+                    }
+
+                    item {
+                        SupportCategoryCardV2(
+                            title = stringResource(Res.string.bank_account),
+                            description = stringResource(Res.string.help_support_bank_description),
+                            onClick = {
+                                PlatformAnalyticsLogger.logEvent(
+                                    "help_support_category_clicked_v2",
+                                    mapOf(
+                                        "category" to "bank_account",
+                                        "screen" to "help_support_v2"
+                                    )
+                                )
+                                selectedTopic = "Bank Account"
+                            }
+                        )
+                    }
+
+                    item {
+                        SupportCategoryCardV2(
+                            title = stringResource(Res.string.sip_transactions),
+                            description = stringResource(Res.string.help_support_sip_description),
+                            onClick = {
+                                PlatformAnalyticsLogger.logEvent(
+                                    "help_support_category_clicked_v2",
+                                    mapOf(
+                                        "category" to "sip_transactions",
+                                        "screen" to "help_support_v2"
+                                    )
+                                )
+                                selectedTopic = "SIP Transactions"
+                            }
+                        )
+                    }
+
+                    item {
+                        SupportCategoryCardV2(
+                            title = stringResource(Res.string.redemption),
+                            description = stringResource(Res.string.help_support_redemption_description),
+                            onClick = {
+                                PlatformAnalyticsLogger.logEvent(
+                                    "help_support_category_clicked_v2",
+                                    mapOf(
+                                        "category" to "redemption",
+                                        "screen" to "help_support_v2"
+                                    )
+                                )
+                                selectedTopic = "Redemption"
+                            }
+                        )
+                    }
+
+                    item {
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+
+                    // WhatsApp Support Section
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                            shape = RoundedCornerShape(12.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = stringResource(Res.string.whatsapp_support),
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                                Text(
+                                    text = stringResource(Res.string.whatsapp_support_description),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                                )
+                            }
                         }
                     }
                 }
@@ -417,13 +449,13 @@ fun HelpIssueBottomSheet(
                 IconButton(
                     onClick = onDismiss,
                     modifier = Modifier
-                        .background(Color(0xFFF2F2F2), CircleShape)
+                        .background(V2BronzeInk.copy(alpha = 0.08f), CircleShape)
                         .size(36.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Close,
                         contentDescription = "Close",
-                        tint = Color(0xFF666666),
+                        tint = V2BronzeInk,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -432,9 +464,9 @@ fun HelpIssueBottomSheet(
             // What can we help you with? card
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFF9F9F9)),
+                colors = CardDefaults.cardColors(containerColor = V2Cream),
                 shape = RoundedCornerShape(16.dp),
-                border = BorderStroke(1.dp, Color(0xFFEEEEEE))
+                border = BorderStroke(1.dp, V2FieldBorder)
             ) {
                 Column(
                     modifier = Modifier
@@ -446,7 +478,7 @@ fun HelpIssueBottomSheet(
                         text = "What can we help you with?",
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF333333)
+                            color = V2BronzeInk
                         )
                     )
 
@@ -454,7 +486,7 @@ fun HelpIssueBottomSheet(
                         text = "[$topic]",
                         style = MaterialTheme.typography.bodyLarge.copy(
                             fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFF0F4A2A)
+                            color = Color(0xFF26533E)
                         )
                     )
 
@@ -464,13 +496,13 @@ fun HelpIssueBottomSheet(
                             .fillMaxWidth()
                             .height(150.dp)
                             .background(Color.White, RoundedCornerShape(12.dp))
-                            .border(1.dp, Color(0xFFCCCCCC), RoundedCornerShape(12.dp))
+                            .border(1.dp, V2FieldBorder, RoundedCornerShape(12.dp))
                             .padding(12.dp)
                     ) {
                         if (userMessage.isEmpty()) {
                             Text(
                                 text = "Describe your issue...",
-                                color = Color(0xFF999999),
+                                color = V2BronzeMuted,
                                 fontSize = 16.sp
                             )
                         }
@@ -486,16 +518,16 @@ fun HelpIssueBottomSheet(
                                 .fillMaxSize()
                                 .padding(bottom = 20.dp),
                             textStyle = MaterialTheme.typography.bodyMedium.copy(
-                                color = Color(0xFF333333),
+                                color = V2BronzeInk,
                                 fontSize = 16.sp
                             ),
-                            cursorBrush = SolidColor(Color(0xFF0F4A2A))
+                            cursorBrush = SolidColor(Color(0xFF26533E))
                         )
 
                         // Character counter
                         Text(
                             text = "${userMessage.length}/1000",
-                            style = MaterialTheme.typography.bodySmall.copy(color = Color(0xFF888888)),
+                            style = MaterialTheme.typography.bodySmall.copy(color = V2BronzeMuted),
                             modifier = Modifier
                                 .align(Alignment.BottomEnd)
                                 .padding(4.dp)
@@ -508,37 +540,44 @@ fun HelpIssueBottomSheet(
             // Send Message Button (only active if user entered some message text)
             val isButtonEnabled = userMessage.trim().isNotEmpty()
 
-            Button(
-                onClick = rememberDebouncedClick {
-                    if (isButtonEnabled) {
-                        onSendMessage(userMessage)
-                    }
-                },
-                enabled = isButtonEnabled,
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF0F4A2A),
-                    contentColor = Color.White,
-                    disabledContainerColor = Color(0xFFE0E0E0),
-                    disabledContentColor = Color(0xFF888888)
-                )
+                    .background(Brush.linearGradient(listOf(V2GoldAccent, V2GoldDeep)), RoundedCornerShape(12.dp))
+                    .padding(1.5.dp)
             ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                Button(
+                    onClick = rememberDebouncedClick {
+                        if (isButtonEnabled) {
+                            onSendMessage(userMessage)
+                        }
+                    },
+                    enabled = isButtonEnabled,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = V2Obsidian,
+                        contentColor = V2Cream,
+                        disabledContainerColor = V2Obsidian,
+                        disabledContentColor = V2Cream
+                    )
                 ) {
-                    Icon(
-                        painter = painterResource(Res.drawable.ic_whatsapp),
-                        contentDescription = "WhatsApp",
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Text(
-                        text = "Send Message",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            painter = painterResource(Res.drawable.ic_whatsapp),
+                            contentDescription = "WhatsApp",
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Text(
+                            text = "Send Message",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                        )
+                    }
                 }
             }
 
@@ -554,6 +593,7 @@ private fun KycHelpInformationCardV2() {
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, V2FieldBorder),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
@@ -582,7 +622,7 @@ private fun KycHelpInformationCardV2() {
                 )
             }
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.3f))
+            HorizontalDivider(color = V2FieldBorder)
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
@@ -613,7 +653,7 @@ private fun KycHelpInformationCardV2() {
                 }
             }
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.3f))
+            HorizontalDivider(color = V2FieldBorder)
 
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
@@ -718,7 +758,7 @@ private fun KycHelpInformationCardV2() {
                 )
             }
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.3f))
+            HorizontalDivider(color = V2FieldBorder)
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
@@ -738,7 +778,7 @@ private fun KycHelpInformationCardV2() {
                 }
             }
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.3f))
+            HorizontalDivider(color = V2FieldBorder)
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
@@ -763,6 +803,7 @@ private fun BankHelpInformationCardV2() {
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, V2FieldBorder),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
@@ -811,7 +852,7 @@ private fun BankHelpInformationCardV2() {
                 }
             }
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.3f))
+            HorizontalDivider(color = V2FieldBorder)
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
@@ -847,7 +888,7 @@ private fun BankHelpInformationCardV2() {
                 }
             }
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.3f))
+            HorizontalDivider(color = V2FieldBorder)
 
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
@@ -956,7 +997,7 @@ private fun BankHelpInformationCardV2() {
                 }
             }
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.3f))
+            HorizontalDivider(color = V2FieldBorder)
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
@@ -980,7 +1021,7 @@ private fun BankHelpInformationCardV2() {
                         )
                     }
 
-                    HorizontalDivider(color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.3f))
+                    HorizontalDivider(color = V2FieldBorder)
 
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(

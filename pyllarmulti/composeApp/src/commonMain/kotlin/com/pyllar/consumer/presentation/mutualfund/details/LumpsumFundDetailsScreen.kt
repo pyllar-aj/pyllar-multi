@@ -13,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -37,6 +38,20 @@ import androidx.compose.ui.graphics.StrokeCap
 import kotlin.math.cos
 import kotlin.math.sin
 import com.pyllar.consumer.presentation.ui.theme.*
+
+// ── V2 visual language: cream surface, dark bronze ink, luxury gold accents ──
+private val V2Cream = Color(0xFFFBF9F4)
+private val V2CreamTint = Color(0xFFF5EEDB)
+private val V2BronzeInk = Color(0xFF3E2723)
+private val V2BronzeMuted = Color(0xFF6D4C41)
+private val V2GoldDeep = Color(0xFF8B6B25)
+private val V2GoldAccent = Color(0xFFD4AF37)
+private val V2Obsidian = Color(0xFF0A2415)
+private val V2LinkGreen = Color(0xFF1A7A42)
+private val V2VolatilityRed = Color(0xFFC62828)
+private val V2SuccessGreen = Color(0xFF2E7D32)
+private val V2FieldBorder = Color(0xFFD7CCC8)
+private val V2CardBorder = Color(0xFFEFEBE9)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -92,17 +107,48 @@ fun LumpsumFundDetailsScreen(
         )
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(state.fundDetails?.fundName ?: "Fund Details", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, "Back")
-                    }
-                }
-            )
-        },
+    val v2ColorScheme = MaterialTheme.colorScheme.copy(
+        background = V2Cream,
+        surface = V2Cream,
+        surfaceVariant = Color.White,
+        inverseSurface = Color.White, // for cardBackground
+        onSurface = V2BronzeInk,
+        onSurfaceVariant = V2BronzeMuted,
+        primary = Color(0xFF26533E), // Dark forest green
+        primaryContainer = Color.White,
+        onPrimaryContainer = V2BronzeInk
+    )
+
+    MaterialTheme(colorScheme = v2ColorScheme) {
+        Scaffold(
+            containerColor = V2Cream,
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = state.fundDetails?.fundName ?: "Fund Details",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = V2BronzeInk,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onBackClick) {
+                            Icon(
+                                imageVector = Icons.Default.ArrowBack,
+                                contentDescription = "Back",
+                                tint = V2BronzeInk
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = V2Cream,
+                        titleContentColor = V2BronzeInk,
+                        navigationIconContentColor = V2BronzeInk
+                    )
+                )
+            },
         bottomBar = {
             LumpsumFundDetailsBottomBar(
                 isLoading = isInvestLoading,
@@ -183,7 +229,6 @@ fun LumpsumFundDetailsScreen(
                             .padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(24.dp)
                     ) {
-                        Spacer(modifier = Modifier.height(10.dp))
                         FundHeader(details)
                         
                         FundChartSection(
@@ -235,6 +280,7 @@ fun LumpsumFundDetailsScreen(
             )
         }
     }
+}
 }
 
 @Composable
@@ -291,7 +337,11 @@ fun LumpsumFundDetailsBottomBar(
     lumpsumAmount: Double,
     onInvestClick: () -> Unit
 ) {
-    Surface(tonalElevation = 4.dp, shadowElevation = 8.dp) {
+    Surface(
+        tonalElevation = 4.dp, 
+        shadowElevation = 8.dp,
+        color = V2Cream
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -302,19 +352,34 @@ fun LumpsumFundDetailsBottomBar(
                 BankDetailsCard(accountNumber, ifscCode, bankName)
             }
             
-            TimeoutButton(
-                onClick = onInvestClick,
-                enabled = !isLoading && !isLoadingDashboard && isEnabled,
-                timeoutState = timeoutState,
-                modifier = Modifier.fillMaxWidth().height(56.dp)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Brush.linearGradient(listOf(V2GoldAccent, V2GoldDeep)), RoundedCornerShape(50))
+                    .padding(1.5.dp)
             ) {
-                if (isLoading || isLoadingDashboard) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
-                } else {
-                    Text(
-                        if (lumpsumAmount > 0) "Invest ₹${formatIndian(lumpsumAmount)} one-time" else "Invest Now",
-                        fontWeight = FontWeight.Bold
+                TimeoutButton(
+                    onClick = onInvestClick,
+                    enabled = !isLoading && !isLoadingDashboard && isEnabled,
+                    timeoutState = timeoutState,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = V2Obsidian,
+                        contentColor = V2Cream,
+                        disabledContainerColor = V2Obsidian,
+                        disabledContentColor = V2Cream
                     )
+                ) {
+                    if (isLoading || isLoadingDashboard) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp), color = V2Cream)
+                    } else {
+                        Text(
+                            text = if (lumpsumAmount > 0) "Invest ₹${formatIndian(lumpsumAmount)} one-time" else "Invest Now",
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
         }
