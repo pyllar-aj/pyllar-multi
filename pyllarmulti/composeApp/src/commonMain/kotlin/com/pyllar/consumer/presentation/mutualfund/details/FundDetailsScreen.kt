@@ -221,7 +221,7 @@ fun FundDetailsScreen(
                             .padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(24.dp)
                     ) {
-                        FundHeader(details.fundName ?: "", details.category ?: "")
+                        FundHeader(details)
                         
                         FundChartSection(
                             state = state,
@@ -243,24 +243,6 @@ fun FundDetailsScreen(
         }
     }
 }
-}
-
-@Composable
-fun FundHeader(name: String, category: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        // Name removed as it is displayed in the TopAppBar
-        Surface(
-            color = MaterialTheme.colorScheme.primaryContainer,
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(4.dp)
-        ) {
-            Text(
-                category,
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-        }
-    }
 }
 
 @Composable
