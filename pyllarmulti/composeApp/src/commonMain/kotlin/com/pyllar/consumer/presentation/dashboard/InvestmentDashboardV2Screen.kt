@@ -514,11 +514,11 @@ fun UserHeader(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Text(
-                    text = " >",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Medium),
-                    color = Color.White.copy(alpha = 0.6f)
-                )
+//                Text(
+//                    text = " >",
+//                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Medium),
+//                    color = Color.White.copy(alpha = 0.6f)
+//                )
             }
         }
 
@@ -719,40 +719,40 @@ fun CombinedDashboardCard(
                 }
             }
 
-            // Total Value Section
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(V2SubtleBorder)
-                    .clickable { onTotalClick() }
-                    .padding(20.dp)
-            ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text = "Total Value",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                    )
-                    
-                    if (isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    } else {
-                        val ceiledTotalValue = ceil(totalValue)
-                        Text(
-                            text = "₹${formatIndian(ceiledTotalValue)}",
-                            style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                }
-            }
+//            // Total Value Section
+//            Box(
+//                modifier = Modifier
+//                    .fillMaxWidth()
+//                    .background(V2SubtleBorder)
+//                    .clickable { onTotalClick() }
+//                    .padding(20.dp)
+//            ) {
+//                Column(
+//                    modifier = Modifier.fillMaxWidth(),
+//                    horizontalAlignment = Alignment.CenterHorizontally,
+//                    verticalArrangement = Arrangement.spacedBy(8.dp)
+//                ) {
+//                    Text(
+//                        text = "Total Value",
+//                        style = MaterialTheme.typography.titleMedium,
+//                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+//                    )
+//
+//                    if (isLoading) {
+//                        CircularProgressIndicator(
+//                            modifier = Modifier.size(24.dp),
+//                            color = MaterialTheme.colorScheme.primary
+//                        )
+//                    } else {
+//                        val ceiledTotalValue = ceil(totalValue)
+//                        Text(
+//                            text = "₹${formatIndian(ceiledTotalValue)}",
+//                            style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
+//                            color = MaterialTheme.colorScheme.onSurface
+//                        )
+//                    }
+//                }
+//            }
         }
     }
 }
