@@ -1814,14 +1814,14 @@ fun SchemeDetailsPopupContentV2(
                                 stringResource(Res.string.next_deduction_pending)
                             }
 
-                            WhatsHappeningRowV2(
-                                title = stringResource(Res.string.saving_amount_freq, formatIndian(totalDaily), freq),
-                                subtitle = nextDeduction,
-                                badgeText = stringResource(Res.string.active_badge),
-                                badgeBg = Color(0xFFE8F5E9),
-                                badgeFg = Color(0xFF2E7D32)
-                            )
-                            needDivider = true
+//                            WhatsHappeningRowV2(
+//                                title = stringResource(Res.string.saving_amount_freq, formatIndian(totalDaily), freq),
+//                                subtitle = nextDeduction,
+//                                badgeText = stringResource(Res.string.active_badge),
+//                                badgeBg = Color(0xFFE8F5E9),
+//                                badgeFg = Color(0xFF2E7D32)
+//                            )
+//                            needDivider = true
                         }
 
                         if (state.investmentInProgress > 0) {
@@ -1891,7 +1891,7 @@ fun SchemeDetailsPopupContentV2(
                     HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color.LightGray.copy(alpha = 0.3f))
 
                     if (state.totalGain != 0.0) {
-                        val diffColor = if(state.totalGain >= 0) Color(0xFF2E7D32) else Color.Red
+                        val diffColor = if(state.totalGain >= 0) Color(0xFF2E7D32) else Color.Black
                         RecordRowV2(stringResource(Res.string.total_gain), "₹${formatIndian(state.totalGain)}", valueColor = diffColor)
                         HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color.LightGray.copy(alpha = 0.3f))
                     }
@@ -1960,13 +1960,13 @@ fun SchemeDetailsCardV2(
                 }
             }
 
-            if (totalGain != 0.0) {
-                val color = if (totalGain >= 0) Color(0xFF2E7D32) else Color.Red
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("OVERALL GAIN: ", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-                    RupeeAmountBlock(value = totalGain, style = MaterialTheme.typography.labelSmall, color = color, showPlus = true)
-                }
-            }
+//            if (totalGain != 0.0) {
+//                val color = if (totalGain >= 0) Color(0xFF2E7D32) else Color.Red
+//                Row(verticalAlignment = Alignment.CenterVertically) {
+//                    Text("OVERALL GAIN: ", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+//                    RupeeAmountBlock(value = totalGain, style = MaterialTheme.typography.labelSmall, color = color, showPlus = true)
+//                }
+//            }
 
             if (folioNumber != null) {
                 Text("Folio: $folioNumber", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
