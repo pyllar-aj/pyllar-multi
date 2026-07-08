@@ -81,7 +81,7 @@
     <string name="total_gain_disclaimer_silver">Includes unrealized profit/loss from your silver units</string>
     <string name="available_gain">Available gain</string>
     <string name="withdrawn_gain">Withdrawn gain</string>
-    <string name="can_i_take_it_out">Can I take it out?</string>
+    <string name="can_i_take_it_out">Can I withdraw money?</string>
     <string name="yes_anytime">Yes, anytime</string>
     <string name="sebi_mutual_fund_disclaimer">Mutual fund investments are subject to market risks, read all scheme related documents carefully.</string>
     <string name="units_allotted">UNITS ALLOTTED</string>
@@ -699,7 +699,7 @@
     <string name="past_performance_amount_daily">₹%1$d/day</string>
     <string name="past_performance_amount_monthly">₹%1$d/month</string>
     <string name="past_performance_since_label">since %1$s</string>
-    <string name="past_performance_actual_returns">+%1$d%% actual returns</string>
+    <string name="past_performance_actual_returns">+%1$d% actual returns</string>
     <string name="past_performance_invested_label">Invested</string>
     <string name="past_performance_gain_label">Profit</string>
     <string name="past_performance_footnote">Based on %1$s\nHistorical data · Not indicative of future returns</string>

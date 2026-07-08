@@ -186,10 +186,14 @@ class SchemeDetailsViewModel(
         _uiState.value = SchemeDetailsState()
     }
 
+    fun clearErrorMessage() {
+        _uiState.value = _uiState.value.copy(errorMessage = null)
+    }
+
     fun loadTransactions(userId: String, purpose: String, schemeParams: SchemeDetailsParams? = null) {
         viewModelScope.launch {
             platformLog("🔄 Loading transactions for userId: $userId, purpose: $purpose")
-            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+            _uiState.value = mergeParamsOnError(_uiState.value, schemeParams).copy(isLoading = true, errorMessage = null)
 
             try {
                 val request = TransactionDetailsRequest(
@@ -215,9 +219,19 @@ class SchemeDetailsViewModel(
                         }
                         is Resource.Error -> {
                             platformLog("Error loading transactions: ${result.message}")
+                            val errorMsg = result.message ?: ""
+                            val isNetworkError = result.isNetworkError ||
+                                errorMsg.contains("Failed to connect", ignoreCase = true) ||
+                                errorMsg.contains("connection", ignoreCase = true) ||
+                                errorMsg.contains("Internet", ignoreCase = true) ||
+                                errorMsg.contains("timeout", ignoreCase = true)
                             _uiState.value = mergeParamsOnError(_uiState.value, schemeParams).copy(
                                 isLoading = false,
-                                errorMessage = result.message ?: "Failed to load transactions"
+                                errorMessage = if (isNetworkError) {
+                                    "Unable to connect to server. Please check your internet connection and try again."
+                                } else {
+                                    errorMsg.ifBlank { "Failed to load transactions" }
+                                }
                             )
                         }
                         is Resource.Loading -> { }
@@ -225,9 +239,18 @@ class SchemeDetailsViewModel(
                 }
             } catch (e: Exception) {
                 platformLog("Exception loading transactions: ${e.message}")
+                val errorMsg = e.message ?: ""
+                val isNetworkError = errorMsg.contains("Failed to connect", ignoreCase = true) ||
+                    errorMsg.contains("connection", ignoreCase = true) ||
+                    errorMsg.contains("Internet", ignoreCase = true) ||
+                    errorMsg.contains("timeout", ignoreCase = true)
                 _uiState.value = mergeParamsOnError(_uiState.value, schemeParams).copy(
                     isLoading = false,
-                    errorMessage = "Failed to load transactions: ${e.message}"
+                    errorMessage = if (isNetworkError) {
+                        "Unable to connect to server. Please check your internet connection and try again."
+                    } else {
+                        "Failed to load transactions: ${errorMsg.ifBlank { "Unknown error" }}"
+                    }
                 )
             }
         }
@@ -243,9 +266,11 @@ class SchemeDetailsViewModel(
             unitsInGm = schemeParams.unitsInGm ?: state.unitsInGm,
             category = schemeParams.category?.takeIf { it.isNotBlank() } ?: state.category,
             colorTheme = schemeParams.colorTheme?.takeIf { it.isNotBlank() } ?: state.colorTheme,
-            currentValue = if (schemeParams.currentValue > 0) schemeParams.currentValue else state.currentValue,
+            currentValue = schemeParams.currentValue,
             investmentInProgress = schemeParams.investmentInProgress,
-            investedAmount = if (schemeParams.investedAmount > 0) schemeParams.investedAmount else state.investedAmount,
+            investedAmount = schemeParams.investedAmount,
+            totalValue = schemeParams.currentValue,
+            cummulativeValue = schemeParams.currentValue + schemeParams.investmentInProgress,
             totalGain = schemeParams.profit,
             withdrawnGain = schemeParams.realizedProfit,
             availableGain = schemeParams.unrealizedProfit,

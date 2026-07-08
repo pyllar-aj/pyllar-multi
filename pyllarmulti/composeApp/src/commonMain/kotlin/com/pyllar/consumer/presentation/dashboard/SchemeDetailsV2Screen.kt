@@ -582,6 +582,32 @@ fun SchemeDetailsV2Screen(
         Box(modifier = Modifier.fillMaxSize()) {
             if (state.isLoading) {
                 LoadingScreen(modifier = Modifier.fillMaxSize())
+            } else if (state.errorMessage != null && schemeParams == null) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = state.errorMessage ?: stringResource(Res.string.an_error_occurred),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.error,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(onClick = {
+                        if (userId.isNotBlank() && purpose.isNotBlank()) {
+                            val latestParams = schemeParams ?: SchemeDetailsParamsManager.get()
+                            val uipid = latestParams?.userPurposeId ?: purpose
+                            viewModel.loadTransactions(userId, uipid, latestParams)
+                        }
+                    }) {
+                        Text(stringResource(Res.string.retry))
+                    }
+                }
             } else {
                 Column(
                     modifier = Modifier
@@ -1132,6 +1158,73 @@ fun SchemeDetailsV2Screen(
                     }
                 )
             }
+
+            // Error Dialog
+            state.errorMessage?.let { errorMsg ->
+                AlertDialog(
+                    onDismissRequest = { viewModel.clearErrorMessage() },
+                    title = { Text(if (errorMsg.contains("connect", true) || errorMsg.contains("Internet", true)) "Network Error" else "Error", fontWeight = FontWeight.Bold) },
+                    text = { Text(errorMsg) },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            val isNetwork = errorMsg.contains("connect", true) || errorMsg.contains("Internet", true)
+                            viewModel.clearErrorMessage()
+                            if (isNetwork && userId.isNotBlank() && purpose.isNotBlank()) {
+                                val latestParams = schemeParams ?: SchemeDetailsParamsManager.get()
+                                val uipid = latestParams?.userPurposeId ?: purpose
+                                viewModel.loadTransactions(userId, uipid, latestParams)
+                            }
+                        }) {
+                            Text(if (errorMsg.contains("connect", true) || errorMsg.contains("Internet", true)) "Retry" else "OK")
+                        }
+                    }
+                )
+            }
+
+            // Back Handling for sheets/views
+            com.pyllar.consumer.util.BackHandler(
+                enabled = showCancelReasonScreen ||
+                        showCancelSipScreen ||
+                        showCancelSipSuccessSheet ||
+                        showCancelSipErrorSheet ||
+                        showPauseSipQuestionSheet ||
+                        showPauseSipSuccessSheet ||
+                        showPauseSipErrorSheet ||
+                        showResumeSipQuestionSheet ||
+                        showResumeSipSuccessSheet ||
+                        showResumeSipErrorSheet ||
+                        showPlansView ||
+                        showTransactionsView
+            ) {
+                when {
+                    showCancelReasonScreen -> {
+                        showCancelReasonScreen = false
+                        showCancelSipScreen = true
+                    }
+                    showCancelSipScreen -> {
+                        showCancelSipScreen = false
+                        mandateForCancelSip = null
+                    }
+                    showCancelSipSuccessSheet -> { showCancelSipSuccessSheet = false; reloadData() }
+                    showCancelSipErrorSheet -> showCancelSipErrorSheet = false
+                    showPauseSipQuestionSheet -> {
+                        showPauseSipQuestionSheet = false
+                        mandateForPauseSip = null
+                    }
+                    showPauseSipSuccessSheet -> { showPauseSipSuccessSheet = false; reloadData() }
+                    showPauseSipErrorSheet -> showPauseSipErrorSheet = false
+                    showResumeSipQuestionSheet -> {
+                        showResumeSipQuestionSheet = false
+                        mandateForResumeSip = null
+                    }
+                    showResumeSipSuccessSheet -> { showResumeSipSuccessSheet = false; reloadData() }
+                    showResumeSipErrorSheet -> showResumeSipErrorSheet = false
+                    showPlansView || showTransactionsView -> {
+                        showPlansView = false
+                        showTransactionsView = false
+                    }
+                }
+            }
         }
     }
 }
@@ -1198,37 +1291,36 @@ fun SchemeDetailsCardV2(
                     modifier = Modifier.padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
+                    Text(
+                        text = if (isGold) stringResource(Res.string.estimated_gold) else if (isSilver) stringResource(Res.string.estimated_silver) else stringResource(Res.string.units_allotted),
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold),
+                        color = goalColor
+                    )
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Text(
-                            text = if (isGold) stringResource(Res.string.estimated_gold) else if (isSilver) stringResource(Res.string.estimated_silver) else stringResource(Res.string.units_allotted),
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold),
-                            color = goalColor
+                            text = allottedValue,
+                            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.SemiBold),
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         if (isGoldOrSilver) {
                             IconButton(
                                 onClick = {
                                     if (isGold) onEstimatedGoldInfoClick() else onEstimatedSilverInfoClick()
                                 },
-                                modifier = Modifier.size(16.dp)
+                                modifier = Modifier.size(24.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Info,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                                    modifier = Modifier.size(14.dp)
+                                    modifier = Modifier.size(16.dp)
                                 )
                             }
                         }
                     }
-                    Text(
-                        text = allottedValue,
-                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.SemiBold),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
                 }
             } else if (!schemeName.isNullOrBlank()) {
                 Text(

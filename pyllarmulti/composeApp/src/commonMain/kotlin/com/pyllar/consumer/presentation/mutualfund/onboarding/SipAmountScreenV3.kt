@@ -77,11 +77,11 @@ private val SipSubtleBorder = Color(0xFFEFEBE9)
 private val SipGold = Color(0xFFD4AF37)
 private val SipGoldDeep = Color(0xFF8B6B25)
 
-private const val MONTHLY_MIN = 500f
+private const val MONTHLY_MIN = 1000f
 private const val MONTHLY_MAX = 15000f
-private const val MONTHLY_DEFAULT = 6300f
-private const val MONTHLY_POPULAR_AMOUNT = 6300
-private val MONTHLY_PRESETS = listOf(500, 6300, 15000)
+private const val MONTHLY_DEFAULT = 5000f
+private const val MONTHLY_POPULAR_AMOUNT = 5000
+private val MONTHLY_PRESETS = listOf(1000, 5000, 15000)
 private const val PAST_PERF_BAR_MAX_HEIGHT_DP = 68
 
 private data class SipGoalTheme(
