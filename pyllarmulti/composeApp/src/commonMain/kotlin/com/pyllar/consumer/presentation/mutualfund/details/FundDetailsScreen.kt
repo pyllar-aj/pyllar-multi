@@ -32,6 +32,9 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import com.pyllar.consumer.data.remote.model.dto.NavChartDataDto
 import com.pyllar.consumer.data.remote.model.dto.FundReturnsDto
+import com.pyllar.consumer.data.remote.model.dto.FundDetailsResponseDto
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.foundation.clickable
 import org.koin.compose.koinInject
 import kotlinx.coroutines.launch
 import com.pyllar.consumer.presentation.dashboard.InvestmentDashboardV2ViewModel
@@ -73,6 +76,8 @@ fun FundDetailsScreen(
     val dashboardState by dashboardViewModel.dashboardState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
     var showKycPendingBottomSheet by remember { mutableStateOf(false) }
+    val uriHandler = LocalUriHandler.current
+    var showDisclaimerDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         PlatformAnalyticsLogger.logScreenView("FundDetails")
@@ -99,6 +104,29 @@ fun FundDetailsScreen(
                 TextButton(onClick = { 
                     viewModel.clearSipError()
                 }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
+
+    if (showDisclaimerDialog) {
+        AlertDialog(
+            onDismissRequest = { showDisclaimerDialog = false },
+            title = { Text("Disclaimer") },
+            text = {
+                Column {
+                    Text(stringResource(Res.string.disclaimer_popup_content))
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = stringResource(Res.string.amfi_disclaimer),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showDisclaimerDialog = false }) {
                     Text("OK")
                 }
             }
@@ -228,15 +256,79 @@ fun FundDetailsScreen(
                             onPeriodSelected = { viewModel.onPeriodSelected(it) }
                         )
 
-                        RiskometerSection(details.riskLevel ?: "MODERATE")
+                        // Riskometer section - semi-circle matching native
+                        val riskLevelObj = remember(details.riskLevel) {
+                            getLumpsumRiskLevel(details.riskLevel)
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = stringResource(Res.string.riskometer),
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = V2BronzeInk
+                            )
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                LumpsumSemiCircleRiskometer(
+                                    riskLevel = riskLevelObj,
+                                    size = 80.dp
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = riskLevelObj.label.replace("\n", " "),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium,
+                                    color = V2BronzeInk
+                                )
+                            }
+                        }
 
-                        FundMetricsGrid(
-                            expenseRatio = details.expenseRatio?.toString() ?: "-",
-                            aum = details.aum?.toString() ?: "-",
-                            exitLoad = details.exitLoad?.toString() ?: "-"
-                        )
+                        LumpsumCompanyAllocationSection(companyAllocation = details.companyAllocation)
+
+                        FundMetricsGrid(details)
 
                         FundDescriptionSection(details.fundName ?: "")
+
+                        // Footer Links (Scheme Docs & Disclaimer)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (!details.schemeDocumentUrl.isNullOrBlank()) {
+                                Text(
+                                    text = stringResource(Res.string.scheme_documents),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = V2LinkGreen,
+                                    fontWeight = FontWeight.Medium,
+                                    modifier = Modifier
+                                        .clickable {
+                                            uriHandler.openUri(details.schemeDocumentUrl)
+                                        }
+                                        .padding(4.dp)
+                                )
+                            } else {
+                                Spacer(modifier = Modifier.width(1.dp))
+                            }
+
+                            Text(
+                                text = stringResource(Res.string.disclaimer),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = V2BronzeMuted,
+                                modifier = Modifier
+                                    .clickable {
+                                        showDisclaimerDialog = true
+                                    }
+                                    .padding(4.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -246,16 +338,44 @@ fun FundDetailsScreen(
 }
 
 @Composable
-fun FundMetricsGrid(expenseRatio: String, aum: String, exitLoad: String) {
+fun FundMetricsGrid(details: FundDetailsResponseDto) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text("Fund Statistics", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        HorizontalDivider(color = V2FieldBorder)
+        Text(
+            text = "Fund Details",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = V2BronzeInk
+        )
+        
         Row(modifier = Modifier.fillMaxWidth()) {
-            MetricItem("Expense Ratio", expenseRatio, Modifier.weight(1f))
-            MetricItem("Fund Size (AUM)", "₹$aum Cr", Modifier.weight(1f))
+            MetricItem(
+                label = "Expense Ratio",
+                value = details.expenseRatio?.let { "$it%" } ?: "-",
+                modifier = Modifier.weight(1f)
+            )
+            MetricItem(
+                label = "Exit Load",
+                value = if (details.exitLoad != null && details.exitLoadPeriodDays != null && details.exitLoadPeriodDays > 0) {
+                    "${details.exitLoad}% if exited within ${details.exitLoadPeriodDays} days"
+                } else {
+                    details.exitLoad?.let { "$it%" } ?: "-"
+                },
+                modifier = Modifier.weight(1f)
+            )
         }
+        
         Row(modifier = Modifier.fillMaxWidth()) {
-            MetricItem("Exit Load", "$exitLoad%", Modifier.weight(1f))
-            MetricItem("Lock-in", "-", Modifier.weight(1f))
+            MetricItem(
+                label = "Fund Size (AUM)",
+                value = details.aum?.let { "₹${formatDecimal(it)} Cr" } ?: "N/A",
+                modifier = Modifier.weight(1f)
+            )
+            MetricItem(
+                label = "Lock-in period",
+                value = "-",
+                modifier = Modifier.weight(1f)
+            )
         }
     }
 }

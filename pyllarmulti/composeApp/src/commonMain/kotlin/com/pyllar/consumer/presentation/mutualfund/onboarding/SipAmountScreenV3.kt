@@ -29,8 +29,10 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -50,7 +52,6 @@ import com.pyllar.consumer.presentation.mutualfund.details.FundDetailsViewModel
 import com.pyllar.consumer.presentation.mutualfund.details.FundHeader
 import com.pyllar.consumer.presentation.mutualfund.details.SipCreationResult
 import com.pyllar.consumer.presentation.dashboard.InvestmentDashboardV2ViewModel
-import com.pyllar.consumer.presentation.dashboard.getFundLogo
 import com.pyllar.consumer.presentation.ui.theme.*
 import com.pyllar.consumer.util.*
 import kotlinx.coroutines.delay
@@ -60,13 +61,12 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import com.pyllar.consumer.presentation.ui.components.LanguageLetterButton
+import com.pyllar.consumer.presentation.ui.components.TrustStrip
 import pyllar.composeapp.generated.resources.Res
-import pyllar.composeapp.generated.resources.aditya
-import pyllar.composeapp.generated.resources.axis_lo
-import pyllar.composeapp.generated.resources.invesco
-import pyllar.composeapp.generated.resources.nippon
+import pyllar.composeapp.generated.resources.*
 import kotlin.math.roundToInt
 
 enum class SipFrequency { DAILY, MONTHLY }
@@ -180,6 +180,23 @@ private fun getMonthlySipStartInfo(sipDate: Int): Pair<String, String> {
     return title to subtitle
 }
 
+private fun calculateYearsDifference(startYearMonth: String?, endYearMonth: String?): Int {
+    if (startYearMonth.isNullOrBlank() || endYearMonth.isNullOrBlank()) return 5
+    return try {
+        val startParts = startYearMonth.split("-")
+        val endParts = endYearMonth.split("-")
+        val startYear = startParts[0].toInt()
+        val startMonth = startParts[1].toInt()
+        val endYear = endParts[0].toInt()
+        val endMonth = endParts[1].toInt()
+        val diffMonths = (endYear - startYear) * 12 + (endMonth - startMonth)
+        val yrs = (diffMonths / 12.0).roundToInt()
+        if (yrs > 0) yrs else 1
+    } catch (e: Exception) {
+        5
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun SipAmountScreenV3(
@@ -190,6 +207,7 @@ fun SipAmountScreenV3(
     isExistingInvestment: Boolean = false,
     onSipCreated: (Double, String?, MandateWrapper?) -> Unit = { _, _, _ -> },
     onNavigateBack: () -> Unit = {},
+    onForceLogout: () -> Unit = {},
     onNavigateToHelp: () -> Unit = {},
     onNavigateToFundDetails: (userId: String, goalId: String, amount: Double, kycAttemptId: String, investorId: String, frequency: String, installmentDay: Int?) -> Unit = { _, _, _, _, _, _, _ -> },
     viewModel: SipAmountScreenV2ViewModel = koinInject(),
@@ -204,6 +222,7 @@ fun SipAmountScreenV3(
     val coroutineScope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
+    val uriHandler = LocalUriHandler.current
 
     var effectiveUserId by remember(userId) { mutableStateOf(userId) }
     var effectiveKycAttemptId by remember(kycAttemptId) { mutableStateOf(kycAttemptId) }
@@ -212,7 +231,35 @@ fun SipAmountScreenV3(
     var isFetchingIds by remember { mutableStateOf(false) }
     var isInitializing by remember { mutableStateOf(true) }
     var isInitTxnLoading by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var submitResult by remember { mutableStateOf<String?>(null) }
+    var showUnexpectedErrorDialog by remember { mutableStateOf(false) }
+    var showTrustStripInfoDialog by remember { mutableStateOf(false) }
+    var showDisclaimerDialog by remember { mutableStateOf(false) }
+
+    val minAmount = limitsState.minAmount.toFloat()
+    val maxAmount = limitsState.maxAmount.toFloat()
+    val defaultAmount = limitsState.defaultAmount?.toFloat() ?: minAmount
+
+    val targetAmount = remember(minAmount, defaultAmount) {
+        if (defaultAmount != minAmount) defaultAmount else minAmount
+    }
+
+    var amount by remember { mutableStateOf(targetAmount) }
+    var amountText by remember {
+        val initial = targetAmount.toInt().toString()
+        mutableStateOf(TextFieldValue(initial, TextRange(initial.length)))
+    }
+
+    var monthlyAmount by remember { mutableStateOf(MONTHLY_DEFAULT) }
+    var monthlyAmountText by remember {
+        val initial = MONTHLY_DEFAULT.toInt().toString()
+        mutableStateOf(TextFieldValue(initial, TextRange(initial.length)))
+    }
+    var isMonthlyCustomMode by remember { mutableStateOf(false) }
+
+    var sipDate by remember { mutableStateOf(5) }
+    var frequency by remember { mutableStateOf(SipFrequency.DAILY) }
+    val isMonthly = frequency == SipFrequency.MONTHLY
 
     LaunchedEffect(userId, goalId, kycAttemptId, investorId) {
         if (userId.isNotBlank()) effectiveUserId = userId
@@ -238,37 +285,39 @@ fun SipAmountScreenV3(
                 if (effectiveKycAttemptId.isBlank() && storedKycId.isNotBlank()) effectiveKycAttemptId = storedKycId
                 if (effectiveInvestorId.isBlank() && storedInvId.isNotBlank()) effectiveInvestorId = storedInvId
             }
+
+            val savedGoalId = sessionStore.getValue("selected_sip_goal_id") ?: ""
+            if (savedGoalId.isNotBlank() && savedGoalId == effectiveGoalId) {
+                sessionStore.getValue("selected_sip_amount")?.toFloatOrNull()?.let {
+                    amount = it
+                    val textVal = it.toInt().toString()
+                    amountText = TextFieldValue(textVal, TextRange(textVal.length))
+                }
+                sessionStore.getValue("selected_sip_monthly_amount")?.toFloatOrNull()?.let {
+                    monthlyAmount = it
+                    val textVal = it.toInt().toString()
+                    monthlyAmountText = TextFieldValue(textVal, TextRange(textVal.length))
+                }
+                sessionStore.getValue("selected_sip_frequency")?.let {
+                    if (it == "monthly") frequency = SipFrequency.MONTHLY
+                    else if (it == "daily") frequency = SipFrequency.DAILY
+                }
+                sessionStore.getValue("selected_sip_date")?.toIntOrNull()?.let {
+                    sipDate = it
+                }
+            } else {
+                sessionStore.saveValue("selected_sip_amount", "")
+                sessionStore.saveValue("selected_sip_monthly_amount", "")
+                sessionStore.saveValue("selected_sip_frequency", "")
+                sessionStore.saveValue("selected_sip_date", "")
+                sessionStore.saveValue("selected_sip_goal_id", effectiveGoalId)
+            }
         } finally {
             isFetchingIds = false
             isInitializing = false
         }
     }
 
-    val minAmount = limitsState.minAmount.toFloat()
-    val maxAmount = limitsState.maxAmount.toFloat()
-    val defaultAmount = limitsState.defaultAmount?.toFloat() ?: minAmount
-
-    val targetAmount = remember(minAmount, defaultAmount) {
-        if (defaultAmount != minAmount) defaultAmount else minAmount
-    }
-
-    var amount by remember { mutableStateOf(targetAmount) }
-    var amountText by remember {
-        val initial = targetAmount.toInt().toString()
-        mutableStateOf(TextFieldValue(initial, TextRange(initial.length)))
-    }
-    var isCustomMode by remember { mutableStateOf(false) }
-
-    var monthlyAmount by remember { mutableStateOf(MONTHLY_DEFAULT) }
-    var monthlyAmountText by remember {
-        val initial = MONTHLY_DEFAULT.toInt().toString()
-        mutableStateOf(TextFieldValue(initial, TextRange(initial.length)))
-    }
-    var isMonthlyCustomMode by remember { mutableStateOf(false) }
-
-    var sipDate by remember { mutableStateOf(5) }
-    var frequency by remember { mutableStateOf(SipFrequency.DAILY) }
-    val isMonthly = frequency == SipFrequency.MONTHLY
 
     var showDetailsBottomSheet by remember { mutableStateOf(false) }
     var showKycPendingBottomSheet by remember { mutableStateOf(false) }
@@ -277,6 +326,13 @@ fun SipAmountScreenV3(
 
     var resolvedGoalType by remember(effectiveGoalId) { mutableStateOf(identifyGoalType(effectiveGoalId)) }
     val theme = remember(resolvedGoalType) { sipGoalTheme(resolvedGoalType) }
+
+    val areDetailsLoaded = !fundDetailsState.isLoading &&
+            fundDetailsState.fundDetails != null &&
+            !fundDetailsState.pastPerformanceLoading &&
+            fundDetailsState.pastPerformance != null &&
+            !isInitTxnLoading &&
+            !dashboardState.isLoading
 
     LaunchedEffect(effectiveUserId) {
         if (effectiveUserId.isNotBlank()) {
@@ -324,9 +380,16 @@ fun SipAmountScreenV3(
 
     LaunchedEffect(targetAmount, limitsState.isLoading) {
         if (!limitsState.isLoading) {
-            amount = targetAmount
-            val newText = targetAmount.toInt().toString()
-            amountText = TextFieldValue(newText, TextRange(newText.length))
+            val restoredAmount = sessionStore.getValue("selected_sip_amount")?.toFloatOrNull()
+            if (restoredAmount != null) {
+                amount = restoredAmount
+                val newText = restoredAmount.toInt().toString()
+                amountText = TextFieldValue(newText, TextRange(newText.length))
+            } else {
+                amount = targetAmount
+                val newText = targetAmount.toInt().toString()
+                amountText = TextFieldValue(newText, TextRange(newText.length))
+            }
         }
     }
 
@@ -359,7 +422,7 @@ fun SipAmountScreenV3(
         baselineGrams?.let { grams -> formatGrams(scalePastPerformanceValue(grams)) }
     }
     val gramsSuffixLabel = pastPerformance?.metalName?.let { metalName ->
-        "of $metalName purchase power"
+        stringResource(Res.string.grams_accumulated_suffix, metalName)
     }
 
     val shimmerTransition = rememberInfiniteTransition()
@@ -375,8 +438,19 @@ fun SipAmountScreenV3(
     val scrollState = rememberScrollState()
     val isFetching = isInitializing || isInitTxnLoading || limitsState.isLoading || fundDetailsState.isLoading || isFetchingIds
 
-    com.pyllar.consumer.util.BackHandler {
+    val handleBack: () -> Unit = {
+        coroutineScope.launch {
+            sessionStore.saveValue("selected_sip_amount", "")
+            sessionStore.saveValue("selected_sip_monthly_amount", "")
+            sessionStore.saveValue("selected_sip_frequency", "")
+            sessionStore.saveValue("selected_sip_date", "")
+            sessionStore.saveValue("selected_sip_goal_id", "")
+        }
         onNavigateBack()
+    }
+
+    com.pyllar.consumer.util.BackHandler {
+        handleBack()
     }
 
     Scaffold(
@@ -390,56 +464,86 @@ fun SipAmountScreenV3(
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = handleBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
-                    IconButton(onClick = { platformActions.shareText("Start your investment journey with Pyllar! https://pyllar.in") }) {
-                        Icon(Icons.Default.Share, contentDescription = "Share", tint = MaterialTheme.colorScheme.primary)
+                    IconButton(onClick = {
+                        val shareText = "Gold, Silver & much more starting at ₹21! ✨\n\nSmall daily steps ➡️ Big rewards. Join me and build a consistent saving habit for your goals with Pyllar.\n\nStart today: https://pyllar.in/download.html"
+                        platformActions.shareText(shareText)
+                    }) {
+                        Icon(Icons.Default.Share, contentDescription = stringResource(Res.string.content_description_share_icon), tint = MaterialTheme.colorScheme.primary)
                     }
                     LanguageLetterButton(textColor = MaterialTheme.colorScheme.primary)
                     TextButton(onClick = onNavigateToHelp) {
-                        Text("Help", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                        Text(stringResource(Res.string.help), color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                     }
                 }
             )
         },
         bottomBar = {
-            val canContinue = !isFetching
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Button(
-                    onClick = { showDetailsBottomSheet = true },
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
-                    enabled = canContinue,
-                    shape = RoundedCornerShape(12.dp)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(Brush.horizontalGradient(colors = listOf(Color(0xFFFFD700), SipGoldDeep)))
+                        .padding(1.5.dp)
                 ) {
-                    Text("Continue", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    Button(
+                        onClick = {
+                            if (isSheetLoading) return@Button
+                            showDetailsBottomSheet = true
+                        },
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        enabled = !isSheetLoading && !isInitTxnLoading && areDetailsLoaded,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = SipHeroObsidian,
+                            contentColor = Color.White,
+                            disabledContainerColor = SipHeroObsidian.copy(alpha = 0.55f),
+                            disabledContentColor = Color.White.copy(alpha = 0.7f)
+                        )
+                    ) {
+                        if (isSheetLoading || !areDetailsLoaded) {
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(if (isSheetLoading) stringResource(Res.string.submitting) else "Fetching details...")
+                        } else {
+                            Text(stringResource(Res.string.start_sip))
+                        }
+                    }
                 }
 
-                Text(
-                    "You can change or stop your SIP anytime.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                )
+                Spacer(modifier = Modifier.height(4.dp))
+                TrustStrip(onInfoClick = { showTrustStripInfoDialog = true })
             }
         }
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            if (isFetching) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            if (limitsState.isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.White.copy(alpha = 0.9f))
+                        .zIndex(10f)
+                ) {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                }
             } else {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(scrollState)
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .padding(horizontal = 16.dp)
+                        .padding(top = 8.dp)
+                        .padding(bottom = 24.dp)
                         .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) {
                             keyboardController?.hide()
                             focusManager.clearFocus()
@@ -474,13 +578,83 @@ fun SipAmountScreenV3(
                                         )
                                 )
                                 Column(modifier = Modifier.fillMaxWidth()) {
-                                    Text(
-                                        text = "PAST PERFORMANCE",
-                                        fontSize = 9.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        letterSpacing = 1.4.sp,
-                                        color = theme.eyebrowColor
-                                    )
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.Top
+                                    ) {
+                                        Column {
+                                            val yrsLabel = if (!pastPerformanceLoading && pastPerformance != null) {
+                                                val yrs = calculateYearsDifference(pastPerformance.startYearMonth, pastPerformance.asOfYearMonth)
+                                                "$yrs YR PAST PERFORMANCE"
+                                            } else {
+                                                stringResource(Res.string.past_performance_label)
+                                            }
+                                            Text(
+                                                text = yrsLabel,
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                letterSpacing = 1.4.sp,
+                                                color = theme.eyebrowColor
+                                            )
+                                            if (!pastPerformanceLoading && pastPerformance != null) {
+                                                Spacer(modifier = Modifier.height(4.dp))
+                                                Text(
+                                                    text = if (isMonthly) {
+                                                        stringResource(Res.string.past_performance_amount_monthly, currentAmount.toInt())
+                                                    } else {
+                                                        stringResource(Res.string.past_performance_amount_daily, currentAmount.toInt())
+                                                    },
+                                                    fontSize = 18.sp,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = Color.White.copy(alpha = 0.85f)
+                                                )
+//                                                Spacer(modifier = Modifier.height(4.dp))
+//                                                Text(
+//                                                    text = stringResource(Res.string.past_performance_since_label, pastPerformance.startLabel),
+//                                                    fontSize = 12.sp,
+//                                                    fontWeight = FontWeight.Medium,
+//                                                    color = Color.White.copy(alpha = 0.85f)
+//                                                )
+                                            }
+                                        }
+                                        if (!pastPerformanceLoading && pastPerformance != null) {
+                                            Column(horizontalAlignment = Alignment.End) {
+                                                Text(
+                                                    text = formatRupeesShort(navCurrentVal),
+                                                    fontSize = 28.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = theme.accentColor
+                                                )
+                                                Text(
+                                                    text = stringResource(Res.string.past_performance_actual_returns, navGainPct),
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Color(0xFF6FCF97)
+                                                )
+                                            }
+                                        }
+                                    }
+                                    if (!pastPerformanceLoading && pastPerformance != null && gramsValueLabel != null && gramsSuffixLabel != null) {
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.End
+                                        ) {
+                                            Text(
+                                                text = gramsValueLabel,
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.ExtraBold,
+                                                color = theme.accentColor
+                                            )
+                                            Text(
+                                                text = " $gramsSuffixLabel",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                color = theme.accentColor.copy(alpha = 0.75f)
+                                            )
+                                        }
+                                    }
                                     Spacer(modifier = Modifier.height(12.dp))
                                     if (pastPerformanceLoading || pastPerformance == null) {
                                         Box(
@@ -490,64 +664,12 @@ fun SipAmountScreenV3(
                                             CircularProgressIndicator(color = theme.accentColor, modifier = Modifier.size(28.dp), strokeWidth = 2.dp)
                                         }
                                     } else {
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.Top
-                                        ) {
-                                            Column {
-                                                Text(
-                                                    text = if (isMonthly) "₹${currentAmount.toInt()}/month" else "₹${currentAmount.toInt()}/day",
-                                                    fontSize = 15.sp,
-                                                    fontWeight = FontWeight.SemiBold,
-                                                    color = Color.White.copy(alpha = 0.85f)
-                                                )
-                                                Spacer(modifier = Modifier.height(4.dp))
-                                                Text(
-                                                    text = "since ${pastPerformance.startLabel}",
-                                                    fontSize = 11.sp,
-                                                    fontWeight = FontWeight.Medium,
-                                                    color = Color.White.copy(alpha = 0.45f)
-                                                )
-                                                Text(
-                                                    text = "would be worth today",
-                                                    fontSize = 11.sp,
-                                                    color = Color.White.copy(alpha = 0.3f)
-                                                )
-                                            }
-                                            Column(horizontalAlignment = Alignment.End) {
-                                                Text(
-                                                    text = formatRupeesShort(navCurrentVal),
-                                                    fontSize = 28.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = theme.accentColor
-                                                )
-                                                Text(
-                                                    text = "+$navGainPct% actual returns",
-                                                    fontSize = 11.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = Color(0xFF6FCF97)
-                                                )
-                                                if (gramsValueLabel != null && gramsSuffixLabel != null) {
-                                                    Row(modifier = Modifier.padding(top = 4.dp)) {
-                                                        Text(
-                                                            text = gramsValueLabel,
-                                                            fontSize = 11.sp,
-                                                            fontWeight = FontWeight.ExtraBold,
-                                                            color = theme.accentColor
-                                                        )
-                                                        Text(
-                                                            text = " $gramsSuffixLabel",
-                                                            fontSize = 11.sp,
-                                                            fontWeight = FontWeight.Medium,
-                                                            color = theme.accentColor.copy(alpha = 0.75f)
-                                                        )
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        Spacer(modifier = Modifier.height(12.dp))
-                                        Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(theme.dividerColor))
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(1.dp)
+                                                .background(theme.dividerColor)
+                                        )
                                         Spacer(modifier = Modifier.height(12.dp))
                                         val maxMilestoneVal = navMilestones.maxOfOrNull {
                                             scalePastPerformanceValue(if (isMonthly) it.monthlyBaselinePortfolioValue else it.dailyBaselinePortfolioValue)
@@ -575,9 +697,9 @@ fun SipAmountScreenV3(
                                         }
                                         Spacer(modifier = Modifier.height(8.dp))
                                         Text(
-                                            text = "Based on ${pastPerformance.fundLabel}\nHistorical data · Not indicative of future returns",
+                                            text = stringResource(Res.string.past_performance_footnote, pastPerformance.fundLabel),
                                             fontSize = 9.sp,
-                                            color = Color.White.copy(alpha = 0.2f),
+                                            color = Color.White.copy(alpha = 0.5f),
                                             modifier = Modifier.fillMaxWidth(),
                                             textAlign = TextAlign.End,
                                             lineHeight = 13.sp
@@ -593,6 +715,9 @@ fun SipAmountScreenV3(
                             onFrequencyChange = { newFrequency ->
                                 frequency = newFrequency
                                 isMonthlyCustomMode = false
+                                coroutineScope.launch {
+                                    sessionStore.saveValue("selected_sip_frequency", if (newFrequency == SipFrequency.MONTHLY) "monthly" else "daily")
+                                }
                             }
                         )
 
@@ -604,48 +729,126 @@ fun SipAmountScreenV3(
                             elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
                         ) {
                             Column(modifier = Modifier.padding(20.dp)) {
+                                var titleTextLayoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
+                                var rangeTextLayoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
+                                val density = LocalDensity.current
                                 val goalTitle = "${getGoalDisplayName(resolvedGoalType)} SIP Amount"
-                                val rangeLabel = "Range: ₹${currentMin.toInt()} - ₹${currentMax.toInt()}"
+                                val rangeLabel = stringResource(Res.string.sip_amount_range_dynamic, currentMin.toInt(), currentMax.toInt())
 
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(text = goalTitle, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = SipInk)
-                                    Text(text = rangeLabel, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = SipInk.copy(alpha = 0.42f))
+                                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                                    val scopeMaxWidth = this.maxWidth
+                                    val needsWrap = remember(titleTextLayoutResult, rangeTextLayoutResult, scopeMaxWidth) {
+                                        if (titleTextLayoutResult == null || rangeTextLayoutResult == null) {
+                                            false
+                                        } else {
+                                            val titleWidthPx = titleTextLayoutResult!!.size.width
+                                            val rangeWidthPx = rangeTextLayoutResult!!.size.width
+                                            val spacingPx = with(density) { 16.dp.toPx() }
+                                            val containerWidthPx = with(density) { scopeMaxWidth.toPx() }
+                                            (titleWidthPx + rangeWidthPx + spacingPx) > containerWidthPx
+                                        }
+                                    }
+                                    if (needsWrap) {
+                                        Column(modifier = Modifier.fillMaxWidth()) {
+                                            Text(
+                                                text = goalTitle,
+                                                fontSize = 15.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = SipInk,
+                                                onTextLayout = { titleTextLayoutResult = it }
+                                            )
+                                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                                                Text(
+                                                    text = rangeLabel,
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = SipInk.copy(alpha = 0.42f),
+                                                    onTextLayout = { rangeTextLayoutResult = it }
+                                                )
+                                            }
+                                        }
+                                    } else {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = goalTitle,
+                                                fontSize = 15.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = SipInk,
+                                                modifier = Modifier.weight(1f, fill = false),
+                                                onTextLayout = { titleTextLayoutResult = it }
+                                            )
+                                            Text(
+                                                text = rangeLabel,
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = SipInk.copy(alpha = 0.42f),
+                                                onTextLayout = { rangeTextLayoutResult = it }
+                                            )
+                                        }
+                                    }
                                 }
 
-                                Spacer(modifier = Modifier.height(18.dp))
+                                Spacer(modifier = Modifier.height(14.dp))
 
                                 if (!isMonthly) {
-                                    DailyAmountInputSection(
+                                    DailyAmountSection(
                                         amount = amount,
-                                        onAmountChange = { amount = it },
+                                        onAmountChange = {
+                                            amount = it
+                                            coroutineScope.launch {
+                                                sessionStore.saveValue("selected_sip_amount", it.toString())
+                                            }
+                                        },
                                         amountText = amountText,
-                                        onAmountTextChange = { amountText = it },
-                                        isCustomMode = isCustomMode,
-                                        onCustomModeChange = { isCustomMode = it },
+                                        onAmountTextChange = {
+                                            amountText = it
+                                            val numeric = it.text.filter { c -> c.isDigit() }.toFloatOrNull()
+                                            if (numeric != null) {
+                                                coroutineScope.launch {
+                                                    sessionStore.saveValue("selected_sip_amount", numeric.toString())
+                                                }
+                                            }
+                                        },
                                         minAmount = minAmount,
                                         maxAmount = maxAmount,
                                         defaultAmount = defaultAmount,
+                                        goalType = resolvedGoalType,
                                         accentColor = theme.accentColor,
                                         coroutineScope = coroutineScope,
                                         focusManager = focusManager,
-                                        keyboardController = keyboardController
+                                        keyboardController = keyboardController,
+                                        scrollState = scrollState
                                     )
                                 } else {
-                                    MonthlyAmountInputSection(
+                                    MonthlyAmountSection(
                                         monthlyAmount = monthlyAmount,
-                                        onMonthlyAmountChange = { monthlyAmount = it },
+                                        onMonthlyAmountChange = {
+                                            monthlyAmount = it
+                                            coroutineScope.launch {
+                                                sessionStore.saveValue("selected_sip_monthly_amount", it.toString())
+                                            }
+                                        },
                                         monthlyAmountText = monthlyAmountText,
-                                        onMonthlyAmountTextChange = { monthlyAmountText = it },
+                                        onMonthlyAmountTextChange = {
+                                            monthlyAmountText = it
+                                            val numeric = it.text.filter { c -> c.isDigit() }.toFloatOrNull()
+                                            if (numeric != null) {
+                                                coroutineScope.launch {
+                                                    sessionStore.saveValue("selected_sip_monthly_amount", numeric.toString())
+                                                }
+                                            }
+                                        },
                                         isMonthlyCustomMode = isMonthlyCustomMode,
                                         onMonthlyCustomModeChange = { isMonthlyCustomMode = it },
                                         accentColor = theme.accentColor,
                                         coroutineScope = coroutineScope,
                                         focusManager = focusManager,
-                                        keyboardController = keyboardController
+                                        keyboardController = keyboardController,
+                                        scrollState = scrollState
                                     )
 
                                     Spacer(modifier = Modifier.height(20.dp))
@@ -655,7 +858,12 @@ fun SipAmountScreenV3(
                                     MonthlyDatePicker(
                                         selectedDate = sipDate,
                                         accentColor = theme.accentColor,
-                                        onDateSelected = { sipDate = it }
+                                        onDateSelected = {
+                                            sipDate = it
+                                            coroutineScope.launch {
+                                                sessionStore.saveValue("selected_sip_date", it.toString())
+                                            }
+                                        }
                                     )
                                 }
                             }
@@ -677,6 +885,7 @@ fun SipAmountScreenV3(
                             fundName = fundDetailsState.fundDetails?.fundName,
                             category = fundDetailsState.fundDetails?.category,
                             isLoading = fundDetailsState.isLoading,
+                            enabled = areDetailsLoaded,
                             onClick = {
                                 val currentFreq = if (isMonthly) "monthly" else "daily"
                                 val currentInstalmentDay = if (isMonthly) sipDate else null
@@ -691,9 +900,79 @@ fun SipAmountScreenV3(
                                 )
                             }
                         )
+
+                        // ── TRUST CHECKLIST ───────────────────────────────────────
+                        SipTrustChecklist()
+
+                        if (submitResult != null) {
+                            val errorMsg = submitResult!!
+                            val isNetworkError = errorMsg.contains("Network", ignoreCase = true) ||
+                                    errorMsg.contains("timeout", ignoreCase = true) ||
+                                    errorMsg.contains("connection", ignoreCase = true) ||
+                                    errorMsg.contains("Failed to connect", ignoreCase = true) ||
+                                    errorMsg.contains("IOException", ignoreCase = true)
+                            val displayMessage = if (errorMsg.contains("success", true)) {
+                                "SIP created successfully!"
+                            } else if (isNetworkError) {
+                                stringResource(Res.string.check_internet_connection)
+                            } else {
+                                "Failed to create SIP. Please try again."
+                            }
+                            Text(
+                                text = displayMessage,
+                                color = if (submitResult!!.contains("success", true)) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.error
+                                },
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+                        }
                     }
                 }
             }
+        }
+
+        if (showUnexpectedErrorDialog) {
+            AlertDialog(
+                onDismissRequest = { showUnexpectedErrorDialog = false },
+                title = { Text(stringResource(Res.string.unexpected_error_title)) },
+                text = { Text(stringResource(Res.string.unexpected_error_message)) },
+                confirmButton = {
+                    TextButton(onClick = { showUnexpectedErrorDialog = false }) {
+                        Text(stringResource(Res.string.retry))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        showUnexpectedErrorDialog = false
+                        onForceLogout()
+                    }) {
+                        Text(stringResource(Res.string.logout_and_login))
+                    }
+                }
+            )
+        }
+
+        if (showTrustStripInfoDialog) {
+            AlertDialog(
+                onDismissRequest = { showTrustStripInfoDialog = false },
+                title = { Text(stringResource(Res.string.about_amcs)) },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(stringResource(Res.string.truststrip_info_paragraph_1))
+                        Text(stringResource(Res.string.truststrip_info_paragraph_2))
+                        Text(stringResource(Res.string.truststrip_info_paragraph_3))
+                        Text(stringResource(Res.string.truststrip_info_paragraph_4))
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showTrustStripInfoDialog = false }) {
+                        Text(stringResource(Res.string.ok))
+                    }
+                }
+            )
         }
     }
 
@@ -706,6 +985,7 @@ fun SipAmountScreenV3(
             sipDate = sipDate,
             isSheetLoading = isSheetLoading,
             sheetError = sheetError,
+            areDetailsLoaded = areDetailsLoaded,
             onConfirm = {
                 val kycStatus = dashboardState.kycStatus
                 val isKycPending = !dashboardState.isLoading &&
@@ -762,7 +1042,34 @@ fun SipAmountScreenV3(
                     }
                 }
             },
-            onDismiss = { showDetailsBottomSheet = false }
+            onDismiss = { showDetailsBottomSheet = false },
+            showDisclaimerDialog = { showDisclaimerDialog = true },
+            uriHandler = uriHandler
+        )
+    }
+
+    if (showDisclaimerDialog) {
+        AlertDialog(
+            onDismissRequest = { showDisclaimerDialog = false },
+            title = { Text(stringResource(Res.string.disclaimer)) },
+            text = {
+                Column {
+                    Text(stringResource(Res.string.gold_silver_price_disclaimer))
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(stringResource(Res.string.mutual_fund_risk_disclaimer))
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = stringResource(Res.string.amfi_disclaimer),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showDisclaimerDialog = false }) {
+                    Text("OK")
+                }
+            }
         )
     }
 
@@ -783,20 +1090,18 @@ private fun SipFrequencyToggle(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(44.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(Color(0xFFF5F5F5))
-            .padding(3.dp),
-        horizontalArrangement = Arrangement.spacedBy(3.dp)
+            .clip(RoundedCornerShape(9999.dp))
+            .background(Color(0xFFEFEBE9))
+            .padding(3.dp)
     ) {
         SipFrequencyTab(
-            label = "Daily",
+            label = stringResource(Res.string.sip_frequency_daily),
             isSelected = frequency == SipFrequency.DAILY,
             onClick = { onFrequencyChange(SipFrequency.DAILY) },
             modifier = Modifier.weight(1f)
         )
         SipFrequencyTab(
-            label = "Monthly",
+            label = stringResource(Res.string.sip_frequency_monthly),
             isSelected = frequency == SipFrequency.MONTHLY,
             onClick = { onFrequencyChange(SipFrequency.MONTHLY) },
             modifier = Modifier.weight(1f)
@@ -813,156 +1118,195 @@ private fun SipFrequencyTab(
 ) {
     Box(
         modifier = modifier
-            .fillMaxHeight()
-            .clip(RoundedCornerShape(9.dp))
-            .background(if (isSelected) Color.White else Color.Transparent)
+            .height(40.dp)
+            .clip(RoundedCornerShape(9999.dp))
+            .background(if (isSelected) SipHeroObsidian else Color.Transparent)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = label,
-            fontSize = 13.sp,
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-            color = if (isSelected) SipHeroObsidian else SipInk.copy(alpha = 0.55f)
+            color = if (isSelected) Color.White else SipInk.copy(alpha = 0.42f),
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 14.sp
         )
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
-private fun DailyAmountInputSection(
+private fun DailyAmountSection(
     amount: Float,
     onAmountChange: (Float) -> Unit,
     amountText: TextFieldValue,
     onAmountTextChange: (TextFieldValue) -> Unit,
-    isCustomMode: Boolean,
-    onCustomModeChange: (Boolean) -> Unit,
     minAmount: Float,
     maxAmount: Float,
     defaultAmount: Float,
+    goalType: GoalType,
     accentColor: Color,
     coroutineScope: kotlinx.coroutines.CoroutineScope,
     focusManager: androidx.compose.ui.focus.FocusManager,
-    keyboardController: androidx.compose.ui.platform.SoftwareKeyboardController?
+    keyboardController: androidx.compose.ui.platform.SoftwareKeyboardController?,
+    scrollState: androidx.compose.foundation.ScrollState
 ) {
-    val bringIntoViewRequester = remember { BringIntoViewRequester() }
-    val amountFocusRequester = remember { FocusRequester() }
-    var isAmountFocused by remember { mutableStateOf(false) }
+    val chipAmounts = remember(minAmount.toInt(), goalType, defaultAmount.toInt(), maxAmount.toInt()) {
+        val min = minAmount.toInt()
+        val default = defaultAmount.toInt()
+        val max = maxAmount.toInt()
+        val secondChip = if (default != min) default else min + 100
+        listOf(min, secondChip, max)
+    }
 
-    Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-        if (isCustomMode) {
-            OutlinedTextField(
-                value = amountText,
-                onValueChange = { newValue ->
-                    val filteredText = newValue.text.filter { it.isDigit() }
-                    if (filteredText.isNotEmpty()) {
-                        val newAmount = filteredText.toIntOrNull()
-                        if (newAmount != null && newAmount in minAmount.toInt()..maxAmount.toInt()) {
-                            onAmountTextChange(TextFieldValue(filteredText, newValue.selection))
-                            onAmountChange(newAmount.toFloat())
-                        } else if (newAmount != null && newAmount > maxAmount.toInt()) {
-                            val maxText = maxAmount.toInt().toString()
-                            onAmountTextChange(TextFieldValue(maxText, TextRange(maxText.length)))
-                            onAmountChange(maxAmount)
-                        } else if (newAmount != null && newAmount < minAmount.toInt()) {
-                            onAmountTextChange(TextFieldValue(filteredText, newValue.selection))
+    val isCustom = remember(amount.toInt(), chipAmounts) { amount.toInt() !in chipAmounts }
+    var isCustomMode by remember { mutableStateOf(isCustom) }
+    LaunchedEffect(amount.toInt(), chipAmounts) {
+        isCustomMode = amount.toInt() !in chipAmounts
+    }
+
+    val bringIntoViewRequester = remember { BringIntoViewRequester() }
+    val focusRequester = remember { FocusRequester() }
+    val density = LocalDensity.current
+    var isAmountFocused by remember { mutableStateOf(false) }
+    LaunchedEffect(isAmountFocused) {
+        if (isAmountFocused) {
+            delay(150)
+            scrollState.animateScrollTo(density.run { 150.dp.roundToPx() })
+        }
+    }
+
+    val isImeVisible = WindowInsets.isImeVisible
+    LaunchedEffect(isImeVisible) {
+        if (!isImeVisible && isAmountFocused) {
+            focusManager.clearFocus()
+            isCustomMode = false
+        }
+    }
+
+    if (isCustomMode) {
+        OutlinedTextField(
+            value = amountText,
+            onValueChange = { newValue ->
+                val filteredText = newValue.text.filter { it.isDigit() }
+                if (filteredText.isNotEmpty()) {
+                    val newAmount = filteredText.toIntOrNull()
+                    if (newAmount != null && newAmount in minAmount.toInt()..maxAmount.toInt()) {
+                        onAmountTextChange(TextFieldValue(filteredText, newValue.selection))
+                        onAmountChange(newAmount.toFloat())
+                    } else if (newAmount != null && newAmount > maxAmount.toInt()) {
+                        val maxText = maxAmount.toInt().toString()
+                        onAmountTextChange(TextFieldValue(maxText, TextRange(maxText.length)))
+                        onAmountChange(maxAmount)
+                    } else if (newAmount != null && newAmount < minAmount.toInt()) {
+                        onAmountTextChange(TextFieldValue(filteredText, newValue.selection))
+                    }
+                } else {
+                    onAmountTextChange(TextFieldValue("", TextRange(0)))
+                }
+            },
+            textStyle = TextStyle(fontSize = 36.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, color = SipInk),
+            prefix = { Text("₹", fontSize = 28.sp, color = SipInk.copy(alpha = 0.38f)) },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(focusRequester)
+                .bringIntoViewRequester(bringIntoViewRequester)
+                .onFocusChanged { focusState ->
+                    val wasFocused = isAmountFocused
+                    isAmountFocused = focusState.isFocused
+                    if (focusState.isFocused && !wasFocused) {
+                        val text = amountText.text
+                        onAmountTextChange(TextFieldValue(text, TextRange(text.length)))
+                    }
+                    if (!focusState.isFocused && wasFocused) {
+                        keyboardController?.hide()
+                        val currentInput = amountText.text.toIntOrNull()
+                        if (currentInput == null) {
+                            val newText = amount.toInt().toString()
+                            onAmountTextChange(TextFieldValue(newText, TextRange(newText.length)))
+                        } else if (currentInput < minAmount.toInt()) {
+                            val newText = minAmount.toInt().toString()
+                            onAmountTextChange(TextFieldValue(newText, TextRange(newText.length)))
+                            onAmountChange(minAmount)
                         }
-                    } else {
-                        onAmountTextChange(TextFieldValue("", TextRange(0)))
                     }
                 },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = {
-                    keyboardController?.hide()
-                    focusManager.clearFocus()
-                }),
-                modifier = Modifier
-                    .width(180.dp)
-                    .focusRequester(amountFocusRequester)
-                    .bringIntoViewRequester(bringIntoViewRequester)
-                    .onFocusChanged { focusState ->
-                        val wasFocused = isAmountFocused
-                        isAmountFocused = focusState.isFocused
-                        if (focusState.isFocused && !wasFocused) {
-                            val text = amountText.text
-                            onAmountTextChange(TextFieldValue(text, TextRange(text.length)))
-                            coroutineScope.launch {
-                                delay(300)
-                                bringIntoViewRequester.bringIntoView()
-                            }
-                        }
-                        if (!focusState.isFocused && wasFocused) {
-                            val currentInput = amountText.text.toIntOrNull()
-                            if (currentInput == null || currentInput < minAmount.toInt()) {
-                                val newText = minAmount.toInt().toString()
-                                onAmountTextChange(TextFieldValue(newText, TextRange(newText.length)))
-                                onAmountChange(minAmount)
-                            }
-                            onCustomModeChange(false)
-                        }
-                    },
-                prefix = { Text("₹", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = SipInk) },
-                textStyle = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold, textAlign = TextAlign.Center),
-                singleLine = true
+            singleLine = true,
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent
             )
-        } else {
-            Text(
-                text = "₹${amount.toInt()}",
-                fontSize = 44.sp,
-                fontWeight = FontWeight.Black,
-                color = SipInk,
-                modifier = Modifier.clickable { onCustomModeChange(true) }
-            )
+        )
+    } else {
+        Box(
+            modifier = Modifier.fillMaxWidth().clickable { isCustomMode = true },
+            contentAlignment = Alignment.Center
+        ) {
+            Text(text = "₹${amount.toInt()}", fontSize = 48.sp, fontWeight = FontWeight.ExtraBold, color = SipInk)
         }
+    }
 
-        LaunchedEffect(isCustomMode) {
-            if (isCustomMode) {
-                delay(100)
-                amountFocusRequester.requestFocus()
-            }
-        }
+    Text(
+        text = "/day",
+        fontSize = 15.sp,
+        fontWeight = FontWeight.Bold,
+        color = SipInk.copy(alpha = 0.72f),
+        modifier = Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 12.dp),
+        textAlign = TextAlign.Center
+    )
 
-        Spacer(modifier = Modifier.height(18.dp))
+    val popularAmount = remember(defaultAmount.toInt(), minAmount.toInt(), chipAmounts) {
+        val default = defaultAmount.toInt()
+        if (default != minAmount.toInt() && default in chipAmounts) default else null
+    }
 
-        val chipAmounts = remember(minAmount, defaultAmount, maxAmount) {
-            val minVal = minAmount.toInt()
-            val defaultVal = defaultAmount.toInt()
-            val maxVal = maxAmount.toInt()
-            val secondVal = if (defaultVal != minVal) defaultVal else minVal + 100
-            listOf(minVal, secondVal, maxVal)
-        }
-
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            chipAmounts.forEach { valOpt ->
-                SipPresetChip(
-                    label = "₹$valOpt",
-                    isSelected = !isCustomMode && amount.toInt() == valOpt,
-                    isPopular = valOpt == defaultAmount.toInt() && minAmount.toInt() != defaultAmount.toInt(),
-                    accentColor = accentColor,
-                    modifier = Modifier.weight(1f),
-                    onClick = {
-                        onAmountChange(valOpt.toFloat())
-                        val newText = valOpt.toString()
-                        onAmountTextChange(TextFieldValue(newText, TextRange(newText.length)))
-                        onCustomModeChange(false)
-                    }
-                )
-            }
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        chipAmounts.forEach { preset ->
             SipPresetChip(
-                label = "Custom",
-                isSelected = isCustomMode,
-                isPopular = false,
+                label = "₹$preset",
+                isSelected = !isCustomMode && amount.toInt() == preset,
+                isPopular = preset == popularAmount,
                 accentColor = accentColor,
                 modifier = Modifier.weight(1f),
-                onClick = { onCustomModeChange(true) }
+                onClick = {
+                    isCustomMode = false
+                    onAmountChange(preset.toFloat())
+                    val newText = preset.toString()
+                    onAmountTextChange(TextFieldValue(newText, TextRange(newText.length)))
+                }
             )
+        }
+        SipPresetChip(
+            label = "Custom",
+            isSelected = isCustomMode,
+            isPopular = false,
+            accentColor = accentColor,
+            modifier = Modifier.weight(1f),
+            onClick = { isCustomMode = true }
+        )
+    }
+
+    LaunchedEffect(isCustomMode) {
+        if (isCustomMode) {
+            delay(300)
+            coroutineScope.launch {
+                focusRequester.requestFocus()
+                bringIntoViewRequester.bringIntoView()
+                scrollState.animateScrollTo(scrollState.maxValue)
+                delay(150)
+                bringIntoViewRequester.bringIntoView()
+                scrollState.animateScrollTo(scrollState.maxValue)
+            }
         }
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
-private fun MonthlyAmountInputSection(
+private fun MonthlyAmountSection(
     monthlyAmount: Float,
     onMonthlyAmountChange: (Float) -> Unit,
     monthlyAmountText: TextFieldValue,
@@ -972,111 +1316,144 @@ private fun MonthlyAmountInputSection(
     accentColor: Color,
     coroutineScope: kotlinx.coroutines.CoroutineScope,
     focusManager: androidx.compose.ui.focus.FocusManager,
-    keyboardController: androidx.compose.ui.platform.SoftwareKeyboardController?
+    keyboardController: androidx.compose.ui.platform.SoftwareKeyboardController?,
+    scrollState: androidx.compose.foundation.ScrollState
 ) {
-    val bringIntoViewRequester = remember { BringIntoViewRequester() }
-    val amountFocusRequester = remember { FocusRequester() }
-    var isAmountFocused by remember { mutableStateOf(false) }
+    LaunchedEffect(monthlyAmount.toInt()) {
+        onMonthlyCustomModeChange(monthlyAmount.toInt() !in MONTHLY_PRESETS)
+    }
 
-    Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-        if (isMonthlyCustomMode) {
-            OutlinedTextField(
-                value = monthlyAmountText,
-                onValueChange = { newValue ->
-                    val filteredText = newValue.text.filter { it.isDigit() }
-                    if (filteredText.isNotEmpty()) {
-                        val newAmount = filteredText.toIntOrNull()
-                        if (newAmount != null && newAmount in MONTHLY_MIN.toInt()..MONTHLY_MAX.toInt()) {
-                            onMonthlyAmountTextChange(TextFieldValue(filteredText, newValue.selection))
-                            onMonthlyAmountChange(newAmount.toFloat())
-                        } else if (newAmount != null && newAmount > MONTHLY_MAX.toInt()) {
-                            val maxText = MONTHLY_MAX.toInt().toString()
-                            onMonthlyAmountTextChange(TextFieldValue(maxText, TextRange(maxText.length)))
-                            onMonthlyAmountChange(MONTHLY_MAX)
-                        } else if (newAmount != null && newAmount < MONTHLY_MIN.toInt()) {
-                            onMonthlyAmountTextChange(TextFieldValue(filteredText, newValue.selection))
+    val bringIntoViewRequester = remember { BringIntoViewRequester() }
+    val focusRequester = remember { FocusRequester() }
+    val density = LocalDensity.current
+    var isAmountFocused by remember { mutableStateOf(false) }
+    LaunchedEffect(isAmountFocused) {
+        if (isAmountFocused) {
+            delay(150)
+            scrollState.animateScrollTo(density.run { 150.dp.roundToPx() })
+        }
+    }
+
+    val isImeVisible = WindowInsets.isImeVisible
+    LaunchedEffect(isImeVisible) {
+        if (!isImeVisible && isAmountFocused) {
+            focusManager.clearFocus()
+            onMonthlyCustomModeChange(false)
+        }
+    }
+
+    if (isMonthlyCustomMode) {
+        OutlinedTextField(
+            value = monthlyAmountText,
+            onValueChange = { newValue ->
+                val filteredText = newValue.text.filter { it.isDigit() }
+                if (filteredText.isNotEmpty()) {
+                    val newAmount = filteredText.toIntOrNull()
+                    if (newAmount != null && newAmount in MONTHLY_MIN.toInt()..MONTHLY_MAX.toInt()) {
+                        onMonthlyAmountTextChange(TextFieldValue(filteredText, newValue.selection))
+                        onMonthlyAmountChange(newAmount.toFloat())
+                    } else if (newAmount != null && newAmount > MONTHLY_MAX.toInt()) {
+                        val maxText = MONTHLY_MAX.toInt().toString()
+                        onMonthlyAmountTextChange(TextFieldValue(maxText, TextRange(maxText.length)))
+                        onMonthlyAmountChange(MONTHLY_MAX)
+                    } else if (newAmount != null && newAmount < MONTHLY_MIN.toInt()) {
+                        onMonthlyAmountTextChange(TextFieldValue(filteredText, newValue.selection))
+                    }
+                } else {
+                    onMonthlyAmountTextChange(TextFieldValue("", TextRange(0)))
+                }
+            },
+            textStyle = TextStyle(fontSize = 36.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, color = SipInk),
+            prefix = { Text("₹", fontSize = 28.sp, color = SipInk.copy(alpha = 0.38f)) },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(focusRequester)
+                .bringIntoViewRequester(bringIntoViewRequester)
+                .onFocusChanged { focusState ->
+                    val wasFocused = isAmountFocused
+                    isAmountFocused = focusState.isFocused
+                    if (focusState.isFocused && !wasFocused) {
+                        val text = monthlyAmountText.text
+                        onMonthlyAmountTextChange(TextFieldValue(text, TextRange(text.length)))
+                    }
+                    if (!focusState.isFocused && wasFocused) {
+                        keyboardController?.hide()
+                        val currentInput = monthlyAmountText.text.toIntOrNull()
+                        if (currentInput == null) {
+                            val newText = monthlyAmount.toInt().toString()
+                            onMonthlyAmountTextChange(TextFieldValue(newText, TextRange(newText.length)))
+                        } else if (currentInput < MONTHLY_MIN.toInt()) {
+                            val newText = MONTHLY_MIN.toInt().toString()
+                            onMonthlyAmountTextChange(TextFieldValue(newText, TextRange(newText.length)))
+                            onMonthlyAmountChange(MONTHLY_MIN)
                         }
-                    } else {
-                        onMonthlyAmountTextChange(TextFieldValue("", TextRange(0)))
                     }
                 },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = {
-                    keyboardController?.hide()
-                    focusManager.clearFocus()
-                }),
-                modifier = Modifier
-                    .width(180.dp)
-                    .focusRequester(amountFocusRequester)
-                    .bringIntoViewRequester(bringIntoViewRequester)
-                    .onFocusChanged { focusState ->
-                        val wasFocused = isAmountFocused
-                        isAmountFocused = focusState.isFocused
-                        if (focusState.isFocused && !wasFocused) {
-                            val text = monthlyAmountText.text
-                            onMonthlyAmountTextChange(TextFieldValue(text, TextRange(text.length)))
-                            coroutineScope.launch {
-                                delay(300)
-                                bringIntoViewRequester.bringIntoView()
-                            }
-                        }
-                        if (!focusState.isFocused && wasFocused) {
-                            val currentInput = monthlyAmountText.text.toIntOrNull()
-                            if (currentInput == null || currentInput < MONTHLY_MIN.toInt()) {
-                                val newText = MONTHLY_MIN.toInt().toString()
-                                onMonthlyAmountTextChange(TextFieldValue(newText, TextRange(newText.length)))
-                                onMonthlyAmountChange(MONTHLY_MIN)
-                            }
-                            onMonthlyCustomModeChange(false)
-                        }
-                    },
-                prefix = { Text("₹", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = SipInk) },
-                textStyle = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold, textAlign = TextAlign.Center),
-                singleLine = true
+            singleLine = true,
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent
             )
-        } else {
-            Text(
-                text = "₹${monthlyAmount.toInt()}",
-                fontSize = 44.sp,
-                fontWeight = FontWeight.Black,
-                color = SipInk,
-                modifier = Modifier.clickable { onMonthlyCustomModeChange(true) }
-            )
+        )
+    } else {
+        Box(
+            modifier = Modifier.fillMaxWidth().clickable { onMonthlyCustomModeChange(true) },
+            contentAlignment = Alignment.Center
+        ) {
+            Text(text = "₹${monthlyAmount.toInt()}", fontSize = 48.sp, fontWeight = FontWeight.ExtraBold, color = SipInk)
         }
+    }
 
-        LaunchedEffect(isMonthlyCustomMode) {
-            if (isMonthlyCustomMode) {
-                delay(100)
-                amountFocusRequester.requestFocus()
-            }
-        }
+    Text(
+        text = "/month",
+        fontSize = 15.sp,
+        fontWeight = FontWeight.Bold,
+        color = SipInk.copy(alpha = 0.72f),
+        modifier = Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 12.dp),
+        textAlign = TextAlign.Center
+    )
 
-        Spacer(modifier = Modifier.height(18.dp))
-
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            MONTHLY_PRESETS.forEach { valOpt ->
-                SipPresetChip(
-                    label = "₹$valOpt",
-                    isSelected = !isMonthlyCustomMode && monthlyAmount.toInt() == valOpt,
-                    isPopular = valOpt == MONTHLY_POPULAR_AMOUNT,
-                    accentColor = accentColor,
-                    modifier = Modifier.weight(1f),
-                    onClick = {
-                        onMonthlyAmountChange(valOpt.toFloat())
-                        val newText = valOpt.toString()
-                        onMonthlyAmountTextChange(TextFieldValue(newText, TextRange(newText.length)))
-                        onMonthlyCustomModeChange(false)
-                    }
-                )
-            }
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        MONTHLY_PRESETS.forEach { preset ->
             SipPresetChip(
-                label = "Custom",
-                isSelected = isMonthlyCustomMode,
-                isPopular = false,
+                label = formatRupees(preset.toDouble()),
+                isSelected = !isMonthlyCustomMode && monthlyAmount.toInt() == preset,
+                isPopular = preset == MONTHLY_POPULAR_AMOUNT,
                 accentColor = accentColor,
                 modifier = Modifier.weight(1f),
-                onClick = { onMonthlyCustomModeChange(true) }
+                onClick = {
+                    onMonthlyCustomModeChange(false)
+                    onMonthlyAmountChange(preset.toFloat())
+                    val newText = preset.toString()
+                    onMonthlyAmountTextChange(TextFieldValue(newText, TextRange(newText.length)))
+                }
             )
+        }
+        SipPresetChip(
+            label = "Custom",
+            isSelected = isMonthlyCustomMode,
+            isPopular = false,
+            accentColor = accentColor,
+            modifier = Modifier.weight(1f),
+            onClick = { onMonthlyCustomModeChange(true) }
+        )
+    }
+
+    LaunchedEffect(isMonthlyCustomMode) {
+        if (isMonthlyCustomMode) {
+            delay(300)
+            coroutineScope.launch {
+                focusRequester.requestFocus()
+                bringIntoViewRequester.bringIntoView()
+                scrollState.animateScrollTo(scrollState.maxValue)
+                delay(150)
+                bringIntoViewRequester.bringIntoView()
+                scrollState.animateScrollTo(scrollState.maxValue)
+            }
         }
     }
 }
@@ -1095,9 +1472,9 @@ private fun MonthlyDatePicker(
             verticalAlignment = Alignment.Top
         ) {
             Column {
-                Text(text = "SIP date", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = SipInk)
+                Text(text = stringResource(Res.string.sip_date_label), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = SipInk)
                 Spacer(modifier = Modifier.height(2.dp))
-                Text(text = "Debit on this date every month", fontSize = 11.sp, color = SipInk.copy(alpha = 0.45f))
+                Text(text = stringResource(Res.string.sip_date_subtitle), fontSize = 11.sp, color = SipInk.copy(alpha = 0.45f))
             }
             Text(text = ordinalSuffix(selectedDate), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = accentColor)
         }
@@ -1140,9 +1517,9 @@ private fun MonthlyDatePicker(
                             fontSize = 13.sp,
                             fontWeight = if (isSelected) FontWeight.Bold else if (isPopular) FontWeight.SemiBold else FontWeight.Normal,
                             color = when {
-                                isSelected -> SipGold
-                                isPopular -> SipGoldDeep
-                                else -> SipInk.copy(alpha = 0.55f)
+                                    isSelected -> SipGold
+                                    isPopular -> SipGoldDeep
+                                    else -> SipInk.copy(alpha = 0.55f)
                             }
                         )
                     }
@@ -1150,7 +1527,7 @@ private fun MonthlyDatePicker(
             }
         }
         Text(
-            text = "Dates 29–31 are not available for monthly SIP",
+            text = stringResource(Res.string.sip_dates_skipped_footnote),
             fontSize = 10.sp,
             color = SipInk.copy(alpha = 0.35f),
             modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
@@ -1296,19 +1673,19 @@ private fun SipSchemeCard(
     fundName: String?,
     category: String?,
     isLoading: Boolean,
+    enabled: Boolean,
     onClick: () -> Unit
 ) {
-    val logo = getFundLogo(fundName)
     Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        modifier = Modifier.fillMaxWidth().clickable(enabled = enabled, onClick = onClick),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = androidx.compose.foundation.BorderStroke(1.dp, SipSubtleBorder),
+        border = BorderStroke(1.dp, SipSubtleBorder),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "Allocates to",
+                text = stringResource(Res.string.allocates_to),
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 0.9.sp,
@@ -1326,12 +1703,15 @@ private fun SipSchemeCard(
                 ) {
                     if (isLoading) {
                         CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                    } else if (logo != null) {
-                        Image(
-                            painter = painterResource(logo),
-                            contentDescription = fundName,
-                            modifier = Modifier.size(36.dp)
-                        )
+                    } else {
+                        val logo = getFundLogo(fundName)
+                        if (logo != null) {
+                            Image(
+                                painter = painterResource(logo),
+                                contentDescription = stringResource(Res.string.content_description_fund_logo),
+                                modifier = Modifier.size(36.dp)
+                            )
+                        }
                     }
                 }
                 Spacer(modifier = Modifier.width(12.dp))
@@ -1370,6 +1750,43 @@ private fun getFundLogo(fundName: String?): org.jetbrains.compose.resources.Draw
     }
 }
 
+@Composable
+private fun SipTrustChecklist() {
+    val items = listOf(
+        stringResource(Res.string.lumpsum_trust_safe_sebi),
+        stringResource(Res.string.sip_trust_flexibility)
+    )
+    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
+        items.forEach { line ->
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(18.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFE8F5E9)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = null,
+                        tint = Color(0xFF2E7D32),
+                        modifier = Modifier.size(10.dp)
+                    )
+                }
+                Text(
+                    text = line,
+                    fontSize = 12.sp,
+                    color = SipInk.copy(alpha = 0.58f),
+                    lineHeight = 18.sp
+                )
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun FundDetailsBottomSheet(
@@ -1380,12 +1797,13 @@ private fun FundDetailsBottomSheet(
     sipDate: Int,
     isSheetLoading: Boolean,
     sheetError: String?,
+    areDetailsLoaded: Boolean,
     onConfirm: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    showDisclaimerDialog: () -> Unit,
+    uriHandler: androidx.compose.ui.platform.UriHandler
 ) {
-    val sheetState = rememberModalBottomSheetState(
-        skipPartiallyExpanded = true
-    )
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -1393,19 +1811,18 @@ private fun FundDetailsBottomSheet(
         shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(24.dp),
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            val frequencyLabel = if (isMonthly) "Monthly" else "Daily"
             val title = when (goalType) {
-                GoalType.GOLD -> "Gold SIP Investment"
-                GoalType.SILVER -> "Silver SIP Investment"
-                GoalType.SAVINGS, GoalType.SAVINGS_PLUS -> "SIP Investment"
-                GoalType.FESTIVAL_SPENDS -> "SIP Investment"
-                GoalType.GLOBAL_EXPOSURE -> "Global Exposure SIP Investment"
-                GoalType.ALL_IN_ONE -> "All-in-One SIP Investment"
-                else -> "SIP Investment"
+                GoalType.GOLD -> "Gold $frequencyLabel SIP"
+                GoalType.SILVER -> "Silver $frequencyLabel SIP"
+                GoalType.SAVINGS, GoalType.SAVINGS_PLUS -> "$frequencyLabel SIP"
+                GoalType.FESTIVAL_SPENDS -> "$frequencyLabel SIP"
+                GoalType.GLOBAL_EXPOSURE -> "Global Exposure $frequencyLabel SIP"
+                GoalType.ALL_IN_ONE -> "All-in-One $frequencyLabel SIP"
+                else -> "$frequencyLabel SIP"
             }
 
             Row(
@@ -1414,10 +1831,10 @@ private fun FundDetailsBottomSheet(
                 verticalAlignment = Alignment.Top
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.weight(1f)) {
-                    Text(text = title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = SipInk)
+                    Text(text = title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                     fundDetailsState.fundDetails?.fundName?.let { fundName ->
                         Text(
-                            text = "powered by $fundName",
+                            text = stringResource(Res.string.powered_by, fundName),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -1425,11 +1842,13 @@ private fun FundDetailsBottomSheet(
                 }
                 fundDetailsState.fundDetails?.fundName?.let { fundName ->
                     val logo = getFundLogo(fundName)
-                    Image(
-                        painter = painterResource(logo),
-                        contentDescription = "Fund Logo",
-                        modifier = Modifier.size(60.dp).padding(start = 16.dp)
-                    )
+                    if (logo != null) {
+                        Image(
+                            painter = painterResource(logo),
+                            contentDescription = stringResource(Res.string.content_description_fund_logo),
+                            modifier = Modifier.size(60.dp).padding(start = 16.dp)
+                        )
+                    }
                 }
             }
 
@@ -1440,23 +1859,6 @@ private fun FundDetailsBottomSheet(
             } else {
                 if (fundDetailsState.fundDetails != null) {
                     FundHeader(fundDetailsState.fundDetails!!)
-                }
-
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(text = "Amount", color = SipInk.copy(alpha = 0.6f))
-                    Text(text = "₹${amount.toInt()}", fontWeight = FontWeight.Bold, color = SipInk)
-                }
-
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(text = "Frequency", color = SipInk.copy(alpha = 0.6f))
-                    Text(text = if (isMonthly) "Monthly" else "Daily", fontWeight = FontWeight.Bold, color = SipInk)
-                }
-
-                if (isMonthly) {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(text = "Installment Date", color = SipInk.copy(alpha = 0.6f))
-                        Text(text = ordinalSuffix(sipDate), fontWeight = FontWeight.Bold, color = SipInk)
-                    }
                 }
 
                 val bankDetails = fundDetailsState.fundDetails?.bankDetails
@@ -1474,7 +1876,7 @@ private fun FundDetailsBottomSheet(
                     )
                 }
 
-                if (!sheetError.isNullOrBlank()) {
+                if (sheetError != null) {
                     Text(
                         text = sheetError,
                         color = MaterialTheme.colorScheme.error,
@@ -1484,16 +1886,82 @@ private fun FundDetailsBottomSheet(
 
                 Button(
                     onClick = onConfirm,
-                    modifier = Modifier.fillMaxWidth().height(50.dp),
-                    enabled = !isSheetLoading
+                    enabled = !isSheetLoading && areDetailsLoaded,
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = SipHeroObsidian,
+                        contentColor = Color.White,
+                        disabledContainerColor = SipHeroObsidian.copy(alpha = 0.55f),
+                        disabledContentColor = Color.White.copy(alpha = 0.7f)
+                    )
                 ) {
                     if (isSheetLoading) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Submitting...")
+                    } else if (!areDetailsLoaded) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Loading details...")
                     } else {
-                        Text(text = "Confirm", fontWeight = FontWeight.Bold)
+                        Text("Invest ₹${amount.toInt()}/${if (isMonthly) "month" else "day"}")
                     }
                 }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val schemeDocUrl = fundDetailsState.fundDetails?.schemeDocumentUrl
+                    if (!schemeDocUrl.isNullOrBlank()) {
+                        Row(
+                            modifier = Modifier.clickable { uriHandler.openUri(schemeDocUrl) }.padding(4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = stringResource(Res.string.scheme_documents),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    } else {
+                        Spacer(modifier = Modifier.width(1.dp))
+                    }
+
+                    Text(
+                        text = stringResource(Res.string.disclaimer),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.clickable { showDisclaimerDialog() }.padding(4.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
             }
         }
     }
 }
+
+fun formatRupees(amount: Double): String {
+    val integerPart = amount.toInt().toString()
+    val length = integerPart.length
+    if (length <= 3) return "₹$integerPart"
+    val lastThree = integerPart.substring(length - 3)
+    val remaining = integerPart.substring(0, length - 3)
+    val builder = StringBuilder()
+    var i = remaining.length - 1
+    var count = 0
+    while (i >= 0) {
+        builder.append(remaining[i])
+        count++
+        if (count == 2 && i > 0) {
+            builder.append(",")
+            count = 0
+        }
+        i--
+    }
+    return "₹${builder.reverse()},$lastThree"
+}
+

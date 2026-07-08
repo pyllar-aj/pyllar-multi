@@ -20,11 +20,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -47,6 +52,7 @@ import com.pyllar.consumer.presentation.ui.theme.V2Cream
 import com.pyllar.consumer.presentation.ui.theme.V2SuccessGreen
 import pyllar.composeapp.generated.resources.*
 import kotlin.math.abs
+import kotlin.math.pow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -81,7 +87,7 @@ fun SchemeDetailsV2Screen(
     var showCancelSipScreen by remember { mutableStateOf(false) }
     var mandateForCancelSip by remember { mutableStateOf<MandateDisplayItem?>(null) }
     var showCancelReasonScreen by remember { mutableStateOf(false) }
-    var selectedCancelReason by remember { mutableStateOf<CancelSipReason?>(null) }
+    var selectedCancelReason by remember { mutableStateOf<CancelSipReasonV2?>(null) }
     var showCancelSipSuccessSheet by remember { mutableStateOf(false) }
     var showCancelSipErrorSheet by remember { mutableStateOf(false) }
 
@@ -105,26 +111,81 @@ fun SchemeDetailsV2Screen(
     
     val displaySchemeName = schemeParams?.schemeName?.takeIf { it.isNotBlank() } ?: state.schemeName.orEmpty()
     val displayGoalName = schemeParams?.goalName?.takeIf { it.isNotBlank() } ?: state.goalName.orEmpty()
-    val category = state.category ?: schemeParams?.category
-    val colorTheme = state.colorTheme ?: schemeParams?.colorTheme
+    val displayCategory = schemeParams?.category ?: state.category
+    val displayColorTheme = schemeParams?.colorTheme ?: state.colorTheme
+    val goalColor = getCorrelationColorForCategory(displayCategory, displayColorTheme)
+    val categoryUpper = displayCategory?.uppercase().orEmpty()
 
-    val goalType = identifyGoalType(category, displaySchemeName)
-    val accentColor = if (category?.uppercase() == "SILVER") Color.Black else getCorrelationColorForCategory(category, colorTheme)
+    val goalType = identifyGoalType(displayCategory, displaySchemeName)
+    val accentColor = if (categoryUpper == "SILVER") Color.Black else getCorrelationColorForCategory(displayCategory, displayColorTheme)
+
+    // Premium color system based on goal category
+    val (contentColor, secondaryContentColor, pillBgColor, scaffoldBgColor) = when {
+        categoryUpper == "GOLD" -> {
+            listOf(Color(0xFF333333), Color.Black, Color.White.copy(alpha = 0.15f), Color.White)
+        }
+        categoryUpper == "SILVER" -> {
+            listOf(Color(0xFF333333), Color.Black, Color.White.copy(alpha = 0.15f), Color.White)
+        }
+        categoryUpper == "SAVINGS" || categoryUpper == "SAVINGS_PLUS" -> {
+            listOf(Color.White, Color.White.copy(alpha = 0.9f), Color.White.copy(alpha = 0.25f), Color.White)
+        }
+        categoryUpper == "GLOBAL_EXPOSURE" || categoryUpper == "GLOBAL" -> {
+            listOf(Color.White, Color.White.copy(alpha = 0.9f), Color.White.copy(alpha = 0.25f), Color.White)
+        }
+        categoryUpper == "FESTIVAL_SPENDS" -> {
+            listOf(Color.White, Color.White.copy(alpha = 0.9f), Color.White.copy(alpha = 0.25f), Color.White)
+        }
+        categoryUpper == "CHILDRENS_EDUCATION" -> {
+            listOf(Color.White, Color.White.copy(alpha = 0.9f), Color.White.copy(alpha = 0.25f), Color.White)
+        }
+        categoryUpper == "VACATION" -> {
+            listOf(Color.White, Color.White.copy(alpha = 0.9f), Color.White.copy(alpha = 0.25f), Color.White)
+        }
+        else -> {
+            listOf(Color.White, Color.White.copy(alpha = 0.8f), Color.White.copy(alpha = 0.25f), Color.White)
+        }
+    }
+
+    val isGoldOrSilver = displaySchemeName.contains("Gold", ignoreCase = true) ||
+            displaySchemeName.contains("Silver", ignoreCase = true) ||
+            displayGoalName.contains("Gold", ignoreCase = true) ||
+            displayGoalName.contains("Silver", ignoreCase = true)
+    val titleStr = when {
+        displayGoalName.contains("Gold", ignoreCase = true) || displaySchemeName.contains("Gold", ignoreCase = true) -> stringResource(Res.string.your_gold)
+        isGoldOrSilver -> stringResource(Res.string.your_silver)
+        else -> stringResource(Res.string.your_savings)
+    }
+
+    val unitsVal = when {
+        isGoldOrSilver && (state.unitsInGm ?: schemeParams?.unitsInGm ?: 0.0) > 0 -> {
+            val u = state.unitsInGm ?: schemeParams?.unitsInGm ?: 0.0
+            if (u < 1.0) "${formatDecimal(u * 1000, 0)}${stringResource(Res.string.mg_label)}" else "${formatDecimal(u, 2)}${stringResource(Res.string.g_label)}"
+        }
+        else -> {
+            formatRupeeAmount(state.cummulativeValue, 0)
+        }
+    }
+
+    val activeMandate = state.mandates.firstOrNull { m ->
+        val s = m.status?.uppercase().orEmpty()
+        (s.contains("APPROVED") || s.contains("ACTIVE")) && !s.contains("PAUSED")
+    }
+    val hasApprovedPlan = activeMandate != null
+    val nextSipDateStr = activeMandate?.nextSipDate
+    val showFirstSaveDate = hasApprovedPlan && state.investedAmount == 0.0 && state.cummulativeValue == 0.0 && !nextSipDateStr.isNullOrBlank()
 
     LaunchedEffect(Unit) {
         PlatformAnalyticsLogger.logScreenView("SchemeDetailsV2")
     }
 
     LaunchedEffect(userId, purpose) {
-        platformLog("SchemeDetailsV2: 🔄 Initial load LaunchedEffect - userId: $userId, purpose: $purpose")
+        platformLog("SchemeDetailsV2: LaunchedEffect initial load - userId: $userId, purpose: $purpose")
         if (userId.isNotBlank() && purpose.isNotBlank()) {
-            // Attempt to restore params from session store if manager is empty
             if (SchemeDetailsParamsManager.get() == null) {
-                platformLog("SchemeDetailsV2: 🔍 Manager empty, attempting restore from sessionStore")
                 val stored = sessionStore.getValue("scheme_details_params_$purpose")
                 val restored = SchemeDetailsParamsManager.fromJson(stored)
                 if (restored != null) {
-                    platformLog("SchemeDetailsV2: ✅ Restored params from sessionStore")
                     SchemeDetailsParamsManager.set(restored)
                     schemeParams = restored
                 }
@@ -134,7 +195,6 @@ fun SchemeDetailsV2Screen(
 
             val currentParams = schemeParams ?: SchemeDetailsParamsManager.get()
             val uipid = currentParams?.userPurposeId ?: purpose
-            platformLog("SchemeDetailsV2: 🚀 Calling loadTransactions with uipid: $uipid")
             viewModel.loadTransactions(userId, uipid, currentParams)
         }
     }
@@ -179,22 +239,21 @@ fun SchemeDetailsV2Screen(
     }
 
     val reloadData = {
-        platformLog("SchemeDetailsV2: 🔄 reloadData called - userId: $userId, purpose: $purpose")
         if (userId.isNotBlank() && purpose.isNotBlank()) {
             val currentParams = schemeParams ?: SchemeDetailsParamsManager.get()
             val uipid = currentParams?.userPurposeId ?: purpose
-            platformLog("SchemeDetailsV2: 🚀 Reloading transactions with uipid: $uipid")
             viewModel.loadTransactions(userId, uipid, currentParams)
         }
     }
 
-    val handleAddFunds = { gid: String, isLumpsum: Boolean ->
-        if (isLumpsum && state.folioNumber.isNullOrBlank()) {
+    val handleLumpsumClick: () -> Unit = {
+        val hasActualInvestment = state.investedAmount > 0 || !state.folioNumber.isNullOrBlank()
+        if (hasActualInvestment && state.folioNumber.isNullOrBlank()) {
             showFolioPendingDialog = true
         } else {
             scope.launch {
                 try {
-                    val result = dashboardViewModel.initGoalTxn(userId, gid)
+                    val result = dashboardViewModel.initGoalTxn(userId, purpose)
                     if (result is Resource.Success) {
                         result.data?.let { response ->
                             if (response.userPurposeId.isNotBlank()) {
@@ -202,19 +261,11 @@ fun SchemeDetailsV2Screen(
                             }
                         }
                     }
-                    
-                    sessionStore.saveValue(KeyValueConstants.SELECTED_GOAL_ID, gid)
-                    val hasInvestment = state.investedAmount > 0 || !state.folioNumber.isNullOrBlank()
-                    sessionStore.saveValue("isExistingInvestment", hasInvestment.toString())
-
+                    sessionStore.saveValue(KeyValueConstants.SELECTED_GOAL_ID, purpose)
+                    sessionStore.saveValue("isExistingInvestment", hasActualInvestment.toString())
                     val kycAttemptId = sessionStore.getValue(KeyValueConstants.KYC_ATTEMPT_ID) ?: ""
                     val investorId = sessionStore.getValue(KeyValueConstants.INVESTOR_ID) ?: ""
-
-                    if (isLumpsum) {
-                        onNavigateToLumpsum(userId, kycAttemptId, investorId, gid, hasInvestment)
-                    } else {
-                        onNavigateToAddFunds(userId, kycAttemptId, investorId, gid, hasInvestment)
-                    }
+                    onNavigateToLumpsum(userId, kycAttemptId, investorId, purpose, hasActualInvestment)
                 } catch (e: Exception) {
                     platformLog("Error: ${e.message}")
                 }
@@ -222,91 +273,661 @@ fun SchemeDetailsV2Screen(
         }
     }
 
+    val handleSipClick: () -> Unit = {
+        scope.launch {
+            try {
+                val result = dashboardViewModel.initGoalTxn(userId, purpose)
+                if (result is Resource.Success) {
+                    result.data?.let { response ->
+                        if (response.userPurposeId.isNotBlank()) {
+                            sessionStore.saveValue(KeyValueConstants.USER_PURPOSE_ID, response.userPurposeId)
+                        }
+                    }
+                }
+                sessionStore.saveValue(KeyValueConstants.SELECTED_GOAL_ID, purpose)
+                val hasActualInvestment = state.investedAmount > 0 || !state.folioNumber.isNullOrBlank()
+                sessionStore.saveValue("isExistingInvestment", hasActualInvestment.toString())
+                val kycAttemptId = sessionStore.getValue(KeyValueConstants.KYC_ATTEMPT_ID) ?: ""
+                val investorId = sessionStore.getValue(KeyValueConstants.INVESTOR_ID) ?: ""
+                onNavigateToAddFunds(userId, kycAttemptId, investorId, purpose, hasActualInvestment)
+            } catch (e: Exception) {
+                platformLog("Error: ${e.message}")
+            }
+        }
+    }
+
     Scaffold(
-        containerColor = Color.White,
-        bottomBar = {
-            if (!state.isLoading) {
-                Surface(
-                    color = Color.White,
-                    tonalElevation = 4.dp,
-                    shadowElevation = 8.dp
-                ) {
-                    Row(
+        containerColor = scaffoldBgColor,
+        topBar = {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp),
+                shadowElevation = if (categoryUpper.isNotEmpty()) 12.dp else 8.dp,
+                color = Color.White
+            ) {
+                Column {
+                    val headerBackground = getGradientForCategory(displayCategory, displayColorTheme)
+                    val headerContentColor = contentColor
+
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            .background(brush = headerBackground)
                     ) {
-                        ActionButtonModuleV2(
-                            modifier = Modifier.weight(1f),
-                            text = stringResource(Res.string.add_money),
-                            icon = Icons.Default.Add,
-                            containerColor = accentColor,
-                            onClick = { handleAddFunds(purpose, true) }
-                        )
-                        ActionButtonModuleV2(
-                            modifier = Modifier.weight(1f),
-                            text = stringResource(Res.string.new_plan),
-                            icon = Icons.Default.FlashOn,
-                            containerColor = accentColor,
-                            onClick = { handleAddFunds(purpose, false) }
-                        )
-                        ActionButtonModuleV2(
-                            modifier = Modifier.weight(1f),
-                            text = stringResource(Res.string.withdraw),
-                            icon = if ((state.instantRedemptionValue ?: 0.0) > 0.0) Icons.Default.Bolt else Icons.Default.CallReceived,
-                            containerColor = accentColor,
-                            onClick = {
-                                if (state.currentValue > 0) {
-                                    val instantVal = state.instantRedemptionValue 
-                                        ?: schemeParams?.instantRedemptionValue 
-                                        ?: SchemeDetailsParamsManager.get()?.instantRedemptionValue
-
-                                    val params = WithdrawInitParams(
-                                        isin = state.isin ?: "",
-                                        folio = state.folioNumber,
-                                        amount = state.currentValue,
-                                        investmentInProgress = state.investmentInProgress,
-                                        bankAccountNumber = "",
-                                        bankAccountIfscCode = "",
-                                        schemeName = displaySchemeName,
-                                        canWithdraw = state.canWithdraw,
-                                        redemptionInProgress = state.redemptionInProgress,
-                                        redeemableAmount = state.redeemableAmount,
-                                        instantRedemptionValue = instantVal
+                        if (categoryUpper.isNotEmpty() && !(showPlansView || showTransactionsView)) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(12.dp)
+                                    .background(
+                                        Brush.verticalGradient(
+                                            colors = listOf(Color.Black.copy(alpha = 0.08f), Color.Transparent)
+                                        )
                                     )
-                                    WithdrawParamsManager.set(params)
-                                    scope.launch {
-                                        sessionStore.saveValue("withdraw_init_params", WithdrawParamsManager.toJson(params))
+                            )
+                        }
+                        Column(modifier = Modifier.statusBarsPadding()) {
+                            Spacer(modifier = Modifier.height(1.dp))
+                            
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 4.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                IconButton(onClick = {
+                                    val inOverlayFlow = showCancelReasonScreen ||
+                                            showCancelSipScreen ||
+                                            showCancelSipSuccessSheet ||
+                                            showCancelSipErrorSheet ||
+                                            showPauseSipQuestionSheet ||
+                                            showPauseSipSuccessSheet ||
+                                            showPauseSipErrorSheet ||
+                                            showResumeSipQuestionSheet ||
+                                            showResumeSipSuccessSheet ||
+                                            showResumeSipErrorSheet
+                                    if (inOverlayFlow) {
+                                        when {
+                                            showCancelReasonScreen -> { showCancelReasonScreen = false; showCancelSipScreen = true }
+                                            showCancelSipScreen -> { showCancelSipScreen = false; mandateForCancelSip = null }
+                                            showCancelSipSuccessSheet -> { showCancelSipSuccessSheet = false; reloadData() }
+                                            showCancelSipErrorSheet -> showCancelSipErrorSheet = false
+                                            showPauseSipQuestionSheet -> { showPauseSipQuestionSheet = false; mandateForPauseSip = null }
+                                            showPauseSipSuccessSheet -> { showPauseSipSuccessSheet = false; reloadData() }
+                                            showPauseSipErrorSheet -> showPauseSipErrorSheet = false
+                                            showResumeSipQuestionSheet -> { showResumeSipQuestionSheet = false; mandateForResumeSip = null }
+                                            showResumeSipSuccessSheet -> { showResumeSipSuccessSheet = false; reloadData() }
+                                            showResumeSipErrorSheet -> showResumeSipErrorSheet = false
+                                        }
+                                    } else if (showPlansView || showTransactionsView) {
+                                        showPlansView = false
+                                        showTransactionsView = false
+                                    } else {
+                                        onNavigateBack()
                                     }
-                                    onNavigateToWithdraw(params)
-                                } else {
-                                    showInvestmentInProgressDialog = true
+                                }) {
+                                    Icon(
+                                        imageVector = Icons.Default.ArrowBack,
+                                        contentDescription = "Back",
+                                        tint = headerContentColor
+                                    )
+                                }
+                                Box(modifier = Modifier.weight(1f)) {
+                                    if (displayGoalName.isNotBlank()) {
+                                        Text(
+                                            text = displayGoalName.uppercase(),
+                                            style = MaterialTheme.typography.titleLarge.copy(
+                                                fontWeight = FontWeight.Black,
+                                                letterSpacing = 1.5.sp
+                                            ),
+                                            color = headerContentColor
+                                        )
+                                    }
+                                }
+
+                                val fundLogo = getFundLogo(displaySchemeName)
+                                Image(
+                                    painter = painterResource(fundLogo),
+                                    contentDescription = "Fund Logo",
+                                    modifier = Modifier
+                                        .height(if (displaySchemeName.contains("aditya", ignoreCase = true)) 30.dp else 44.dp)
+                                        .clickable {
+                                            state.isin?.let { isin ->
+                                                onNavigateToFundDetails(isin, userId, purpose, 0.0, "", "", false)
+                                            }
+                                        }
+                                        .padding(end = 16.dp),
+                                    contentScale = androidx.compose.ui.layout.ContentScale.Fit
+                                )
+                            }
+
+                            if (!(showPlansView || showTransactionsView)) {
+                                Column(
+                                    modifier = Modifier
+                                        .padding(horizontal = 20.dp)
+                                        .padding(top = 2.dp)
+                                        .padding(bottom = 10.dp),
+                                    verticalArrangement = Arrangement.spacedBy(1.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.weight(1f),
+                                            verticalArrangement = Arrangement.spacedBy(1.dp)
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Text(
+                                                    text = titleStr,
+                                                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                                                    color = secondaryContentColor
+                                                )
+                                                if (isGoldOrSilver) {
+                                                    IconButton(
+                                                        onClick = {
+                                                            if (displaySchemeName.contains("Gold", ignoreCase = true) || displayGoalName.contains("Gold", ignoreCase = true)) {
+                                                                showEstimatedGoldInfoPopup = true
+                                                            } else {
+                                                                showEstimatedSilverInfoPopup = true
+                                                            }
+                                                        },
+                                                        modifier = Modifier.size(24.dp).padding(start = 4.dp)
+                                                    ) {
+                                                        Icon(
+                                                            imageVector = Icons.Default.Info,
+                                                            contentDescription = null,
+                                                            tint = secondaryContentColor.copy(alpha = 0.4f),
+                                                            modifier = Modifier.size(16.dp)
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                            Box(contentAlignment = Alignment.CenterStart) {
+                                                if (categoryUpper.isNotEmpty()) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .offset(x = (-20).dp)
+                                                            .size(width = 180.dp, height = 80.dp)
+                                                            .background(
+                                                                Brush.radialGradient(
+                                                                    colors = listOf(Color.White.copy(alpha = 0.1f), Color.Transparent),
+                                                                    radius = 300f
+                                                                )
+                                                            )
+                                                    )
+                                                }
+                                                Text(
+                                                    text = buildAnnotatedString {
+                                                        val parts = unitsVal.split(" ")
+                                                        withStyle(SpanStyle(fontSize = 52.sp, fontWeight = FontWeight.Black)) {
+                                                            append(parts[0])
+                                                        }
+                                                        if (parts.size > 1) {
+                                                            withStyle(SpanStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold)) {
+                                                                append(" " + parts.subList(1, parts.size).joinToString(" "))
+                                                            }
+                                                        }
+                                                    },
+                                                    color = contentColor
+                                                )
+                                            }
+                                        }
+
+                                        val lockerIcon = when (categoryUpper) {
+                                            "GOLD" -> Res.drawable.gold_locker
+                                            "SILVER" -> Res.drawable.silver_locker
+                                            else -> Res.drawable.savings_locker
+                                        }
+                                        Image(
+                                            painter = painterResource(lockerIcon),
+                                            contentDescription = null,
+                                            modifier = Modifier
+                                                .size(100.dp)
+                                                .padding(end = 4.dp)
+                                                .alpha(0.85f)
+                                        )
+                                    }
+                                }
+
+                                if (state.investmentInProgress > 0) {
+                                    Column(
+                                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                                        modifier = Modifier.padding(horizontal = 20.dp)
+                                    ) {
+                                        StatusPill(
+                                            text = stringResource(Res.string.investment_in_progress_main, formatIndian(state.investmentInProgress)),
+                                            backgroundColor = pillBgColor,
+                                            contentColor = contentColor,
+                                            icon = Icons.Default.Check
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(12.dp))
                                 }
                             }
-                        )
+                        }
+                    }
+
+                    if (!(showPlansView || showTransactionsView)) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp, vertical = 20.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = stringResource(Res.string.invested_label),
+                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.ExtraBold),
+                                    color = goalColor,
+                                    modifier = Modifier.padding(bottom = 4.dp)
+                                )
+                                Text(
+                                    text = formatRupeeAmount(state.investedAmount + state.investmentInProgress, 0),
+                                    style = MaterialTheme.typography.titleLarge.copy(
+                                        fontWeight = FontWeight.Black,
+                                        fontSize = 20.sp
+                                    ),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .height(44.dp)
+                                    .width(1.dp)
+                                    .background(goalColor.copy(alpha = 0.15f))
+                            )
+
+                            Column(modifier = Modifier.weight(1f).padding(start = 20.dp)) {
+                                Text(
+                                    text = stringResource(Res.string.total_value_label),
+                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.ExtraBold),
+                                    color = goalColor,
+                                    modifier = Modifier.padding(bottom = 4.dp)
+                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text(
+                                        text = formatRupeeAmount(state.cummulativeValue, 0),
+                                        style = MaterialTheme.typography.titleLarge.copy(
+                                            fontWeight = FontWeight.Black,
+                                            fontSize = 20.sp
+                                        ),
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+
+                                    val gain = state.availableGain
+                                    val invested = state.investedAmount + state.investmentInProgress
+                                    if (invested > 0) {
+                                        val isLoss = gain < 0
+                                        val percent = abs(gain / invested * 100)
+                                        Text(
+                                            text = "(${if(!isLoss)"+" else "-"}${formatDecimal(percent, 1)}%)",
+                                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                            color = if(!isLoss) Color(0xFF2E7D32) else Color(0xFF808080)
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
     ) { paddingValues ->
-        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+        Box(modifier = Modifier.fillMaxSize()) {
             if (state.isLoading) {
                 LoadingScreen(modifier = Modifier.fillMaxSize())
             } else {
-                MainContentV2(
-                    state = state,
-                    goalType = goalType,
-                    accentColor = accentColor,
-                    displayGoalName = displayGoalName,
-                    displaySchemeName = displaySchemeName,
-                    onBack = { onNavigateBack() },
-                    onShowPlans = { showPlansView = true },
-                    onShowTransactions = { showTransactionsView = true },
-                    onShowDetails = { showDetailsPopup = true },
-                    onAddFunds = { /* Moved to bottomBar */ },
-                    onLumpsum = { /* Moved to bottomBar */ },
-                    onWithdraw = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(if (showPlansView) Color(0xFFFBF9F4) else Color.Transparent)
+                        .padding(paddingValues)
+                ) {
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(top = 24.dp, bottom = 24.dp, start = 10.dp, end = 10.dp),
+                        verticalArrangement = Arrangement.spacedBy(20.dp)
+                    ) {
+                        if (showPlansView || showTransactionsView) {
+                            item {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = if (showPlansView) stringResource(Res.string.your_plans) else stringResource(Res.string.transactions),
+                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                                    )
+                                }
+                            }
+
+                            if (showPlansView) {
+                                if (state.mandates.isEmpty()) {
+                                    item {
+                                        Text(
+                                            text = stringResource(Res.string.no_plans_found),
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                            modifier = Modifier.fillMaxWidth().padding(32.dp),
+                                            textAlign = TextAlign.Center
+                                        )
+                                    }
+                                } else {
+                                    item {
+                                        SipPlansSummaryStrip(
+                                            mandates = state.mandates,
+                                            goalColor = goalColor,
+                                            modifier = Modifier.padding(horizontal = 16.dp)
+                                        )
+                                    }
+
+                                    fun planStatusRank(m: MandateDisplayItem): Int {
+                                        val s = m.status?.uppercase().orEmpty()
+                                        return when {
+                                            s.contains("PAUSED") -> 1
+                                            (s.contains("APPROVED") || s.contains("ACTIVE")) -> 0
+                                            else -> 2
+                                        }
+                                    }
+
+                                    val sortedMandates = state.mandates.sortedWith(
+                                        compareBy<MandateDisplayItem> { planStatusRank(it) }
+                                            .thenByDescending { mandateSortDateMillis(it) }
+                                    )
+
+                                    itemsIndexed(sortedMandates) { index, mandate ->
+                                        val rank = planStatusRank(mandate)
+                                        SipPlanCardV2(
+                                            mandate = mandate,
+                                            planNumber = index + 1,
+                                            goalColor = goalColor,
+                                            category = categoryUpper,
+                                            modifier = Modifier.padding(horizontal = 16.dp),
+                                            onPause = if (rank == 0) { { mandateForPauseSip = it; showPauseSipQuestionSheet = true } } else null,
+                                            onResume = if (rank == 1) { { mandateForResumeSip = it; showResumeSipQuestionSheet = true } } else null,
+                                            onCancel = if (rank == 0 || rank == 1) { { mandateForCancelSip = it; showCancelSipScreen = true } } else null
+                                        )
+                                    }
+
+                                    item {
+                                        SipPlansTrustStripV2(modifier = Modifier.padding(horizontal = 16.dp))
+                                    }
+                                }
+                            } else {
+                                if (state.transactions.isEmpty()) {
+                                    item {
+                                        Text(
+                                            text = stringResource(Res.string.no_transactions_found),
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                            modifier = Modifier.fillMaxWidth().padding(32.dp),
+                                            textAlign = TextAlign.Center
+                                        )
+                                    }
+                                } else {
+                                    items(state.transactions) { transaction ->
+                                        TransactionItemV2(transaction = transaction)
+                                    }
+                                }
+                            }
+                        } else {
+                            if (state.redemptionInProgress > 0 || showFirstSaveDate) {
+                                item {
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 16.dp),
+                                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                                        shape = RoundedCornerShape(16.dp),
+                                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                                        border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.2f))
+                                    ) {
+                                        Column(modifier = Modifier.padding(16.dp)) {
+                                            Text(
+                                                text = stringResource(Res.string.in_motion),
+                                                style = MaterialTheme.typography.labelMedium.copy(
+                                                    fontWeight = FontWeight.Black,
+                                                    letterSpacing = 1.sp
+                                                ),
+                                                color = Color.Gray.copy(alpha = 0.8f)
+                                            )
+                                            Spacer(modifier = Modifier.height(12.dp))
+
+                                            if (state.redemptionInProgress > 0) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                                ) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(40.dp)
+                                                            .background(goalColor.copy(alpha = 0.1f), CircleShape),
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        Icon(
+                                                            imageVector = Icons.Default.Schedule,
+                                                            contentDescription = null,
+                                                            tint = goalColor,
+                                                            modifier = Modifier.size(20.dp)
+                                                        )
+                                                    }
+                                                    Column(modifier = Modifier.weight(1f)) {
+                                                        Text(
+                                                            text = stringResource(Res.string.withdrawal_in_progress_title),
+                                                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium)
+                                                        )
+                                                        Text(
+                                                            text = stringResource(Res.string.will_be_credited_in_days_approx),
+                                                            style = MaterialTheme.typography.labelSmall,
+                                                            color = Color.Gray
+                                                        )
+                                                    }
+                                                    RupeeAmountBlock(
+                                                        value = state.redemptionInProgress,
+                                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                                        color = Color.Black
+                                                    )
+                                                }
+                                            }
+
+                                            if (state.redemptionInProgress > 0 && showFirstSaveDate) {
+                                                Spacer(modifier = Modifier.height(12.dp))
+                                                HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                                Spacer(modifier = Modifier.height(12.dp))
+                                            }
+
+                                            if (showFirstSaveDate) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                                ) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(40.dp)
+                                                            .background(goalColor.copy(alpha = 0.1f), CircleShape),
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        Icon(
+                                                            imageVector = Icons.Default.Info,
+                                                            contentDescription = null,
+                                                            tint = goalColor,
+                                                            modifier = Modifier.size(20.dp)
+                                                        )
+                                                    }
+                                                    Column(modifier = Modifier.weight(1f)) {
+                                                        Text(
+                                                            text = stringResource(Res.string.first_save_date_message, formatDate(nextSipDateStr!!)),
+                                                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium)
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            item {
+                                Column(
+                                    modifier = Modifier.padding(horizontal = 16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        val tileBgColor = goalColor.copy(alpha = 0.06f).compositeOver(Color.White)
+                                        DashboardTile(
+                                            modifier = Modifier.weight(1f),
+                                            title = stringResource(Res.string.plans),
+                                            description = stringResource(Res.string.view_and_manage_plans_description),
+                                            onClick = { showPlansView = true },
+                                            backgroundColor = tileBgColor,
+                                            iconColor = goalColor,
+                                            icon = Icons.Default.FlashOn
+                                        )
+                                        DashboardTile(
+                                            modifier = Modifier.weight(1f),
+                                            title = stringResource(Res.string.transactions),
+                                            description = stringResource(Res.string.track_investments_withdrawals_description),
+                                            onClick = { showTransactionsView = true },
+                                            backgroundColor = tileBgColor,
+                                            iconColor = goalColor,
+                                            icon = Icons.Default.Schedule
+                                        )
+                                    }
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        val tileBgColor = goalColor.copy(alpha = 0.06f).compositeOver(Color.White)
+                                        DashboardTile(
+                                            modifier = Modifier.weight(1f),
+                                            title = stringResource(Res.string.details_title),
+                                            description = stringResource(Res.string.see_goal_details_description),
+                                            onClick = { showDetailsPopup = true },
+                                            backgroundColor = tileBgColor,
+                                            iconColor = goalColor,
+                                            icon = Icons.Default.Info
+                                        )
+                                        Spacer(modifier = Modifier.weight(1f))
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Pinned bottom actions bar
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = Color.White,
+                        tonalElevation = 0.dp,
+                        shadowElevation = 24.dp
+                    ) {
+                        Column {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp, vertical = 20.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                ActionButtonModuleV2(
+                                    modifier = Modifier.weight(1f),
+                                    text = stringResource(Res.string.add_money),
+                                    icon = Icons.Default.Add,
+                                    containerColor = goalColor,
+                                    onClick = handleLumpsumClick
+                                )
+                                ActionButtonModuleV2(
+                                    modifier = Modifier.weight(1f),
+                                    text = stringResource(Res.string.new_plan),
+                                    icon = Icons.Default.FlashOn,
+                                    containerColor = goalColor,
+                                    onClick = handleSipClick
+                                )
+                                ActionButtonModuleV2(
+                                    modifier = Modifier.weight(1f),
+                                    text = stringResource(Res.string.withdraw),
+                                    icon = Icons.Default.CallReceived,
+                                    containerColor = goalColor,
+                                    onClick = {
+                                        if (state.currentValue > 0) {
+                                            val instantVal = state.instantRedemptionValue 
+                                                ?: schemeParams?.instantRedemptionValue 
+                                                ?: SchemeDetailsParamsManager.get()?.instantRedemptionValue
+
+                                            val params = WithdrawInitParams(
+                                                isin = state.isin ?: "",
+                                                folio = state.folioNumber,
+                                                amount = state.currentValue,
+                                                investmentInProgress = state.investmentInProgress,
+                                                bankAccountNumber = "",
+                                                bankAccountIfscCode = "",
+                                                schemeName = displaySchemeName,
+                                                canWithdraw = state.canWithdraw,
+                                                redemptionInProgress = state.redemptionInProgress,
+                                                redeemableAmount = state.redeemableAmount,
+                                                instantRedemptionValue = instantVal
+                                            )
+                                            WithdrawParamsManager.set(params)
+                                            scope.launch {
+                                                sessionStore.saveValue("withdraw_init_params", WithdrawParamsManager.toJson(params))
+                                            }
+                                            onNavigateToWithdraw(params)
+                                        } else {
+                                            showInvestmentInProgressDialog = true
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Overlays & Sheets
+            if (showDetailsPopup) {
+                SchemeDetailsPopupV2(
+                    goalName = displayGoalName,
+                    schemeName = displaySchemeName,
+                    unitsInGm = state.unitsInGm ?: schemeParams?.unitsInGm,
+                    folioNumber = state.folioNumber ?: schemeParams?.folioNumber,
+                    totalUnitsAllotted = state.totalUnitsAllotted,
+                    investedAmount = if (state.investedAmount > 0) (state.investedAmount + state.investmentInProgress) else ((schemeParams?.investedAmount ?: 0.0) + (schemeParams?.investmentInProgress ?: 0.0)),
+                    currentValue = if (state.currentValue != 0.0) state.currentValue else (schemeParams?.currentValue ?: 0.0),
+                    totalValue = if (state.cummulativeValue != 0.0) state.cummulativeValue else ((schemeParams?.currentValue ?: 0.0) + (schemeParams?.investmentInProgress ?: 0.0)),
+                    investmentInProgress = if (state.investmentInProgress != 0.0) state.investmentInProgress else (schemeParams?.investmentInProgress ?: 0.0),
+                    totalGain = if (state.totalGain != 0.0) state.totalGain else (schemeParams?.profit ?: 0.0),
+                    withdrawnGain = if (state.withdrawnGain != 0.0) state.withdrawnGain else (schemeParams?.realizedProfit ?: 0.0),
+                    availableGain = if (state.availableGain != 0.0) state.availableGain else (schemeParams?.unrealizedProfit ?: 0.0),
+                    redemptionInProgress = if (state.redemptionInProgress != 0.0) state.redemptionInProgress else (schemeParams?.redemptionInProgress ?: 0.0),
+                    category = displayCategory,
+                    colorTheme = displayColorTheme,
+                    mandates = state.mandates,
+                    onDismiss = { showDetailsPopup = false },
+                    onInvestMore = {
+                        showDetailsPopup = false
+                        handleSipClick()
+                    },
+                    onAddMoneyClick = {
+                        showDetailsPopup = false
+                        handleLumpsumClick()
+                    },
+                    onNewPlanClick = {
+                        showDetailsPopup = false
+                        handleSipClick()
+                    },
+                    onWithdrawClick = {
+                        showDetailsPopup = false
                         if (state.currentValue > 0) {
                             val instantVal = state.instantRedemptionValue 
                                 ?: schemeParams?.instantRedemptionValue 
@@ -330,72 +951,22 @@ fun SchemeDetailsV2Screen(
                                 sessionStore.saveValue("withdraw_init_params", WithdrawParamsManager.toJson(params))
                             }
                             onNavigateToWithdraw(params)
-                        } else {
-                            showInvestmentInProgressDialog = true
                         }
-                    },
-                    onFundDetails = {
-                        state.isin?.let { isin ->
-                            onNavigateToFundDetails(isin, userId, purpose, 0.0, "", "", false)
-                        }
-                    },
-                    onShowTotalValueInfo = { showTotalValueInfoPopup = true },
-                    onShowGoldInfo = { showEstimatedGoldInfoPopup = true },
-                    onShowSilverInfo = { showEstimatedSilverInfoPopup = true }
-                )
-            }
-            // Overlays & Sheets
-            if (showPlansView) {
-                PlansOverlay(
-                    mandates = state.mandates,
-                    isLoading = state.isLoading,
-                    accentColor = accentColor,
-                    category = category ?: "",
-                    onDismiss = { showPlansView = false },
-                    onPause = { m ->
-                        mandateForPauseSip = m
-                        showPauseSipQuestionSheet = true
-                    },
-                    onResume = { m ->
-                        mandateForResumeSip = m
-                        showResumeSipQuestionSheet = true
-                    },
-                    onCancel = { m ->
-                        mandateForCancelSip = m
-                        showCancelSipScreen = true
-                    }
-                )
-            }
-
-            if (showTransactionsView) {
-                TransactionsOverlay(
-                    transactions = state.transactions,
-                    accentColor = accentColor,
-                    onDismiss = { showTransactionsView = false }
-                )
-            }
-
-            if (showDetailsPopup) {
-                SchemeDetailsPopupV2(
-                    state = state,
-                    goalName = displayGoalName,
-                    schemeName = displaySchemeName,
-                    onDismiss = { showDetailsPopup = false },
-                    onInvestMore = {
-                        showDetailsPopup = false
-                        handleAddFunds(purpose, false)
                     }
                 )
             }
 
             // SIP Action Overlays
             if (showCancelSipScreen && mandateForCancelSip != null) {
-                val isMonthly = mandateForCancelSip?.frequency?.uppercase() == "MONTHLY"
-                CancelSipInfoScreen(
+                CancelSipInfoScreenV2(
                     schemeName = displaySchemeName,
-                    amount = mandateForCancelSip?.amount ?: 0.0,
-                    isMonthly = isMonthly,
-                    onCancelSip = { showCancelReasonScreen = true },
+                    dailyAmount = mandateForCancelSip?.amount ?: 0.0,
+                    fundReturnPercent = getAnnualisedReturnPercent(goalType),
+                    onCancelSip = {
+                        showCancelSipScreen = false
+                        showCancelReasonScreen = true
+                        selectedCancelReason = null
+                    },
                     onGoBack = { 
                         showCancelSipScreen = false
                         mandateForCancelSip = null
@@ -404,24 +975,26 @@ fun SchemeDetailsV2Screen(
             }
 
             if (showCancelReasonScreen && mandateForCancelSip != null) {
-                CancelSipReasonScreen(
+                CancelSipReasonScreenV2(
                     selectedReason = selectedCancelReason,
-                    isLoading = cancelSipLoading,
                     onReasonSelected = { selectedCancelReason = it },
                     onContinue = {
-                        selectedCancelReason?.let { reason ->
-                            viewModel.cancelSip(userId, mandateForCancelSip?.planId, mandateForCancelSip?.mandateId, reason.keyword)
+                        val mandate = mandateForCancelSip
+                        val reason = selectedCancelReason
+                        if (mandate != null && reason != null && userId.isNotBlank()) {
+                            viewModel.cancelSip(userId, mandate.planId, mandate.mandateId, reason.keyword)
                         }
                     },
-                    onGoBack = { showCancelReasonScreen = false }
+                    onGoBack = {
+                        showCancelReasonScreen = false
+                        showCancelSipScreen = true
+                    }
                 )
             }
 
             // Sheets
             if (showCancelSipSuccessSheet) {
-                val isMonthly = mandateForCancelSip?.frequency?.uppercase() == "MONTHLY"
-                CancelSipSuccessBottomSheet(
-                    isMonthly = isMonthly,
+                CancelSipSuccessBottomSheetV2(
                     onDone = { 
                         showCancelSipSuccessSheet = false
                         mandateForCancelSip = null
@@ -430,37 +1003,49 @@ fun SchemeDetailsV2Screen(
                 )
             }
             if (showCancelSipErrorSheet) {
-                CancelSipErrorBottomSheet(onDone = { showCancelSipErrorSheet = false })
+                CancelSipErrorBottomSheetV2(onDone = { showCancelSipErrorSheet = false })
             }
             if (showPauseSipQuestionSheet && mandateForPauseSip != null) {
-                val isMonthly = mandateForPauseSip?.frequency?.uppercase() == "MONTHLY"
-                PauseSipConfirmBottomSheet(
-                    isMonthly = isMonthly,
+                val mandatePause = mandateForPauseSip
+                PauseSipConfirmBottomSheetV2(
                     isLoading = pauseSipLoading,
-                    onCancel = { showPauseSipQuestionSheet = false },
-                    onConfirm = { viewModel.pauseSip(userId, mandateForPauseSip?.planId, mandateForPauseSip?.mandateId) }
+                    onCancel = {
+                        showPauseSipQuestionSheet = false
+                        mandateForPauseSip = null
+                    },
+                    onConfirm = {
+                        if (userId.isNotBlank() && mandatePause != null) {
+                            viewModel.pauseSip(userId, mandatePause.planId, mandatePause.mandateId)
+                        }
+                    }
                 )
             }
             if (showPauseSipSuccessSheet) {
-                PauseSipSuccessBottomSheet(onDone = { showPauseSipSuccessSheet = false; reloadData() })
+                PauseSipSuccessBottomSheetV2(onDone = { showPauseSipSuccessSheet = false; reloadData() })
             }
             if (showPauseSipErrorSheet) {
-                PauseSipErrorBottomSheet(onDone = { showPauseSipErrorSheet = false })
+                PauseSipErrorBottomSheetV2(onDone = { showPauseSipErrorSheet = false })
             }
             if (showResumeSipQuestionSheet && mandateForResumeSip != null) {
-                val isMonthly = mandateForResumeSip?.frequency?.uppercase() == "MONTHLY"
-                ResumeSipConfirmBottomSheet(
-                    isMonthly = isMonthly,
+                val mandateResume = mandateForResumeSip
+                ResumeSipConfirmBottomSheetV2(
                     isLoading = resumeSipLoading,
-                    onCancel = { showResumeSipQuestionSheet = false },
-                    onConfirm = { viewModel.resumeSip(userId, mandateForResumeSip?.planId, mandateForResumeSip?.mandateId) }
+                    onCancel = {
+                        showResumeSipQuestionSheet = false
+                        mandateForResumeSip = null
+                    },
+                    onConfirm = {
+                        if (userId.isNotBlank() && mandateResume != null) {
+                            viewModel.resumeSip(userId, mandateResume.planId, mandateResume.mandateId)
+                        }
+                    }
                 )
             }
             if (showResumeSipSuccessSheet) {
-                ResumeSipSuccessBottomSheet(onDone = { showResumeSipSuccessSheet = false; reloadData() })
+                ResumeSipSuccessBottomSheetV2(onDone = { showResumeSipSuccessSheet = false; reloadData() })
             }
             if (showResumeSipErrorSheet) {
-                ResumeSipErrorBottomSheet(onDone = { showResumeSipErrorSheet = false })
+                ResumeSipErrorBottomSheetV2(onDone = { showResumeSipErrorSheet = false })
             }
 
             if (showInvestmentInProgressDialog) {
@@ -552,804 +1137,800 @@ fun SchemeDetailsV2Screen(
 }
 
 @Composable
-fun MainContentV2(
-    state: SchemeDetailsState,
-    goalType: GoalType,
-    accentColor: Color,
-    displayGoalName: String,
-    displaySchemeName: String,
-    onBack: () -> Unit,
-    onShowPlans: () -> Unit,
-    onShowTransactions: () -> Unit,
-    onShowDetails: () -> Unit,
-    onAddFunds: () -> Unit,
-    onLumpsum: () -> Unit,
-    onWithdraw: () -> Unit,
-    onFundDetails: () -> Unit,
-    onShowTotalValueInfo: () -> Unit,
-    onShowGoldInfo: () -> Unit,
-    onShowSilverInfo: () -> Unit
+fun SchemeDetailsCardV2(
+    schemeName: String?,
+    goalName: String?,
+    unitsInGm: Double?,
+    category: String?,
+    colorTheme: String?,
+    folioNumber: String?,
+    investedAmount: Double,
+    totalUnitsAllotted: Double,
+    totalValue: Double,
+    currentValue: Double,
+    investmentInProgress: Double,
+    totalGain: Double,
+    withdrawnGain: Double,
+    availableGain: Double,
+    redemptionInProgress: Double = 0.0,
+    hasApprovedPlan: Boolean = false,
+    nextSipDate: String? = null,
+    showBottomSection: Boolean = true,
+    containerColor: Color = Color.White,
+    onViewDetailsClick: () -> Unit = {},
+    onEstimatedGoldInfoClick: () -> Unit = {},
+    onEstimatedSilverInfoClick: () -> Unit = {},
+    decimalPlaces: Int = 1
 ) {
-    val gradient = getGradientForCategory(goalType)
-    val debouncedFundDetails = rememberDebouncedClick(onClick = onFundDetails)
-    
-    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-        Spacer(modifier = Modifier.height(25.dp))
-        // Premium Header
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(280.dp)
-                .background(Brush.linearGradient(
-                    colors = gradient,
-                    start = Offset(0f, 0f),
-                    end = Offset(0f, Float.POSITIVE_INFINITY)
-                ))
+    val goalColor = getCorrelationColorForCategory(category, colorTheme)
+    val isGold = category?.uppercase() == "GOLD"
+    val isSilver = category?.uppercase() == "SILVER"
+    val isGoldOrSilver = isGold || isSilver
+
+    val allottedValue = when {
+        isGoldOrSilver && unitsInGm != null && unitsInGm > 0 -> {
+            if (unitsInGm < 1.0) "${formatDecimal(unitsInGm * 1000, 0)}${stringResource(Res.string.mg_label)}" else "${formatDecimal(unitsInGm, 2)}${stringResource(Res.string.g_label)}"
+        }
+        else -> {
+            formatRupeeAmount(totalValue, 0)
+        }
+    }
+
+    val hasFolio = !folioNumber.isNullOrBlank() && folioNumber != "null"
+    val hasAllotted = (isGoldOrSilver && unitsInGm != null && unitsInGm > 0) || totalUnitsAllotted > 0
+    val hasInvestedAmount = investedAmount > 0
+    val hasTotalValue = totalValue > 0
+    val hasAvailableGain = availableGain != 0.0
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = containerColor),
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.25f))
+    ) {
+        Column(
+            modifier = Modifier.padding(top = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Column(modifier = Modifier.fillMaxSize().padding(20.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = 5.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+            if (hasAllotted) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.Black)
-                        }
-                         Text(
-                            text = displayGoalName.uppercase(),
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontSize = 18.sp,
-                                letterSpacing = 1.sp
-                            ),
-                            fontWeight = FontWeight.Black,
-                            color = accentColor
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = if (isGold) stringResource(Res.string.estimated_gold) else if (isSilver) stringResource(Res.string.estimated_silver) else stringResource(Res.string.units_allotted),
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold),
+                            color = goalColor
                         )
-                        
-                        if ((state.instantRedemptionValue ?: 0.0) > 0.0) {
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Surface(
-                                color = V2Cream,
-                                shape = RoundedCornerShape(12.dp),
-                                border = BorderStroke(1.dp, V2SuccessGreen.copy(alpha = 0.3f))
+                        if (isGoldOrSilver) {
+                            IconButton(
+                                onClick = {
+                                    if (isGold) onEstimatedGoldInfoClick() else onEstimatedSilverInfoClick()
+                                },
+                                modifier = Modifier.size(16.dp)
                             ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Bolt,
-                                        contentDescription = null,
-                                        tint = Color(0xFFFFC107),
-                                        modifier = Modifier.size(14.dp)
-                                    )
+                                Icon(
+                                    imageVector = Icons.Default.Info,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
+                        }
+                    }
+                    Text(
+                        text = allottedValue,
+                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            } else if (!schemeName.isNullOrBlank()) {
+                Text(
+                    text = formatSchemeName(schemeName),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                if (hasInvestedAmount) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .background(Color.White, RoundedCornerShape(12.dp))
+                            .border(BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.15f)), RoundedCornerShape(12.dp))
+                            .padding(12.dp),
+                        contentAlignment = Alignment.CenterStart
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.Start,
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = if (showBottomSection) stringResource(Res.string.invested_label) else stringResource(Res.string.you_invested),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            )
+                            RupeeAmountBlock(
+                                value = investedAmount,
+                                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onSurface,
+                                decimalPlaces = decimalPlaces
+                            )
+                            if (!showBottomSection) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
-                                        text = stringResource(Res.string.instant_redeem),
-                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                        color = Color(0xFF2E7D32)
+                                        text = stringResource(Res.string.received),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                    )
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                        modifier = Modifier.size(10.dp).padding(start = 2.dp)
                                     )
                                 }
                             }
                         }
                     }
+                } else {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+                if (hasTotalValue) {
                     Box(
                         modifier = Modifier
-                            .height(40.dp)
-                            .clickable { debouncedFundDetails() }
-                            .padding(horizontal = 8.dp)
+                            .weight(1f)
+                            .background(Color.White, RoundedCornerShape(12.dp))
+                            .border(BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.15f)), RoundedCornerShape(12.dp))
+                            .padding(12.dp),
+                        contentAlignment = Alignment.CenterStart
                     ) {
-                        val fundLogo = getFundLogo(state.schemeName ?: displaySchemeName)
-                        Image(
-                            painter = painterResource(fundLogo),
-                            contentDescription = "Fund Logo",
-                            modifier = Modifier.fillMaxHeight(),
-                            contentScale = androidx.compose.ui.layout.ContentScale.Fit
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(20.dp))
-                
-                val title = when (goalType) {
-                    GoalType.GOLD -> "Your Gold"
-                    GoalType.SILVER -> "Your Silver"
-                    else -> "Your Savings"
-                }
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Color.Black.copy(alpha = 0.6f),
-                        fontWeight = FontWeight.Bold
-                    )
-                    IconButton(
-                        onClick = {
-                            when (goalType) {
-                                GoalType.GOLD -> onShowGoldInfo()
-                                GoalType.SILVER -> onShowSilverInfo()
-                                else -> onShowTotalValueInfo()
+                        Column(
+                            horizontalAlignment = Alignment.Start,
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = if (showBottomSection) stringResource(Res.string.total_value_label) else stringResource(Res.string.worth_today),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            )
+                            RupeeAmountBlock(
+                                value = totalValue,
+                                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onSurface,
+                                decimalPlaces = decimalPlaces
+                            )
+                            if (!showBottomSection) {
+                                Text(
+                                    text = stringResource(Res.string.allocated_pending),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                )
                             }
-                        },
-                        modifier = Modifier.size(24.dp).padding(start = 4.dp)
+                        }
+                    }
+                } else {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+            }
+
+            if (hasApprovedPlan && (investedAmount > 0 || totalValue > 0)) {
+                val assetTypeStr = when {
+                    schemeName?.contains("Gold", ignoreCase = true) == true || goalName?.contains("Gold", ignoreCase = true) == true -> stringResource(Res.string.gold_units_label)
+                    schemeName?.contains("Silver", ignoreCase = true) == true || goalName?.contains("Silver", ignoreCase = true) == true -> stringResource(Res.string.silver_units_label)
+                    else -> stringResource(Res.string.intro_goal_savings)
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .background(goalColor.copy(alpha = 0.12f), RoundedCornerShape(8.dp))
+                        .padding(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.Top
                     ) {
                         Icon(
                             imageVector = Icons.Default.Info,
                             contentDescription = "Info",
-                            tint = Color.Black.copy(alpha = 0.4f),
-                            modifier = Modifier.size(14.dp)
+                            tint = goalColor,
+                            modifier = Modifier.size(16.dp).padding(top = 2.dp)
+                        )
+                        Text(
+                            text = stringResource(Res.string.processing_warning_message, assetTypeStr),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                         )
                     }
                 }
-                
-                val unitsText = when (goalType) {
-                    GoalType.GOLD, GoalType.SILVER -> {
-                        val units = state.unitsInGm ?: 0.0
-                        if (units < 1.0) "${(units * 1000).toInt()}${stringResource(Res.string.mg_label)}" else "${formatDecimal(units, 1)}${stringResource(Res.string.g_label)}"
-                    }
-                    else -> "₹${formatIndian(state.cummulativeValue)}"
-                }
-                
-                Text(
-                    text = unitsText,
-                    style = MaterialTheme.typography.headlineLarge,
-                    color = Color.Black,
-                    fontWeight = FontWeight.Black,
-                    fontSize = 36.sp
-                )
-
-                Spacer(modifier = Modifier.weight(1f))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+            } else if (hasApprovedPlan && investedAmount == 0.0 && totalValue == 0.0 && !nextSipDate.isNullOrBlank()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .background(goalColor.copy(alpha = 0.12f), RoundedCornerShape(8.dp))
+                        .padding(12.dp)
                 ) {
-                    if (state.investmentInProgress > 0) {
-                        StatusPill(
-                            text = "₹${formatIndian(state.investmentInProgress)} processing",
-                            backgroundColor = Color.White.copy(alpha = 0.4f),
-                            contentColor = Color.Black,
-                            icon = Icons.Default.Schedule
-                        )
-                    }
-                }
-                if (state.investmentInProgress > 0) {
-                    Spacer(modifier = Modifier.height(6.dp))
                     Row(
-                        verticalAlignment = Alignment.Top,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        modifier = Modifier
-                            .fillMaxWidth(0.58f)
-                            .padding(horizontal = 4.dp)
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.Top
                     ) {
                         Icon(
                             imageVector = Icons.Default.Info,
-                            contentDescription = null,
-                            tint = Color.Black.copy(alpha = 0.5f),
-                            modifier = Modifier.size(13.dp).padding(top = 1.dp)
+                            contentDescription = "Info",
+                            tint = goalColor,
+                            modifier = Modifier.size(16.dp).padding(top = 2.dp)
                         )
                         Text(
-                            text = "Units are typically allocated within 2 business days",
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Medium,
-                                lineHeight = 14.sp
-                            ),
-                            color = Color.Black.copy(alpha = 0.6f)
+                            text = stringResource(Res.string.first_save_date_message, formatDate(nextSipDate)),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                         )
                     }
                 }
             }
 
-            // Locker Image
-            val lockerImg = when (goalType) {
-                GoalType.GOLD -> Res.drawable.gold_locker
-                GoalType.SILVER -> Res.drawable.silver_locker
-                else -> Res.drawable.savings_locker
-            }
-            
-            Image(
-                painter = painterResource(lockerImg),
-                contentDescription = null,
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .size(130.dp)
-                    .padding(end = 20.dp, bottom = 16.dp)
-                    .alpha(0.8f)
-            )
-        }
-
-        // Stats Grid
-        Column(modifier = Modifier.padding(20.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                SummaryBox(
-                    modifier = Modifier.weight(1f),
-                    label = "INVESTED",
-                    value = state.investedAmount + state.investmentInProgress,
-                    subtext = "Total money in"
-                )
-                SummaryBox(
-                    modifier = Modifier.weight(1f),
-                    label = "TOTAL VALUE",
-                    value = state.cummulativeValue,
-                    gain = state.totalGain,
-                    subtext = "Current value"
-                )
-            }
-
-            val activeMandates = state.mandates.filter { 
-                val s = it.status?.uppercase().orEmpty()
-                (s.contains("ACTIVE") || s.contains("APPROVED")) && !s.contains("PAUSED")
-            }
-            val nextSipDateStr = activeMandates.firstOrNull { !it.nextSipDate.isNullOrBlank() }?.nextSipDate
-            val hasApprovedPlan = activeMandates.isNotEmpty()
-            val showFirstSaveDate = hasApprovedPlan && state.investedAmount == 0.0 && state.cummulativeValue == 0.0 && !nextSipDateStr.isNullOrBlank()
-
-            if (state.redemptionInProgress > 0 || showFirstSaveDate) {
-                Spacer(modifier = Modifier.height(24.dp))
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    shape = RoundedCornerShape(16.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                    border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.3f))
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = stringResource(Res.string.in_motion),
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Black,
-                                letterSpacing = 1.sp
-                            ),
-                            color = Color.Gray.copy(alpha = 0.8f)
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .background(accentColor.copy(alpha = 0.1f), CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Schedule,
-                                    contentDescription = null,
-                                    tint = accentColor,
-                                    modifier = Modifier.size(20.dp)
-                                )
+            if (showBottomSection) {
+                if (redemptionInProgress > 0) {
+                    val amountStr = formatDecimal(redemptionInProgress, decimalPlaces)
+                    val fullMsg = stringResource(Res.string.redemption_in_progress_message, amountStr)
+                    val annotatedMessage = buildAnnotatedString {
+                        val startIndex = fullMsg.indexOf(amountStr)
+                        if (startIndex != -1) {
+                            append(fullMsg.substring(0, startIndex))
+                            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                                append(amountStr)
                             }
-                            if (showFirstSaveDate) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = stringResource(Res.string.first_save_date_message, formatDate(nextSipDateStr!!)),
-                                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
-                                    )
-                                }
-                            } else {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = stringResource(Res.string.withdrawal_in_progress_title),
-                                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
-                                    )
-                                    Text(
-                                        text = stringResource(Res.string.will_be_credited_in_days_approx),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = Color.Gray
-                                    )
-                                }
-                                Text(
-                                    text = "₹${formatIndian(state.redemptionInProgress)}",
-                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                    color = Color.Black
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Dashboard Grid
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                DashboardTile(
-                    modifier = Modifier.weight(1f),
-                    title = stringResource(Res.string.plans),
-                    description = stringResource(Res.string.view_and_manage_plans_description),
-                    icon = Icons.Default.FlashOn,
-                    iconColor = accentColor,
-                    onClick = onShowPlans
-                )
-                DashboardTile(
-                    modifier = Modifier.weight(1f),
-                    title = stringResource(Res.string.transactions),
-                    description = stringResource(Res.string.track_investments_withdrawals_description),
-                    icon = Icons.Default.Schedule,
-                    iconColor = accentColor,
-                    onClick = onShowTransactions
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                DashboardTile(
-                    modifier = Modifier.weight(1f),
-                    title = stringResource(Res.string.view_details),
-                    description = stringResource(Res.string.see_goal_details_description),
-                    icon = Icons.Default.Info,
-                    iconColor = accentColor,
-                    onClick = onShowDetails
-                )
-                Spacer(modifier = Modifier.weight(1f))
-            }
-            
-            Spacer(modifier = Modifier.height(20.dp))
-        }
-    }
-}
-
-@Composable
-fun StatusPill(
-    text: String,
-    backgroundColor: Color,
-    contentColor: Color,
-    icon: ImageVector
-) {
-    Surface(
-        color = backgroundColor,
-        shape = RoundedCornerShape(100.dp)
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Icon(imageVector = icon, contentDescription = null, tint = contentColor, modifier = Modifier.size(14.dp))
-            Text(text = text, style = MaterialTheme.typography.labelMedium, color = contentColor, fontWeight = FontWeight.Bold)
-        }
-    }
-}
-
-@Composable
-fun SummaryBox(
-    modifier: Modifier = Modifier,
-    label: String,
-    value: Double,
-    gain: Double? = null,
-    subtext: String
-) {
-    Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.3f))
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = label, style = MaterialTheme.typography.labelSmall, color = Color.Gray, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(4.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = "₹${formatIndian(value)}",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Black,
-                    fontSize = 20.sp
-                )
-                if (gain != null && value != 0.0) {
-                    val percent = abs(gain / value * 100)
-                    val color = if (gain >= 0) Color(0xFF2E7D32) else Color.Red
-                    Text(
-                        text = " (${if (gain >= 0) "+" else "-"}${formatDecimal(percent, 1)}%)",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = color,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(text = subtext, style = MaterialTheme.typography.labelSmall, color = Color.Gray.copy(alpha = 0.6f))
-        }
-    }
-}
-
-@Composable
-fun DashboardTile(
-    modifier: Modifier = Modifier,
-    title: String,
-    description: String,
-    icon: ImageVector,
-    iconColor: Color,
-    onClick: () -> Unit
-) {
-    val debouncedClick = rememberDebouncedClick(onClick = onClick)
-    Surface(
-        modifier = modifier.height(110.dp).clickable(onClick = debouncedClick),
-        color = Color.White,
-        shape = RoundedCornerShape(20.dp),
-        border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.3f))
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Icon(imageVector = icon, contentDescription = null, tint = iconColor, modifier = Modifier.size(24.dp))
-            Spacer(modifier = Modifier.weight(1f))
-            Text(text = title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Text(text = description, style = MaterialTheme.typography.labelSmall, color = Color.Gray, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        }
-    }
-}
-
-@Composable
-fun ActionButtonModuleV2(
-    modifier: Modifier = Modifier,
-    text: String,
-    icon: ImageVector,
-    containerColor: Color,
-    onClick: () -> Unit
-) {
-    val debouncedClick = rememberDebouncedClick(onClick = onClick)
-    Surface(
-        modifier = modifier.height(64.dp).clickable(onClick = debouncedClick),
-        color = containerColor,
-        shape = RoundedCornerShape(20.dp)
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Icon(imageVector = icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = text.uppercase(),
-                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                color = Color.White,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 0.5.sp,
-                textAlign = TextAlign.Center
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun PlansOverlay(
-    mandates: List<MandateDisplayItem>,
-    isLoading: Boolean,
-    accentColor: Color,
-    category: String = "",
-    onDismiss: () -> Unit,
-    onPause: (MandateDisplayItem) -> Unit,
-    onResume: (MandateDisplayItem) -> Unit,
-    onCancel: (MandateDisplayItem) -> Unit
-) {
-    val categoryUpper = category.uppercase()
-
-    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = { Text(stringResource(Res.string.plans), fontWeight = FontWeight.Bold) },
-                    navigationIcon = { IconButton(onClick = onDismiss) { Icon(Icons.Default.Close, null) } },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
-                )
-            },
-            containerColor = Color(0xFFFBF9F4)
-        ) { padding ->
-            if (isLoading) {
-                Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = accentColor)
-                }
-            } else if (mandates.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(stringResource(Res.string.no_plans_found), color = Color.Gray)
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    contentPadding = PaddingValues(vertical = 16.dp)
-                ) {
-                    item {
-                        SipPlansSummaryStrip(
-                            mandates = mandates,
-                            goalColor = accentColor,
-                            modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
-                        )
-                    }
-
-                    fun planStatusRank(m: MandateDisplayItem): Int {
-                        val s = m.status?.uppercase().orEmpty()
-                        return when {
-                            s.contains("PAUSED") -> 1
-                            (s.contains("APPROVED") || s.contains("ACTIVE")) -> 0
-                            else -> 2
+                            append(fullMsg.substring(startIndex + amountStr.length))
+                        } else {
+                            append(fullMsg)
                         }
                     }
 
-                    val sortedMandates = mandates.sortedWith(
-                        compareBy<MandateDisplayItem> { planStatusRank(it) }
-                            .thenByDescending { mandateSortDateMillis(it) }
-                    )
-
-                    itemsIndexed(sortedMandates) { index, mandate ->
-                        val rank = planStatusRank(mandate)
-                        SipPlanCardV2(
-                            mandate = mandate,
-                            planNumber = index + 1,
-                            goalColor = accentColor,
-                            category = categoryUpper,
-                            onPause = if (rank == 0) onPause else null,
-                            onResume = if (rank == 1) onResume else null,
-                            onCancel = if (rank == 0 || rank == 1) onCancel else null
-                        )
-                    }
-
-                    item {
-                        SipPlansTrustStripV2()
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun SipPlanCardV2(
-    mandate: MandateDisplayItem,
-    planNumber: Int,
-    goalColor: Color,
-    modifier: Modifier = Modifier,
-    category: String = "",
-    onPause: ((MandateDisplayItem) -> Unit)? = null,
-    onResume: ((MandateDisplayItem) -> Unit)? = null,
-    onCancel: ((MandateDisplayItem) -> Unit)? = null
-) {
-    val cardGradientColors = when (category) {
-        "GOLD" -> listOf(Color(0xFFFFFDF7), Color(0xFFFBF6E8), Color(0xFFF5EDD4))
-        "SILVER" -> listOf(Color(0xFFF8FBFD), Color(0xFFEEF4F8), Color(0xFFE2EDF4))
-        else -> listOf(Color(0xFFF5FBF7), Color(0xFFEAF7EE), Color(0xFFD9F0E2))
-    }
-    val cardBorderColor = when (category) {
-        "GOLD" -> Color(0xFFD4AF37).copy(alpha = 0.28f)
-        "SILVER" -> Color(0xFF6A9AB0).copy(alpha = 0.28f)
-        else -> Color(0xFF27AE60).copy(alpha = 0.28f)
-    }
-
-    val shimmerTransition = rememberInfiniteTransition(label = "sipPlanCardShimmer")
-    val shimmerProgress by shimmerTransition.animateFloat(
-        initialValue = -1f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 4000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "sipPlanCardShimmerProgress"
-    )
-
-    val statusUpper = mandate.status?.uppercase().orEmpty()
-    val isActive = (statusUpper.contains("APPROVED") || statusUpper.contains("ACTIVE")) && !statusUpper.contains("PAUSED")
-    val isPaused = statusUpper.contains("PAUSED")
-    val isMonthly = mandate.frequency?.uppercase() == "MONTHLY"
-
-    val statusLabel = when {
-        isActive -> stringResource(Res.string.status_active)
-        isPaused -> stringResource(Res.string.status_paused)
-        statusUpper.contains("PENDING") -> stringResource(Res.string.status_pending)
-        statusUpper.contains("CANCELLED") -> stringResource(Res.string.status_cancelled)
-        statusUpper.contains("REJECTED") -> stringResource(Res.string.status_rejected)
-        statusUpper.contains("FAILED") -> stringResource(Res.string.status_failed)
-        else -> statusUpper.replace("_", " ")
-    }
-    val statusColor = when {
-        isActive -> Color(0xFF1A7A42)
-        isPaused -> Color(0xFF8B6B25)
-        else -> Color(0xFF616161)
-    }
-    val statusBg = when {
-        isActive -> Color(0xFF1A7A42).copy(alpha = 0.10f)
-        isPaused -> Color(0xFF8B6B25).copy(alpha = 0.10f)
-        else -> Color(0xFFF5F5F5)
-    }
-
-    val sipDateOrdinal = if (isMonthly) dayOfMonthOrdinal(mandate.nextSipDate) else null
-    val cadenceDesc = when {
-        !isMonthly && isPaused -> stringResource(Res.string.daily_cadence_paused)
-        !isMonthly -> stringResource(Res.string.daily_cadence_active)
-        sipDateOrdinal != null && isPaused -> stringResource(Res.string.monthly_cadence_paused, sipDateOrdinal)
-        sipDateOrdinal != null -> stringResource(Res.string.monthly_cadence_active, sipDateOrdinal)
-        else -> stringResource(Res.string.monthly_cadence_unknown)
-    }
-
-    val startedText = formatDate(mandate.mandateCreatedDate ?: mandate.mandateApprovedDate).ifBlank { "—" }
-    val nextDebitRaw = mandate.nextSipDate?.takeIf { it.isNotBlank() && it != "null" }
-    val nextDebitText = nextDebitRaw?.let { formatDate(it) } ?: "—"
-
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-        shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        border = BorderStroke(1.dp, cardBorderColor)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Brush.linearGradient(cardGradientColors))
-        ) {
-            // Shimmer sweep overlay
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(Color.Transparent, Color.White.copy(alpha = 0.15f), Color.Transparent),
-                            start = Offset(shimmerProgress * 800f - 400f, 0f),
-                            end = Offset(shimmerProgress * 800f + 400f, 300f)
-                        )
-                    )
-            )
-            Column(modifier = Modifier.padding(16.dp)) {
-                // Top row: freq pill + status pill + plan number
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Surface(color = goalColor.copy(alpha = 0.12f), shape = RoundedCornerShape(50)) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                        ) {
-                            Icon(
-                                imageVector = if (isMonthly) Icons.Default.DateRange else Icons.Default.FlashOn,
-                                contentDescription = null,
-                                tint = goalColor,
-                                modifier = Modifier.size(11.dp)
-                            )
-                            Text(
-                                text = if (isMonthly) stringResource(Res.string.freq_monthly_label) else stringResource(Res.string.freq_daily_label),
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.sp, letterSpacing = 0.7.sp),
-                                color = goalColor
-                            )
-                        }
-                    }
-                    Surface(color = statusBg, shape = RoundedCornerShape(50)) {
-                        Text(
-                            text = statusLabel,
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.sp, letterSpacing = 0.7.sp),
-                            color = statusColor,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.weight(1f))
-                    Text(
-                        text = stringResource(Res.string.plan_number_label, planNumber),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                // Amount + cadence description
-                Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                    Text(
-                        text = "₹${formatIndian(mandate.amount)}",
-                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Black, fontSize = 30.sp, letterSpacing = (-1.2).sp),
-                        color = Color(0xFF3E2723)
-                    )
-                    Text(
-                        text = if (isMonthly) stringResource(Res.string.per_month_suffix) else stringResource(Res.string.per_day_suffix),
-                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                        color = Color(0xFF3E2723).copy(alpha = 0.45f)
-                    )
-                }
-                Text(
-                    text = cadenceDesc,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFF3E2723).copy(alpha = 0.5f),
-                    modifier = Modifier.padding(top = 2.dp, bottom = 14.dp)
-                )
-
-                HorizontalDivider(color = Color(0xFFF0EBE7))
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                // Date grid: Started | Next debit
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SipDateCell(label = stringResource(Res.string.started_label), value = startedText, modifier = Modifier.weight(1f))
-                    SipDateCell(label = stringResource(Res.string.next_debit_label), value = nextDebitText, modifier = Modifier.weight(1f))
-                }
-
-                // Monthly-only debit date callout
-                if (isMonthly && sipDateOrdinal != null) {
-                    Spacer(modifier = Modifier.height(14.dp))
                     Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFFD4AF37).copy(alpha = 0.07f)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                            .padding(vertical = 4.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color(0xFFE8F5E9)
+                        ),
                         shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(1.dp, Color(0xFFD4AF37).copy(alpha = 0.2f)),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                        border = BorderStroke(1.dp, Color(0xFFC8E6C9))
                     ) {
                         Row(
-                            verticalAlignment = Alignment.Top,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            modifier = Modifier.padding(horizontal = 13.dp, vertical = 10.dp)
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
-                                imageVector = Icons.Default.DateRange,
+                                imageVector = Icons.Default.Info,
                                 contentDescription = null,
-                                tint = Color(0xFF8B6B25),
-                                modifier = Modifier.size(15.dp)
+                                tint = Color(0xFF2E7D32),
+                                modifier = Modifier.size(16.dp)
                             )
-                            Column {
-                                Text(
-                                    text = stringResource(Res.string.monthly_debit_date_callout_title, sipDateOrdinal),
-                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                    color = Color(0xFF8B6B25)
-                                )
-                                Text(
-                                    text = stringResource(Res.string.monthly_debit_date_callout_subtitle),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = Color(0xFF3E2723).copy(alpha = 0.4f),
-                                    modifier = Modifier.padding(top = 1.dp)
-                                )
-                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = annotatedMessage,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFF1B5E20)
+                            )
                         }
                     }
                 }
 
-                // Actions: Pause+Cancel for active, Resume+Cancel for paused, none otherwise
-                if (isActive && (onPause != null || onCancel != null)) {
-                    Spacer(modifier = Modifier.height(14.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        if (onPause != null) {
-                            SipPlanActionPillV2(
-                                modifier = Modifier.weight(1f),
-                                icon = Icons.Filled.Pause,
-                                label = stringResource(Res.string.pause).trim(),
-                                tint = Color(0xFF8B6B25),
-                                background = Color(0xFFF5F0EA),
-                                onClick = { onPause(mandate) }
-                            )
+                if (hasAvailableGain) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp).padding(top = 2.dp), 
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        val signString = if (availableGain >= 0) "+" else "-"
+                        val formattedGain = formatRupeeAmount(abs(availableGain), decimalPlaces)
+                        val additionalMsg = when {
+                            availableGain < 0 && isGold -> " " + stringResource(Res.string.gold_price_dipped_message)
+                            availableGain < 0 && isSilver -> " " + stringResource(Res.string.silver_price_dipped_message)
+                            else -> ""
                         }
-                        if (onCancel != null) {
-                            SipPlanActionPillV2(
-                                modifier = Modifier.weight(1f),
-                                icon = Icons.Filled.Cancel,
-                                label = stringResource(Res.string.cancel_sip).trim(),
-                                tint = Color(0xFFC0392B),
-                                background = Color(0xFFFFF0F0),
-                                onClick = { onCancel(mandate) }
+
+                        Text(
+                            text = "$signString$formattedGain"  + " " + stringResource(Res.string.now) + additionalMsg,
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                        )
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                        .clickable(onClick = onViewDetailsClick)
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(Res.string.view_details) + " →",
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                        color = goalColor
+                    )
+                }
+            } else {
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+        }
+    }
+}
+
+@Composable
+fun SchemeDetailsPopupV2(
+    goalName: String?,
+    schemeName: String?,
+    unitsInGm: Double?,
+    folioNumber: String?,
+    totalUnitsAllotted: Double,
+    investedAmount: Double,
+    currentValue: Double,
+    totalValue: Double,
+    investmentInProgress: Double,
+    totalGain: Double,
+    withdrawnGain: Double,
+    availableGain: Double,
+    redemptionInProgress: Double = 0.0,
+    category: String?,
+    colorTheme: String?,
+    mandates: List<MandateDisplayItem> = emptyList(),
+    onDismiss: () -> Unit,
+    onInvestMore: () -> Unit,
+    onAddMoneyClick: () -> Unit = {},
+    onNewPlanClick: () -> Unit = {},
+    onWithdrawClick: () -> Unit = {}
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            dismissOnClickOutside = false
+        )
+    ) {
+        SchemeDetailsPopupContentV2(
+            goalName = goalName,
+            schemeName = schemeName,
+            unitsInGm = unitsInGm,
+            folioNumber = folioNumber,
+            totalUnitsAllotted = totalUnitsAllotted,
+            investedAmount = investedAmount,
+            currentValue = currentValue,
+            totalValue = totalValue,
+            investmentInProgress = investmentInProgress,
+            totalGain = totalGain,
+            withdrawnGain = withdrawnGain,
+            availableGain = availableGain,
+            redemptionInProgress = redemptionInProgress,
+            category = category,
+            colorTheme = colorTheme,
+            mandates = mandates,
+            onDismiss = onDismiss,
+            onInvestMore = onInvestMore,
+            onAddMoneyClick = onAddMoneyClick,
+            onNewPlanClick = onNewPlanClick,
+            onWithdrawClick = onWithdrawClick
+        )
+    }
+}
+
+@Composable
+fun SchemeDetailsPopupContentV2(
+    goalName: String?,
+    schemeName: String?,
+    unitsInGm: Double?,
+    folioNumber: String?,
+    totalUnitsAllotted: Double,
+    investedAmount: Double,
+    currentValue: Double,
+    totalValue: Double,
+    investmentInProgress: Double,
+    totalGain: Double,
+    withdrawnGain: Double,
+    availableGain: Double,
+    redemptionInProgress: Double = 0.0,
+    category: String?,
+    colorTheme: String?,
+    mandates: List<MandateDisplayItem> = emptyList(),
+    onDismiss: () -> Unit,
+    onInvestMore: () -> Unit,
+    onAddMoneyClick: () -> Unit = {},
+    onNewPlanClick: () -> Unit = {},
+    onWithdrawClick: () -> Unit = {}
+) {
+    val isGoldOrSilver = schemeName?.contains("Gold", ignoreCase = true) == true ||
+            schemeName?.contains("Silver", ignoreCase = true) == true ||
+            goalName?.contains("Gold", ignoreCase = true) == true ||
+            goalName?.contains("Silver", ignoreCase = true) == true
+    val isEstimatedGold = isGoldOrSilver && (goalName?.contains("Gold", ignoreCase = true) == true || schemeName?.contains("Gold", ignoreCase = true) == true)
+
+    val allottedValue = when {
+        isGoldOrSilver && unitsInGm != null && unitsInGm > 0 -> {
+            if (unitsInGm < 1.0) "${formatDecimal(unitsInGm * 1000, 0)}${stringResource(Res.string.mg_label)}" else "${formatDecimal(unitsInGm, 2)}${stringResource(Res.string.g_label)}"
+        }
+        else -> {
+            formatRupeeAmount(totalValue, 0)
+        }
+    }
+
+    val hasFolio = !folioNumber.isNullOrBlank() && folioNumber != "null"
+    val hasAllotted = (isGoldOrSilver && unitsInGm != null && unitsInGm > 0) || totalUnitsAllotted > 0
+    val hasInvestedAmount = investedAmount > 0
+    val hasCurrentValue = currentValue > 0
+    val hasTotalGain = totalGain != 0.0
+    val hasAccountDetails = hasFolio || hasAllotted || hasInvestedAmount || hasCurrentValue
+
+    val displayTitle = if (!schemeName.isNullOrBlank()) formatSchemeName(schemeName) else formatGoalName(goalName ?: "")
+
+    var showPopupGoldInfo by remember { mutableStateOf(false) }
+    var showPopupSilverInfo by remember { mutableStateOf(false) }
+
+    if (showPopupGoldInfo) {
+        AlertDialog(
+            onDismissRequest = { showPopupGoldInfo = false },
+            title = { Text(stringResource(Res.string.estimated_gold)) },
+            text = {
+                Column {
+                    Text(stringResource(Res.string.estimated_gold_info_popup_body))
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = stringResource(Res.string.for_representational_purposes_only),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showPopupGoldInfo = false }) {
+                    Text(stringResource(Res.string.ok))
+                }
+            }
+        )
+    }
+
+    if (showPopupSilverInfo) {
+        AlertDialog(
+            onDismissRequest = { showPopupSilverInfo = false },
+            title = { Text(stringResource(Res.string.estimated_silver)) },
+            text = {
+                Column {
+                    Text(stringResource(Res.string.estimated_silver_info_popup_body))
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = stringResource(Res.string.for_representational_purposes_only),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showPopupSilverInfo = false }) {
+                    Text(stringResource(Res.string.ok))
+                }
+            }
+        )
+    }
+
+    val popupBackground = lerp(
+        MaterialTheme.colorScheme.surface,
+        getCorrelationColorForCategory(category, colorTheme),
+        0.10f
+    )
+
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = popupBackground
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp)
+                    .padding(top = 15.dp, bottom = 160.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    IconButton(onClick = onDismiss) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Back"
+                        )
+                    }
+                    Text(
+                        text = displayTitle,
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        color = getCorrelationColorForCategory(category, colorTheme)
+                    )
+                }
+
+                val approvedMandatePopup = mandates.firstOrNull { m ->
+                    val s = m.status?.uppercase().orEmpty()
+                    (s.contains("APPROVED") || s.contains("ACTIVE")) && !s.contains("PAUSED")
+                }
+                SchemeDetailsCardV2(
+                    schemeName = schemeName,
+                    goalName = goalName,
+                    unitsInGm = unitsInGm,
+                    category = category,
+                    colorTheme = colorTheme,
+                    folioNumber = folioNumber,
+                    investedAmount = investedAmount,
+                    totalUnitsAllotted = totalUnitsAllotted,
+                    totalValue = totalValue,
+                    currentValue = currentValue,
+                    investmentInProgress = investmentInProgress,
+                    totalGain = totalGain,
+                    withdrawnGain = withdrawnGain,
+                    availableGain = availableGain,
+                    redemptionInProgress = redemptionInProgress,
+                    hasApprovedPlan = approvedMandatePopup != null,
+                    nextSipDate = approvedMandatePopup?.nextSipDate,
+                    showBottomSection = false,
+                    containerColor = Color.White,
+                    onEstimatedGoldInfoClick = { showPopupGoldInfo = true },
+                    onEstimatedSilverInfoClick = { showPopupSilverInfo = true },
+                    decimalPlaces = 1
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                val activeMandates = mandates.filter { m ->
+                    val s = m.status?.uppercase().orEmpty()
+                    (s.contains("APPROVED") || s.contains("ACTIVE")) && !s.contains("PAUSED")
+                }
+
+                if (activeMandates.isNotEmpty() || investmentInProgress > 0 || redemptionInProgress > 0) {
+                    Text(
+                        text = stringResource(Res.string.whats_happening_section),
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        modifier = Modifier.padding(bottom = 8.dp, start = 4.dp)
+                    )
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        shape = RoundedCornerShape(16.dp),
+                        elevation = CardDefaults.cardElevation(0.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            var needDivider = false
+
+                            if (activeMandates.isNotEmpty()) {
+                                val totalDailyAmount = activeMandates.sumOf { it.amount }
+                                val freq = activeMandates.firstOrNull()?.frequency?.lowercase() ?: ""
+                                val savingAmountFormatted = formatDecimal(totalDailyAmount, 1)
+                                val savingText = stringResource(Res.string.saving_amount_freq, savingAmountFormatted, freq)
+                                
+                                val nextSipMandate = activeMandates.filter { !it.nextSipDate.isNullOrBlank() }
+                                    .minByOrNull { it.nextSipDate!! }
+                                val nextDeduction = if (nextSipMandate != null) {
+                                    stringResource(Res.string.next_deduction_date, formatDate(nextSipMandate.nextSipDate))
+                                } else {
+                                    stringResource(Res.string.next_deduction_pending)
+                                }
+//                                WhatsHappeningRowV2(
+//                                    title = savingText,
+//                                    subtitle = nextDeduction,
+//                                    badgeText = stringResource(Res.string.active_badge),
+//                                    badgeBg = Color(0xFFE8F5E9),
+//                                    badgeFg = Color(0xFF2E7D32)
+//                                )
+//                                needDivider = true
+                            }
+
+                            if (investmentInProgress > 0) {
+                                if (needDivider) {
+                                    HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                }
+                                val inProgTitle = when {
+                                    isEstimatedGold -> stringResource(Res.string.gold_being_allocated)
+                                    isGoldOrSilver -> stringResource(Res.string.silver_being_allocated)
+                                    else -> stringResource(Res.string.savings_being_allocated)
+                                }
+                                val amountStr = formatDecimal(investmentInProgress, 1)
+                                val inProgSub = stringResource(Res.string.allocation_processing_sub, amountStr, stringResource(Res.string.units))
+                                WhatsHappeningRowV2(
+                                    title = inProgTitle,
+                                    subtitle = inProgSub,
+                                    badgeText = stringResource(Res.string.processing_badge),
+                                    badgeBg = Color(0xFFFFF3E0),
+                                    badgeFg = Color(0xFFF57C00)
+                                )
+                                needDivider = true
+                            }
+
+                            if (redemptionInProgress > 0) {
+                                if (needDivider) {
+                                    HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                }
+                                val amountStr = formatDecimal(redemptionInProgress, 1)
+                                WhatsHappeningRowV2(
+                                    title = stringResource(Res.string.withdrawal_in_progress_title),
+                                    subtitle = "₹$amountStr · ${stringResource(Res.string.takes_upto_2_business_days)}",
+                                    badgeText = stringResource(Res.string.processing_badge),
+                                    badgeBg = Color(0xFFFFF3E0),
+                                    badgeFg = Color(0xFFF57C00)
+                                )
+                                needDivider = true
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(24.dp))
+                }
+
+                if (hasAccountDetails) {
+                    Text(
+                        text = stringResource(Res.string.for_your_records_section),
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        modifier = Modifier.padding(bottom = 8.dp, start = 4.dp)
+                    )
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        shape = RoundedCornerShape(16.dp),
+                        elevation = CardDefaults.cardElevation(0.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            if (hasFolio) {
+                                RecordRowV2(stringResource(Res.string.folio_no), folioNumber!!)
+                                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                            }
+                            if (hasAllotted) {
+                                val sub = if (isGoldOrSilver) stringResource(if (isEstimatedGold) Res.string.internal_units_gold else Res.string.internal_units_silver) else stringResource(Res.string.internal_units_generic)
+                                RecordRowV2(stringResource(Res.string.units_allotted), allottedValue, sub)
+                                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                            }
+                            if (hasInvestedAmount || hasCurrentValue) {
+                                RecordRowV2(stringResource(Res.string.total_value_label), formatRupeeAmount(totalValue, 1))
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                                        .padding(8.dp)
+                                ) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        RecordRowV2(stringResource(Res.string.current_value), formatRupeeAmount(currentValue, 1))
+                                        RecordRowV2(stringResource(Res.string.investment_in_progress), formatRupeeAmount(investmentInProgress, 1))
+                                        if (redemptionInProgress > 0) {
+                                            RecordRowV2(stringResource(Res.string.withdrawal_in_progress_title), formatRupeeAmount(redemptionInProgress, 1))
+                                        }
+                                    }
+                                }
+                                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                            }
+                            if (hasTotalGain) {
+                                val diffColor = if(totalGain >= 0) Color(0xFF2E7D32) else Color.Black
+                                val diffSubtext = when {
+                                    isEstimatedGold -> stringResource(Res.string.total_gain_disclaimer_gold)
+                                    isGoldOrSilver -> stringResource(Res.string.total_gain_disclaimer_silver)
+                                    else -> null
+                                }
+                                RecordRowV2(
+                                    stringResource(Res.string.total_gain),
+                                    formatGainRupeeAmount(totalGain, 1),
+                                    diffSubtext,
+                                    valueColor = diffColor
+                                )
+                                HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                            }
+                            RecordRowV2(stringResource(Res.string.available_gain), formatGainRupeeAmount(availableGain, 1), valueColor = if(availableGain >= 0) Color(0xFF2E7D32) else Color.Black)
+                            Spacer(modifier = Modifier.height(4.dp))
+
+                            if (withdrawnGain != 0.0) {
+                                val wgColor = if(withdrawnGain >= 0) Color(0xFF2E7D32) else Color.Black
+                                RecordRowV2(
+                                    stringResource(Res.string.withdrawn_gain),
+                                    formatGainRupeeAmount(withdrawnGain, 1),
+                                    valueColor = wgColor
+                                )
+                                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                            }
+
+                            RecordRowV2(stringResource(Res.string.can_i_take_it_out), stringResource(Res.string.yes_anytime), null, MaterialTheme.colorScheme.onSurface)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(getCorrelationColorForCategory(category, colorTheme).copy(alpha = 0.12f), RoundedCornerShape(8.dp))
+                            .padding(16.dp)
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Info,
+                                contentDescription = null,
+                                tint = getCorrelationColorForCategory(category, colorTheme),
+                                modifier = Modifier.size(16.dp).padding(top = 2.dp)
+                            )
+                            Text(
+                                text = stringResource(Res.string.sebi_mutual_fund_disclaimer),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                             )
                         }
                     }
-                } else if (isPaused && (onResume != null || onCancel != null)) {
-                    Spacer(modifier = Modifier.height(14.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        if (onResume != null) {
-                            SipPlanActionPillV2(
-                                modifier = Modifier.weight(1f),
-                                icon = Icons.Filled.PlayArrow,
-                                label = stringResource(Res.string.resume_sip).trim(),
-                                tint = goalColor,
-                                background = Color(0xFFE8F5E9),
-                                border = BorderStroke(1.5.dp, goalColor),
-                                onClick = { onResume(mandate) }
-                            )
-                        }
-                        if (onCancel != null) {
-                            SipPlanActionPillV2(
-                                modifier = Modifier.weight(1f),
-                                icon = Icons.Filled.Cancel,
-                                label = stringResource(Res.string.cancel_sip).trim(),
-                                tint = Color(0xFFC0392B),
-                                background = Color(0xFFFFF0F0),
-                                onClick = { onCancel(mandate) }
-                            )
-                        }
+                }
+            }
+
+            val goalColor = getCorrelationColorForCategory(category, colorTheme)
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth(),
+                color = Color.White,
+                shadowElevation = 24.dp
+            ) {
+                Column {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 12.dp, end = 12.dp, top = 20.dp, bottom = 20.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        ActionButtonModuleV2(
+                            modifier = Modifier.weight(1f),
+                            text = stringResource(Res.string.add_money),
+                            icon = Icons.Default.Add,
+                            containerColor = goalColor,
+                            onClick = onAddMoneyClick
+                        )
+
+                        ActionButtonModuleV2(
+                            modifier = Modifier.weight(1f),
+                            text = stringResource(Res.string.new_plan),
+                            icon = Icons.Default.FlashOn,
+                            containerColor = goalColor,
+                            onClick = onNewPlanClick
+                        )
+
+                        ActionButtonModuleV2(
+                            modifier = Modifier.weight(1f),
+                            text = stringResource(Res.string.withdraw),
+                            icon = Icons.Default.CallReceived,
+                            containerColor = goalColor,
+                            onClick = onWithdrawClick
+                        )
                     }
                 }
             }
@@ -1358,125 +1939,798 @@ fun SipPlanCardV2(
 }
 
 @Composable
-private fun SipDateCell(label: String, value: String, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier
-            .background(Color.White.copy(alpha = 0.85f), RoundedCornerShape(10.dp))
-            .border(1.dp, Color.White.copy(alpha = 0.90f), RoundedCornerShape(10.dp))
-            .padding(horizontal = 10.dp, vertical = 9.dp)
+private fun RecordRowV2(
+    label: String,
+    value: String,
+    subtext: String? = null,
+    valueColor: Color = MaterialTheme.colorScheme.onSurface
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Top
     ) {
-        Text(
-            text = label.uppercase(),
-            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 8.sp, letterSpacing = 0.7.sp),
-            color = Color(0xFF3E2723).copy(alpha = 0.35f)
-        )
+        Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            if (subtext != null) {
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = subtext,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                )
+            }
+        }
         Text(
             text = value,
-            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 12.sp),
-            color = Color(0xFF3E2723),
-            modifier = Modifier.padding(top = 2.dp)
+            style = MaterialTheme.typography.bodyMedium,
+            color = valueColor,
+            textAlign = TextAlign.End
         )
     }
 }
 
 @Composable
-private fun SipPlanActionPillV2(
-    modifier: Modifier = Modifier,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    tint: Color,
-    background: Color,
-    border: BorderStroke? = null,
-    onClick: () -> Unit
+private fun WhatsHappeningRowV2(
+    title: String,
+    subtitle: String,
+    badgeText: String,
+    badgeBg: Color,
+    badgeFg: Color
 ) {
-    Surface(
-        modifier = modifier.clickable(onClick = onClick),
-        color = background,
-        shape = RoundedCornerShape(10.dp),
-        border = border
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Top
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(38.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
-        ) {
-            Icon(imageVector = icon, contentDescription = null, tint = tint, modifier = Modifier.size(13.dp))
-            Spacer(modifier = Modifier.width(6.dp))
+        Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
             Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 12.sp),
-                color = tint
+                text = title,
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+            )
+        }
+        Surface(
+            color = badgeBg,
+            shape = RoundedCornerShape(20.dp)
+        ) {
+            Text(
+                text = badgeText,
+                style = MaterialTheme.typography.labelSmall,
+                color = badgeFg,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
             )
         }
     }
 }
 
 @Composable
-private fun SipPlansTrustStripV2(modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(Color.White.copy(alpha = 0.70f), RoundedCornerShape(14.dp))
-            .border(1.dp, Color.White.copy(alpha = 0.90f), RoundedCornerShape(14.dp))
-            .padding(horizontal = 14.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(5.dp)
+fun CancelSipInfoScreenV2(
+    schemeName: String,
+    dailyAmount: Double,
+    fundReturnPercent: Double?,
+    onCancelSip: () -> Unit,
+    onGoBack: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background.copy(alpha = 0.98f)),
+        color = MaterialTheme.colorScheme.background
     ) {
-        SipTrustLine(stringResource(Res.string.sip_trust_flexibility))
-        SipTrustLine(stringResource(Res.string.sip_trust_no_lockin))
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.systemBars)
+                .padding(horizontal = 16.dp, vertical = 16.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.height(32.dp))
+            Text(
+                text = stringResource(Res.string.cancel_sip_before_heading),
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onBackground,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
+                ),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = stringResource(Res.string.cancel_sip_fund_performance_title),
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    val percentText = fundReturnPercent?.let {
+                        "${formatDecimal(it, 1)}%"
+                    } ?: "--%"
+                    Text(
+                        text = stringResource(Res.string.cancel_sip_fund_performance_body, percentText),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
+                    )
+                }
+            }
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.05f)
+                ),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = stringResource(Res.string.cancel_sip_did_you_know_title),
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = stringResource(Res.string.cancel_sip_did_you_know_body),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
+                    )
+                }
+            }
+
+            val amountText = formatIndian(dailyAmount)
+            val schemeLabel = if (schemeName.isNotBlank()) schemeName else "this scheme"
+            Text(
+                text = stringResource(Res.string.cancel_sip_warning_body, amountText, schemeLabel),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Button(
+                onClick = onCancelSip,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(
+                    text = stringResource(Res.string.cancel_sip),
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
+                )
+            }
+
+            OutlinedButton(
+                onClick = onGoBack,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(
+                    text = stringResource(Res.string.go_back),
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
+                )
+            }
+        }
     }
 }
 
+private enum class CancelSipReasonV2(val keyword: String, val labelRes: org.jetbrains.compose.resources.StringResource) {
+    AMOUNT_NOT_AVAILABLE("amount_not_available", Res.string.amount_not_available),
+    INVESTMENT_RETURNS_NOT_AS_EXPECTED("investment_returns_not_as_expected", Res.string.investment_returns_not_as_expected),
+    EXIT_LOAD_NOT_AS_EXPECTED("exit_load_not_as_expected", Res.string.exit_load_not_as_expected),
+    SWITCH_TO_OTHER_SCHEME("switch_to_other_scheme", Res.string.switch_to_other_scheme),
+    FUND_MANAGER_CHANGED("fund_manager_changed", Res.string.fund_manager_changed),
+    INVESTMENT_GOAL_COMPLETE("investment_goal_complete", Res.string.investment_goal_complete),
+    MANDATE_NOT_READY("mandate_not_ready", Res.string.mandate_not_ready),
+    INVEST_LATER("invest_later", Res.string.invest_later),
+    CUSTOMER_SUPPORT_NOT_SATISFACTORY("customer_support_not_satisfactory", Res.string.customer_support_not_satisfactory),
+    AMC_SUPPORT_NOT_SATISFACTORY("amc_support_not_satisfactory", Res.string.amc_support_not_satisfactory),
+}
+
 @Composable
-private fun SipTrustLine(text: String) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-        Icon(
-            imageVector = Icons.Default.Check,
-            contentDescription = null,
-            tint = Color(0xFF1A7A42),
-            modifier = Modifier.size(12.dp)
-        )
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelSmall,
-            color = Color(0xFF3E2723).copy(alpha = 0.55f)
-        )
+private fun CancelSipReasonScreenV2(
+    selectedReason: CancelSipReasonV2?,
+    onReasonSelected: (CancelSipReasonV2) -> Unit,
+    onContinue: () -> Unit,
+    onGoBack: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background.copy(alpha = 0.98f)),
+        color = MaterialTheme.colorScheme.background
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.systemBars)
+                .padding(horizontal = 16.dp, vertical = 16.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.height(32.dp))
+            Text(
+                text = stringResource(Res.string.cancel_sip_reason_heading),
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onBackground,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            val orderedReasons = listOf(
+                CancelSipReasonV2.AMOUNT_NOT_AVAILABLE,
+                CancelSipReasonV2.INVESTMENT_RETURNS_NOT_AS_EXPECTED,
+                CancelSipReasonV2.EXIT_LOAD_NOT_AS_EXPECTED,
+                CancelSipReasonV2.SWITCH_TO_OTHER_SCHEME,
+                CancelSipReasonV2.FUND_MANAGER_CHANGED,
+                CancelSipReasonV2.INVESTMENT_GOAL_COMPLETE,
+                CancelSipReasonV2.MANDATE_NOT_READY,
+                CancelSipReasonV2.INVEST_LATER,
+                CancelSipReasonV2.CUSTOMER_SUPPORT_NOT_SATISFACTORY,
+                CancelSipReasonV2.AMC_SUPPORT_NOT_SATISFACTORY
+            )
+            orderedReasons.forEach { reason ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onReasonSelected(reason) }
+                        .padding(vertical = 4.dp, horizontal = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(
+                        selected = selectedReason == reason,
+                        onClick = { onReasonSelected(reason) }
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = stringResource(reason.labelRes),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(24.dp))
+            Button(
+                onClick = onContinue,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                enabled = selectedReason != null
+            ) {
+                Text(
+                    text = stringResource(Res.string.cancel_sip_continue),
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
+                )
+            }
+            OutlinedButton(
+                onClick = onGoBack,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(
+                    text = stringResource(Res.string.go_back),
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
+                )
+            }
+        }
+    }
+}
+
+private fun getAnnualisedReturnPercent(goalType: GoalType, years: Int = 3): Double {
+    val annualRateDecimal = when {
+        goalType == GoalType.GOLD -> when (years) {
+            1 -> 0.754
+            3 -> 0.342
+            5 -> 0.221
+            7 -> 0.215
+            else -> 0.215
+        }
+        goalType == GoalType.SILVER -> when (years) {
+            1 -> 1.582
+            3 -> 0.435
+            5 -> 0.341
+            7 -> 0.295
+            else -> 0.295
+        }
+        goalType == GoalType.SAVINGS -> 0.075
+        goalType == GoalType.FESTIVAL_SPENDS -> 0.075
+        goalType == GoalType.GLOBAL_EXPOSURE -> 0.23
+        goalType == GoalType.ALL_IN_ONE -> 0.175
+        else -> 0.10
+    }
+    return annualRateDecimal * 100.0
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CancelSipSuccessBottomSheetV2(
+    onDone: () -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true,
+        confirmValueChange = { newValue ->
+            newValue != SheetValue.Hidden
+        }
+    )
+    ModalBottomSheet(
+        onDismissRequest = onDone,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+        dragHandle = null
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 24.dp)
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalAlignment = Alignment.Start
+        ) {
+            Text(
+                text = stringResource(Res.string.sip_cancelled_title),
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = stringResource(Res.string.sip_cancelled_body),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(
+                onClick = onDone,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(
+                    text = stringResource(Res.string.ok),
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
+                )
+            }
+        }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TransactionsOverlay(
-    transactions: List<TransactionDisplayItem>,
-    accentColor: Color,
-    onDismiss: () -> Unit
+fun CancelSipErrorBottomSheetV2(
+    onDone: () -> Unit
 ) {
-    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = { Text("Transactions", fontWeight = FontWeight.Bold) },
-                    navigationIcon = { IconButton(onClick = onDismiss) { Icon(Icons.Default.Close, null) } },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true,
+        confirmValueChange = { newValue ->
+            newValue != SheetValue.Hidden
+        }
+    )
+    ModalBottomSheet(
+        onDismissRequest = onDone,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+        dragHandle = null
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 24.dp)
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalAlignment = Alignment.Start
+        ) {
+            Text(
+                text = stringResource(Res.string.sip_cancellation_failed_title),
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.error
+            )
+            Text(
+                text = stringResource(Res.string.sip_cancellation_failed_body),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(
+                onClick = onDone,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(
+                    text = stringResource(Res.string.sip_cancellation_failed_done),
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
                 )
-            },
-            containerColor = Color.White
-        ) { padding ->
-            if (transactions.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No transactions found", color = Color.Gray)
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp),
-                    contentPadding = PaddingValues(top = 16.dp, bottom = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PauseSipConfirmBottomSheetV2(
+    isLoading: Boolean = false,
+    onCancel: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true,
+        confirmValueChange = { newValue ->
+            newValue != SheetValue.Hidden
+        }
+    )
+    ModalBottomSheet(
+        onDismissRequest = onCancel,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+        dragHandle = null
+    ) {
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 24.dp)
+                    .padding(horizontal = 20.dp)
+                    .padding(bottom = 32.dp)
+                    .then(if (isLoading) Modifier.alpha(0f) else Modifier),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalAlignment = Alignment.Start
+            ) {
+                Text(
+                    text = stringResource(Res.string.pause_sip_heading),
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = stringResource(Res.string.pause_sip_body),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(transactions) { tx ->
-                        TransactionItemV2(transaction = tx)
+                    OutlinedButton(
+                        onClick = onCancel,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(
+                            text = stringResource(Res.string.go_back),
+                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
+                        )
+                    }
+                    Button(
+                        onClick = onConfirm,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(
+                            text = stringResource(Res.string.pause),
+                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
+                        )
                     }
                 }
+            }
+            if (isLoading) {
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .background(MaterialTheme.colorScheme.surface),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PauseSipSuccessBottomSheetV2(
+    onDone: () -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true,
+        confirmValueChange = { newValue ->
+            newValue != SheetValue.Hidden
+        }
+    )
+    ModalBottomSheet(
+        onDismissRequest = onDone,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+        dragHandle = null
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 24.dp)
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalAlignment = Alignment.Start
+        ) {
+            Text(
+                text = stringResource(Res.string.sip_paused_title),
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = stringResource(Res.string.sip_paused_body),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(
+                onClick = onDone,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(
+                    text = stringResource(Res.string.ok),
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PauseSipErrorBottomSheetV2(
+    onDone: () -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true,
+        confirmValueChange = { newValue ->
+            newValue != SheetValue.Hidden
+        }
+    )
+    ModalBottomSheet(
+        onDismissRequest = onDone,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+        dragHandle = null
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 24.dp)
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalAlignment = Alignment.Start
+        ) {
+            Text(
+                text = stringResource(Res.string.sip_pause_failed_title),
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.error
+            )
+            Text(
+                text = stringResource(Res.string.sip_pause_failed_body),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(
+                onClick = onDone,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(
+                    text = stringResource(Res.string.sip_pause_failed_done),
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ResumeSipConfirmBottomSheetV2(
+    isLoading: Boolean = false,
+    onCancel: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true,
+        confirmValueChange = { newValue ->
+            newValue != SheetValue.Hidden
+        }
+    )
+    ModalBottomSheet(
+        onDismissRequest = onCancel,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+        dragHandle = null
+    ) {
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 24.dp)
+                    .padding(horizontal = 20.dp)
+                    .padding(bottom = 32.dp)
+                    .then(if (isLoading) Modifier.alpha(0f) else Modifier),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalAlignment = Alignment.Start
+            ) {
+                Text(
+                    text = stringResource(Res.string.resume_sip_heading),
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = stringResource(Res.string.resume_sip_body),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onCancel,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(
+                            text = stringResource(Res.string.go_back),
+                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
+                        )
+                    }
+                    Button(
+                        onClick = onConfirm,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(
+                            text = stringResource(Res.string.resume_sip),
+                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
+                        )
+                    }
+                }
+            }
+            if (isLoading) {
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .background(MaterialTheme.colorScheme.surface),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ResumeSipSuccessBottomSheetV2(
+    onDone: () -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true,
+        confirmValueChange = { newValue ->
+            newValue != SheetValue.Hidden
+        }
+    )
+    ModalBottomSheet(
+        onDismissRequest = onDone,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+        dragHandle = null
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 24.dp)
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalAlignment = Alignment.Start
+        ) {
+            Text(
+                text = stringResource(Res.string.sip_resumed_title),
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = stringResource(Res.string.sip_resumed_body),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(
+                onClick = onDone,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(
+                    text = stringResource(Res.string.ok),
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ResumeSipErrorBottomSheetV2(
+    onDone: () -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true,
+        confirmValueChange = { newValue ->
+            newValue != SheetValue.Hidden
+        }
+    )
+    ModalBottomSheet(
+        onDismissRequest = onDone,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+        dragHandle = null
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 24.dp)
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalAlignment = Alignment.Start
+        ) {
+            Text(
+                text = stringResource(Res.string.sip_resume_failed_title),
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.error
+            )
+            Text(
+                text = stringResource(Res.string.sip_resume_failed_body),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(
+                onClick = onDone,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(
+                    text = stringResource(Res.string.sip_resume_failed_done),
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
+                )
             }
         }
     }
@@ -1499,7 +2753,6 @@ fun TransactionItemV2(transaction: TransactionDisplayItem) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Top
             ) {
-                // Left: Buy/Sell on top, amount, then date below
                 Column(modifier = Modifier.weight(1f)) {
                     val buyOrSell = when (transaction.transactionType?.uppercase()) {
                         "LUMP_SUM_PURCHASE" -> stringResource(Res.string.transaction_one_time)
@@ -1515,7 +2768,7 @@ fun TransactionItemV2(transaction: TransactionDisplayItem) {
                     Text(
                         text = "₹${formatIndian(transaction.amount)}",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = if (transaction.isCredit) V2SuccessGreen else Color(0xFFF44336)
+                        color = if (transaction.isCredit) Color(0xFF2E7D32) else Color(0xFFF44336)
                     )
                     if (transaction.date != null) {
                         Spacer(modifier = Modifier.height(2.dp))
@@ -1526,7 +2779,6 @@ fun TransactionItemV2(transaction: TransactionDisplayItem) {
                         )
                     }
                 }
-                // Right: all state badges
                 if (transaction.state != null) {
                     val stateUpper = transaction.state.uppercase()
                     val isPurchase = transaction.transactionType?.uppercase() == "PURCHASE" || transaction.transactionType?.uppercase() == "LUMP_SUM_PURCHASE"
@@ -1653,343 +2905,365 @@ fun TransactionItemV2(transaction: TransactionDisplayItem) {
 }
 
 @Composable
-fun SchemeDetailsPopupV2(
-    state: SchemeDetailsState,
-    goalName: String,
-    schemeName: String,
-    onDismiss: () -> Unit,
-    onInvestMore: () -> Unit
+private fun SipPlansSummaryStrip(
+    mandates: List<MandateDisplayItem>,
+    goalColor: Color,
+    modifier: Modifier = Modifier
 ) {
-    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        SchemeDetailsPopupContentV2(
-            state = state,
-            goalName = goalName,
-            schemeName = schemeName,
-            onDismiss = onDismiss,
-            onInvestMore = onInvestMore
-        )
+    val dailyMandates = mandates.filter { it.frequency?.uppercase() != "MONTHLY" }
+    val monthlyMandates = mandates.filter { it.frequency?.uppercase() == "MONTHLY" }
+
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        SipFrequencySummaryRow(freqMandates = dailyMandates, isMonthly = false, goalColor = goalColor)
+        SipFrequencySummaryRow(freqMandates = monthlyMandates, isMonthly = true, goalColor = goalColor)
     }
 }
 
 @Composable
-fun SchemeDetailsPopupContentV2(
-    state: SchemeDetailsState,
-    goalName: String,
-    schemeName: String,
-    onDismiss: () -> Unit,
-    onInvestMore: () -> Unit
+private fun SipFrequencySummaryRow(
+    freqMandates: List<MandateDisplayItem>,
+    isMonthly: Boolean,
+    goalColor: Color
 ) {
-    val goalType = identifyGoalType(state.category, schemeName)
-    val isGoldOrSilver = goalType == GoalType.GOLD || goalType == GoalType.SILVER
-    val isEstimatedGold = goalType == GoalType.GOLD
+    if (freqMandates.isEmpty()) return
 
-    val accentColor = if (state.category?.uppercase() == "SILVER") Color.Black else getCorrelationColorForCategory(state.category, state.colorTheme)
-    
-    var showPopupGoldInfo by remember { mutableStateOf(false) }
-    var showPopupSilverInfo by remember { mutableStateOf(false) }
+    val activePlans = freqMandates.filter { m ->
+        val s = m.status?.uppercase().orEmpty()
+        (s.contains("APPROVED") || s.contains("ACTIVE")) && !s.contains("PAUSED")
+    }
+    val pausedPlans = freqMandates.filter { it.status?.uppercase()?.contains("PAUSED") == true }
+    val activeTotal = activePlans.sumOf { it.amount }
+    val pausedTotal = pausedPlans.sumOf { it.amount }
+    val displayAmount = formatRupeeAmount(if (activeTotal > 0) activeTotal else pausedTotal, 0)
 
-    if (showPopupGoldInfo) {
-        AlertDialog(
-            onDismissRequest = { showPopupGoldInfo = false },
-            title = { Text(stringResource(Res.string.estimated_gold)) },
-            text = {
-                Column {
-                    Text(stringResource(Res.string.estimated_gold_info_popup_body))
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = stringResource(Res.string.for_representational_purposes_only),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showPopupGoldInfo = false }) {
-                    Text(stringResource(Res.string.ok))
-                }
+    val allPaused = activePlans.isEmpty() && pausedPlans.isNotEmpty()
+    val statusText = when {
+        allPaused -> stringResource(Res.string.sip_all_paused)
+        pausedPlans.isNotEmpty() -> stringResource(Res.string.sip_active_paused_count, activePlans.size, pausedPlans.size)
+        else -> stringResource(Res.string.sip_active_count, activePlans.size)
+    }
+    val statusColor = if (allPaused) Color(0xFF7A5200) else Color(0xFF0B6B30)
+    val statusBg = if (allPaused) Color(0xFFFFC850).copy(alpha = 0.35f) else Color(0xFF0B6B30).copy(alpha = 0.10f)
+
+    val detailText = if (!isMonthly) {
+        if (allPaused) stringResource(Res.string.daily_cadence_paused) else stringResource(Res.string.daily_cadence_active)
+    } else {
+        val activeDays = activePlans.mapNotNull { dayOfMonthOrdinal(it.nextSipDate) }.distinct()
+        when {
+            activeDays.isNotEmpty() -> stringResource(Res.string.monthly_cadence_active, activeDays.joinToString(" & "))
+            else -> {
+                val pausedDays = pausedPlans.mapNotNull { dayOfMonthOrdinal(it.nextSipDate) }.distinct()
+                if (pausedDays.isNotEmpty()) stringResource(Res.string.monthly_cadence_paused, pausedDays.joinToString(" & ")) else stringResource(Res.string.monthly_cadence_unknown)
             }
-        )
+        }
     }
 
-    if (showPopupSilverInfo) {
-        AlertDialog(
-            onDismissRequest = { showPopupSilverInfo = false },
-            title = { Text(stringResource(Res.string.estimated_silver)) },
-            text = {
-                Column {
-                    Text(stringResource(Res.string.estimated_silver_info_popup_body))
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = stringResource(Res.string.for_representational_purposes_only),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showPopupSilverInfo = false }) {
-                    Text(stringResource(Res.string.ok))
-                }
-            }
-        )
+    val nextActive = activePlans
+        .filter { !it.nextSipDate.isNullOrBlank() && it.nextSipDate != "null" }
+        .minByOrNull { it.nextSipDate!! }
+    val nextText = if (nextActive != null) {
+        stringResource(Res.string.sip_next_label, formatDate(nextActive.nextSipDate))
+    } else {
+        stringResource(Res.string.sip_no_upcoming_debit)
     }
 
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = Color(0xFFF8F9FA)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(goalColor.copy(alpha = 0.07f), RoundedCornerShape(13.dp))
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp)
-                .padding(top = 48.dp, bottom = 32.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                IconButton(onClick = onDismiss) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                }
+        Icon(
+            imageVector = if (isMonthly) Icons.Default.CalendarMonth else Icons.Default.FlashOn,
+            contentDescription = null,
+            tint = goalColor,
+            modifier = Modifier.size(18.dp)
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    text = if (schemeName.isNotBlank()) schemeName else goalName,
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                    color = accentColor
+                    text = displayAmount,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black),
+                    color = Color(0xFF3E2723)
+                )
+                Text(
+                    text = if (isMonthly) stringResource(Res.string.per_month_suffix) else stringResource(Res.string.per_day_suffix),
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                    color = Color(0xFF3E2723).copy(alpha = 0.6f)
                 )
             }
-
-            val activeMandates = state.mandates.filter { m ->
-                val s = m.status?.uppercase().orEmpty()
-                (s.contains("APPROVED") || s.contains("ACTIVE")) && !s.contains("PAUSED")
-            }
-
-            SchemeDetailsCardV2(
-                schemeName = schemeName,
-                goalName = goalName,
-                unitsInGm = state.unitsInGm,
-                category = state.category,
-                colorTheme = state.colorTheme,
-                folioNumber = state.folioNumber,
-                investedAmount = state.investedAmount,
-                totalUnitsAllotted = state.totalUnitsAllotted,
-                totalValue = state.cummulativeValue,
-                currentValue = state.currentValue,
-                investmentInProgress = state.investmentInProgress,
-                totalGain = state.totalGain,
-                redemptionInProgress = state.redemptionInProgress,
-                hasApprovedPlan = activeMandates.isNotEmpty(),
-                showBottomSection = false,
-                containerColor = Color.White,
-                onEstimatedGoldInfoClick = { showPopupGoldInfo = true },
-                onEstimatedSilverInfoClick = { showPopupSilverInfo = true }
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-
-            if (activeMandates.isNotEmpty() || state.investmentInProgress > 0) {
-                Text(
-                    text = stringResource(Res.string.whats_happening_section),
-                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                    color = Color.Gray,
-                    modifier = Modifier.padding(bottom = 8.dp, start = 4.dp)
-                )
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    shape = RoundedCornerShape(16.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        var needDivider = false
-                        if (activeMandates.isNotEmpty()) {
-                            val totalDaily = activeMandates.sumOf { it.amount }
-                            val freq = "daily"
-                            val nextSipMandate = activeMandates.filter { !it.nextSipDate.isNullOrBlank() }.minByOrNull { it.nextSipDate!! }
-                            val nextDeduction = if (nextSipMandate != null) {
-                                stringResource(Res.string.next_deduction_date, nextSipMandate.nextSipDate!!)
-                            } else {
-                                stringResource(Res.string.next_deduction_pending)
-                            }
-
-//                            WhatsHappeningRowV2(
-//                                title = stringResource(Res.string.saving_amount_freq, formatIndian(totalDaily), freq),
-//                                subtitle = nextDeduction,
-//                                badgeText = stringResource(Res.string.active_badge),
-//                                badgeBg = Color(0xFFE8F5E9),
-//                                badgeFg = Color(0xFF2E7D32)
-//                            )
-//                            needDivider = true
-                        }
-
-                        if (state.investmentInProgress > 0) {
-                            if (needDivider) HorizontalDivider(color = Color.LightGray.copy(alpha = 0.3f))
-                            val inProgTitle = when {
-                                isEstimatedGold -> stringResource(Res.string.gold_being_allocated)
-                                isGoldOrSilver -> stringResource(Res.string.silver_being_allocated)
-                                else -> stringResource(Res.string.savings_being_allocated)
-                            }
-                            WhatsHappeningRowV2(
-                                title = inProgTitle,
-                                subtitle = stringResource(Res.string.allocation_processing_sub, formatIndian(state.investmentInProgress), stringResource(Res.string.units)),
-                                badgeText = stringResource(Res.string.processing_badge),
-                                badgeBg = Color(0xFFFFF3E0),
-                                badgeFg = Color(0xFFF57C00)
-                            )
-                            needDivider = true
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
             Text(
-                text = stringResource(Res.string.for_your_records_section),
-                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                color = Color.Gray,
-                modifier = Modifier.padding(bottom = 8.dp, start = 4.dp)
+                text = detailText,
+                style = MaterialTheme.typography.labelSmall,
+                color = Color(0xFF3E2723).copy(alpha = 0.5f)
             )
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                shape = RoundedCornerShape(16.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    if (!state.folioNumber.isNullOrBlank()) {
-                        RecordRowV2(stringResource(Res.string.folio_no), state.folioNumber!!)
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color.LightGray.copy(alpha = 0.3f))
-                    }
-                    
-                    val allottedValue = when {
-                        isGoldOrSilver && (state.unitsInGm ?: 0.0) > 0 -> {
-                            val units = state.unitsInGm!!
-                            if (units < 1.0) "${(units * 1000).toInt()}${stringResource(Res.string.mg_label)}" else "${formatDecimal(units, 2)}${stringResource(Res.string.g_label)}"
-                        }
-                        else -> "₹${formatIndian(state.cummulativeValue)}"
-                    }
-                    val sub = if (isGoldOrSilver) stringResource(if (isEstimatedGold) Res.string.internal_units_gold else Res.string.internal_units_silver) else stringResource(Res.string.internal_units_generic)
-                    RecordRowV2(stringResource(Res.string.units_allotted), allottedValue, sub)
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color.LightGray.copy(alpha = 0.3f))
-
-                    RecordRowV2(stringResource(Res.string.total_value_label), "₹${formatIndian(state.cummulativeValue)}")
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Box(
-                        modifier = Modifier.fillMaxWidth().background(Color.LightGray.copy(alpha = 0.1f), RoundedCornerShape(8.dp)).padding(8.dp)
-                    ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            RecordRowV2(stringResource(Res.string.current_value), "₹${formatIndian(state.currentValue)}")
-                            RecordRowV2(stringResource(Res.string.investment_in_progress), "₹${formatIndian(state.investmentInProgress)}")
-                            if (state.redemptionInProgress > 0) {
-                                RecordRowV2(stringResource(Res.string.withdrawal_in_progress_amount).replace("₹%1\$s ", ""), "₹${formatIndian(state.redemptionInProgress)}")
-                            }
-                        }
-                    }
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color.LightGray.copy(alpha = 0.3f))
-
-                    if (state.totalGain != 0.0) {
-                        val diffColor = if(state.totalGain >= 0) Color(0xFF2E7D32) else Color.Black
-                        RecordRowV2(stringResource(Res.string.total_gain), "₹${formatIndian(state.totalGain)}", valueColor = diffColor)
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color.LightGray.copy(alpha = 0.3f))
-                    }
-
-                    RecordRowV2(stringResource(Res.string.can_i_take_it_out), stringResource(Res.string.yes_anytime))
-                }
+        }
+        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Surface(color = statusBg, shape = RoundedCornerShape(50)) {
+                Text(
+                    text = statusText,
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 9.sp),
+                    color = statusColor,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                )
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
-            Box(
-                modifier = Modifier.fillMaxWidth().background(accentColor.copy(alpha = 0.1f), RoundedCornerShape(8.dp)).padding(16.dp)
-            ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
-                    Icon(imageVector = Icons.Default.Info, contentDescription = null, tint = accentColor, modifier = Modifier.size(16.dp).padding(top = 2.dp))
-                    Text(
-                        text = stringResource(Res.string.sebi_mutual_fund_disclaimer),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.Black.copy(alpha = 0.7f)
-                    )
-                }
-            }
-
+            Text(
+                text = nextText,
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                color = Color(0xFF3E2723).copy(alpha = 0.45f)
+            )
         }
     }
 }
 
 @Composable
-fun SchemeDetailsCardV2(
-    schemeName: String?,
-    goalName: String? = null,
-    unitsInGm: Double? = null,
-    category: String? = null,
-    colorTheme: String? = null,
-    folioNumber: String?,
-    investedAmount: Double = 0.0,
-    totalUnitsAllotted: Double = 0.0,
-    totalValue: Double = 0.0,
-    currentValue: Double = 0.0,
-    investmentInProgress: Double = 0.0,
-    totalGain: Double = 0.0,
-    redemptionInProgress: Double = 0.0,
-    hasApprovedPlan: Boolean = false,
-    showBottomSection: Boolean = true,
-    containerColor: Color? = null,
-    onEstimatedGoldInfoClick: () -> Unit = {},
-    onEstimatedSilverInfoClick: () -> Unit = {}
+fun SipPlanCardV2(
+    mandate: MandateDisplayItem,
+    planNumber: Int,
+    goalColor: Color,
+    modifier: Modifier = Modifier,
+    category: String = "",
+    onPause: ((MandateDisplayItem) -> Unit)? = null,
+    onResume: ((MandateDisplayItem) -> Unit)? = null,
+    onCancel: ((MandateDisplayItem) -> Unit)? = null
 ) {
-    val goalColor = getCorrelationColorForCategory(category, colorTheme)
-    val finalContainerColor = containerColor ?: goalColor.copy(alpha = 0.1f)
-    val goalType = identifyGoalType(category, schemeName)
+    val cardGradientColors = when (category) {
+        "GOLD" -> listOf(Color(0xFFFFFDF7), Color(0xFFFBF6E8), Color(0xFFF5EDD4))
+        "SILVER" -> listOf(Color(0xFFF8FBFD), Color(0xFFEEF4F8), Color(0xFFE2EDF4))
+        else -> listOf(Color(0xFFF5FBF7), Color(0xFFEAF7EE), Color(0xFFD9F0E2))
+    }
+    val cardBorderColor = when (category) {
+        "GOLD" -> Color(0xFFD4AF37).copy(alpha = 0.28f)
+        "SILVER" -> Color(0xFF6A9AB0).copy(alpha = 0.28f)
+        else -> Color(0xFF27AE60).copy(alpha = 0.28f)
+    }
+
+    val shimmerTransition = rememberInfiniteTransition(label = "sipPlanCardShimmer")
+    val shimmerProgress by shimmerTransition.animateFloat(
+        initialValue = -1f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 4000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "sipPlanCardShimmerProgress"
+    )
+
+    val statusUpper = mandate.status?.uppercase().orEmpty()
+    val isActive = (statusUpper.contains("APPROVED") || statusUpper.contains("ACTIVE")) && !statusUpper.contains("PAUSED")
+    val isPaused = statusUpper.contains("PAUSED")
+    val isMonthly = mandate.frequency?.uppercase() == "MONTHLY"
+
+    val statusLabel = when {
+        isActive -> stringResource(Res.string.status_active)
+        isPaused -> stringResource(Res.string.status_paused)
+        statusUpper.contains("PENDING") -> stringResource(Res.string.status_pending)
+        statusUpper.contains("CANCELLED") -> stringResource(Res.string.status_cancelled)
+        statusUpper.contains("REJECTED") -> stringResource(Res.string.status_rejected)
+        statusUpper.contains("FAILED") -> stringResource(Res.string.status_failed)
+        else -> statusUpper.replace("_", " ")
+    }
+    val statusColor = when {
+        isActive -> Color(0xFF1A7A42)
+        isPaused -> Color(0xFF8B6B25)
+        else -> Color(0xFF616161)
+    }
+    val statusBg = when {
+        isActive -> Color(0xFF1A7A42).copy(alpha = 0.10f)
+        isPaused -> Color(0xFF8B6B25).copy(alpha = 0.10f)
+        else -> Color(0xFFF5F5F5)
+    }
+
+    val sipDateOrdinal = if (isMonthly) dayOfMonthOrdinal(mandate.nextSipDate) else null
+    val cadenceDesc = when {
+        !isMonthly && isPaused -> stringResource(Res.string.daily_cadence_paused)
+        !isMonthly -> stringResource(Res.string.daily_cadence_active)
+        sipDateOrdinal != null && isPaused -> stringResource(Res.string.monthly_cadence_paused, sipDateOrdinal)
+        sipDateOrdinal != null -> stringResource(Res.string.monthly_cadence_active, sipDateOrdinal)
+        else -> stringResource(Res.string.monthly_cadence_unknown)
+    }
+
+    val startedText = formatDate(mandate.mandateCreatedDate ?: mandate.mandateApprovedDate).ifBlank { "—" }
+    val nextDebitRaw = mandate.nextSipDate?.takeIf { it.isNotBlank() && it != "null" }
+    val nextDebitText = nextDebitRaw?.let { formatDate(it) } ?: "—"
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = finalContainerColor),
-        shape = RoundedCornerShape(16.dp)
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        border = BorderStroke(1.dp, cardBorderColor)
     ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("INVESTED", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-                    RupeeAmountBlock(value = investedAmount, style = MaterialTheme.typography.titleMedium, color = Color.Black)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Brush.linearGradient(cardGradientColors))
+        ) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(Color.Transparent, Color.White.copy(alpha = 0.15f), Color.Transparent),
+                            start = Offset(shimmerProgress * 800f - 400f, 0f),
+                            end = Offset(shimmerProgress * 800f + 400f, 300f)
+                        )
+                    )
+            )
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Surface(color = goalColor.copy(alpha = 0.12f), shape = RoundedCornerShape(50)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (isMonthly) Icons.Default.CalendarMonth else Icons.Default.FlashOn,
+                                contentDescription = null,
+                                tint = goalColor,
+                                modifier = Modifier.size(11.dp)
+                            )
+                            Text(
+                                text = if (isMonthly) stringResource(Res.string.freq_monthly_label) else stringResource(Res.string.freq_daily_label),
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.sp, letterSpacing = 0.7.sp),
+                                color = goalColor
+                            )
+                        }
+                    }
+                    Surface(color = statusBg, shape = RoundedCornerShape(50)) {
+                        Text(
+                            text = statusLabel,
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.sp, letterSpacing = 0.7.sp),
+                            color = statusColor,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.weight(1f))
+                    Text(
+                        text = stringResource(Res.string.plan_number_label, planNumber),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
+                    )
                 }
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("CURRENT VALUE", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-                    RupeeAmountBlock(value = totalValue, style = MaterialTheme.typography.titleMedium, color = Color.Black)
-                }
-            }
 
-//            if (totalGain != 0.0) {
-//                val color = if (totalGain >= 0) Color(0xFF2E7D32) else Color.Red
-//                Row(verticalAlignment = Alignment.CenterVertically) {
-//                    Text("OVERALL GAIN: ", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-//                    RupeeAmountBlock(value = totalGain, style = MaterialTheme.typography.labelSmall, color = color, showPlus = true)
-//                }
-//            }
+                Spacer(modifier = Modifier.height(14.dp))
 
-            if (folioNumber != null) {
-                Text("Folio: $folioNumber", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-            }
-            
-            if (unitsInGm != null && unitsInGm > 0) {
-                val label = when (goalType) {
-                    GoalType.GOLD -> "Estimated Gold"
-                    GoalType.SILVER -> "Estimated Silver"
-                    else -> "Units Allotted"
+                Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Text(
+                        text = formatRupeeAmount(mandate.amount, 0),
+                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Black, fontSize = 30.sp, letterSpacing = (-1.2).sp),
+                        color = Color(0xFF3E2723)
+                    )
+                    Text(
+                        text = if (isMonthly) stringResource(Res.string.per_month_suffix) else stringResource(Res.string.per_day_suffix),
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                        color = Color(0xFF3E2723).copy(alpha = 0.45f)
+                    )
                 }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("$label: ", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-                    val unitsText = if (unitsInGm < 1.0) "${(unitsInGm * 1000).toInt()}${stringResource(Res.string.mg_label)}" else "${formatDecimal(unitsInGm, 1)}${stringResource(Res.string.g_label)}"
-                    Text(unitsText, style = MaterialTheme.typography.labelSmall, color = Color.Black, fontWeight = FontWeight.Bold)
-                    IconButton(
-                        onClick = {
-                            if (goalType == GoalType.GOLD) onEstimatedGoldInfoClick()
-                            else if (goalType == GoalType.SILVER) onEstimatedSilverInfoClick()
-                        },
-                        modifier = Modifier.size(24.dp).padding(start = 4.dp)
+                Text(
+                    text = cadenceDesc,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFF3E2723).copy(alpha = 0.5f),
+                    modifier = Modifier.padding(top = 2.dp, bottom = 14.dp)
+                )
+
+                HorizontalDivider(color = Color(0xFFF0EBE7))
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SipDateCell(label = stringResource(Res.string.started_label), value = startedText, modifier = Modifier.weight(1f))
+                    SipDateCell(label = stringResource(Res.string.next_debit_label), value = nextDebitText, modifier = Modifier.weight(1f))
+                }
+
+                if (isMonthly && sipDateOrdinal != null) {
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFD4AF37).copy(alpha = 0.07f)),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, Color(0xFFD4AF37).copy(alpha = 0.2f)),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                     ) {
-                        Icon(Icons.Default.Info, null, tint = Color.Gray.copy(alpha = 0.5f), modifier = Modifier.size(12.dp))
+                        Row(
+                            verticalAlignment = Alignment.Top,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier.padding(horizontal = 13.dp, vertical = 10.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CalendarMonth,
+                                contentDescription = null,
+                                tint = Color(0xFF8B6B25),
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Column {
+                                Text(
+                                    text = stringResource(Res.string.monthly_debit_date_callout_title, sipDateOrdinal),
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                    color = Color(0xFF8B6B25)
+                                )
+                                Text(
+                                    text = stringResource(Res.string.monthly_debit_date_callout_subtitle),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color(0xFF3E2723).copy(alpha = 0.4f),
+                                    modifier = Modifier.padding(top = 1.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                if (isActive && (onPause != null || onCancel != null)) {
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (onPause != null) {
+                            SipPlanActionPillV2(
+                                modifier = Modifier.weight(1f),
+                                icon = Icons.Default.Pause,
+                                label = stringResource(Res.string.pause).trim(),
+                                tint = Color(0xFF8B6B25),
+                                background = Color(0xFFF5F0EA),
+                                onClick = { onPause(mandate) }
+                            )
+                        }
+                        if (onCancel != null) {
+                            SipPlanActionPillV2(
+                                modifier = Modifier.weight(1f),
+                                icon = Icons.Default.Cancel,
+                                label = stringResource(Res.string.cancel_sip).trim(),
+                                tint = Color(0xFFC0392B),
+                                background = Color(0xFFFFF0F0),
+                                onClick = { onCancel(mandate) }
+                            )
+                        }
+                    }
+                } else if (isPaused && (onResume != null || onCancel != null)) {
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (onResume != null) {
+                            SipPlanActionPillV2(
+                                modifier = Modifier.weight(1f),
+                                icon = Icons.Default.PlayArrow,
+                                label = stringResource(Res.string.resume_sip).trim(),
+                                tint = goalColor,
+                                background = Color(0xFF0A2415),
+                                border = BorderStroke(1.5.dp, goalColor),
+                                onClick = { onResume(mandate) }
+                            )
+                        }
+                        if (onCancel != null) {
+                            SipPlanActionPillV2(
+                                modifier = Modifier.weight(1f),
+                                icon = Icons.Default.Cancel,
+                                label = stringResource(Res.string.cancel_sip).trim(),
+                                tint = Color(0xFFC0392B),
+                                background = Color(0xFFFFF0F0),
+                                onClick = { onCancel(mandate) }
+                            )
+                        }
                     }
                 }
             }
@@ -1998,334 +3272,90 @@ fun SchemeDetailsCardV2(
 }
 
 @Composable
-fun RupeeAmountBlock(
-    value: Double,
-    style: TextStyle,
-    color: Color,
-    showPlus: Boolean = false,
-    decimalPlaces: Int = 1
-) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        if (showPlus && value > 0) Text("+", style = style, color = color)
-        else if (value < 0) Text("-", style = style, color = color)
-        Text("₹", style = style, color = color)
-        Text(formatIndian(abs(value)), style = style, color = color)
-    }
-}
-
-@Composable
-fun RecordRowV2(
-    label: String,
-    value: String,
-    subtext: String? = null,
-    valueColor: Color = Color.Black
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.Top
+private fun SipDateCell(label: String, value: String, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .background(Color.White.copy(alpha = 0.85f), RoundedCornerShape(10.dp))
+            .border(1.dp, Color.White.copy(alpha = 0.90f), RoundedCornerShape(10.dp))
+            .padding(horizontal = 10.dp, vertical = 9.dp)
     ) {
-        Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                color = Color.Black
-            )
-            if (subtext != null) {
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = subtext,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color.Gray
-                )
-            }
-        }
+        Text(
+            text = label.uppercase(),
+            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 8.sp, letterSpacing = 0.7.sp),
+            color = Color(0xFF3E2723).copy(alpha = 0.35f)
+        )
         Text(
             text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            color = valueColor,
-            textAlign = TextAlign.End
+            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 12.sp),
+            color = Color(0xFF3E2723),
+            modifier = Modifier.padding(top = 2.dp)
         )
     }
 }
 
 @Composable
-fun WhatsHappeningRowV2(
-    title: String,
-    subtitle: String,
-    badgeText: String,
-    badgeBg: Color,
-    badgeFg: Color
+private fun SipPlanActionPillV2(
+    modifier: Modifier = Modifier,
+    icon: ImageVector,
+    label: String,
+    tint: Color,
+    background: Color,
+    border: BorderStroke? = null,
+    onClick: () -> Unit
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.Top
+    Surface(
+        modifier = modifier.clickable(onClick = onClick),
+        color = background,
+        shape = RoundedCornerShape(10.dp),
+        border = border
     ) {
-        Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                color = Color.Black
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.labelSmall,
-                color = Color.Black.copy(alpha = 0.6f)
-            )
-        }
-        Surface(
-            color = badgeBg,
-            shape = RoundedCornerShape(20.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(38.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
         ) {
+            Icon(imageVector = icon, contentDescription = null, tint = tint, modifier = Modifier.size(13.dp))
+            Spacer(modifier = Modifier.width(6.dp))
             Text(
-                text = badgeText,
-                style = MaterialTheme.typography.labelSmall,
-                color = badgeFg,
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                fontWeight = FontWeight.Bold
+                text = label,
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 12.sp),
+                color = tint
             )
         }
     }
 }
 
 @Composable
-fun CancelSipInfoScreen(
-    schemeName: String,
-    amount: Double,
-    isMonthly: Boolean,
-    onCancelSip: () -> Unit,
-    onGoBack: () -> Unit
-) {
-    val planType = if (isMonthly) "Monthly" else "Daily"
-    val planTypeLower = if (isMonthly) "monthly" else "daily"
-    Dialog(onDismissRequest = onGoBack, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Surface(modifier = Modifier.fillMaxSize(), color = Color.White) {
-            Column(
-                modifier = Modifier.fillMaxSize().padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Icon(Icons.Default.Warning, null, tint = Color.Red, modifier = Modifier.size(64.dp))
-                Spacer(modifier = Modifier.height(24.dp))
-                Text("Cancel $planType Plan?", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    "Are you sure you want to cancel your $planTypeLower saving of ₹${formatIndian(amount)} in $schemeName?",
-                    textAlign = TextAlign.Center, color = Color.Gray
-                )
-                Spacer(modifier = Modifier.height(40.dp))
-                Button(
-                    onClick = onCancelSip,
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Text("Cancel $planType Saving", fontWeight = FontWeight.Bold)
-                }
-                TextButton(onClick = onGoBack) { Text("Keep Saving", color = Color.Black) }
-            }
-        }
+private fun SipPlansTrustStripV2(modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(Color.White.copy(alpha = 0.70f), RoundedCornerShape(14.dp))
+            .border(1.dp, Color.White.copy(alpha = 0.90f), RoundedCornerShape(14.dp))
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(5.dp)
+    ) {
+        SipTrustLine(stringResource(Res.string.sip_trust_flexibility))
+        SipTrustLine(stringResource(Res.string.sip_trust_no_lockin))
     }
 }
-
 
 @Composable
-fun CancelSipReasonScreen(
-    selectedReason: CancelSipReason?,
-    isLoading: Boolean,
-    onReasonSelected: (CancelSipReason) -> Unit,
-    onContinue: () -> Unit,
-    onGoBack: () -> Unit
-) {
-    Dialog(onDismissRequest = onGoBack, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Surface(modifier = Modifier.fillMaxSize(), color = Color.White) {
-            Column(modifier = Modifier.fillMaxSize().padding(24.dp)) {
-                IconButton(onClick = onGoBack, enabled = !isLoading) { Icon(Icons.Default.ArrowBack, null) }
-                Text("Why are you cancelling?", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                Spacer(modifier = Modifier.height(24.dp))
-                Column(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-                    CancelSipReason.values().forEach { reason ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth().clickable(enabled = !isLoading) { onReasonSelected(reason) }.padding(vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            RadioButton(
-                                selected = selectedReason == reason,
-                                onClick = { onReasonSelected(reason) },
-                                enabled = !isLoading
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text(reason.label)
-                        }
-                    }
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-                val debouncedContinue = rememberDebouncedClick(onClick = onContinue)
-                Button(onClick = debouncedContinue, modifier = Modifier.fillMaxWidth().height(56.dp), enabled = selectedReason != null && !isLoading) {
-                    if (isLoading) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
-                    } else {
-                        Text("Continue")
-                    }
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun CancelSipSuccessBottomSheet(isMonthly: Boolean, onDone: () -> Unit) {
-    val planTypeLower = if (isMonthly) "monthly" else "daily"
-    ModalBottomSheet(onDismissRequest = onDone) {
-        Column(modifier = Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(Icons.Default.CheckCircle, null, tint = Color(0xFF2E7D32), modifier = Modifier.size(64.dp))
-            Text("Plan Cancelled", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Text("Your $planTypeLower saving plan has been successfully cancelled.", textAlign = TextAlign.Center)
-            Spacer(modifier = Modifier.height(24.dp))
-            Button(onClick = onDone, modifier = Modifier.fillMaxWidth()) { Text("Done") }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun CancelSipErrorBottomSheet(onDone: () -> Unit) {
-    ModalBottomSheet(onDismissRequest = onDone) {
-        Column(modifier = Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(Icons.Default.Error, null, tint = Color.Red, modifier = Modifier.size(64.dp))
-            Text("Cancellation Failed", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Text("Something went wrong. Please try again.", textAlign = TextAlign.Center)
-            Spacer(modifier = Modifier.height(24.dp))
-            Button(onClick = onDone, modifier = Modifier.fillMaxWidth()) { Text("OK") }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun PauseSipConfirmBottomSheet(isMonthly: Boolean, isLoading: Boolean, onCancel: () -> Unit, onConfirm: () -> Unit) {
-    val planType = if (isMonthly) "Monthly" else "Daily"
-    val debouncedConfirm = rememberDebouncedClick(onClick = onConfirm)
-    ModalBottomSheet(onDismissRequest = onCancel) {
-        Column(modifier = Modifier.fillMaxWidth().padding(24.dp)) {
-            Text("Pause $planType Saving?", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Text("You can resume your savings at any time.", color = Color.Gray)
-            Spacer(modifier = Modifier.height(24.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) { Text("Go Back") }
-                Button(onClick = debouncedConfirm, modifier = Modifier.weight(1f), enabled = !isLoading) {
-                    if (isLoading) CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White)
-                    else Text("Pause")
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun PauseSipSuccessBottomSheet(onDone: () -> Unit) {
-    ModalBottomSheet(onDismissRequest = onDone) {
-        Column(modifier = Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(Icons.Default.PauseCircle, null, tint = Color(0xFFF57C00), modifier = Modifier.size(64.dp))
-            Text("Plan Paused", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(24.dp))
-            Button(onClick = onDone, modifier = Modifier.fillMaxWidth()) { Text("Done") }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun PauseSipErrorBottomSheet(onDone: () -> Unit) {
-    ModalBottomSheet(onDismissRequest = onDone) {
-        Column(modifier = Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(Icons.Default.Error, null, tint = Color.Red, modifier = Modifier.size(64.dp))
-            Text("Pause Failed", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(24.dp))
-            Button(onClick = onDone, modifier = Modifier.fillMaxWidth()) { Text("OK") }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ResumeSipConfirmBottomSheet(isMonthly: Boolean, isLoading: Boolean, onCancel: () -> Unit, onConfirm: () -> Unit) {
-    val planType = if (isMonthly) "Monthly" else "Daily"
-    val planTypeLower = if (isMonthly) "monthly" else "daily"
-    val debouncedConfirm = rememberDebouncedClick(onClick = onConfirm)
-    ModalBottomSheet(onDismissRequest = onCancel) {
-        Column(modifier = Modifier.fillMaxWidth().padding(24.dp)) {
-            Text("Resume $planType Saving?", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Text("Start saving $planTypeLower again towards your goal.", color = Color.Gray)
-            Spacer(modifier = Modifier.height(24.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) { Text("Go Back") }
-                Button(onClick = debouncedConfirm, modifier = Modifier.weight(1f), enabled = !isLoading) {
-                    if (isLoading) CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White)
-                    else Text("Resume")
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ResumeSipSuccessBottomSheet(onDone: () -> Unit) {
-    ModalBottomSheet(onDismissRequest = onDone) {
-        Column(modifier = Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(Icons.Default.CheckCircle, null, tint = Color(0xFF2E7D32), modifier = Modifier.size(64.dp))
-            Text("Plan Resumed", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(24.dp))
-            Button(onClick = onDone, modifier = Modifier.fillMaxWidth()) { Text("Done") }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ResumeSipErrorBottomSheet(onDone: () -> Unit) {
-    ModalBottomSheet(onDismissRequest = onDone) {
-        Column(modifier = Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(Icons.Default.Error, null, tint = Color.Red, modifier = Modifier.size(64.dp))
-            Text("Resume Failed", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(24.dp))
-            Button(onClick = onDone, modifier = Modifier.fillMaxWidth()) { Text("OK") }
-        }
-    }
-}
-
-
-private fun formatDate(dateString: String?): String {
-    if (dateString.isNullOrBlank() || dateString == "null") return ""
-    return try {
-        val parts = dateString.substringBefore("T").split("-")
-        if (parts.size < 3) return dateString
-        val year = parts[0]
-        val monthNum = parts[1].toInt()
-        val day = parts[2].toInt()
-        val monthName = when (monthNum) {
-            1 -> "Jan"
-            2 -> "Feb"
-            3 -> "Mar"
-            4 -> "Apr"
-            5 -> "May"
-            6 -> "Jun"
-            7 -> "Jul"
-            8 -> "Aug"
-            9 -> "Sep"
-            10 -> "Oct"
-            11 -> "Nov"
-            12 -> "Dec"
-            else -> ""
-        }
-        "$monthName $day, $year"
-    } catch (e: Exception) {
-        dateString
+private fun SipTrustLine(text: String) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+        Icon(
+            imageVector = Icons.Default.Check,
+            contentDescription = null,
+            tint = Color(0xFF1A7A42),
+            modifier = Modifier.size(12.dp)
+        )
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelSmall,
+            color = Color(0xFF3E2723).copy(alpha = 0.55f)
+        )
     }
 }
 
@@ -2363,131 +3393,277 @@ private fun mandateSortDateMillis(mandate: MandateDisplayItem): Long {
     }
 }
 
-@Composable
-private fun SipPlansSummaryStrip(
-    mandates: List<MandateDisplayItem>,
-    goalColor: Color,
-    modifier: Modifier = Modifier
-) {
-    val dailyMandates = mandates.filter { it.frequency?.uppercase() != "MONTHLY" }
-    val monthlyMandates = mandates.filter { it.frequency?.uppercase() == "MONTHLY" }
+private fun formatDate(dateString: String?): String {
+    if (dateString.isNullOrBlank() || dateString == "null") return ""
+    return try {
+        val parts = dateString.substringBefore("T").split("-")
+        if (parts.size < 3) return dateString
+        val year = parts[0]
+        val monthNum = parts[1].toInt()
+        val day = parts[2].toInt()
+        val monthName = when (monthNum) {
+            1 -> "Jan"
+            2 -> "Feb"
+            3 -> "Mar"
+            4 -> "Apr"
+            5 -> "May"
+            6 -> "Jun"
+            7 -> "Jul"
+            8 -> "Aug"
+            9 -> "Sep"
+            10 -> "Oct"
+            11 -> "Nov"
+            12 -> "Dec"
+            else -> ""
+        }
+        "$monthName $day, $year"
+    } catch (e: Exception) {
+        dateString
+    }
+}
 
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        SipFrequencySummaryRow(freqMandates = dailyMandates, isMonthly = false, goalColor = goalColor)
-        SipFrequencySummaryRow(freqMandates = monthlyMandates, isMonthly = true, goalColor = goalColor)
+private fun getGradientForCategory(category: String?, colorTheme: String?): Brush {
+    val baseColor = getCorrelationColorForCategory(category, colorTheme)
+    val colors = when (category?.uppercase()) {
+        "GOLD" -> listOf(Color(0xFFD4A017), Color(0xFFF6D365), Color(0xFFFFE082))
+        "SILVER" -> listOf(Color(0xFF9AA0A6), Color(0xFFC7CDD4), Color(0xFFE5E7EB))
+        "SAVINGS", "SAVINGS_PLUS" -> listOf(Color(0xFF0F9D58), Color(0xFF22C55E), Color(0xFF86EFAC))
+        "GLOBAL_EXPOSURE", "GLOBAL" -> listOf(Color(0xFF0F766E), Color(0xFF14B8A6), Color(0xFF5EEAD4))
+        "CHILDRENS_EDUCATION" -> listOf(Color(0xFF1565C0), Color(0xFF1A73E8), Color(0xFF64B5F6))
+        "FESTIVAL_SPENDS" -> listOf(Color(0xFFE65100), Color(0xFFF2994A), Color(0xFFFFB74D))
+        "VACATION" -> listOf(Color(0xFF6A1B9A), Color(0xFF8844EE), Color(0xFFCE93D8))
+        "ALL_IN_ONE" -> listOf(Color(0xFF283593), Color(0xFF3F51B5), Color(0xFF9FA8DA))
+        else -> listOf(baseColor.copy(alpha = 0.8f), baseColor)
+    }
+    return Brush.verticalGradient(colors)
+}
+
+
+private fun formatRupeeAmount(value: Double, decimals: Int = 1): String {
+    val formatted = if (decimals == 0) {
+        formatIndian(value)
+    } else {
+        val factor = 10.0.pow(decimals)
+        val roundedValue = kotlin.math.round(value * factor) / factor
+        val parts = roundedValue.toString().split(".")
+        val intPart = formatIndian(parts[0].toDoubleOrNull() ?: 0.0)
+        val decPart = parts.getOrNull(1)?.take(decimals)?.padEnd(decimals, '0') ?: "0".repeat(decimals)
+        if (decimals > 0 && decPart.all { it == '0' }) {
+            intPart
+        } else {
+            "$intPart.$decPart"
+        }
+    }
+    val wordJoiner = "\u2060"
+    return "₹$wordJoiner${formatted.map { "$it$wordJoiner" }.joinToString("")}"
+}
+
+private fun formatGainRupeeAmount(value: Double, decimals: Int = 1): String {
+    val wordJoiner = "\u2060"
+    val displayValue = abs(value)
+    
+    val formatted = if (decimals == 0) {
+        formatIndian(displayValue)
+    } else {
+        val factor = 10.0.pow(decimals)
+        val roundedValue = kotlin.math.round(displayValue * factor) / factor
+        val parts = roundedValue.toString().split(".")
+        val intPart = formatIndian(parts[0].toDoubleOrNull() ?: 0.0)
+        val decPart = parts.getOrNull(1)?.take(decimals)?.padEnd(decimals, '0') ?: "0".repeat(decimals)
+        if (decimals > 0 && decPart.all { it == '0' }) {
+            intPart
+        } else {
+            "$intPart.$decPart"
+        }
+    }
+    val amountPart = formatted.map { "$it$wordJoiner" }.joinToString("")
+    return when {
+        value > 0 -> "+₹$wordJoiner$amountPart"
+        value < 0 -> "-₹$wordJoiner$amountPart"
+        else -> "₹$wordJoiner$amountPart"
     }
 }
 
 @Composable
-private fun SipFrequencySummaryRow(
-    freqMandates: List<MandateDisplayItem>,
-    isMonthly: Boolean,
-    goalColor: Color
+private fun RupeeAmountBlock(
+    value: Double,
+    style: TextStyle,
+    color: Color,
+    negativeBeforeRupee: Boolean = false,
+    showPlusForPositive: Boolean = false,
+    decimalPlaces: Int = 1
 ) {
-    if (freqMandates.isEmpty()) return
+    val isNegative = value < 0
+    val isPositive = value > 0
+    val displayValue = if (negativeBeforeRupee && isNegative) abs(value) else value
 
-    val activePlans = freqMandates.filter { m ->
-        val s = m.status?.uppercase().orEmpty()
-        (s.contains("APPROVED") || s.contains("ACTIVE")) && !s.contains("PAUSED")
-    }
-    val pausedPlans = freqMandates.filter { it.status?.uppercase()?.contains("PAUSED") == true }
-    val activeTotal = activePlans.sumOf { it.amount }
-    val pausedTotal = pausedPlans.sumOf { it.amount }
-    val displayAmount = "₹${(if (activeTotal > 0) activeTotal else pausedTotal).toInt()}"
-
-    val allPaused = activePlans.isEmpty() && pausedPlans.isNotEmpty()
-    val statusText = when {
-        allPaused -> "All Paused"
-        pausedPlans.isNotEmpty() -> "${activePlans.size} Active · ${pausedPlans.size} Paused"
-        else -> "${activePlans.size} Active"
-    }
-    val statusColor = if (allPaused) Color(0xFF7A5200) else Color(0xFF0B6B30)
-    val statusBg = if (allPaused) Color(0xFFFFC850).copy(alpha = 0.35f) else Color(0xFF0B6B30).copy(alpha = 0.10f)
-
-    val detailText = if (!isMonthly) {
-        if (allPaused) "Daily cadence paused" else "Daily cadence active"
+    val formattedNumber = if (decimalPlaces == 0) {
+        formatIndian(displayValue)
     } else {
-        val activeDays = activePlans.mapNotNull { dayOfMonthOrdinal(it.nextSipDate) }.distinct()
-        when {
-            activeDays.isNotEmpty() -> "Monthly runs on ${activeDays.joinToString(" & ")}"
-            else -> {
-                val pausedDays = pausedPlans.mapNotNull { dayOfMonthOrdinal(it.nextSipDate) }.distinct()
-                if (pausedDays.isNotEmpty()) "Paused runs on ${pausedDays.joinToString(" & ")}" else "Cadence: monthly"
-            }
+        val factor = 10.0.pow(decimalPlaces)
+        val roundedValue = kotlin.math.round(displayValue * factor) / factor
+        val parts = roundedValue.toString().split(".")
+        val intPart = formatIndian(parts[0].toDoubleOrNull() ?: 0.0)
+        val decPart = parts.getOrNull(1)?.take(decimalPlaces)?.padEnd(decimalPlaces, '0') ?: "0".repeat(decimalPlaces)
+        if (decimalPlaces > 0 && decPart.all { it == '0' }) {
+            intPart
+        } else {
+            "$intPart.$decPart"
         }
     }
-
-    val nextActive = activePlans
-        .filter { !it.nextSipDate.isNullOrBlank() && it.nextSipDate != "null" }
-        .minByOrNull { it.nextSipDate!! }
-    val nextText = if (nextActive != null) {
-        "Next: ${formatDate(nextActive.nextSipDate)}"
-    } else {
-        "No upcoming debit"
-    }
-
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(goalColor.copy(alpha = 0.07f), RoundedCornerShape(13.dp))
-            .padding(horizontal = 14.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
+        modifier = Modifier.wrapContentWidth(Alignment.Start),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = if (isMonthly) Icons.Default.DateRange else Icons.Default.FlashOn,
-            contentDescription = null,
-            tint = goalColor,
-            modifier = Modifier.size(18.dp)
-        )
-        Column(modifier = Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    text = displayAmount,
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black),
-                    color = Color(0xFF3E2723)
-                )
-                Text(
-                    text = if (isMonthly) "/ month" else "/ day",
-                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
-                    color = Color(0xFF3E2723).copy(alpha = 0.6f)
-                )
-            }
-            Text(
-                text = detailText,
-                style = MaterialTheme.typography.labelSmall,
-                color = Color(0xFF3E2723).copy(alpha = 0.5f)
-            )
+        if (negativeBeforeRupee && isNegative) {
+            Text(text = "-", style = style, color = color)
         }
-        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Surface(color = statusBg, shape = RoundedCornerShape(50)) {
-                Text(
-                    text = statusText,
-                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 9.sp),
-                    color = statusColor,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                )
-            }
+        if (showPlusForPositive && isPositive) {
+            Text(text = "+", style = style, color = color)
+        }
+        Text(text = "₹", style = style, color = color)
+        Text(
+            text = formattedNumber,
+            style = style,
+            color = color,
+            softWrap = false
+        )
+    }
+}
+
+@Composable
+fun ActionButtonModuleV2(
+    modifier: Modifier = Modifier,
+    text: String,
+    icon: ImageVector,
+    containerColor: Color,
+    onClick: () -> Unit
+) {
+    val debouncedClick = rememberDebouncedClick(onClick = onClick)
+    Surface(
+        modifier = modifier
+            .height(72.dp)
+            .clickable(onClick = debouncedClick),
+        shape = RoundedCornerShape(16.dp),
+        color = containerColor,
+        shadowElevation = 4.dp
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.fillMaxSize().padding(horizontal = 4.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(22.dp)
+            )
+            Spacer(modifier = Modifier.height(6.dp))
             Text(
-                text = nextText,
-                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                color = Color(0xFF3E2723).copy(alpha = 0.45f)
+                text = text.uppercase(),
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 1.sp
+                ),
+                color = Color.White,
+                textAlign = TextAlign.Center,
+                fontSize = 10.sp,
+                lineHeight = 12.sp
             )
         }
     }
 }
 
+@Composable
+private fun StatusPill(
+    text: String,
+    backgroundColor: Color,
+    contentColor: Color,
+    icon: ImageVector
+) {
+    Surface(
+        color = backgroundColor,
+        shape = RoundedCornerShape(100.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = Color.Black,
+                modifier = Modifier.size(14.dp)
+            )
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                color = Color.Black.copy(alpha=0.6f)
+            )
+        }
+    }
+}
 
-fun getGradientForCategory(goalType: GoalType): List<Color> {
-    return when (goalType) {
-        GoalType.GOLD -> listOf(Color(0xFFFFF9E6), Color(0xFFFFE8B8))
-        GoalType.SILVER -> listOf(Color(0xFFF5F5F5), Color(0xFFE8E8E8))
-        GoalType.SAVINGS, GoalType.SAVINGS_PLUS -> listOf(Color(0xFFE8F5E9), Color(0xFFA5D6A7))
-        GoalType.FESTIVAL_SPENDS -> listOf(Color(0xFFFFF5F5), Color(0xFFFFD7B5))
-        GoalType.CHILDRENS_EDUCATION -> listOf(Color(0xFFF5F9FF), Color(0xFFEBF3FF))
-        GoalType.VACATION -> listOf(Color(0xFFFDF5FF), Color(0xFFF8EBFF))
-        GoalType.GLOBAL_EXPOSURE -> listOf(Color(0xFFE0F2F1), Color(0xFFF3E5F5))
-        GoalType.ALL_IN_ONE -> listOf(Color(0xFFE8EAF6), Color(0xFF9FA8DA))
-        else -> listOf(Color(0xFFF5F5F5), Color(0xFFE0E0E0))
+@Composable
+fun DashboardTile(
+    modifier: Modifier = Modifier,
+    title: String,
+    description: String,
+    icon: ImageVector,
+    backgroundColor: Color = Color.White,
+    iconColor: Color = Color.Black,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = modifier
+            .height(130.dp)
+            .clickable(onClick = onClick),
+        color = backgroundColor,
+        shape = RoundedCornerShape(20.dp),
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
+        border = BorderStroke(1.2.dp, iconColor.copy(alpha = 0.15f))
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = (-0.5).sp
+                    ),
+                    color = Color.Black
+                )
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.Gray,
+                    lineHeight = 14.sp,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(12.dp)
+                    .size(24.dp)
+                    .background(Color.White.copy(alpha = 0.5f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = iconColor,
+                    modifier = Modifier.size(14.dp)
+                )
+            }
+        }
     }
 }

@@ -76,7 +76,10 @@ import com.pyllar.consumer.util.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
+import pyllar.composeapp.generated.resources.Res
+import pyllar.composeapp.generated.resources.*
 import kotlin.math.roundToInt
 
 private val LumpsumHeroObsidian = Color(0xFF0A2415)
@@ -186,6 +189,18 @@ fun LumpsumAmountScreenV3(
             if (effectiveInvestorId.isBlank()) {
                 effectiveInvestorId = sessionStore.getValue(KeyValueConstants.INVESTOR_ID) ?: ""
             }
+
+            val savedGoalId = sessionStore.getValue("selected_lumpsum_goal_id") ?: ""
+            if (savedGoalId.isNotBlank() && savedGoalId == effectiveGoalId) {
+                sessionStore.getValue("selected_lumpsum_amount")?.toFloatOrNull()?.let {
+                    amount = it
+                    val textVal = it.toInt().toString()
+                    amountText = TextFieldValue(textVal, TextRange(textVal.length))
+                }
+            } else {
+                sessionStore.saveValue("selected_lumpsum_amount", "")
+                sessionStore.saveValue("selected_lumpsum_goal_id", effectiveGoalId)
+            }
         } catch (e: Exception) {
             platformLog("LumpsumAmountScreenV3: Error fetching stored IDs: ${e.message}")
         }
@@ -260,8 +275,16 @@ fun LumpsumAmountScreenV3(
         }
     }
 
-    BackHandler {
+    val handleBack: () -> Unit = {
+        coroutineScope.launch {
+            sessionStore.saveValue("selected_lumpsum_amount", "")
+            sessionStore.saveValue("selected_lumpsum_goal_id", "")
+        }
         onNavigateBack()
+    }
+
+    BackHandler {
+        handleBack()
     }
 
     val pastPerformance = fundDetailsState.pastPerformance
@@ -300,29 +323,22 @@ fun LumpsumAmountScreenV3(
 
     val scrollState = rememberScrollState()
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            // Top bar — Share / language / help
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .padding(top = 32.dp, bottom = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onNavigateBack) {
-                    Icon(
-                        imageVector = Icons.Default.ArrowBack,
-                        contentDescription = "Back",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = "Pyllar ", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = LumpsumHeroObsidian, letterSpacing = (-0.5).sp)
-                    Text(text = "Money", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = LumpsumGold, letterSpacing = (-0.5).sp)
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                modifier = Modifier.statusBarsPadding().padding(top = 2.dp),
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = "Pyllar ", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = LumpsumHeroObsidian, letterSpacing = (-0.5).sp)
+                        Text(text = "Money", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = LumpsumGold, letterSpacing = (-0.5).sp)
+                    }
+                },
+                navigationIcon = {
+                    IconButton(onClick = handleBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
                     IconButton(
                         onClick = {
                             PlatformAnalyticsLogger.logEvent("share_app_clicked", mapOf("screen_name" to "LumpsumAmountV3"))
@@ -345,8 +361,19 @@ fun LumpsumAmountScreenV3(
                             color = MaterialTheme.colorScheme.primary
                         )
                     }
-                }
-            }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                    titleContentColor = LumpsumHeroObsidian,
+                    navigationIconContentColor = LumpsumHeroObsidian,
+                    actionIconContentColor = LumpsumHeroObsidian
+                ),
+                windowInsets = WindowInsets(0, 0, 0, 0)
+            )
+        }
+    ) { paddingValues ->
+        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+            Column(modifier = Modifier.fillMaxSize()) {
 
             Column(
                 modifier = Modifier
@@ -418,9 +445,31 @@ fun LumpsumAmountScreenV3(
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.Bottom
                                     ) {
+                                        Column {
+                                            Text(
+                                                text = stringResource(Res.string.lumpsum_invested_label).uppercase(),
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                letterSpacing = 0.6.sp,
+                                                color = Color.White.copy(alpha = 0.6f)
+                                            )
+                                            Text(
+                                                text = formatRupeesShort(navInvestedVal),
+                                                fontSize = 18.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color.White.copy(alpha = 0.85f)
+                                            )
+                                            Spacer(modifier = Modifier.height(2.dp))
+                                            Text(
+                                                text = "on ${pastPerformance.startLabel}",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                color = Color.White.copy(alpha = 0.5f)
+                                            )
+                                        }
                                         Column(horizontalAlignment = Alignment.End) {
                                             Text(
-                                                text = "WORTH TODAY",
+                                                text = stringResource(Res.string.worth_today).uppercase(),
                                                 fontSize = 10.sp,
                                                 fontWeight = FontWeight.SemiBold,
                                                 letterSpacing = 0.6.sp,
@@ -433,7 +482,7 @@ fun LumpsumAmountScreenV3(
                                                 color = theme.accentColor
                                             )
                                             Text(
-                                                text = "+$navGainPct% actual returns",
+                                                text = stringResource(Res.string.past_performance_actual_returns, navGainPct),
                                                 fontSize = 11.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 color = Color(0xFF6FCF97)
@@ -488,7 +537,7 @@ fun LumpsumAmountScreenV3(
                                     }
                                     Spacer(modifier = Modifier.height(8.dp))
                                     Text(
-                                        text = "Based on ${pastPerformance.fundLabel}\nHistorical data · Not indicative of future returns",
+                                        text = stringResource(Res.string.past_performance_footnote, pastPerformance.fundLabel),
                                         fontSize = 9.sp,
                                         color = Color.White.copy(alpha = 0.5f),
                                         modifier = Modifier.fillMaxWidth(),
@@ -539,9 +588,24 @@ fun LumpsumAmountScreenV3(
 
                             LumpsumAmountSection(
                                 amount = amount,
-                                onAmountChange = { amount = it },
+                                onAmountChange = {
+                                    amount = it
+                                    coroutineScope.launch {
+                                        sessionStore.saveValue("selected_lumpsum_amount", it.toString())
+                                        sessionStore.saveValue("selected_lumpsum_goal_id", effectiveGoalId)
+                                    }
+                                },
                                 amountText = amountText,
-                                onAmountTextChange = { amountText = it },
+                                onAmountTextChange = {
+                                    amountText = it
+                                    val numeric = it.text.filter { c -> c.isDigit() }.toFloatOrNull()
+                                    if (numeric != null) {
+                                        coroutineScope.launch {
+                                            sessionStore.saveValue("selected_lumpsum_amount", numeric.toString())
+                                            sessionStore.saveValue("selected_lumpsum_goal_id", effectiveGoalId)
+                                        }
+                                    }
+                                },
                                 minAmount = minAmount,
                                 maxAmount = maxAmount,
                                 accentColor = theme.accentColor,
@@ -607,7 +671,13 @@ fun LumpsumAmountScreenV3(
                     TimeoutButton(
                         onClick = {
                             if (amount < minAmount || amount > maxAmount) {
-                                submitResult = "Please choose an amount between ₹${minAmount.toInt()} and ₹${maxAmount.toInt()}."
+                                coroutineScope.launch {
+                                    submitResult = org.jetbrains.compose.resources.getString(
+                                        Res.string.lumpsum_amount_range_error,
+                                        minAmount.toInt(),
+                                        maxAmount.toInt()
+                                    )
+                                }
                                 return@TimeoutButton
                             }
 
@@ -650,7 +720,7 @@ fun LumpsumAmountScreenV3(
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(if (isLoading) "Submitting..." else "Fetching details...")
                         } else {
-                            Text("Invest One-Time", fontWeight = FontWeight.Bold)
+                            Text(stringResource(Res.string.lumpsum_invest_one_time_cta), fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -920,10 +990,10 @@ fun LumpsumAmountScreenV3(
         }
     }
 }
-
+}
 // ── Helper composables ──────────────────────────────────────────────────
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 private fun LumpsumAmountSection(
     amount: Float,
@@ -949,6 +1019,14 @@ private fun LumpsumAmountSection(
     val bringIntoViewRequester = remember { BringIntoViewRequester() }
     val focusRequester = remember { FocusRequester() }
     var isAmountFocused by remember { mutableStateOf(false) }
+
+    val isImeVisible = WindowInsets.isImeVisible
+    LaunchedEffect(isImeVisible) {
+        if (!isImeVisible && isAmountFocused) {
+            focusManager.clearFocus()
+            isCustomMode = false
+        }
+    }
 
     if (isCustomMode) {
         OutlinedTextField(
@@ -1025,7 +1103,7 @@ private fun LumpsumAmountSection(
     }
 
     Text(
-        text = "One-time amount",
+        text = stringResource(Res.string.lumpsum_one_time_amount_label),
         fontSize = 13.sp,
         color = LumpsumInk.copy(alpha = 0.42f),
         modifier = Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 14.dp),
@@ -1246,8 +1324,8 @@ private fun PastPerformanceBar(
 @Composable
 private fun LumpsumTrustChecklist() {
     val items = listOf(
-        "Your money is safe with SEBI-registered partners",
-        "Invest once, withdraw whenever you want",
+        stringResource(Res.string.lumpsum_trust_safe_sebi),
+        stringResource(Res.string.lumpsum_trust_withdraw_anytime),
     )
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
         items.forEach { line ->

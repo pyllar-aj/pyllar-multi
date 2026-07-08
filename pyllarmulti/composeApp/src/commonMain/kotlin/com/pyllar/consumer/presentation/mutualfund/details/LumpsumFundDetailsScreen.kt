@@ -23,6 +23,7 @@ import com.pyllar.consumer.data.remote.model.dto.FundDetailsResponseDto
 import com.pyllar.consumer.presentation.dashboard.InvestmentDashboardV2ViewModel
 import com.pyllar.consumer.presentation.dashboard.KycPendingBottomSheet
 import com.pyllar.consumer.presentation.dashboard.formatIndian
+import androidx.compose.ui.platform.LocalUriHandler
 import com.pyllar.consumer.presentation.ui.components.TimeoutButton
 import com.pyllar.consumer.presentation.ui.components.rememberTimeoutState
 import com.pyllar.consumer.util.platformLog
@@ -75,6 +76,8 @@ fun LumpsumFundDetailsScreen(
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var showKycPendingBottomSheet by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
+    val uriHandler = LocalUriHandler.current
+    var showDisclaimerDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         PlatformAnalyticsLogger.logScreenView("LumpsumFundDetails")
@@ -101,6 +104,29 @@ fun LumpsumFundDetailsScreen(
             text = { Text(errorMessage ?: "") },
             confirmButton = {
                 TextButton(onClick = { errorMessage = null }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
+
+    if (showDisclaimerDialog) {
+        AlertDialog(
+            onDismissRequest = { showDisclaimerDialog = false },
+            title = { Text("Disclaimer") },
+            text = {
+                Column {
+                    Text(stringResource(Res.string.disclaimer_popup_content))
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = stringResource(Res.string.amfi_disclaimer),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showDisclaimerDialog = false }) {
                     Text("OK")
                 }
             }
@@ -267,6 +293,42 @@ fun LumpsumFundDetailsScreen(
                         }
 
                         LumpsumCompanyAllocationSection(details.companyAllocation)
+
+                        // Footer Links (Scheme Docs & Disclaimer)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (!details.schemeDocumentUrl.isNullOrBlank()) {
+                                Text(
+                                    text = stringResource(Res.string.scheme_documents),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = V2LinkGreen,
+                                    fontWeight = FontWeight.Medium,
+                                    modifier = Modifier
+                                        .clickable {
+                                            uriHandler.openUri(details.schemeDocumentUrl)
+                                        }
+                                        .padding(4.dp)
+                                )
+                            } else {
+                                Spacer(modifier = Modifier.width(1.dp))
+                            }
+
+                            Text(
+                                text = stringResource(Res.string.disclaimer),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = V2BronzeMuted,
+                                modifier = Modifier
+                                    .clickable {
+                                        showDisclaimerDialog = true
+                                    }
+                                    .padding(4.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -297,7 +359,11 @@ fun LumpsumFundMetricsGrid(details: FundDetailsResponseDto) {
             )
             LumpsumMetricItem(
                 label = "Exit Load",
-                value = details.exitLoad?.let { "$it%" } ?: "-",
+                value = if (details.exitLoad != null && details.exitLoadPeriodDays != null && details.exitLoadPeriodDays > 0) {
+                    "${details.exitLoad}% if exited within ${details.exitLoadPeriodDays} days"
+                } else {
+                    details.exitLoad?.let { "$it%" } ?: "-"
+                },
                 modifier = Modifier.weight(1f)
             )
         }

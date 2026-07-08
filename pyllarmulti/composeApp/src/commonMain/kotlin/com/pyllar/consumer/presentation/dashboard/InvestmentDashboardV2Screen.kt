@@ -569,6 +569,32 @@ fun UserHeader(
     }
 }
 
+// Brushed metal color palettes — used inside drawBehind with actual size
+private val goldMetalColors = listOf(
+    Color(0xFFC8892E), // deep warm gold
+    Color(0xFFE8C46A), // bright highlight streak
+    Color(0xFFC9973A), // mid gold
+    Color(0xFFF0D080), // peak shine
+    Color(0xFFB8821A), // shadow dip
+    Color(0xFFE0B84A), // secondary highlight
+    Color(0xFFC9973A)  // back to base
+)
+private val silverMetalColors = listOf(
+    Color(0xFF8A9DB0), // steel blue-grey base
+    Color(0xFFC8D8E4), // bright silver highlight
+    Color(0xFF7A8FA0), // shadow dip
+    Color(0xFFD8E8F0), // peak shine — near white
+    Color(0xFF6A8090), // deep shadow
+    Color(0xFFB8CCD8), // soft highlight
+    Color(0xFF8A9DB0)  // back to base
+)
+private const val GOLD_BRUSH_ALPHA = 10 / 255f
+private const val SILVER_BRUSH_ALPHA = 15 / 255f
+private val goldShadowColor = Color(0xFFB47814)
+private val silverShadowColor = Color(0xFF506070)
+private val goldStrokeColor = Color(0x80C9973A)
+private val silverStrokeColor = Color(0x807A8FA0)
+
 @Composable
 fun CombinedDashboardCard(
     totalValue: Double,
@@ -590,16 +616,50 @@ fun CombinedDashboardCard(
         Column(
             modifier = Modifier.fillMaxWidth()
         ) {
-            // Gold and Silver Section
+            val goldSectionShape = RoundedCornerShape(topStart = 16.dp, topEnd = 0.dp, bottomStart = 0.dp, bottomEnd = 0.dp)
+            val silverSectionShape = RoundedCornerShape(topStart = 0.dp, topEnd = 16.dp, bottomStart = 0.dp, bottomEnd = 0.dp)
+
             Row(
-                modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 120.dp)
             ) {
                 // Gold Section
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .background(Color(0xFFFFF9E6))
-                        .clickable { onGoldClick() }
+                        .fillMaxHeight()
+                        .clickable(enabled = !isLoading, onClick = onGoldClick)
+                        .shadow(4.dp, goldSectionShape, spotColor = goldShadowColor, ambientColor = goldShadowColor)
+                        .clip(goldSectionShape)
+                        .drawBehind {
+                            val w = size.width
+                            val h = size.height
+                            drawRect(
+                                brush = Brush.linearGradient(
+                                    colors = goldMetalColors,
+                                    start = Offset(0f, h),
+                                    end   = Offset(w, 0f)
+                                )
+                            )
+                            drawRect(
+                                brush = Brush.verticalGradient(
+                                    colors = listOf(Color.White.copy(alpha = 0x33 / 255f), Color.Transparent),
+                                    startY = 0f, endY = h
+                                )
+                            )
+                            var y = 0f
+                            while (y < h) {
+                                drawLine(
+                                    color = Color.White.copy(alpha = GOLD_BRUSH_ALPHA),
+                                    start = Offset(0f, y),
+                                    end   = Offset(w, y),
+                                    strokeWidth = 1f
+                                )
+                                y += 3f
+                            }
+                        }
+                        .border(1.dp, goldStrokeColor, goldSectionShape)
                         .padding(vertical = 16.dp, horizontal = 8.dp),
                     contentAlignment = Alignment.Center
                 ) {
@@ -608,13 +668,11 @@ fun CombinedDashboardCard(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         val goldHasValue = goldUnitsInGm != null && goldUnitsInGm > 0
-                        val goldIconSize = if (goldHasValue) 40.dp else 52.dp
-                        val goldImageSize = if (goldHasValue) 24.dp else 36.dp
 
                         Surface(
-                            color = Color(0xFFFFE8B8),
+                            color = Color.White.copy(alpha = 0.35f),
                             shape = CircleShape,
-                            modifier = Modifier.size(goldIconSize)
+                            modifier = Modifier.size(52.dp)
                         ) {
                             Box(
                                 contentAlignment = Alignment.Center,
@@ -623,7 +681,7 @@ fun CombinedDashboardCard(
                                 Image(
                                     painter = painterResource(Res.drawable.goldbar_icon),
                                     contentDescription = "Gold",
-                                    modifier = Modifier.size(goldImageSize),
+                                    modifier = Modifier.size(36.dp),
                                     contentScale = ContentScale.Fit
                                 )
                             }
@@ -632,7 +690,7 @@ fun CombinedDashboardCard(
                         if (isLoading) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(16.dp),
-                                color = Color(0xFFA27915),
+                                color = Color(0xFF6A4C00),
                                 strokeWidth = 2.dp
                             )
                         } else {
@@ -644,14 +702,14 @@ fun CombinedDashboardCard(
                             Text(
                                 text = unitsText,
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                color = Color(0xFFA27915)
+                                color = Color(0xFF4A3600)
                             )
                         }
 
                         Text(
                             text = "Gold",
                             style = MaterialTheme.typography.labelMedium,
-                            color = Color(0xFFA27915)
+                            color = Color(0xFF6A4C00)
                         )
                     }
                 }
@@ -660,8 +718,38 @@ fun CombinedDashboardCard(
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .background(Color(0xFFFAFAFA))
-                        .clickable { onSilverClick() }
+                        .fillMaxHeight()
+                        .clickable(enabled = !isLoading, onClick = onSilverClick)
+                        .shadow(4.dp, silverSectionShape, spotColor = silverShadowColor, ambientColor = silverShadowColor)
+                        .clip(silverSectionShape)
+                        .drawBehind {
+                            val w = size.width
+                            val h = size.height
+                            drawRect(
+                                brush = Brush.linearGradient(
+                                    colors = silverMetalColors,
+                                    start = Offset(0f, h),
+                                    end   = Offset(w, 0f)
+                                )
+                            )
+                            drawRect(
+                                brush = Brush.verticalGradient(
+                                    colors = listOf(Color.White.copy(alpha = 0x40 / 255f), Color.Transparent),
+                                    startY = 0f, endY = h
+                                )
+                            )
+                            var y = 0f
+                            while (y < h) {
+                                drawLine(
+                                    color = Color.White.copy(alpha = SILVER_BRUSH_ALPHA),
+                                    start = Offset(0f, y),
+                                    end   = Offset(w, y),
+                                    strokeWidth = 1f
+                                )
+                                y += 3f
+                            }
+                        }
+                        .border(1.dp, silverStrokeColor, silverSectionShape)
                         .padding(vertical = 16.dp, horizontal = 8.dp),
                     contentAlignment = Alignment.Center
                 ) {
@@ -670,13 +758,11 @@ fun CombinedDashboardCard(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         val silverHasValue = silverUnitsInGm != null && silverUnitsInGm > 0
-                        val silverIconSize = if (silverHasValue) 40.dp else 52.dp
-                        val silverImageSize = if (silverHasValue) 24.dp else 36.dp
 
                         Surface(
-                            color = Color(0xFFE8E8E8),
+                            color = Color.White.copy(alpha = 0.4f),
                             shape = CircleShape,
-                            modifier = Modifier.size(silverIconSize)
+                            modifier = Modifier.size(52.dp)
                         ) {
                             Box(
                                 contentAlignment = Alignment.Center,
@@ -685,7 +771,7 @@ fun CombinedDashboardCard(
                                 Image(
                                     painter = painterResource(Res.drawable.silver_icon),
                                     contentDescription = "Silver",
-                                    modifier = Modifier.size(silverImageSize),
+                                    modifier = Modifier.size(36.dp),
                                     contentScale = ContentScale.Fit
                                 )
                             }
@@ -694,7 +780,7 @@ fun CombinedDashboardCard(
                         if (isLoading) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(16.dp),
-                                color = Color(0xFF818181),
+                                color = Color(0xFF505A61),
                                 strokeWidth = 2.dp
                             )
                         } else {
@@ -706,14 +792,14 @@ fun CombinedDashboardCard(
                             Text(
                                 text = unitsText,
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                color = Color(0xFF818181)
+                                color = Color(0xFF2C343A)
                             )
                         }
 
                         Text(
                             text = "Silver",
                             style = MaterialTheme.typography.labelMedium,
-                            color = Color(0xFF818181)
+                            color = Color(0xFF505A61)
                         )
                     }
                 }

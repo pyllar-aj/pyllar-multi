@@ -99,7 +99,7 @@ fun FundDetailsViewOnlyScreen(
             containerColor = V2Cream,
             topBar = {
                 TopAppBar(
-                    modifier = Modifier.padding(top = 32.dp),
+                    modifier = Modifier.padding(top = 10.dp),
                     title = {
                         Text(
                             text = state.fundDetails?.fundName ?: "Fund Details",
@@ -156,11 +156,7 @@ fun FundDetailsViewOnlyScreen(
                             }
                         )
                         
-                        FundMetricsGrid(
-                            expenseRatio = details.expenseRatio?.toString() ?: "-",
-                            aum = details.aum?.toString() ?: "-",
-                            exitLoad = details.exitLoad?.toString() ?: "-"
-                        )
+                        FundMetricsGrid(details)
                         
                         // Riskometer section
                         val riskLevel = remember(details.riskLevel) {

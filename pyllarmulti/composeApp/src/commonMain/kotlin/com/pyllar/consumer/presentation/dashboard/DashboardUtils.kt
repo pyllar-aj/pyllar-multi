@@ -16,7 +16,8 @@ fun formatGoalName(name: String): String {
 }
 
 fun getCorrelationColorForCategory(category: String?, colorTheme: String?): Color {
-    if (category?.uppercase() == "SILVER") {
+    val cat = category?.trim()?.uppercase().orEmpty()
+    if (cat == "SILVER") {
         return Color(0xFF000000) // Black text color for silver goal name
     }
 
@@ -26,14 +27,14 @@ fun getCorrelationColorForCategory(category: String?, colorTheme: String?): Colo
         return themeColor
     }
 
-    return when (category?.uppercase()) {
+    return when (cat) {
         "GOLD" -> Color(0xFFA27915) // Gold color
         "SILVER" -> Color(0xFF000000) // Black text color for silver
         "FESTIVAL_SPENDS" -> Color(0xFFFF9800) // Orange
         "CHILDRENS_EDUCATION" -> Color(0xFF2196F3) // Blue
         "VACATION" -> Color(0xFF9C27B0) // Purple
         "SAVINGS" -> Color(0xFF388E3C) // Green
-        "SAVINGS_PLUS" -> Color(0xFF2E7D32) // Emerald Green
+        "SAVINGS_PLUS" -> Color(0xFF1B5E20) // Deep Forest Green
         "GLOBAL_EXPOSURE" -> Color(0xFF00897B) // Teal
         "ALL_IN_ONE" -> Color(0xFF2C4C9C) // Dark blue
         else -> V2SuccessGreen // Default green
@@ -41,30 +42,50 @@ fun getCorrelationColorForCategory(category: String?, colorTheme: String?): Colo
 }
 
 fun getBorderColorForCategory(category: String?): Color {
-    return when (category?.uppercase()) {
-        "GOLD" -> Color(0xFFFFD700)
-        "SILVER" -> Color(0xFF000000) // Black for silver to match plans without blue
-        "FESTIVAL_SPENDS" -> Color(0xFFFF9800)
-        "CHILDRENS_EDUCATION" -> Color(0xFF2196F3)
-        "VACATION" -> Color(0xFF9C27B0)
-        "SAVINGS" -> V2SuccessGreen
-        "GLOBAL_EXPOSURE" -> Color(0xFF00897B)
-        "ALL_IN_ONE" -> Color(0xFF2C4C9C) // Match correlation dark blue
-        else -> V2SuccessGreen
+    val cat = category?.trim()?.uppercase().orEmpty()
+    return when {
+        cat == "FESTIVAL_SPENDS" -> Color(0xFFFF9800) // Orange
+        cat.startsWith("RETIREMENT") -> V2SuccessGreen // --v2-success-green
+        cat == "GLOBAL_EXPOSURE" -> Color(0xFF00897B) // Teal
+        cat == "CHILDRENS_EDUCATION" -> Color(0xFF2196F3) // Blue
+        cat == "VACATION" -> Color(0xFF9C27B0) // Purple
+        cat == "GOLD" -> Color.Transparent // No border for gold to avoid harsh contrast
+        cat == "SILVER" -> Color(0xFF000000) // Black for silver to match plans without blue
+        cat == "SAVINGS" -> Color(0xFF009688) // Teal
+        cat == "SAVINGS_PLUS" -> V2SuccessGreen // --v2-success-green
+        cat == "ALL_IN_ONE" -> Color(0xFF2C4C9C) // Dark red (same as correlation text)
+        else -> V2SuccessGreen // --v2-success-green fallback
     }
 }
 
 fun getDarkBorderColorForCategory(category: String?, colorTheme: String?): Color {
-    val cat = category?.uppercase().orEmpty()
-    if (cat == "SAVINGS_PLUS") return Color(0xFF1B5E20) // Forest Green
-    if (cat == "SILVER") return Color(0xFF000000) // Black for silver border to match plans
-    
+    val cat = category?.trim()?.uppercase().orEmpty()
     val baseColor = colorTheme?.toColor() ?: getBorderColorForCategory(category)
-    return baseColor.copy(alpha = 0.8f)
+
+    if (baseColor == Color.Transparent) {
+        return when (cat) {
+            "GOLD" -> Color(0xFFB8860B) // Dark goldenrod
+            else -> V2SuccessGreen // --v2-success-green fallback
+        }
+    }
+
+    return when (cat) {
+        "FESTIVAL_SPENDS" -> Color(0xFFFF6F00) // Orange
+        "CHILDRENS_EDUCATION" -> Color(0xFF0D47A1) // Dark blue
+        "VACATION" -> Color(0xFF4A148C) // Dark purple
+        "GOLD" -> Color(0xFFB8860B) // Dark goldenrod
+        "SILVER" -> Color(0xFF000000) // Black for silver border to match plans
+        "SAVINGS" -> Color(0xFF004D40) // Dark teal
+        "SAVINGS_PLUS" -> Color(0xFF1B5E20) // Forest Green
+        "GLOBAL_EXPOSURE" -> Color(0xFF00897B) // Teal
+        "ALL_IN_ONE" -> Color(0xFF2C4C9C) // Dark red explicitly retained for ALL IN ONE if needed
+        else -> V2SuccessGreen // --v2-success-green fallback
+    }
 }
 
 fun getGoalGradientColors(category: String?, colorTheme: String?): List<Color> {
-    return when (category?.uppercase()) {
+    val cat = category?.trim()?.uppercase().orEmpty()
+    return when (cat) {
         "GOLD" -> listOf(
             Color(0xFFFFF9E6), // Rich golden cream
             Color(0xFFFFF4D6), // Warm golden yellow
@@ -96,9 +117,9 @@ fun getGoalGradientColors(category: String?, colorTheme: String?): List<Color> {
             Color(0xFFEBFFEB)  // Light mint-beige
         )
         "SAVINGS_PLUS" -> listOf(
-            Color(0xFFE8F5E9), // Very light emerald
-            Color(0xFFC8E6C9), // Light emerald
-            Color(0xFFA5D6A7)  // Soft emerald
+            Color(0xFFF1F8E9), // Light Green 50
+            Color(0xFFDCEDC8), // Light Green 100
+            Color(0xFFC5E1A5)  // Light Green 200
         )
         "GLOBAL_EXPOSURE" -> listOf(
             Color(0xFFE0F2F1),
@@ -120,14 +141,25 @@ fun getGoalGradientColors(category: String?, colorTheme: String?): List<Color> {
 }
 
 fun getIconBackgroundColorForCategory(category: String?, colorTheme: String?): Color {
-    return when (category?.uppercase()) {
+    val themeColor = colorTheme?.toColor()
+    if (themeColor != null) {
+        return Color(
+            red = themeColor.red,
+            green = themeColor.green,
+            blue = themeColor.blue,
+            alpha = 0.18f
+        )
+    }
+
+    val cat = category?.trim()?.uppercase().orEmpty()
+    return when (cat) {
         "GOLD" -> Color(0xFFFFF4D6) // Rich golden yellow
         "SILVER" -> Color(0xFFF5F5F5) // Light silver/gray
         "FESTIVAL_SPENDS" -> Color(0xFFFFE8E8) // Light rose
         "CHILDRENS_EDUCATION" -> Color(0xFFBBDEFB) // Light blue
         "VACATION" -> Color(0xFFE1BEE7) // Light purple
         "SAVINGS" -> Color(0xFFC8E6C9) // Light green
-        "SAVINGS_PLUS" -> Color(0xFFA5D6A7) // Emerald tint
+        "SAVINGS_PLUS" -> Color(0xFFE4F1D4) // Vibrant Light Green
         "GLOBAL_EXPOSURE" -> Color(0xFFB2DFDB) // Light teal
         "ALL_IN_ONE" -> Color(0xFFD4DBEB) // Light blue-gray
         else -> Color(0xFFC8E6C9) // Default light green
