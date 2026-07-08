@@ -1095,7 +1095,7 @@ fun PrimaryGoalCard(
                                     colors = CardDefaults.cardColors(containerColor = iconBgColor),
                                     shape = CircleShape,
                                     modifier = Modifier.size(32.dp),
-                                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                                 ) {
                                     Box(
                                         contentAlignment = Alignment.Center,

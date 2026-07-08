@@ -39,6 +39,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalUriHandler
@@ -1012,6 +1013,7 @@ private fun LumpsumAmountSection(
 
     val isCustom = remember(amount.toInt(), chipAmounts) { amount.toInt() !in chipAmounts }
     var isCustomMode by remember { mutableStateOf(isCustom) }
+    var shouldRequestFocus by remember { mutableStateOf(false) }
     LaunchedEffect(amount.toInt(), chipAmounts) {
         isCustomMode = amount.toInt() !in chipAmounts
     }
@@ -1020,7 +1022,8 @@ private fun LumpsumAmountSection(
     val focusRequester = remember { FocusRequester() }
     var isAmountFocused by remember { mutableStateOf(false) }
 
-    val isImeVisible = WindowInsets.isImeVisible
+    val density = LocalDensity.current
+    val isImeVisible = WindowInsets.ime.getBottom(density) > 0
     LaunchedEffect(isImeVisible) {
         if (!isImeVisible && isAmountFocused) {
             focusManager.clearFocus()
@@ -1095,7 +1098,10 @@ private fun LumpsumAmountSection(
         )
     } else {
         Box(
-            modifier = Modifier.fillMaxWidth().clickable { isCustomMode = true },
+            modifier = Modifier.fillMaxWidth().clickable {
+                shouldRequestFocus = true
+                isCustomMode = true
+            },
             contentAlignment = Alignment.Center
         ) {
             Text(text = "₹${amount.toInt()}", fontSize = 48.sp, fontWeight = FontWeight.ExtraBold, color = LumpsumInk)
@@ -1134,12 +1140,15 @@ private fun LumpsumAmountSection(
             isPopular = false,
             accentColor = accentColor,
             modifier = Modifier.weight(1f),
-            onClick = { isCustomMode = true }
+            onClick = {
+                shouldRequestFocus = true
+                isCustomMode = true
+            }
         )
     }
 
-    LaunchedEffect(isCustomMode) {
-        if (isCustomMode) {
+    LaunchedEffect(shouldRequestFocus) {
+        if (shouldRequestFocus && isCustomMode) {
             delay(300)
             coroutineScope.launch {
                 focusRequester.requestFocus()
@@ -1149,6 +1158,7 @@ private fun LumpsumAmountSection(
                 bringIntoViewRequester.bringIntoView()
                 scrollState.animateScrollTo(scrollState.maxValue)
             }
+            shouldRequestFocus = false
         }
     }
 }

@@ -1160,6 +1160,7 @@ private fun DailyAmountSection(
 
     val isCustom = remember(amount.toInt(), chipAmounts) { amount.toInt() !in chipAmounts }
     var isCustomMode by remember { mutableStateOf(isCustom) }
+    var shouldRequestFocus by remember { mutableStateOf(false) }
     LaunchedEffect(amount.toInt(), chipAmounts) {
         isCustomMode = amount.toInt() !in chipAmounts
     }
@@ -1175,7 +1176,7 @@ private fun DailyAmountSection(
         }
     }
 
-    val isImeVisible = WindowInsets.isImeVisible
+    val isImeVisible = WindowInsets.ime.getBottom(density) > 0
     LaunchedEffect(isImeVisible) {
         if (!isImeVisible && isAmountFocused) {
             focusManager.clearFocus()
@@ -1242,7 +1243,10 @@ private fun DailyAmountSection(
         )
     } else {
         Box(
-            modifier = Modifier.fillMaxWidth().clickable { isCustomMode = true },
+            modifier = Modifier.fillMaxWidth().clickable {
+                shouldRequestFocus = true
+                isCustomMode = true
+            },
             contentAlignment = Alignment.Center
         ) {
             Text(text = "₹${amount.toInt()}", fontSize = 48.sp, fontWeight = FontWeight.ExtraBold, color = SipInk)
@@ -1285,12 +1289,15 @@ private fun DailyAmountSection(
             isPopular = false,
             accentColor = accentColor,
             modifier = Modifier.weight(1f),
-            onClick = { isCustomMode = true }
+            onClick = {
+                shouldRequestFocus = true
+                isCustomMode = true
+            }
         )
     }
 
-    LaunchedEffect(isCustomMode) {
-        if (isCustomMode) {
+    LaunchedEffect(shouldRequestFocus) {
+        if (shouldRequestFocus && isCustomMode) {
             delay(300)
             coroutineScope.launch {
                 focusRequester.requestFocus()
@@ -1300,6 +1307,7 @@ private fun DailyAmountSection(
                 bringIntoViewRequester.bringIntoView()
                 scrollState.animateScrollTo(scrollState.maxValue)
             }
+            shouldRequestFocus = false
         }
     }
 }
@@ -1327,6 +1335,7 @@ private fun MonthlyAmountSection(
     val focusRequester = remember { FocusRequester() }
     val density = LocalDensity.current
     var isAmountFocused by remember { mutableStateOf(false) }
+    var shouldMonthlyRequestFocus by remember { mutableStateOf(false) }
     LaunchedEffect(isAmountFocused) {
         if (isAmountFocused) {
             delay(150)
@@ -1334,7 +1343,7 @@ private fun MonthlyAmountSection(
         }
     }
 
-    val isImeVisible = WindowInsets.isImeVisible
+    val isImeVisible = WindowInsets.ime.getBottom(density) > 0
     LaunchedEffect(isImeVisible) {
         if (!isImeVisible && isAmountFocused) {
             focusManager.clearFocus()
@@ -1401,7 +1410,10 @@ private fun MonthlyAmountSection(
         )
     } else {
         Box(
-            modifier = Modifier.fillMaxWidth().clickable { onMonthlyCustomModeChange(true) },
+            modifier = Modifier.fillMaxWidth().clickable {
+                shouldMonthlyRequestFocus = true
+                onMonthlyCustomModeChange(true)
+            },
             contentAlignment = Alignment.Center
         ) {
             Text(text = "₹${monthlyAmount.toInt()}", fontSize = 48.sp, fontWeight = FontWeight.ExtraBold, color = SipInk)
@@ -1439,12 +1451,15 @@ private fun MonthlyAmountSection(
             isPopular = false,
             accentColor = accentColor,
             modifier = Modifier.weight(1f),
-            onClick = { onMonthlyCustomModeChange(true) }
+            onClick = {
+                shouldMonthlyRequestFocus = true
+                onMonthlyCustomModeChange(true)
+            }
         )
     }
 
-    LaunchedEffect(isMonthlyCustomMode) {
-        if (isMonthlyCustomMode) {
+    LaunchedEffect(shouldMonthlyRequestFocus) {
+        if (shouldMonthlyRequestFocus && isMonthlyCustomMode) {
             delay(300)
             coroutineScope.launch {
                 focusRequester.requestFocus()
@@ -1454,6 +1469,7 @@ private fun MonthlyAmountSection(
                 bringIntoViewRequester.bringIntoView()
                 scrollState.animateScrollTo(scrollState.maxValue)
             }
+            shouldMonthlyRequestFocus = false
         }
     }
 }
