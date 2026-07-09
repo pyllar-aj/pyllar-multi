@@ -60,6 +60,7 @@ import com.pyllar.consumer.analytics.PlatformAnalyticsLogger
 import com.pyllar.consumer.data.local.KeyValueConstants
 import com.pyllar.consumer.data.remote.model.dto.MandateWrapper
 import com.pyllar.consumer.domain.storage.SessionStore
+import com.pyllar.consumer.domain.storage.InMemorySessionStore
 import com.pyllar.consumer.platform.PlatformActions
 import com.pyllar.consumer.presentation.mutualfund.details.BankDetailsCard
 import com.pyllar.consumer.presentation.mutualfund.details.FundDetailsState
@@ -143,6 +144,7 @@ fun LumpsumAmountScreenV3(
     onNavigateToFundDetails: (userId: String, goalId: String, amount: Double, kycAttemptId: String, investorId: String) -> Unit = { _, _, _, _, _ -> },
     onNavigateBack: () -> Unit = {},
     sessionStore: SessionStore = koinInject(),
+    inMemorySessionStore: InMemorySessionStore = koinInject(),
     fundDetailsViewModel: FundDetailsViewModel = koinInject(),
     dashboardViewModel: InvestmentDashboardV2ViewModel = koinInject(),
     platformActions: PlatformActions = koinInject()
@@ -191,16 +193,16 @@ fun LumpsumAmountScreenV3(
                 effectiveInvestorId = sessionStore.getValue(KeyValueConstants.INVESTOR_ID) ?: ""
             }
 
-            val savedGoalId = sessionStore.getValue("selected_lumpsum_goal_id") ?: ""
+            val savedGoalId = inMemorySessionStore.getValue("selected_lumpsum_goal_id") ?: ""
             if (savedGoalId.isNotBlank() && savedGoalId == effectiveGoalId) {
-                sessionStore.getValue("selected_lumpsum_amount")?.toFloatOrNull()?.let {
+                inMemorySessionStore.getValue("selected_lumpsum_amount")?.toFloatOrNull()?.let {
                     amount = it
                     val textVal = it.toInt().toString()
                     amountText = TextFieldValue(textVal, TextRange(textVal.length))
                 }
             } else {
-                sessionStore.saveValue("selected_lumpsum_amount", "")
-                sessionStore.saveValue("selected_lumpsum_goal_id", effectiveGoalId)
+                inMemorySessionStore.saveValue("selected_lumpsum_amount", "")
+                inMemorySessionStore.saveValue("selected_lumpsum_goal_id", effectiveGoalId)
             }
         } catch (e: Exception) {
             platformLog("LumpsumAmountScreenV3: Error fetching stored IDs: ${e.message}")
@@ -278,8 +280,8 @@ fun LumpsumAmountScreenV3(
 
     val handleBack: () -> Unit = {
         coroutineScope.launch {
-            sessionStore.saveValue("selected_lumpsum_amount", "")
-            sessionStore.saveValue("selected_lumpsum_goal_id", "")
+            inMemorySessionStore.saveValue("selected_lumpsum_amount", "")
+            inMemorySessionStore.saveValue("selected_lumpsum_goal_id", "")
         }
         onNavigateBack()
     }
@@ -592,8 +594,8 @@ fun LumpsumAmountScreenV3(
                                 onAmountChange = {
                                     amount = it
                                     coroutineScope.launch {
-                                        sessionStore.saveValue("selected_lumpsum_amount", it.toString())
-                                        sessionStore.saveValue("selected_lumpsum_goal_id", effectiveGoalId)
+                                        inMemorySessionStore.saveValue("selected_lumpsum_amount", it.toString())
+                                        inMemorySessionStore.saveValue("selected_lumpsum_goal_id", effectiveGoalId)
                                     }
                                 },
                                 amountText = amountText,
@@ -602,8 +604,8 @@ fun LumpsumAmountScreenV3(
                                     val numeric = it.text.filter { c -> c.isDigit() }.toFloatOrNull()
                                     if (numeric != null) {
                                         coroutineScope.launch {
-                                            sessionStore.saveValue("selected_lumpsum_amount", numeric.toString())
-                                            sessionStore.saveValue("selected_lumpsum_goal_id", effectiveGoalId)
+                                            inMemorySessionStore.saveValue("selected_lumpsum_amount", numeric.toString())
+                                            inMemorySessionStore.saveValue("selected_lumpsum_goal_id", effectiveGoalId)
                                         }
                                     }
                                 },

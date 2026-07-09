@@ -1,5 +1,7 @@
 package com.pyllar.otp
 
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -67,7 +69,7 @@ actual fun OtpField(
             }
             textField
         },
-        modifier = modifier,
+        modifier = modifier.height(56.dp),
         update = { textField ->
             textField.enabled = enabled
             if (textField.text != otpFieldValue.text) {

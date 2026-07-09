@@ -46,6 +46,7 @@ import androidx.compose.ui.zIndex
 import com.pyllar.consumer.data.local.KeyValueConstants
 import com.pyllar.consumer.data.remote.model.dto.MandateWrapper
 import com.pyllar.consumer.domain.storage.SessionStore
+import com.pyllar.consumer.domain.storage.InMemorySessionStore
 import com.pyllar.consumer.platform.PlatformActions
 import com.pyllar.consumer.presentation.mutualfund.details.BankDetailsCard
 import com.pyllar.consumer.presentation.mutualfund.details.FundDetailsViewModel
@@ -214,6 +215,7 @@ fun SipAmountScreenV3(
     fundDetailsViewModel: FundDetailsViewModel = koinInject(),
     dashboardViewModel: InvestmentDashboardV2ViewModel = koinInject(),
     sessionStore: SessionStore = koinInject(),
+    inMemorySessionStore: InMemorySessionStore = koinInject(),
     platformActions: PlatformActions = koinInject()
 ) {
     val limitsState by viewModel.limitsState.collectAsState()
@@ -286,31 +288,31 @@ fun SipAmountScreenV3(
                 if (effectiveInvestorId.isBlank() && storedInvId.isNotBlank()) effectiveInvestorId = storedInvId
             }
 
-            val savedGoalId = sessionStore.getValue("selected_sip_goal_id") ?: ""
+            val savedGoalId = inMemorySessionStore.getValue("selected_sip_goal_id") ?: ""
             if (savedGoalId.isNotBlank() && savedGoalId == effectiveGoalId) {
-                sessionStore.getValue("selected_sip_amount")?.toFloatOrNull()?.let {
+                inMemorySessionStore.getValue("selected_sip_amount")?.toFloatOrNull()?.let {
                     amount = it
                     val textVal = it.toInt().toString()
                     amountText = TextFieldValue(textVal, TextRange(textVal.length))
                 }
-                sessionStore.getValue("selected_sip_monthly_amount")?.toFloatOrNull()?.let {
+                inMemorySessionStore.getValue("selected_sip_monthly_amount")?.toFloatOrNull()?.let {
                     monthlyAmount = it
                     val textVal = it.toInt().toString()
                     monthlyAmountText = TextFieldValue(textVal, TextRange(textVal.length))
                 }
-                sessionStore.getValue("selected_sip_frequency")?.let {
+                inMemorySessionStore.getValue("selected_sip_frequency")?.let {
                     if (it == "monthly") frequency = SipFrequency.MONTHLY
                     else if (it == "daily") frequency = SipFrequency.DAILY
                 }
-                sessionStore.getValue("selected_sip_date")?.toIntOrNull()?.let {
+                inMemorySessionStore.getValue("selected_sip_date")?.toIntOrNull()?.let {
                     sipDate = it
                 }
             } else {
-                sessionStore.saveValue("selected_sip_amount", "")
-                sessionStore.saveValue("selected_sip_monthly_amount", "")
-                sessionStore.saveValue("selected_sip_frequency", "")
-                sessionStore.saveValue("selected_sip_date", "")
-                sessionStore.saveValue("selected_sip_goal_id", effectiveGoalId)
+                inMemorySessionStore.saveValue("selected_sip_amount", "")
+                inMemorySessionStore.saveValue("selected_sip_monthly_amount", "")
+                inMemorySessionStore.saveValue("selected_sip_frequency", "")
+                inMemorySessionStore.saveValue("selected_sip_date", "")
+                inMemorySessionStore.saveValue("selected_sip_goal_id", effectiveGoalId)
             }
         } finally {
             isFetchingIds = false
@@ -380,7 +382,7 @@ fun SipAmountScreenV3(
 
     LaunchedEffect(targetAmount, limitsState.isLoading) {
         if (!limitsState.isLoading) {
-            val restoredAmount = sessionStore.getValue("selected_sip_amount")?.toFloatOrNull()
+            val restoredAmount = inMemorySessionStore.getValue("selected_sip_amount")?.toFloatOrNull()
             if (restoredAmount != null) {
                 amount = restoredAmount
                 val newText = restoredAmount.toInt().toString()
@@ -440,11 +442,11 @@ fun SipAmountScreenV3(
 
     val handleBack: () -> Unit = {
         coroutineScope.launch {
-            sessionStore.saveValue("selected_sip_amount", "")
-            sessionStore.saveValue("selected_sip_monthly_amount", "")
-            sessionStore.saveValue("selected_sip_frequency", "")
-            sessionStore.saveValue("selected_sip_date", "")
-            sessionStore.saveValue("selected_sip_goal_id", "")
+            inMemorySessionStore.saveValue("selected_sip_amount", "")
+            inMemorySessionStore.saveValue("selected_sip_monthly_amount", "")
+            inMemorySessionStore.saveValue("selected_sip_frequency", "")
+            inMemorySessionStore.saveValue("selected_sip_date", "")
+            inMemorySessionStore.saveValue("selected_sip_goal_id", "")
         }
         onNavigateBack()
     }
@@ -716,7 +718,7 @@ fun SipAmountScreenV3(
                                 frequency = newFrequency
                                 isMonthlyCustomMode = false
                                 coroutineScope.launch {
-                                    sessionStore.saveValue("selected_sip_frequency", if (newFrequency == SipFrequency.MONTHLY) "monthly" else "daily")
+                                    inMemorySessionStore.saveValue("selected_sip_frequency", if (newFrequency == SipFrequency.MONTHLY) "monthly" else "daily")
                                 }
                             }
                         )
@@ -800,7 +802,7 @@ fun SipAmountScreenV3(
                                         onAmountChange = {
                                             amount = it
                                             coroutineScope.launch {
-                                                sessionStore.saveValue("selected_sip_amount", it.toString())
+                                                inMemorySessionStore.saveValue("selected_sip_amount", it.toString())
                                             }
                                         },
                                         amountText = amountText,
@@ -809,7 +811,7 @@ fun SipAmountScreenV3(
                                             val numeric = it.text.filter { c -> c.isDigit() }.toFloatOrNull()
                                             if (numeric != null) {
                                                 coroutineScope.launch {
-                                                    sessionStore.saveValue("selected_sip_amount", numeric.toString())
+                                                    inMemorySessionStore.saveValue("selected_sip_amount", numeric.toString())
                                                 }
                                             }
                                         },
@@ -829,7 +831,7 @@ fun SipAmountScreenV3(
                                         onMonthlyAmountChange = {
                                             monthlyAmount = it
                                             coroutineScope.launch {
-                                                sessionStore.saveValue("selected_sip_monthly_amount", it.toString())
+                                                inMemorySessionStore.saveValue("selected_sip_monthly_amount", it.toString())
                                             }
                                         },
                                         monthlyAmountText = monthlyAmountText,
@@ -838,7 +840,7 @@ fun SipAmountScreenV3(
                                             val numeric = it.text.filter { c -> c.isDigit() }.toFloatOrNull()
                                             if (numeric != null) {
                                                 coroutineScope.launch {
-                                                    sessionStore.saveValue("selected_sip_monthly_amount", numeric.toString())
+                                                    inMemorySessionStore.saveValue("selected_sip_monthly_amount", numeric.toString())
                                                 }
                                             }
                                         },
@@ -861,7 +863,7 @@ fun SipAmountScreenV3(
                                         onDateSelected = {
                                             sipDate = it
                                             coroutineScope.launch {
-                                                sessionStore.saveValue("selected_sip_date", it.toString())
+                                                inMemorySessionStore.saveValue("selected_sip_date", it.toString())
                                             }
                                         }
                                     )

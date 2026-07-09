@@ -19,6 +19,7 @@ import com.pyllar.consumer.domain.repository.OnboardingRepository
 import com.pyllar.consumer.domain.repository.RedemptionRepository
 import com.pyllar.consumer.domain.repository.ReferralRepository
 import com.pyllar.consumer.domain.storage.SessionStore
+import com.pyllar.consumer.domain.storage.InMemorySessionStore
 import com.pyllar.consumer.presentation.auth.login.AuthViewModel
 import com.pyllar.consumer.presentation.auth.permission.PermissionViewModel
 import com.pyllar.consumer.presentation.auth.phone.OtpVerificationViewModel
@@ -67,6 +68,7 @@ import org.koin.dsl.module
  */
 val sharedModule: Module = module {
     single { ForceUpdateManager() }
+    single { InMemorySessionStore() }
     single { PyllarApiClient(getApiBaseUrl()) }
     single { com.pyllar.consumer.data.remote.crypto.createSecureSessionStore() }
     single { com.pyllar.consumer.data.remote.crypto.SecureHandshakeCoordinator({ getApiBaseUrl() }, get(), get()) }
