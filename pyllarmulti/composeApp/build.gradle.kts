@@ -114,7 +114,12 @@ kotlin {
 // ──────────────────────────────────────────────────
 val pyllarFlavor: String = (project.findProperty("pyllar.flavor") as? String) ?: "release"
 val iosBaseUrl: String = when (pyllarFlavor) {
-    "debug" -> "http://localhost:8080"
+    "debug" -> {
+        // Toggle the active URL for iOS Debug by commenting/uncommenting:
+       // "http://localhost:8080"          // Local Simulator
+        // "http://10.222.186.212:8080"  // Local Physical Device (change to your machine's IP)
+         "https://api.pyllar.in"         // Production API
+    }
     else    -> "https://api.pyllar.in"
 }
 
