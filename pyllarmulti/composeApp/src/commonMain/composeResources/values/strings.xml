@@ -735,4 +735,20 @@
     <string name="lumpsum_amount_range_error">Please choose an amount between ₹%1$d and ₹%2$d.</string>
     <string name="lumpsum_invest_one_time_cta">Invest One-Time</string>
     <string name="lumpsum_trust_withdraw_anytime">Invest once, withdraw whenever you want</string>
+
+    <!-- UPI/PAN Fetch Screen Strings -->
+    <string name="upi_fetch_failed_error">We couldn\'t fetch the details for this ID. Please check the ID and try again or fill the form manually</string>
+    <string name="upi_fetch_success_hint">Details fetched — tap continue to review</string>
+    <string name="upi_fetch_details_found_title">Details found!</string>
+    <string name="upi_fetch_details_found_body">Your form is ready to review.</string>
+    <string name="upi_fetch_loading">Fetching your details…</string>
+    <string name="upi_promo_skip_entire_form">Have your UPI ID? Skip this form entirely</string>
+    <string name="upi_promo_try_it_btn">Try it →</string>
+    <string name="upi_promo_skip_form">Have your UPI ID? Skip this form</string>
+    <string name="upi_promo_skip_form_title">Skip the form</string>
+    <string name="upi_promo_enter_upi_id_user_info">Enter your UPI ID and we\'ll fill everything in — name, DOB, and bank details.</string>
+    <string name="upi_promo_enter_upi_id_bank_details">Enter your UPI ID and we\'ll fill in your account number and IFSC code.</string>
+    <string name="try_again">Try again</string>
+    <string name="btn_fetch_my_details">Fetch my details</string>
+    <string name="btn_fill_form_manually">Fill form manually</string>
 </resources>

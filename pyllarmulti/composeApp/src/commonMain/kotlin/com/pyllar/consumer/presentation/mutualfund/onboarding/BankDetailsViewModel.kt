@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import com.pyllar.consumer.data.remote.model.dto.UpiVpaBankDetailsResponseDto
 
 class BankDetailsViewModel(
     private val onboardingRepository: OnboardingRepository,
@@ -104,5 +105,46 @@ class BankDetailsViewModel(
         _submitResult.value = null
         _initiateResult.value = null
         _statusResult.value = null
+    }
+
+    sealed class UpiBankFetchState {
+        object Idle : UpiBankFetchState()
+        object Fetching : UpiBankFetchState()
+        data class Success(val accountNumber: String?, val ifscCode: String?) : UpiBankFetchState()
+        data class Error(val message: String?) : UpiBankFetchState()
+    }
+
+    private val _upiBankFetchState = MutableStateFlow<UpiBankFetchState>(UpiBankFetchState.Idle)
+    val upiBankFetchState: StateFlow<UpiBankFetchState> = _upiBankFetchState.asStateFlow()
+
+    fun resetUpiBankFetchState() {
+        _upiBankFetchState.value = UpiBankFetchState.Idle
+    }
+
+    fun fetchBankDetailsViaUpi(userId: String, upiVpa: String) {
+        if (_upiBankFetchState.value is UpiBankFetchState.Fetching) return
+        _upiBankFetchState.value = UpiBankFetchState.Fetching
+        viewModelScope.launch {
+            onboardingRepository.lookupUpiVpaBankDetails(userId, upiVpa).collect { result ->
+                when (result) {
+                    is Resource.Success -> {
+                        val data = result.data
+                        if (data?.accountNumber.isNullOrBlank() || data?.ifscCode.isNullOrBlank()) {
+                            _upiBankFetchState.value = UpiBankFetchState.Error(
+                                "Could not verify the UPI ID. Please check and try again"
+                            )
+                        } else {
+                            _upiBankFetchState.value = UpiBankFetchState.Success(data.accountNumber, data.ifscCode)
+                        }
+                    }
+                    is Resource.Error -> {
+                        _upiBankFetchState.value = UpiBankFetchState.Error(
+                            result.message ?: "Could not verify the UPI ID. Please check and try again"
+                        )
+                    }
+                    is Resource.Loading -> {}
+                }
+            }
+        }
     }
 }

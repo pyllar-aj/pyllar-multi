@@ -20,6 +20,9 @@ import com.pyllar.consumer.util.platformLog
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.json.JsonObject
+import com.pyllar.consumer.data.remote.model.dto.UpiVpaLookupRequest
+import com.pyllar.consumer.data.remote.model.dto.UpiVpaLookupResponseDto
+import com.pyllar.consumer.data.remote.model.dto.UpiVpaBankDetailsResponseDto
 
 import io.ktor.client.request.header
 
@@ -372,6 +375,44 @@ class OnboardingRepositoryImpl(
             path = "api/device/user-details-fetch",
             body = request
         )
+        emit(result)
+    }
+
+    override fun lookupUpiVpaBankDetails(
+        userId: String,
+        upiVpa: String
+    ): Flow<Resource<UpiVpaBankDetailsResponseDto>> = flow {
+        emit(Resource.Loading())
+        val result = apiClient.post<UpiVpaBankDetailsResponseDto, UpiVpaLookupRequest>(
+            path = "api/device/upi-vpa-bank-details",
+            body = UpiVpaLookupRequest(upiVpa = upiVpa, userId = userId)
+        )
+        emit(result)
+    }
+
+    override fun lookupUpiVpa(
+        userId: String,
+        upiVpa: String
+    ): Flow<Resource<UpiVpaLookupResponseDto>> = flow {
+        emit(Resource.Loading())
+        val result = apiClient.post<UpiVpaLookupResponseDto, UpiVpaLookupRequest>(
+            path = "api/device/upi-vpa-lookup",
+            body = UpiVpaLookupRequest(upiVpa = upiVpa, userId = userId)
+        )
+        emit(result)
+    }
+
+    override fun pollUpiVpaLookupStatus(
+        userId: String,
+        upiVpa: String
+    ): Flow<Resource<UpiVpaLookupResponseDto>> = flow {
+        emit(Resource.Loading())
+        val result = apiClient.get<UpiVpaLookupResponseDto>(
+            path = "api/device/upi-vpa-lookup/status"
+        ) {
+            url.parameters.append("upiVpa", upiVpa)
+            url.parameters.append("userId", userId)
+        }
         emit(result)
     }
 }

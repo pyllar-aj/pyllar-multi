@@ -90,5 +90,20 @@ interface OnboardingRepository {
         userId: String,
         request: com.pyllar.consumer.data.remote.requests.UserDetailsFetchRequest
     ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.UserDetailsFetchResponseDto>>
+
+    fun lookupUpiVpaBankDetails(
+        userId: String,
+        upiVpa: String
+    ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.UpiVpaBankDetailsResponseDto>>
+
+    fun lookupUpiVpa(
+        userId: String,
+        upiVpa: String
+    ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.UpiVpaLookupResponseDto>>
+
+    fun pollUpiVpaLookupStatus(
+        userId: String,
+        upiVpa: String
+    ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.UpiVpaLookupResponseDto>>
 }
 

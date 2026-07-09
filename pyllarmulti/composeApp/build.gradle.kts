@@ -117,8 +117,8 @@ val iosBaseUrl: String = when (pyllarFlavor) {
     "debug" -> {
         // Toggle the active URL for iOS Debug by commenting/uncommenting:
        // "http://localhost:8080"          // Local Simulator
-        // "http://10.222.186.212:8080"  // Local Physical Device (change to your machine's IP)
-         "https://api.pyllar.in"         // Production API
+         "http://192.168.0.5:8080"  // Local Physical Device (change to your machine's IP)
+//         "https://api.pyllar.in"         // Production API
     }
     else    -> "https://api.pyllar.in"
 }
