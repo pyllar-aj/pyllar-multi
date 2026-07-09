@@ -316,9 +316,25 @@ fun WithdrawAmountScreen(
 
             // Confirmation Overlay / Bottom Sheet (KMP simple version)
             if (showConfirmationSheet) {
-                Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)).zIndex(50f)) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.5f))
+                        .clickable(
+                            enabled = true,
+                            onClick = {},
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        )
+                        .zIndex(50f)
+                ) {
                     Card(
-                        modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(16.dp),
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .navigationBarsPadding()
+                            .imePadding()
+                            .padding(16.dp),
                         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
                     ) {
                         Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -364,7 +380,12 @@ fun WithdrawAmountScreen(
                         .zIndex(60f)
                 ) {
                     Card(
-                        modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(16.dp),
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .navigationBarsPadding()
+                            .imePadding()
+                            .padding(16.dp),
                         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
                     ) {
                         Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(20.dp)) {

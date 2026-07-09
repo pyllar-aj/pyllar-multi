@@ -60,6 +60,8 @@ actual fun OtpField(
                 this.textAlignment = NSTextAlignmentCenter
                 this.borderStyle = UITextBorderStyle.UITextBorderStyleRoundedRect
                 this.placeholder = "••••••"
+                this.textColor = UIColor.blackColor
+                this.backgroundColor = UIColor.whiteColor
                 
                 this.addTarget(
                     target = target,
