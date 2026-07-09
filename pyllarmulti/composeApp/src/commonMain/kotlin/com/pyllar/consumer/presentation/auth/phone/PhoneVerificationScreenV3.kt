@@ -853,7 +853,7 @@ private fun V3TrustContent() {
     Image(
         painter = painterResource(Res.drawable.sebi),
         contentDescription = stringResource(Res.string.login_v3_sebi_badge),
-        modifier = Modifier.height(22.dp).width(80.dp),
+        modifier = Modifier.height(32.dp).width(115.dp),
         contentScale = ContentScale.Fit,
     )
     MarqueeSeparator()
@@ -861,7 +861,7 @@ private fun V3TrustContent() {
     Image(
         painter = painterResource(Res.drawable.amfi),
         contentDescription = "AMFI",
-        modifier = Modifier.height(18.dp).width(70.dp),
+        modifier = Modifier.height(28.dp).width(110.dp),
         contentScale = ContentScale.Fit,
     )
     MarqueeSeparator()

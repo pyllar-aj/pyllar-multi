@@ -47,6 +47,7 @@ import com.pyllar.consumer.presentation.support.HelperCodeViewModel
 import com.pyllar.consumer.presentation.mutualfund.onboarding.PreVerificationViewModel
 import com.pyllar.consumer.presentation.mutualfund.onboarding.SignatureViewModel
 import com.pyllar.consumer.presentation.mutualfund.onboarding.UpiFetchViewModel
+import com.pyllar.consumer.presentation.mutualfund.onboarding.CreditBureauFetchViewModel
 import com.pyllar.consumer.domain.repository.PreVerificationRepository
 import com.pyllar.consumer.data.repository.PreVerificationRepositoryImpl
 import com.pyllar.consumer.presentation.mutualfund.onboarding.MandateAuthModel
@@ -100,6 +101,7 @@ val sharedModule: Module = module {
     factoryOf(::NameDobViewModel)
     factoryOf(::UserInfoViewModel)
     factoryOf(::UpiFetchViewModel)
+    factoryOf(::CreditBureauFetchViewModel)
     factoryOf(::NomineeDetailsViewModel)
     factoryOf(::PanKycViewModel)
     factoryOf(::AdditionalKycViewModel)

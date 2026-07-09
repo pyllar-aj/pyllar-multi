@@ -49,6 +49,8 @@ sealed class Screen {
     ) : Screen()
     data class PanKyc(val userId: String, val preVerificationId: String?) : Screen()
     data class PreVerification(val userId: String) : Screen()
+    data class UpiFetch(val userId: String) : Screen()
+    data class PanFetch(val userId: String) : Screen()
     data class AdditionalKyc(val userId: String, val kycAttemptId: String) : Screen()
     data class NomineeDetails(val userId: String, val kycAttemptId: String, val investorId: String) : Screen()
     data class Signature(val userId: String, val kycAttemptId: String, val investorId: String) : Screen()
@@ -474,7 +476,7 @@ fun App() {
                         CircularProgressIndicator()
                     }
                 } else {
-                    UserInfoScreen(
+                    UserInfoScreenV2(
                         viewModel = userInfoVm,
                         userId = effectiveUserId,
                         email = effectiveEmail,
@@ -482,6 +484,12 @@ fun App() {
                         token = effectiveToken,
                         onNavigateToHelp = {
                             navigateTo(Screen.HelpSupport(effectiveUserId, showKycHelp = true))
+                        },
+                        onNavigateToUpiFetch = {
+                            navigateTo(Screen.UpiFetch(effectiveUserId))
+                        },
+                        onNavigateToPanFetch = {
+                            navigateTo(Screen.PanFetch(effectiveUserId))
                         },
                         onKycSubmitted = { name, dob, email, navigationInfo, serverData ->
                             scope.launch {
@@ -526,6 +534,16 @@ fun App() {
                         }
                     )
                 }
+            }
+            is Screen.UpiFetch -> {
+                UpiFetchSheetScreen(
+                    onNavigateBack = { navigateBack() }
+                )
+            }
+            is Screen.PanFetch -> {
+                CreditBureauFetchSheetScreen(
+                    onNavigateBack = { navigateBack() }
+                )
             }
             is Screen.AdditionalKyc -> {
                 AdditionalKycScreenV2(

@@ -23,6 +23,8 @@ import kotlinx.serialization.json.JsonObject
 import com.pyllar.consumer.data.remote.model.dto.UpiVpaLookupRequest
 import com.pyllar.consumer.data.remote.model.dto.UpiVpaLookupResponseDto
 import com.pyllar.consumer.data.remote.model.dto.UpiVpaBankDetailsResponseDto
+import com.pyllar.consumer.data.remote.model.dto.CreditBureauLookupRequest
+import com.pyllar.consumer.data.remote.model.dto.CreditBureauLookupResponseDto
 
 import io.ktor.client.request.header
 
@@ -412,6 +414,21 @@ class OnboardingRepositoryImpl(
         ) {
             url.parameters.append("upiVpa", upiVpa)
             url.parameters.append("userId", userId)
+        }
+        emit(result)
+    }
+
+    override fun lookupCreditBureau(
+        userId: String,
+        name: String,
+        mobile: String
+    ): Flow<Resource<CreditBureauLookupResponseDto>> = flow {
+        emit(Resource.Loading())
+        val result = apiClient.post<CreditBureauLookupResponseDto, CreditBureauLookupRequest>(
+            path = "api/device/credit-bureau-lookup",
+            body = CreditBureauLookupRequest(mobile = mobile, name = name)
+        ) {
+            headers.append("X-User-Id", userId)
         }
         emit(result)
     }

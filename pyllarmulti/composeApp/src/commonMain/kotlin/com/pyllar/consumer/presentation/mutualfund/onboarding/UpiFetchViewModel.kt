@@ -96,6 +96,11 @@ class UpiFetchViewModel(
                                 )
                             }
                         } else {
+                            launch {
+                                sessionStore.saveValue("prefilledName", data.nameAsPerBank ?: "")
+                                sessionStore.saveValue("prefilledDob", data.dob ?: "")
+                                sessionStore.saveValue("prefilledPan", data.panNumber ?: "")
+                            }
                             _uiState.update {
                                 it.copy(
                                     isFetching = false,
@@ -126,6 +131,11 @@ class UpiFetchViewModel(
                                             )
                                         }
                                     } else {
+                                        launch {
+                                            sessionStore.saveValue("prefilledName", pollData.nameAsPerBank ?: "")
+                                            sessionStore.saveValue("prefilledDob", pollData.dob ?: "")
+                                            sessionStore.saveValue("prefilledPan", pollData.panNumber ?: "")
+                                        }
                                         _uiState.update {
                                             it.copy(
                                                 isFetching = false,

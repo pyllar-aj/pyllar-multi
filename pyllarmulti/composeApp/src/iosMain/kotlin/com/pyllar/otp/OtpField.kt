@@ -58,10 +58,14 @@ actual fun OtpField(
                 this.keyboardType = UIKeyboardTypeNumberPad
                 this.textContentType = UITextContentTypeOneTimeCode
                 this.textAlignment = NSTextAlignmentCenter
-                this.borderStyle = UITextBorderStyle.UITextBorderStyleRoundedRect
+                this.borderStyle = UITextBorderStyle.UITextBorderStyleNone
                 this.placeholder = "••••••"
                 this.textColor = UIColor.blackColor
-                this.backgroundColor = UIColor.whiteColor
+                this.backgroundColor = UIColor.lightGrayColor.colorWithAlphaComponent(0.12) // Very light grey background
+                this.clipsToBounds = true
+                this.layer.cornerRadius = 12.0
+                this.layer.borderWidth = 1.0
+                this.layer.borderColor = UIColor.lightGrayColor.CGColor
                 
                 this.addTarget(
                     target = target,
@@ -79,10 +83,10 @@ actual fun OtpField(
             }
             if (isError) {
                 textField.layer.borderColor = UIColor.redColor.CGColor
-                textField.layer.borderWidth = 1.0
+                textField.layer.borderWidth = 1.5
             } else {
-                textField.layer.borderColor = null
-                textField.layer.borderWidth = 0.0
+                textField.layer.borderColor = UIColor.lightGrayColor.CGColor
+                textField.layer.borderWidth = 1.0
             }
         }
     )

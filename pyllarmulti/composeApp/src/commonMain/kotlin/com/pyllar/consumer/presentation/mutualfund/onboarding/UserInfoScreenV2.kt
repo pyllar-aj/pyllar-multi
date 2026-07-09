@@ -44,8 +44,8 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.zIndex
-import androidx.navigation.NavController
 import com.pyllar.consumer.data.local.KeyValueConstants
 import com.pyllar.consumer.data.remote.model.dto.NavigationInfo
 import com.pyllar.consumer.navigation.ScreenNames
@@ -130,7 +130,6 @@ fun UserInfoScreenV2(
     phone: String,
     token: String,
     sessionStore: SessionStore = koinInject(),
-    navController: NavController,
     showUpiOverride: Boolean = false,
     showPanOverride: Boolean = false,
     showBottomSheetPreview: Boolean = false
@@ -185,45 +184,37 @@ fun UserInfoScreenV2(
     var showPan by remember { mutableStateOf(showPanOverride) }
     var showBottomSheetInPreview by remember { mutableStateOf(false) }
 
-    // Observe prefilled data from back stack handle
-    val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
-    val prefilledNameState: String? by savedStateHandle?.getStateFlow<String?>("prefilledName", "")?.collectAsState() ?: remember { mutableStateOf("") }
-    val prefilledDobState: String? by savedStateHandle?.getStateFlow<String?>("prefilledDob", "")?.collectAsState() ?: remember { mutableStateOf("") }
-    val prefilledPanState: String? by savedStateHandle?.getStateFlow<String?>("prefilledPan", "")?.collectAsState() ?: remember { mutableStateOf("") }
-
-    LaunchedEffect(prefilledNameState) {
-        val state = prefilledNameState
-        if (!state.isNullOrBlank()) {
-            name = state.filterEnglishName().uppercase()
-            namePrefilled = true
-            nameError = null
-            savedStateHandle?.set("prefilledName", "")
-        }
-    }
-
-    LaunchedEffect(prefilledDobState) {
-        val state = prefilledDobState
-        if (!state.isNullOrBlank()) {
-            dob = state
-            dobError = null
-            try {
-                val parts = state.split("-")
-                if (parts.size == 3) {
-                    selectedYear = parts[0].toIntOrNull()
-                    selectedMonth = parts[1].toIntOrNull()
-                }
-            } catch (e: Exception) {}
-            savedStateHandle?.set("prefilledDob", "")
-        }
-    }
-
-    LaunchedEffect(prefilledPanState) {
-        val state = prefilledPanState
-        if (!state.isNullOrBlank()) {
-            pan = state.filterEnglishPan().uppercase()
-            panPrefilled = true
-            panError = null
-            savedStateHandle?.set("prefilledPan", "")
+    // Observe prefilled data from SessionStore
+    LaunchedEffect(Unit) {
+        while (true) {
+            val pName = sessionStore.getValue("prefilledName") ?: ""
+            val pDob = sessionStore.getValue("prefilledDob") ?: ""
+            val pPan = sessionStore.getValue("prefilledPan") ?: ""
+            if (pName.isNotBlank()) {
+                name = pName.filterEnglishName().uppercase()
+                namePrefilled = true
+                nameError = null
+                sessionStore.saveValue("prefilledName", "")
+            }
+            if (pDob.isNotBlank()) {
+                dob = pDob
+                dobError = null
+                try {
+                    val parts = pDob.split("-")
+                    if (parts.size == 3) {
+                        selectedYear = parts[0].toIntOrNull()
+                        selectedMonth = parts[1].toIntOrNull()
+                    }
+                } catch (e: Exception) {}
+                sessionStore.saveValue("prefilledDob", "")
+            }
+            if (pPan.isNotBlank()) {
+                pan = pPan.filterEnglishPan().uppercase()
+                panPrefilled = true
+                panError = null
+                sessionStore.saveValue("prefilledPan", "")
+            }
+            delay(500)
         }
     }
 
@@ -986,7 +977,7 @@ fun UserInfoScreenV2(
                     .clickable { showBottomSheetInPreview = false }
             ) {
                 UpiFetchSheetScreen(
-                    navController = navController
+                    onNavigateBack = { showBottomSheetInPreview = false }
                 )
             }
         }

@@ -105,5 +105,11 @@ interface OnboardingRepository {
         userId: String,
         upiVpa: String
     ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.UpiVpaLookupResponseDto>>
+
+    fun lookupCreditBureau(
+        userId: String,
+        name: String,
+        mobile: String
+    ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.CreditBureauLookupResponseDto>>
 }
 
