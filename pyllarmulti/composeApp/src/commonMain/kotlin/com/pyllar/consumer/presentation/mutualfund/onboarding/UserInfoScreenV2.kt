@@ -461,7 +461,21 @@ fun UserInfoScreenV2(
         }
     }
 
+    val isLoadingPrefill by viewModel.isLoadingPrefill.collectAsState()
+
     Box(modifier = Modifier.fillMaxSize().background(V2Cream)) {
+        if (isLoadingPrefill) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(V2Cream)
+                    .zIndex(15f),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = V2GoldAccent)
+            }
+        }
+
         Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
             // Top bar: wordmark + language + help
             Row(

@@ -6,6 +6,7 @@ import com.pyllar.consumer.domain.repository.OnboardingRepository
 import com.pyllar.consumer.data.remote.model.dto.CreditBureauLookupResponseDto
 import com.pyllar.consumer.domain.storage.SessionStore
 import com.pyllar.consumer.util.Resource
+import com.pyllar.consumer.util.filterEnglishName
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,12 +24,13 @@ class CreditBureauFetchViewModel(
     fun loadPanHolderName() {
         viewModelScope.launch {
             val name = sessionStore.getValue(com.pyllar.consumer.data.local.KeyValueConstants.PAN_HOLDER_NAME) ?: ""
-            _uiState.update { it.copy(name = name) }
+            _uiState.update { it.copy(name = name.filterEnglishName()) }
         }
     }
 
     fun onNameChanged(name: String) {
-        _uiState.update { it.copy(name = name, fetchError = false, fetchSuccess = false, errorMessage = null) }
+        val filtered = name.filterEnglishName()
+        _uiState.update { it.copy(name = filtered, fetchError = false, fetchSuccess = false, errorMessage = null) }
     }
 
     fun fetchDetails() {

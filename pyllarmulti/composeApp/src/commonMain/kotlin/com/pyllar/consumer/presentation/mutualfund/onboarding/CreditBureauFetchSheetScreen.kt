@@ -356,7 +356,15 @@ fun CreditBureauFetchSheetScreen(
                         .padding(horizontal = 20.dp, vertical = 28.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    val canFetch = uiState.name.trim().length >= 4 && !uiState.isFetching
+                    val hasReachedLimit = uiState.errorMessage?.let { msg ->
+                        val lower = msg.lowercase()
+                        lower.contains("attempt") ||
+                        lower.contains("limit") ||
+                        lower.contains("exceed") ||
+                        lower.contains("different names") ||
+                        lower.contains("verify up to")
+                    } == true && !uiState.fetchSuccess
+                    val canFetch = uiState.name.trim().length >= 4 && !uiState.isFetching && !hasReachedLimit
                     val fetchOpacity by animateFloatAsState(if (canFetch || uiState.fetchSuccess) 1f else 0.42f)
 
                     Box(

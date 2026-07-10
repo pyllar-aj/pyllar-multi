@@ -77,118 +77,7 @@ fun UpiFetchSheetScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
         // Dimmed Background mockup representing the form underneath
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(V2Cream)
-                .alpha(0.55f)
-        ) {
-            // Header Mockup
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 10.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = "Pyllar", fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, color = V2Obsidian)
-                    Spacer(modifier = Modifier.width(2.dp))
-                    Text(text = "Money", fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, color = V2GoldAccent)
-                }
-                Row {
-                    Text(text = "EN", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A7A42), modifier = Modifier.padding(horizontal = 8.dp))
-                    Text(text = "Help", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A7A42), modifier = Modifier.padding(horizontal = 8.dp))
-                }
-            }
 
-            // Stepper Mockup
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 6.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    StepperStepMock(number = "1", text = "Your details", isActive = true)
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Box(modifier = Modifier.width(26.dp).height(1.5.dp).background(V2WarmGreyBorder))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    StepperStepMock(number = "2", text = "Bank account", isActive = false)
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Box(modifier = Modifier.width(26.dp).height(1.5.dp).background(V2WarmGreyBorder))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    StepperStepMock(number = "3", text = "KYC", isActive = false)
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Box(modifier = Modifier.width(26.dp).height(1.5.dp).background(V2WarmGreyBorder))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    StepperStepMock(number = "4", text = "e-Sign", isActive = false)
-                }
-                Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFEFEBE9)))
-            }
-
-            // Form Content Mockup
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(18.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(Color.White)
-                        .border(1.dp, Color(0x478B6B25), RoundedCornerShape(14.dp))
-                        .padding(14.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(text = "⚡", fontSize = 16.sp)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(text = stringResource(Res.string.upi_promo_skip_form), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = V2BronzeInk)
-                    }
-                    Box(
-                        modifier = Modifier
-                            .border(1.5.dp, V2GoldAccent, RoundedCornerShape(8.dp))
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
-                    ) {
-                        Text(text = stringResource(Res.string.upi_promo_try_it_btn), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = V2GoldDeep)
-                    }
-                }
-
-                // Details Card mockup
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color.White)
-                        .border(1.dp, Color(0xFFEFEBE9), RoundedCornerShape(16.dp))
-                        .padding(20.dp)
-                ) {
-                    Text(text = "Personal details", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = V2Obsidian)
-                    Text(text = "Takes about 2 minutes to complete.", fontSize = 12.sp, color = V2BronzeMuted)
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0x1A8B6B25)))
-                    Spacer(modifier = Modifier.height(18.dp))
-                    Text(text = "FULL NAME AS PER PAN", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = V2BronzeInk)
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp)
-                            .border(1.5.dp, V2WarmGreyBorder, RoundedCornerShape(12.dp))
-                            .background(Color.White)
-                    )
-                }
-            }
-        }
 
         // Scrim Color Overlay
         Box(
@@ -482,7 +371,6 @@ fun UpiFetchSheetScreen(
                         lower.contains("attempt") ||
                         lower.contains("limit") ||
                         lower.contains("exceed") ||
-                        lower.contains("different upi") ||
                         lower.contains("verify up to")
                     } == true && !uiState.fetchSuccess
                     val canFetch = uiState.upi.trim().isNotEmpty() && !uiState.isFetching && !hasReachedLimit
@@ -583,36 +471,7 @@ fun UpiFetchSheetScreen(
     }
 }
 
-@Composable
-fun StepperStepMock(number: String, text: String, isActive: Boolean) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(3.dp),
-        modifier = Modifier.padding(bottom = 14.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .size(24.dp)
-                .clip(CircleShape)
-                .background(if (isActive) V2Obsidian else Color.White)
-                .border(1.5.dp, if (isActive) V2Obsidian else V2WarmGreyBorder, CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = number,
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Bold,
-                color = if (isActive) V2GoldAccent else V2MutedText
-            )
-        }
-        Text(
-            text = text,
-            fontSize = 9.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = if (isActive) V2Obsidian else V2MutedText
-        )
-    }
-}
+
 
 @Composable
 fun BasicTextFieldMock(

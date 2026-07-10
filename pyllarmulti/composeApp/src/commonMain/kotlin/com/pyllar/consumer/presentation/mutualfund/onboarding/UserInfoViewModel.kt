@@ -62,6 +62,9 @@ class UserInfoViewModel(
     private val _prefillData = MutableStateFlow<Map<String, Any?>>(emptyMap())
     val prefillData: StateFlow<Map<String, Any?>> = _prefillData.asStateFlow()
 
+    private val _isLoadingPrefill = MutableStateFlow(true)
+    val isLoadingPrefill: StateFlow<Boolean> = _isLoadingPrefill.asStateFlow()
+
     private var submitJob: Job? = null
 
     init {
@@ -72,11 +75,20 @@ class UserInfoViewModel(
     private fun fetchPrepopulatedData() {
         viewModelScope.launch {
             commonRepository.fetchScreenData("NameDob").collect { result ->
-                if (result is Resource.Success) {
-                    result.data?.data?.let { jsonMap ->
-                        _prefillData.value = jsonMap.mapValues { (_, element) ->
-                            if (element is JsonPrimitive) element.content else element.toString()
+                when (result) {
+                    is Resource.Success -> {
+                        result.data?.data?.let { jsonMap ->
+                            _prefillData.value = jsonMap.mapValues { (_, element) ->
+                                if (element is JsonPrimitive) element.content else element.toString()
+                            }
                         }
+                        _isLoadingPrefill.value = false
+                    }
+                    is Resource.Error -> {
+                        _isLoadingPrefill.value = false
+                    }
+                    is Resource.Loading -> {
+                        _isLoadingPrefill.value = true
                     }
                 }
             }

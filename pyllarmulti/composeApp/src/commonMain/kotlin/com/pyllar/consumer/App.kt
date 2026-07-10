@@ -354,8 +354,23 @@ fun App() {
 
         platformLog("App: Rendering screen: ${currentScreen?.let { it::class.simpleName } ?: "null"} (Stack size: ${screenStack.size})")
         
-        when (val screen = currentScreen) {
-            null -> { /* Handled by isInitializing */ }
+        Box(modifier = Modifier.fillMaxSize()) {
+            val screensToRender = remember(screenStack.size) {
+                val list = mutableListOf<Screen>()
+                if (screenStack.isNotEmpty()) {
+                    val last = screenStack.last()
+                    val isLastOverlay = last is Screen.HelpSupport || last is Screen.UpiFetch || last is Screen.PanFetch
+                    if (isLastOverlay && screenStack.size > 1) {
+                        list.add(screenStack[screenStack.size - 2])
+                    }
+                    list.add(last)
+                }
+                list
+            }
+
+            screensToRender.forEach { screen ->
+                key(screen) {
+                    when (screen) {
             is Screen.PhoneVerification -> {
                 val phoneVm: PhoneVerificationViewModel = koinInject()
                 PhoneVerificationScreenV3(
@@ -1186,6 +1201,9 @@ fun App() {
                 HomeScreen(
                     onNavigateToMutualFund = { navigateTo(Screen.InitialDashboard(""), clearStack = true) }
                 )
+            }
+        }
+                }
             }
         }
     }
