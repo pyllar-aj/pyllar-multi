@@ -2,12 +2,23 @@ import SwiftUI
 import AppsFlyerLib
 import Clarity
 import Singular
+import FirebaseCore
 
 class AppDelegate: NSObject, UIApplicationDelegate, AppsFlyerLibDelegate {
     func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil
     ) -> Bool {
+        // Configure Firebase (only if not using placeholder values to avoid crashes)
+        if let path = Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist"),
+           let dict = NSDictionary(contentsOfFile: path),
+           let googleAppID = dict["GOOGLE_APP_ID"] as? String,
+           !googleAppID.contains("placeholder") {
+            FirebaseApp.configure()
+        } else {
+            print("⚠️ Firebase App ID is a placeholder or GoogleService-Info.plist is missing. Skipping Firebase configuration.")
+        }
+
         // Configure AppsFlyer
         AppsFlyerLib.shared().appsFlyerDevKey = "gog7ERykY2ivzocSRnpKPi"
         AppsFlyerLib.shared().appleAppID = "6767513475"

@@ -13,12 +13,16 @@
 		21C9DF262FD80097000F43A1 /* FacebookAEM in Frameworks */ = {isa = PBXBuildFile; productRef = 21C9DF252FD80097000F43A1 /* FacebookAEM */; };
 		21C9DF282FD80097000F43A1 /* FacebookBasics in Frameworks */ = {isa = PBXBuildFile; productRef = 21C9DF272FD80097000F43A1 /* FacebookBasics */; };
 		21C9DF2A2FD80097000F43A1 /* FacebookCore in Frameworks */ = {isa = PBXBuildFile; productRef = 21C9DF292FD80097000F43A1 /* FacebookCore */; };
+		2ECACC695940F13A4EDFB2D7 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = F7F4335A9FA704A52EB0C58D /* GoogleService-Info.plist */; };
+		379D4C6DBBA934A8EF44CDDE /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 16D66C9411832E1B7D572C76 /* FirebaseCore */; };
 		445C052442747365B7CB2124 /* AppsFlyerLib in Frameworks */ = {isa = PBXBuildFile; productRef = CD67EC4A9FF4F5FF8A2D8772 /* AppsFlyerLib */; };
+		A825AC5F0531A8569219D47A /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 1359B5E3E79A6103CB63C864 /* FirebaseAnalytics */; };
 		B7C4F6137AC8345E71E92063 /* Singular in Frameworks */ = {isa = PBXBuildFile; productRef = FFA86D5547034AF50240D997 /* Singular */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		2A145260C2906617681AD30B /* Pyllar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Pyllar.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F7F4335A9FA704A52EB0C58D /* GoogleService-Info.plist */ = {isa = PBXFileReference; explicitFileType = text.plist; name = "GoogleService-Info.plist"; path = "iosApp/GoogleService-Info.plist"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -60,6 +64,8 @@
 				445C052442747365B7CB2124 /* AppsFlyerLib in Frameworks */,
 				B7C4F6137AC8345E71E92063 /* Singular in Frameworks */,
 				21C9DF2A2FD80097000F43A1 /* FacebookCore in Frameworks */,
+				379D4C6DBBA934A8EF44CDDE /* FirebaseCore in Frameworks */,
+				A825AC5F0531A8569219D47A /* FirebaseAnalytics in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -80,6 +86,7 @@
 				75E6EDE214F73C9AE4386E54 /* Configuration */,
 				F1A079ECA5B0BF77151BB964 /* iosApp */,
 				13A11D9F7DA03C59D8E1222A /* Products */,
+				F7F4335A9FA704A52EB0C58D /* GoogleService-Info.plist */,
 			);
 			sourceTree = "<group>";
 		};
@@ -112,6 +119,8 @@
 				21C9DF252FD80097000F43A1 /* FacebookAEM */,
 				21C9DF272FD80097000F43A1 /* FacebookBasics */,
 				21C9DF292FD80097000F43A1 /* FacebookCore */,
+				16D66C9411832E1B7D572C76 /* FirebaseCore */,
+				1359B5E3E79A6103CB63C864 /* FirebaseAnalytics */,
 			);
 			productName = iosApp;
 			productReference = 2A145260C2906617681AD30B /* Pyllar.app */;
@@ -147,6 +156,7 @@
 				F44DD97045955BF9FD71A468 /* XCRemoteSwiftPackageReference "AppsFlyerFramework" */,
 				8B412E24250EBAE98BEF6531 /* XCRemoteSwiftPackageReference "Singular-iOS-SDK" */,
 				21C9DF242FD80096000F43A1 /* XCRemoteSwiftPackageReference "facebook-ios-sdk" */,
+				7C4F1707FE80007C7DCEAE3C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 13A11D9F7DA03C59D8E1222A /* Products */;
@@ -163,6 +173,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2ECACC695940F13A4EDFB2D7 /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -336,7 +347,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
 				CODE_SIGN_STYLE = Manual;
-				CURRENT_PROJECT_VERSION = 17;
+				CURRENT_PROJECT_VERSION = 18;
 				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
 				DEVELOPMENT_TEAM = "";
 				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = DA7SW7G5XS;
@@ -350,11 +361,13 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UIRequiresFullScreen = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1.6;
+				MARKETING_VERSION = 1.1.7;
+				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_BUNDLE_IDENTIFIER = com.pyllar.consumer;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "Pyllar Appstore";
@@ -374,7 +387,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				CODE_SIGN_STYLE = Manual;
-				CURRENT_PROJECT_VERSION = 17;
+				CURRENT_PROJECT_VERSION = 18;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
 				DEVELOPMENT_TEAM = "";
@@ -389,11 +402,13 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UIRequiresFullScreen = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1.6;
+				MARKETING_VERSION = 1.1.7;
+				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_BUNDLE_IDENTIFIER = com.pyllar.consumer.debug;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "Debug Mac mini development";
@@ -443,6 +458,14 @@
 				minimumVersion = 17.0.0;
 			};
 		};
+		7C4F1707FE80007C7DCEAE3C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 11.0.0;
+			};
+		};
 		8B412E24250EBAE98BEF6531 /* XCRemoteSwiftPackageReference "Singular-iOS-SDK" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/singular-labs/Singular-iOS-SDK";
@@ -470,6 +493,16 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		1359B5E3E79A6103CB63C864 /* FirebaseAnalytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7C4F1707FE80007C7DCEAE3C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAnalytics;
+		};
+		16D66C9411832E1B7D572C76 /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7C4F1707FE80007C7DCEAE3C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
 		216E2CF82FBEDE88001E32D1 /* GoogleSignIn */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 216E2CF72FBEDE88001E32D1 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;

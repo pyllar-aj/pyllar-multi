@@ -6,6 +6,8 @@ import GoogleSignIn
 import Clarity
 import AppsFlyerLib
 import Singular
+import FirebaseAnalytics
+
 
 struct ComposeView: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UIViewController {
@@ -326,18 +328,24 @@ class SwiftAnalyticsBridge: NSObject, IosAnalyticsBridge {
         AppsFlyerLib.shared().logEvent(name, withValues: params)
         ClaritySDK.sendCustomEvent(value: name)
         Singular.event(name, withArgs: params)
+        Analytics.logEvent(name, parameters: params)
     }
 
     func logScreenView(screenName: String) {
         AppsFlyerLib.shared().logEvent("screen_view", withValues: ["screen_name": screenName])
         ClaritySDK.setCurrentScreenName(screenName)
         Singular.event("screen_view", withArgs: ["screen_name": screenName])
+        Analytics.logEvent(AnalyticsEventScreenView, parameters: [
+            AnalyticsParameterScreenName: screenName,
+            AnalyticsParameterScreenClass: screenName
+        ])
     }
 
     func setUserId(userId: String) {
         AppsFlyerLib.shared().customerUserID = userId
         ClaritySDK.setCustomUserId(userId)
         Singular.setCustomUserId(userId)
+        Analytics.setUserID(userId)
     }
 
     func generateReferralLink(referrerId: String, onComplete: @escaping (String?) -> Void) {
