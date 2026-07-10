@@ -440,11 +440,6 @@ fun BankDetailsScreenV2(
                                             color = BDV2VolatilityRed,
                                             fontSize = 11.sp
                                         )
-                                        isIfscValid -> Text(
-                                            stringResource(Res.string.valid_ifsc_code),
-                                            color = BDV2SuccessGreen,
-                                            fontSize = 11.sp
-                                        )
                                     }
                                 }
                             )
@@ -903,7 +898,7 @@ private fun UpiBankDetailsFetchSheet(
                         lower.contains("attempt") ||
                         lower.contains("limit") ||
                         lower.contains("exceed") ||
-                        lower.contains("different upi") ||
+                       // lower.contains("different upi") ||
                         lower.contains("verify up to")
                     } == true && successState == null
                     val canFetch = (upi.trim().isNotEmpty() && !isFetching && !hasReachedLimit)

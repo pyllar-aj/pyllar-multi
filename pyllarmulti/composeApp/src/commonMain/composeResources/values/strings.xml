@@ -539,14 +539,14 @@
     <string name="pan_verification_subtitle">Verify your PAN to start investing securely.</string>
     <string name="autofetch_my_pan">Autofetch my PAN</string>
     <string name="pan_fetching">Fetching…</string>
-    <string name="dont_remember_pan_click_here">Don\'t remember your PAN? Click here</string>
+    <string name="dont_remember_pan_click_here">Don't remember your PAN? Click here</string>
     <string name="pan_or_divider">──────── OR ────────</string>
     <string name="enter_pan_manually">Enter PAN manually</string>
     <string name="phone_number_not_found">Phone number not found. Please enter PAN manually.</string>
     <string name="pan_autofetch_failed">Auto-fetch failed. Please enter your PAN manually.</string>
     <string name="pan_number_label">PAN Number</string>
     <string name="pan_hint">ABCDE1234F</string>
-    <string name="pan_invalid_fourth_character">Invalid fourth character. Must be \'P\' for individual.</string>
+    <string name="pan_invalid_fourth_character">Invalid fourth character. Must be 'P' for individual.</string>
     <string name="readiness_checking">Checking…</string>
     <string name="verify_pan">Verify PAN</string>
     <string name="verify">Verify</string>
@@ -561,7 +561,7 @@
     <string name="incorrect_otp_attempts_remaining">Incorrect OTP. %1$d attempts remaining.</string>
     <string name="pan_found_title">PAN Found!</string>
     <string name="pan_verified_badge">Verified</string>
-    <string name="resend_otp_prompt">Didn\'t receive OTP? </string>
+    <string name="resend_otp_prompt">Didn't receive OTP? </string>
     <string name="resend_otp">Resend OTP</string>
     <string name="resend_otp_in_seconds">Resend in %1$d seconds</string>
     <string name="continue_with_this_pan">Continue with this PAN</string>
@@ -599,7 +599,7 @@
     <string name="connection_failed_try_again">Connection failed. Try again.</string>
     <string name="failed_to_save_signature_try_again">Failed to save signature. Try again.</string>
     <string name="esign_will_follow_title">Aadhaar e-sign will follow</string>
-    <string name="esign_will_follow_description">After submitting your signature, you\'ll be redirected to complete Aadhaar-based e-signing.</string>
+    <string name="esign_will_follow_description">After submitting your signature, you'll be redirected to complete Aadhaar-based e-signing.</string>
     <string name="your_signature_label">YOUR SIGNATURE</string>
     <string name="sign_here_placeholder">Sign here</string>
     <string name="signature_consent_note">By continuing, I authorise Pyllar to use my signature for KYC documents as required by SEBI regulations.</string>
@@ -737,7 +737,7 @@
     <string name="lumpsum_trust_withdraw_anytime">Invest once, withdraw whenever you want</string>
 
     <!-- UPI/PAN Fetch Screen Strings -->
-    <string name="upi_fetch_failed_error">We couldn\'t fetch the details for this ID. Please check the ID and try again or fill the form manually</string>
+    <string name="upi_fetch_failed_error">We couldn't fetch the details for this ID. Please check the ID and try again or fill the form manually</string>
     <string name="upi_fetch_success_hint">Details fetched — tap continue to review</string>
     <string name="upi_fetch_details_found_title">Details found!</string>
     <string name="upi_fetch_details_found_body">Your form is ready to review.</string>
@@ -746,8 +746,8 @@
     <string name="upi_promo_try_it_btn">Try it →</string>
     <string name="upi_promo_skip_form">Have your UPI ID? Skip this form</string>
     <string name="upi_promo_skip_form_title">Skip the form</string>
-    <string name="upi_promo_enter_upi_id_user_info">Enter your UPI ID and we\'ll fill everything in — name, DOB, and bank details.</string>
-    <string name="upi_promo_enter_upi_id_bank_details">Enter your UPI ID and we\'ll fill in your account number and IFSC code.</string>
+    <string name="upi_promo_enter_upi_id_user_info">Enter your UPI ID and we'll fill everything in — name, DOB, and bank details.</string>
+    <string name="upi_promo_enter_upi_id_bank_details">Enter your UPI ID and we'll fill in your account number and IFSC code.</string>
     <string name="try_again">Try again</string>
     <string name="btn_fetch_my_details">Fetch my details</string>
     <string name="btn_fill_form_manually">Fill form manually</string>

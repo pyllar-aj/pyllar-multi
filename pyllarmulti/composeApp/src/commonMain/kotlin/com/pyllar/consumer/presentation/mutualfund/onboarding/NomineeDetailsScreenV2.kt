@@ -446,6 +446,7 @@ fun NomineeDetailsScreenV2(
                                             },
                                             placeholder = { Text("ABCPD1234E", color = NMV2FieldBorder.copy(alpha = 0.6f), fontSize = 14.sp) },
                                             singleLine = true,
+                                            isError = nominee.panNumber.isNotEmpty() && nominee.panNumber.length < 10,
                                             shape = RoundedCornerShape(12.dp),
                                             modifier = Modifier
                                                 .fillMaxWidth()
@@ -464,18 +465,21 @@ fun NomineeDetailsScreenV2(
                                             colors = OutlinedTextFieldDefaults.colors(
                                                 focusedBorderColor = NMV2LinkGreen,
                                                 unfocusedBorderColor = NMV2FieldBorder,
+                                                errorBorderColor = NMV2VolatilityRed,
                                                 focusedTextColor = NMV2BronzeInk,
                                                 unfocusedTextColor = NMV2BronzeInk,
                                                 cursorColor = NMV2LinkGreen
-                                            )
-                                        )
-                                        if (panValid) {
-                                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
-                                                Icon(Icons.Filled.Check, contentDescription = null, tint = NMV2SuccessGreen, modifier = Modifier.size(11.dp))
-                                                Spacer(modifier = Modifier.width(4.dp))
-                                                Text("Valid PAN format", fontSize = 11.sp, color = NMV2SuccessGreen)
+                                            ),
+                                            supportingText = {
+                                                if (nominee.panNumber.isNotEmpty() && nominee.panNumber.length < 10) {
+                                                    Text(
+                                                        text = stringResource(Res.string.user_info_pan_incomplete_error),
+                                                        color = NMV2VolatilityRed,
+                                                        fontSize = 11.sp
+                                                    )
+                                                }
                                             }
-                                        }
+                                        )
                                         Spacer(modifier = Modifier.height(12.dp))
 
                                         // Relationship chips

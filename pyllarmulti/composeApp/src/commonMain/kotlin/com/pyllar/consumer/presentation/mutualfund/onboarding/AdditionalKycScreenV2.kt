@@ -467,7 +467,7 @@ fun AdditionalKycScreenV2(
                         label = "Father's Name",
                         value = fatherName,
                         onValueChange = { fatherName = it.filterEnglishUppercase() },
-                        placeholder = "ENTER IN CAPITAL LETTERS",
+                        placeholder = "e.g. RAKESH SHARMA",
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii, capitalization = KeyboardCapitalization.Characters, imeAction = ImeAction.Next),
                         isError = isFatherNameError,
                         errorText = if (isFatherNameError) "Field is required" else null,

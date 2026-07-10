@@ -529,11 +529,11 @@ fun SipAmountScreenV3(
         }
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            if (limitsState.isLoading) {
+            if (isFetching) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.White.copy(alpha = 0.9f))
+                        .background(Color.White)
                         .zIndex(10f)
                 ) {
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
@@ -1257,9 +1257,9 @@ private fun DailyAmountSection(
 
     Text(
         text = "/day",
-        fontSize = 15.sp,
-        fontWeight = FontWeight.Bold,
-        color = SipInk.copy(alpha = 0.72f),
+        fontSize = 16.sp,
+        fontWeight = FontWeight.ExtraBold,
+        color = SipInk.copy(alpha = 0.92f),
         modifier = Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 12.dp),
         textAlign = TextAlign.Center
     )
@@ -1424,9 +1424,9 @@ private fun MonthlyAmountSection(
 
     Text(
         text = "/month",
-        fontSize = 15.sp,
-        fontWeight = FontWeight.Bold,
-        color = SipInk.copy(alpha = 0.72f),
+        fontSize = 16.sp,
+        fontWeight = FontWeight.ExtraBold,
+        color = SipInk.copy(alpha = 0.92f),
         modifier = Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 12.dp),
         textAlign = TextAlign.Center
     )

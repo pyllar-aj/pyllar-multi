@@ -1112,8 +1112,8 @@ private fun LumpsumAmountSection(
 
     Text(
         text = stringResource(Res.string.lumpsum_one_time_amount_label),
-        fontSize = 13.sp,
-        color = LumpsumInk.copy(alpha = 0.42f),
+        fontSize = 15.sp,
+        color = LumpsumInk.copy(alpha = 0.92f),
         modifier = Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 14.dp),
         textAlign = TextAlign.Center
     )
