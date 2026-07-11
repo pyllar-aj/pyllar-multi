@@ -8,6 +8,14 @@ data class ProfileRequestDto(
 )
 
 @Serializable
+data class ProfileBankDto(
+    val accountNumber: String? = null,
+    val ifscCode: String? = null,
+    val bankName: String? = null,
+    val accountHolderName: String? = null
+)
+
+@Serializable
 data class ProfileResponseDto(
     val name: String?,
     val email: String?,
@@ -20,6 +28,8 @@ data class ProfileResponseDto(
     val deletionRequestedAt: String? = null,
     val deletionMessage: String? = null,
     val referralEnabled: Boolean? = false,
-    val referredByCode: String? = null
+    val referredByCode: String? = null,
+    val bankDetails: ProfileBankDto? = null
 )
+
 

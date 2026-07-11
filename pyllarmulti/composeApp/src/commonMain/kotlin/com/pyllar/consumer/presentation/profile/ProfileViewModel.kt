@@ -27,7 +27,10 @@ data class ProfileState(
     val hasPendingDeletionRequest: Boolean = false,
     val lastDeletionRequest: AccountDeletionResponseDto? = null,
     val referredByCode: String? = null,
-    val referralEnabled: Boolean = false
+    val referralEnabled: Boolean = false,
+    val bankAccountNumber: String = "",
+    val bankIfscCode: String = "",
+    val bankName: String = ""
 )
 
 /**
@@ -94,6 +97,9 @@ class ProfileViewModel(
                                 lastDeletionRequest = latestDeletion,
                                 referredByCode = data?.referredByCode,
                                 referralEnabled = data?.referralEnabled ?: false,
+                                bankAccountNumber = data?.bankDetails?.accountNumber ?: "",
+                                bankIfscCode = data?.bankDetails?.ifscCode ?: "",
+                                bankName = data?.bankDetails?.bankName ?: "",
                                 isLoading = false
                             )
                         }

@@ -41,6 +41,7 @@ fun ProfileScreen(
 ) {
     val profileState by viewModel.profileState.collectAsState()
     var showPersonalDetailsSheet by remember { mutableStateOf(false) }
+    var showBankDetailsSheet by remember { mutableStateOf(false) }
     var showManageSheet by remember { mutableStateOf(false) }
 
     LaunchedEffect(userId) {
@@ -111,6 +112,14 @@ fun ProfileScreen(
                     subtitle = "Your profile key information",
                     icon = Icons.Filled.Person,
                     onClick = { showPersonalDetailsSheet = true }
+                )
+
+                // Bank Details Card
+                ProfileOptionCard(
+                    title = "Bank Details",
+                    subtitle = "Your linked bank account",
+                    icon = Icons.Filled.AccountBalance,
+                    onClick = { showBankDetailsSheet = true }
                 )
 
                 // Manage Account Card
@@ -193,6 +202,15 @@ fun ProfileScreen(
             dob = profileState.dob,
             gender = profileState.gender,
             onDismiss = { showPersonalDetailsSheet = false }
+        )
+    }
+
+    if (showBankDetailsSheet) {
+        BankDetailsBottomSheet(
+            accountNumber = profileState.bankAccountNumber,
+            ifscCode = profileState.bankIfscCode,
+            bankName = profileState.bankName,
+            onDismiss = { showBankDetailsSheet = false }
         )
     }
 
@@ -482,4 +500,52 @@ fun DeletionStatusCard(
         }
     }
 }
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun BankDetailsBottomSheet(
+    accountNumber: String,
+    ifscCode: String,
+    bankName: String,
+    onDismiss: () -> Unit
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            Text(
+                "Bank Details",
+                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
+            )
 
+            if (bankName.isNotBlank()) {
+                PersonalDetailRow("Bank Name", bankName)
+            }
+
+            PersonalDetailRow(
+                "Account Number",
+                if (accountNumber.isNotBlank()) maskAccountNumber(accountNumber) else "Not available"
+            )
+
+            PersonalDetailRow(
+                "IFSC Code",
+                ifscCode.ifBlank { "Not available" }
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+    }
+}
+
+fun maskAccountNumber(accountNumber: String): String {
+    if (accountNumber.length <= 4) return accountNumber
+    val lastFour = accountNumber.takeLast(4)
+    val maskedLength = accountNumber.length - 4
+    val masked = "*".repeat(maskedLength) + lastFour
+    return masked
+}
