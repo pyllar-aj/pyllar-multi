@@ -669,6 +669,8 @@ private fun UpiBankDetailsFetchSheet(
     onContinue: (accountNumber: String, ifscCode: String) -> Unit
 ) {
     var upi by remember { mutableStateOf("") }
+    val upiPattern = remember { Regex("^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+$") }
+    var localValidationError by remember { mutableStateOf<String?>(null) }
     val fetchState by viewModel.upiBankFetchState.collectAsState()
     val isFetching = fetchState is BankDetailsViewModel.UpiBankFetchState.Fetching
     val successState = fetchState as? BankDetailsViewModel.UpiBankFetchState.Success
@@ -805,6 +807,7 @@ private fun UpiBankDetailsFetchSheet(
                     )
 
                     val fieldBorderColor = when {
+                        localValidationError != null -> BDV2VolatilityRed
                         errorState != null -> BDV2VolatilityRed
                         successState != null -> BDV2SuccessGreen
                         else -> BDV2FieldBorder
@@ -816,6 +819,11 @@ private fun UpiBankDetailsFetchSheet(
                             upi = it
                             if (fetchState !is BankDetailsViewModel.UpiBankFetchState.Idle) {
                                 viewModel.resetUpiBankFetchState()
+                            }
+                            localValidationError = if (it.trim().isNotEmpty() && (it.contains("@") || it.length > 5) && !upiPattern.matches(it.trim())) {
+                                "Invalid UPI ID format"
+                            } else {
+                                null
                             }
                         },
                         placeholder = { Text("yourname@okaxis", color = BDV2FieldBorder, fontSize = 14.sp) },
@@ -841,12 +849,13 @@ private fun UpiBankDetailsFetchSheet(
 
                     val hintText = when {
                         isNetError -> stringResource(Res.string.check_internet_connection)
+                        localValidationError != null -> localValidationError!!
                         errorState != null -> stringResource(Res.string.upi_fetch_failed_error)
                         successState != null -> stringResource(Res.string.upi_fetch_success_hint)
                         else -> "e.g. yourname@okicici · yourname@ybl"
                     }
                     val hintColor = when {
-                        isNetError || errorState != null -> BDV2VolatilityRed
+                        isNetError || errorState != null || localValidationError != null -> BDV2VolatilityRed
                         successState != null -> BDV2SuccessGreen
                         else -> BDV2BronzeMuted
                     }
@@ -898,17 +907,20 @@ private fun UpiBankDetailsFetchSheet(
                         lower.contains("attempt") ||
                         lower.contains("limit") ||
                         lower.contains("exceed") ||
-                       // lower.contains("different upi") ||
+                        // lower.contains("different upi") ||
                         lower.contains("verify up to")
                     } == true && successState == null
-                    val canFetch = (upi.trim().isNotEmpty() && !isFetching && !hasReachedLimit)
+                    val isValidUpi = upi.trim().isNotEmpty() && upiPattern.matches(upi.trim())
+                    val canFetch = (isValidUpi && !isFetching && !hasReachedLimit)
                     Button(
                         onClick = {
                             keyboardController?.hide()
                             if (successState != null) {
                                 onContinue(successState.accountNumber ?: "", successState.ifscCode ?: "")
                             } else {
-                                viewModel.fetchBankDetailsViaUpi(userId, upi.trim())
+                                if (isValidUpi) {
+                                    viewModel.fetchBankDetailsViaUpi(userId, upi.trim())
+                                }
                             }
                         },
                         enabled = canFetch || successState != null,

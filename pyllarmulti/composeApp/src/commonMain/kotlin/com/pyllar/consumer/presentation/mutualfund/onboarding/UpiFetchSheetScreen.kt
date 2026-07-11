@@ -57,6 +57,8 @@ fun UpiFetchSheetScreen(
     viewModel: UpiFetchViewModel = koinInject()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val upiPattern = remember { Regex("^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+$") }
+    var localValidationError by remember { mutableStateOf<String?>(null) }
     val upiBringIntoViewRequester = remember { BringIntoViewRequester() }
     var isUpiFocused by remember { mutableStateOf(false) }
     val keyboardController = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
@@ -200,6 +202,7 @@ fun UpiFetchSheetScreen(
 
                     // Text Field Container
                     val fieldBorderColor = when {
+                        localValidationError != null -> V2ErrorRed
                         uiState.fetchError -> V2ErrorRed
                         uiState.fetchSuccess || (uiState.upi.trim().length > 2 && uiState.upi.contains("@")) -> V2SuccessGreen
                         else -> V2WarmGreyBorder
@@ -218,7 +221,14 @@ fun UpiFetchSheetScreen(
                         ) {
                             BasicTextFieldMock(
                                 value = uiState.upi,
-                                onValueChange = { viewModel.onUpiInputChanged(it) },
+                                onValueChange = {
+                                    viewModel.onUpiInputChanged(it)
+                                    localValidationError = if (it.trim().isNotEmpty() && (it.contains("@") || it.length > 5) && !upiPattern.matches(it.trim())) {
+                                        "Invalid UPI ID format"
+                                    } else {
+                                        null
+                                    }
+                                },
                                 placeholder = "yourname@okaxis",
                                 modifier = Modifier
                                     .weight(1f)
@@ -262,12 +272,14 @@ fun UpiFetchSheetScreen(
                     // Hint / Info text
                     val hintText = when {
                         isNetError -> stringResource(Res.string.check_internet_connection)
+                        localValidationError != null -> localValidationError!!
                         uiState.fetchError -> uiState.errorMessage ?: stringResource(Res.string.upi_fetch_failed_error)
                         uiState.fetchSuccess -> stringResource(Res.string.upi_fetch_success_hint)
                         uiState.upi.trim().isNotEmpty() && !uiState.upi.contains("@") -> "Format: name@bankhandle"
                         else -> "e.g. yourname@okicici · yourname@ybl"
                     }
                     val hintColor = when {
+                        localValidationError != null -> V2ErrorRed
                         uiState.fetchError -> V2ErrorRed
                         uiState.fetchSuccess -> V2SuccessGreen
                         else -> V2MutedText
@@ -373,7 +385,8 @@ fun UpiFetchSheetScreen(
                         lower.contains("exceed") ||
                         lower.contains("verify up to")
                     } == true && !uiState.fetchSuccess
-                    val canFetch = uiState.upi.trim().isNotEmpty() && !uiState.isFetching && !hasReachedLimit
+                    val isValidUpi = uiState.upi.trim().isNotEmpty() && upiPattern.matches(uiState.upi.trim())
+                    val canFetch = isValidUpi && !uiState.isFetching && !hasReachedLimit
                     val fetchOpacity by animateFloatAsState(if (canFetch || uiState.fetchSuccess) 1f else 0.42f)
 
                     Box(
@@ -394,7 +407,9 @@ fun UpiFetchSheetScreen(
                                 if (uiState.fetchSuccess) {
                                     onNavigateBack()
                                 } else {
-                                    viewModel.fetchDetails()
+                                    if (isValidUpi) {
+                                        viewModel.fetchDetails()
+                                    }
                                 }
                             },
                             enabled = canFetch || uiState.fetchSuccess,
