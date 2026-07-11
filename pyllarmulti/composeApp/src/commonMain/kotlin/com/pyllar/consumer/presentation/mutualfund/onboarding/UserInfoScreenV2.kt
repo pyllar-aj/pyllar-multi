@@ -521,12 +521,12 @@ fun UserInfoScreenV2(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(14.dp))
-                            .background(Color.White)
-                            .border(1.dp, V2BorderGold28, RoundedCornerShape(14.dp))
+                            .background(V2InfoBg)
+                            .border(1.dp, V2InfoBorder, RoundedCornerShape(14.dp))
                             .clickable {
                                 onNavigateToUpiFetch()
                             }
-                            .padding(14.dp),
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -534,27 +534,84 @@ fun UserInfoScreenV2(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text(text = "⚡", fontSize = 16.sp)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = stringResource(Res.string.upi_promo_skip_entire_form),
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = V2BronzeInk
-                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(V2Obsidian),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "⚡",
+                                    fontSize = 16.sp,
+                                    color = V2GoldAccent
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                val fullText = stringResource(Res.string.upi_promo_skip_entire_form)
+                                val parts = remember(fullText) { fullText.split("?") }
+                                val titleText = parts.getOrNull(0)?.let { "$it?" } ?: "Have your UPI ID?"
+                                val subtitleText = parts.getOrNull(1)?.trim() ?: "Skip this form entirely"
+                                
+                                Text(
+                                    text = titleText,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = V2BronzeInk
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = subtitleText,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = V2GoldDeep
+                                )
+                            }
                         }
                         Box(
                             modifier = Modifier
-                                .border(1.5.dp, V2GoldAccent, RoundedCornerShape(8.dp))
-                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(V2Obsidian)
+                                .clickable {
+                                    onNavigateToUpiFetch()
+                                }
+                                .padding(horizontal = 16.dp, vertical = 10.dp)
                         ) {
                             Text(
                                 text = stringResource(Res.string.upi_promo_try_it_btn),
-                                fontSize = 12.sp,
+                                fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = V2GoldDeep
+                                color = V2GoldAccent
                             )
                         }
+                    }
+                    
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(1.dp)
+                                .background(V2WarmGreyBorder.copy(alpha = 0.5f))
+                        )
+                        Text(
+                            text = "OR",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = V2MutedText,
+                            modifier = Modifier.padding(horizontal = 12.dp)
+                        )
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(1.dp)
+                                .background(V2WarmGreyBorder.copy(alpha = 0.5f))
+                        )
                     }
                 }
 

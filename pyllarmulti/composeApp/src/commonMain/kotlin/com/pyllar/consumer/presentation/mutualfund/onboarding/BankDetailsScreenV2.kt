@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -54,6 +55,7 @@ import pyllar.composeapp.generated.resources.*
 
 // ── V2 visual language: cream surface, dark bronze ink, luxury gold accents ──
 private val BDV2Cream = Color(0xFFFBF9F4)
+private val BDV2CreamTint = Color(0xFFF5EEDB)
 private val BDV2BronzeInk = Color(0xFF3E2723)
 private val BDV2BronzeMuted = Color(0xFF6D4C41)
 private val BDV2GoldDeep = Color(0xFF8B6B25)
@@ -64,6 +66,10 @@ private val BDV2LinkGreen = Color(0xFF1A7A42)
 private val BDV2VolatilityRed = Color(0xFFC62828)
 private val BDV2FieldBorder = Color(0xFFD7CCC8)
 private val BDV2CardBorder = Color(0xFFEFEBE9)
+private val BDV2InfoBorder = Color(0x268B6B25)
+private val BDV2InfoBg = Color(0x12D4AF37)
+private val BDV2CardInfoBorder = Color(0x478B6B25)
+private val BDV2MutedText = Color(0xFFB0A89A)
 
 private fun validateIfsc(code: String): Boolean =
     Regex("^[A-Z]{4}0[A-Z0-9]{6}$").matches(code)
@@ -294,10 +300,10 @@ fun BankDetailsScreenV2(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(14.dp))
-                                    .background(Color.White)
-                                    .border(1.dp, Color(0x478B6B25), RoundedCornerShape(14.dp))
+                                    .background(BDV2InfoBg)
+                                    .border(1.dp, BDV2CardInfoBorder, RoundedCornerShape(14.dp))
                                     .clickable { showUpiBankSheet = true }
-                                    .padding(14.dp),
+                                    .padding(horizontal = 16.dp, vertical = 14.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -305,27 +311,82 @@ fun BankDetailsScreenV2(
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier.weight(1f)
                                 ) {
-                                    Text(text = "⚡", fontSize = 16.sp)
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = stringResource(Res.string.upi_promo_skip_entire_form),
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = BDV2BronzeInk
-                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .clip(CircleShape)
+                                            .background(BDV2Obsidian),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = "⚡",
+                                            fontSize = 16.sp,
+                                            color = BDV2GoldAccent
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Column {
+                                        val fullText = stringResource(Res.string.upi_promo_skip_entire_form)
+                                        val parts = remember(fullText) { fullText.split("?") }
+                                        val titleText = parts.getOrNull(0)?.let { "$it?" } ?: "Have your UPI ID?"
+                                        val subtitleText = parts.getOrNull(1)?.trim() ?: "Skip this form entirely"
+
+                                        Text(
+                                            text = titleText,
+                                            fontSize = 15.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = BDV2BronzeInk
+                                        )
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Text(
+                                            text = subtitleText,
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = BDV2GoldDeep
+                                        )
+                                    }
                                 }
                                 Box(
                                     modifier = Modifier
-                                        .border(1.5.dp, BDV2GoldAccent, RoundedCornerShape(8.dp))
-                                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(BDV2Obsidian)
+                                        .clickable { showUpiBankSheet = true }
+                                        .padding(horizontal = 16.dp, vertical = 10.dp)
                                 ) {
                                     Text(
                                         text = stringResource(Res.string.upi_promo_try_it_btn),
-                                        fontSize = 12.sp,
+                                        fontSize = 13.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = BDV2GoldDeep
+                                        color = BDV2GoldAccent
                                     )
                                 }
+                            }
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(2.dp)
+                                        .background(BDV2FieldBorder.copy(alpha = 0.9f))
+                                )
+                                Text(
+                                    text = "OR",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = BDV2MutedText,
+                                    modifier = Modifier.padding(horizontal = 12.dp)
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(2.dp)
+                                        .background(BDV2FieldBorder.copy(alpha = 0.9f))
+                                )
                             }
                         }
 
