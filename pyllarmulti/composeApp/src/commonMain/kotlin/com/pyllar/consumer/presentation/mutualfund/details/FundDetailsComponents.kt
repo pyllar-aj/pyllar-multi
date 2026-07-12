@@ -76,6 +76,12 @@ fun FundHeader(details: FundDetailsResponseDto) {
     }
 }
 
+// V2 color variables for BankDetailsCard
+private val V2CreamTint = Color(0xFFF5EEDB)
+private val V2BronzeInk = Color(0xFF3E2723)
+private val V2BronzeMuted = Color(0xFF6D4C41)
+private val V2FieldBorder = Color(0xFFD7CCC8)
+
 @Composable
 fun BankDetailsCard(
     accountNumber: String?,
@@ -85,8 +91,9 @@ fun BankDetailsCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        )
+            containerColor = V2CreamTint
+        ),
+        border = androidx.compose.foundation.BorderStroke(1.dp, V2FieldBorder)
     ) {
         Column(
             modifier = Modifier
@@ -97,7 +104,8 @@ fun BankDetailsCard(
             Text(
                 text = "Bank Account",
                 style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color = V2BronzeInk
             )
             
             if (bankName != null) {
@@ -108,12 +116,13 @@ fun BankDetailsCard(
                     Text(
                         text = "Bank",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = V2BronzeMuted
                     )
                     Text(
                         text = bankName,
                         style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.Medium,
+                        color = V2BronzeInk
                     )
                 }
             }
@@ -126,12 +135,13 @@ fun BankDetailsCard(
                     Text(
                         text = "Account",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = V2BronzeMuted
                     )
                     Text(
                         text = maskAccountNumber(accountNumber),
                         style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.Medium,
+                        color = V2BronzeInk
                     )
                 }
             }
@@ -144,12 +154,13 @@ fun BankDetailsCard(
                     Text(
                         text = "IFSC",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = V2BronzeMuted
                     )
                     Text(
                         text = maskIfscCode(ifscCode),
                         style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.Medium,
+                        color = V2BronzeInk
                     )
                 }
             }

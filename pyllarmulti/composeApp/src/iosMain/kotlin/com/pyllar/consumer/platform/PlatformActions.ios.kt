@@ -142,11 +142,17 @@ class IosPlatformActions : PlatformActions {
         silentFallback: Boolean,
         trigger: String
     ) {
-        platformLog("IosPlatformActions: 🚀 requestInAppReview called (silentFallback=$silentFallback)")
+        platformLog("IosPlatformActions: 🚀 requestInAppReview called (silentFallback=$silentFallback, trigger=$trigger)")
         com.pyllar.consumer.analytics.PlatformAnalyticsLogger.logEvent(
             "rate_us_in_app_review_started",
             mapOf("screen_name" to screenName, "silent" to silentFallback, "trigger" to trigger)
         )
+
+        if (trigger == "manual") {
+            platformLog("IosPlatformActions: 🚀 Manual trigger detected, opening App Store directly")
+            openAppStoreReview()
+            return
+        }
 
         val window = UIApplication.sharedApplication.windows.first() as? UIWindow
         val scene = window?.windowScene

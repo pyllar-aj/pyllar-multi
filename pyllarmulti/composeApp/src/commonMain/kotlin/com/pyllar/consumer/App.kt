@@ -633,7 +633,7 @@ fun App() {
                     currentErrorMessage = screen.errorMessage
                 }
 
-                KycInformationScreen(
+                KycInformationScreenV2(
                     errorMessage = currentErrorMessage,
                     onProceed = {
                         if (!screen.reUrl.isNullOrBlank() && currentErrorMessage == null) {
