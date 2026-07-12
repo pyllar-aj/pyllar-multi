@@ -38,6 +38,7 @@ import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import pyllar.composeapp.generated.resources.*
 import com.pyllar.consumer.presentation.ui.theme.*
+import com.pyllar.consumer.util.toUserFriendlyErrorMessage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -132,7 +133,7 @@ fun WithdrawAmountScreen(
         } else if (otpVerificationResult is Resource.Error) {
             isVerifyingOtp = false
             otpFieldValue = TextFieldValue("")
-            otpValidationError = otpVerificationResult?.message
+            otpValidationError = (otpVerificationResult?.message ?: "").toUserFriendlyErrorMessage()
         }
     }
 
@@ -165,7 +166,7 @@ fun WithdrawAmountScreen(
             onSubmit(selectedSchemeId ?: "", effectiveRedemptionAmount)
         } else if (redemptionResult is Resource.Error) {
             isVerifyingOtp = false
-            otpValidationError = redemptionResult?.message
+            otpValidationError = (redemptionResult?.message ?: "").toUserFriendlyErrorMessage()
         }
     }
 

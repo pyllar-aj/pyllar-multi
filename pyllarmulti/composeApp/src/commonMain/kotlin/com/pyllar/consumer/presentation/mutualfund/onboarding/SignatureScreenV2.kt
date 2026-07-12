@@ -43,6 +43,7 @@ import com.pyllar.consumer.util.Resource
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
+import com.pyllar.consumer.util.toUserFriendlyErrorMessage
 import pyllar.composeapp.generated.resources.*
 
 // ── V2 visual language: cream surface, dark bronze ink, luxury gold accents ──
@@ -330,7 +331,7 @@ fun SignatureScreenV2(
                                                 }
                                                 is Resource.Error -> {
                                                     isLoading = false
-                                                    errorMessage = result.message ?: connectionFailedText
+                                                    errorMessage = (result.message ?: connectionFailedText).toUserFriendlyErrorMessage()
                                                     PlatformAnalyticsLogger.logEvent("signature_submit_error", mapOf("message" to (result.message ?: "unknown"), "screen_version" to "v4"))
                                                 }
                                             }

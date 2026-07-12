@@ -455,6 +455,47 @@ fun InvestmentDashboardV2Screen(
                 CircularProgressIndicator(color = Color.White)
             }
         }
+
+        // Connection/Network Error Dialog
+        dashboardState.errorMessage?.let { errorMsg ->
+            val isNetworkError = errorMsg.contains("connect", ignoreCase = true) ||
+                    errorMsg.contains("internet", ignoreCase = true) ||
+                    errorMsg.contains("network", ignoreCase = true) ||
+                    errorMsg.contains("timeout", ignoreCase = true) ||
+                    errorMsg.contains("offline", ignoreCase = true)
+
+            AlertDialog(
+                onDismissRequest = { viewModel.clearErrorMessage() },
+                title = {
+                    Text(
+                        text = if (isNetworkError) "Network Error" else "Error",
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                text = {
+                    Text(errorMsg)
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            viewModel.clearErrorMessage()
+                            if (isNetworkError && userId.isNotBlank()) {
+                                viewModel.loadDashboardData(userId)
+                            }
+                        }
+                    ) {
+                        Text(if (isNetworkError) "Retry" else "OK")
+                    }
+                },
+                dismissButton = if (isNetworkError) {
+                    {
+                        TextButton(onClick = { viewModel.clearErrorMessage() }) {
+                            Text("Cancel")
+                        }
+                    }
+                } else null
+            )
+        }
     }
 }
 

@@ -909,6 +909,26 @@ fun UserInfoScreenV2(
                                 placeholder = { Text("e.g. name@email.com", color = V2MutedText) },
                                 singleLine = true,
                                 isError = emailError != null,
+                                trailingIcon = {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.padding(end = 12.dp)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .width(1.dp)
+                                                .height(20.dp)
+                                                .background(V2WarmGreyBorder)
+                                        )
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        GoogleAccountPickerButton(
+                                            onEmailPicked = { 
+                                                manualEmail = it
+                                                emailError = null
+                                            }
+                                        )
+                                    }
+                                },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Done),
                                 modifier = Modifier
                                     .fillMaxWidth()

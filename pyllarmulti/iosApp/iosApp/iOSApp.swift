@@ -74,7 +74,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, AppsFlyerLibDelegate {
         open url: URL,
         options: [UIApplication.OpenURLOptionsKey: Any] = [:]
     ) -> Bool {
-        Singular.startSession("pyllar_f3135c51", withKey: "f0d918a1e372e68b8c4a46b14bbe82c8", andLaunchURL: url)
+        Singular.startSession("pyllar_f3135c51", withKey: "f0d918a1e372e68b8c4a46b14bbe82c8", andLaunch: url)
         return true
     }
 

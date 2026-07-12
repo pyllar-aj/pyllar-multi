@@ -43,6 +43,7 @@ import com.pyllar.consumer.platform.PlatformActions
 import com.pyllar.consumer.analytics.PlatformAnalyticsLogger
 import com.pyllar.consumer.util.Resource
 import com.pyllar.consumer.util.platformLog
+import com.pyllar.consumer.util.toUserFriendlyErrorMessage
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.jetbrains.compose.resources.painterResource
@@ -209,12 +210,12 @@ fun InitialDashboardScreenV2(
                             }
                         }
                         is Resource.Error -> {
-                            errorMessage = result.message ?: "Unable to select goal"
+                            errorMessage = (result.message ?: "Unable to select goal").toUserFriendlyErrorMessage()
                         }
                         else -> {}
                     }
                 } catch (e: Exception) {
-                    errorMessage = e.message ?: "Something went wrong"
+                    errorMessage = (e.message ?: "Something went wrong").toUserFriendlyErrorMessage()
                 } finally {
                     isSubmitting = false
                 }

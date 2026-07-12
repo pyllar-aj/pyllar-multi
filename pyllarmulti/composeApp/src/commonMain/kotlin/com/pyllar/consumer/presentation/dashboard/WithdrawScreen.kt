@@ -28,6 +28,7 @@ import org.koin.compose.koinInject
 import pyllar.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 import com.pyllar.consumer.presentation.ui.theme.*
+import com.pyllar.consumer.util.toUserFriendlyErrorMessage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,17 +72,28 @@ fun WithdrawScreen(
     
     // Error Dialog
     state.errorMessage?.let { errorMsg ->
+        val friendlyMsg = errorMsg.toUserFriendlyErrorMessage()
+        val isNetworkError = friendlyMsg.contains("connect", ignoreCase = true) ||
+                friendlyMsg.contains("internet", ignoreCase = true) ||
+                friendlyMsg.contains("network", ignoreCase = true) ||
+                friendlyMsg.contains("timeout", ignoreCase = true) ||
+                friendlyMsg.contains("offline", ignoreCase = true)
+        
         AlertDialog(
             onDismissRequest = { viewModel.clearErrorMessage() },
-            title = { Text(if (errorMsg.contains("connect", true) || errorMsg.contains("Internet", true)) "Network Error" else "Error", fontWeight = FontWeight.Bold) },
-            text = { Text(errorMsg) },
+            title = { Text(if (isNetworkError) "Network Error" else "Error", fontWeight = FontWeight.Bold) },
+            text = { Text(friendlyMsg) },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.clearErrorMessage()
                     if (userId.isNotBlank()) viewModel.loadWithdrawData(userId)
-                }) { Text("Retry") }
+                }) { Text(if (isNetworkError) "Retry" else "OK") }
             },
-            dismissButton = { TextButton(onClick = { viewModel.clearErrorMessage() }) { Text("OK") } }
+            dismissButton = if (isNetworkError) {
+                {
+                    TextButton(onClick = { viewModel.clearErrorMessage() }) { Text("Cancel") }
+                }
+            } else null
         )
     }
     val keyboardController = LocalSoftwareKeyboardController.current
