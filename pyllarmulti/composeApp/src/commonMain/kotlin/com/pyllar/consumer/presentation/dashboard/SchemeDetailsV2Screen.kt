@@ -298,6 +298,75 @@ fun SchemeDetailsV2Screen(
 
     Scaffold(
         containerColor = scaffoldBgColor,
+        bottomBar = {
+            if (!state.isLoading && !(state.errorMessage != null && schemeParams == null)) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth().navigationBarsPadding(),
+                    color = Color.White,
+                    tonalElevation = 0.dp,
+                    shadowElevation = 24.dp
+                ) {
+                    Column {
+                        HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 12.dp, end = 12.dp, top = 20.dp, bottom = 24.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            ActionButtonModuleV2(
+                                modifier = Modifier.weight(1f),
+                                text = stringResource(Res.string.add_money),
+                                icon = Icons.Default.Add,
+                                containerColor = goalColor,
+                                onClick = handleLumpsumClick
+                            )
+                            ActionButtonModuleV2(
+                                modifier = Modifier.weight(1f),
+                                text = stringResource(Res.string.new_plan),
+                                icon = Icons.Default.FlashOn,
+                                containerColor = goalColor,
+                                onClick = handleSipClick
+                            )
+                            ActionButtonModuleV2(
+                                modifier = Modifier.weight(1f),
+                                text = stringResource(Res.string.withdraw),
+                                icon = Icons.Default.CallReceived,
+                                containerColor = goalColor,
+                                onClick = {
+                                    if (state.currentValue > 0) {
+                                        val instantVal = state.instantRedemptionValue 
+                                            ?: schemeParams?.instantRedemptionValue 
+                                            ?: SchemeDetailsParamsManager.get()?.instantRedemptionValue
+
+                                        val params = WithdrawInitParams(
+                                            isin = state.isin ?: "",
+                                            folio = state.folioNumber,
+                                            amount = state.currentValue,
+                                            investmentInProgress = state.investmentInProgress,
+                                            bankAccountNumber = "",
+                                            bankAccountIfscCode = "",
+                                            schemeName = displaySchemeName,
+                                            canWithdraw = state.canWithdraw,
+                                            redemptionInProgress = state.redemptionInProgress,
+                                            redeemableAmount = state.redeemableAmount,
+                                            instantRedemptionValue = instantVal
+                                        )
+                                        WithdrawParamsManager.set(params)
+                                        scope.launch {
+                                            sessionStore.saveValue("withdraw_init_params", WithdrawParamsManager.toJson(params))
+                                        }
+                                        onNavigateToWithdraw(params)
+                                    } else {
+                                        showInvestmentInProgressDialog = true
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        },
         topBar = {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
@@ -851,72 +920,6 @@ fun SchemeDetailsV2Screen(
                         }
                     }
 
-                    // Pinned bottom actions bar
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        color = Color.White,
-                        tonalElevation = 0.dp,
-                        shadowElevation = 24.dp
-                    ) {
-                        Column {
-                            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 12.dp, vertical = 20.dp),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                ActionButtonModuleV2(
-                                    modifier = Modifier.weight(1f),
-                                    text = stringResource(Res.string.add_money),
-                                    icon = Icons.Default.Add,
-                                    containerColor = goalColor,
-                                    onClick = handleLumpsumClick
-                                )
-                                ActionButtonModuleV2(
-                                    modifier = Modifier.weight(1f),
-                                    text = stringResource(Res.string.new_plan),
-                                    icon = Icons.Default.FlashOn,
-                                    containerColor = goalColor,
-                                    onClick = handleSipClick
-                                )
-                                ActionButtonModuleV2(
-                                    modifier = Modifier.weight(1f),
-                                    text = stringResource(Res.string.withdraw),
-                                    icon = Icons.Default.CallReceived,
-                                    containerColor = goalColor,
-                                    onClick = {
-                                        if (state.currentValue > 0) {
-                                            val instantVal = state.instantRedemptionValue 
-                                                ?: schemeParams?.instantRedemptionValue 
-                                                ?: SchemeDetailsParamsManager.get()?.instantRedemptionValue
-
-                                            val params = WithdrawInitParams(
-                                                isin = state.isin ?: "",
-                                                folio = state.folioNumber,
-                                                amount = state.currentValue,
-                                                investmentInProgress = state.investmentInProgress,
-                                                bankAccountNumber = "",
-                                                bankAccountIfscCode = "",
-                                                schemeName = displaySchemeName,
-                                                canWithdraw = state.canWithdraw,
-                                                redemptionInProgress = state.redemptionInProgress,
-                                                redeemableAmount = state.redeemableAmount,
-                                                instantRedemptionValue = instantVal
-                                            )
-                                            WithdrawParamsManager.set(params)
-                                            scope.launch {
-                                                sessionStore.saveValue("withdraw_init_params", WithdrawParamsManager.toJson(params))
-                                            }
-                                            onNavigateToWithdraw(params)
-                                        } else {
-                                            showInvestmentInProgressDialog = true
-                                        }
-                                    }
-                                )
-                            }
-                        }
-                    }
                 }
             }
 
@@ -3336,13 +3339,16 @@ fun SipPlanCardV2(
                     Spacer(modifier = Modifier.height(14.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         if (onResume != null) {
+                            val resumeTint = if (category == "SILVER") Color(0xFF1E3A8A) else goalColor
+                            val resumeBg = if (category == "SILVER") Color(0xFFEFF6FF) else Color(0xFFEFFDF5)
+                            val resumeBorder = BorderStroke(1.5.dp, resumeTint)
                             SipPlanActionPillV2(
                                 modifier = Modifier.weight(1f),
                                 icon = Icons.Default.PlayArrow,
                                 label = stringResource(Res.string.resume_sip).trim(),
-                                tint = goalColor,
-                                background = Color(0xFF0A2415),
-                                border = BorderStroke(1.5.dp, goalColor),
+                                tint = resumeTint,
+                                background = resumeBg,
+                                border = resumeBorder,
                                 onClick = { onResume(mandate) }
                             )
                         }

@@ -707,9 +707,13 @@ fun CombinedDashboardCard(
                         }
 
                         Text(
-                            text = "Gold",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = Color(0xFF6A4C00)
+                            text = "GOLD",
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontFamily = getOutfitFontFamily(),
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 2.sp
+                            ),
+                            color = Color(0xFF381E00)
                         )
                     }
                 }
@@ -797,9 +801,13 @@ fun CombinedDashboardCard(
                         }
 
                         Text(
-                            text = "Silver",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = Color(0xFF505A61)
+                            text = "SILVER",
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontFamily = getOutfitFontFamily(),
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 2.sp
+                            ),
+                            color = Color(0xFF161E24)
                         )
                     }
                 }
