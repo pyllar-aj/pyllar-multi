@@ -71,6 +71,9 @@ class AndroidAttributionProvider : AttributionProvider {
     override fun getGclid(): String? = com.pyllar.consumer.analytics.AppsFlyerAttributionCache.getGclid()
     override fun getGbraid(): String? = com.pyllar.consumer.analytics.AppsFlyerAttributionCache.getGbraid()
     override fun getWbraid(): String? = com.pyllar.consumer.analytics.AppsFlyerAttributionCache.getWbraid()
+
+    // No secondary attribution provider (e.g. Singular) wired on Android yet.
+    override fun getProviderAttribution(): ProviderAttribution? = null
 }
 
 // AndroidUpdateManager is defined in update/AndroidUpdateManager.kt

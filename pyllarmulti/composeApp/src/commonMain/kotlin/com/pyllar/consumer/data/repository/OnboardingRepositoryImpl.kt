@@ -27,10 +27,12 @@ import com.pyllar.consumer.data.remote.model.dto.CreditBureauLookupRequest
 import com.pyllar.consumer.data.remote.model.dto.CreditBureauLookupResponseDto
 
 import io.ktor.client.request.header
+import com.pyllar.consumer.platform.AttributionProvider
 
 class OnboardingRepositoryImpl(
     private val apiClient: PyllarApiClient,
-    private val sessionStore: SessionStore
+    private val sessionStore: SessionStore,
+    private val attributionProvider: AttributionProvider
 ) : OnboardingRepository {
 
     override fun selectGoal(
@@ -38,9 +40,19 @@ class OnboardingRepositoryImpl(
         currentScreen: String
     ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.GoalSelectionResponseDto>> = flow {
         emit(Resource.Loading())
+        // Fallback capture point: Singular's deferred deep link may not have resolved yet
+        // when OTP-send fired. First-touch on the backend means this only fills gaps.
+        val providerAttribution = attributionProvider.getProviderAttribution()
+        val enrichedRequest = request.copy(
+            attributionProviderName = request.attributionProviderName ?: providerAttribution?.provider,
+            attributionMediaSource = request.attributionMediaSource ?: providerAttribution?.mediaSource,
+            attributionCampaign = request.attributionCampaign ?: providerAttribution?.campaign,
+            attributionCampaignId = request.attributionCampaignId ?: providerAttribution?.campaignId,
+            attributionAdSet = request.attributionAdSet ?: providerAttribution?.adSet
+        )
         val result = apiClient.post<com.pyllar.consumer.data.remote.model.dto.GoalSelectionResponseDto, com.pyllar.consumer.data.remote.requests.GoalSelectionRequest>(
             path = "api/kyc/onboarding/select-goal",
-            body = request
+            body = enrichedRequest
         ) {
             header("X-Current-Screen", currentScreen)
         }

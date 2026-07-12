@@ -8,6 +8,16 @@ data class GoalSelectionRequest(
     @SerialName("userId")
     val userId: String,
     @SerialName("goal")
-    val goal: String
+    val goal: String,
+    @SerialName("attributionProviderName")
+    val attributionProviderName: String? = null,
+    @SerialName("attributionMediaSource")
+    val attributionMediaSource: String? = null,
+    @SerialName("attributionCampaign")
+    val attributionCampaign: String? = null,
+    @SerialName("attributionCampaignId")
+    val attributionCampaignId: String? = null,
+    @SerialName("attributionAdSet")
+    val attributionAdSet: String? = null
 )
 
