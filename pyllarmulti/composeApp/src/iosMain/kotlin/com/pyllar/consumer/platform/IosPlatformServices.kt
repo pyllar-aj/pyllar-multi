@@ -67,5 +67,17 @@ class IosAttributionProvider : AttributionProvider {
     override fun getGclid(): String? = getAttrValue("gclid")
     override fun getGbraid(): String? = getAttrValue("gbraid")
     override fun getWbraid(): String? = getAttrValue("wbraid")
+
+    override fun getProviderAttribution(): ProviderAttribution? {
+        val map = SwiftAnalyticsScope.bridge?.getSingularAttributionData() ?: return null
+        if (map.isEmpty()) return null
+        return ProviderAttribution(
+            provider = "singular",
+            mediaSource = map["media_source"],
+            campaign = map["campaign"],
+            campaignId = map["campaign_id"],
+            adSet = map["ad_set"]
+        )
+    }
 }
 

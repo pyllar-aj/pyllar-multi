@@ -111,7 +111,25 @@ interface AttributionProvider {
     fun getGclid(): String?
     fun getGbraid(): String?
     fun getWbraid(): String?
+
+    /**
+     * Attribution from whichever non-AppsFlyer provider is currently wired (e.g. Singular).
+     * Generic by design: adding a future provider means changing what populates this,
+     * not adding new fields/columns end-to-end.
+     */
+    fun getProviderAttribution(): ProviderAttribution?
 }
+
+/**
+ * A single provider's attribution payload, tagged with which provider it came from.
+ */
+data class ProviderAttribution(
+    val provider: String,
+    val mediaSource: String? = null,
+    val campaign: String? = null,
+    val campaignId: String? = null,
+    val adSet: String? = null
+)
 
 /**
  * Platform-independent representation of geographic coordinates.

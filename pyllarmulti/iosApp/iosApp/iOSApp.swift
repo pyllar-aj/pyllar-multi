@@ -39,6 +39,22 @@ class AppDelegate: NSObject, UIApplicationDelegate, AppsFlyerLibDelegate {
         // Configure Singular
         if let singularConfig = SingularConfig(apiKey: "pyllar_f3135c51", andSecret: "f0d918a1e372e68b8c4a46b14bbe82c8") {
             singularConfig.launchOptions = launchOptions
+            singularConfig.singularLinksHandler = { params in
+                guard let params = params else { return }
+                var dict: [String: String] = [:]
+                if let deeplink = params.getDeepLink() {
+                    dict["deeplink"] = deeplink
+                }
+                if let passthrough = params.getPassthrough() {
+                    dict["passthrough"] = passthrough
+                }
+                dict["is_deferred"] = params.isDeferred() ? "true" : "false"
+                if let urlParams = params.getUrlParameters() as? [String: String] {
+                    dict.merge(urlParams) { _, new in new }
+                }
+                print("[Singular] Link params received: \(dict)")
+                SwiftAnalyticsBridge.singularAttributionData = dict
+            }
             Singular.start(singularConfig)
         }
 

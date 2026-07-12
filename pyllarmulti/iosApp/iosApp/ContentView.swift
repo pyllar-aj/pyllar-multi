@@ -323,6 +323,7 @@ class SwiftGoogleSignInBridge: NSObject, IosGoogleSignInBridge {
 
 class SwiftAnalyticsBridge: NSObject, IosAnalyticsBridge {
     static var attributionData: [String: String] = [:]
+    static var singularAttributionData: [String: String] = [:]
 
     func logEvent(name: String, params: [String : Any]) {
         AppsFlyerLib.shared().logEvent(name, withValues: params)
@@ -361,5 +362,9 @@ class SwiftAnalyticsBridge: NSObject, IosAnalyticsBridge {
 
     func getAttributionData() -> [String : Any] {
         return SwiftAnalyticsBridge.attributionData
+    }
+
+    func getSingularAttributionData() -> [String : Any] {
+        return SwiftAnalyticsBridge.singularAttributionData
     }
 }

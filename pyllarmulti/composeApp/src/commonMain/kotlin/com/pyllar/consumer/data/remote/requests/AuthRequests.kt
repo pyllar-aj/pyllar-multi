@@ -27,7 +27,12 @@ data class OtpRegistrationRequest(
     val afCampaignId: String? = null,
     val afAdSet: String? = null,
     val afStatus: String? = null,
-    val afChannel: String? = null
+    val afChannel: String? = null,
+    val attributionProviderName: String? = null,
+    val attributionMediaSource: String? = null,
+    val attributionCampaign: String? = null,
+    val attributionCampaignId: String? = null,
+    val attributionAdSet: String? = null
 )
 
 @Serializable

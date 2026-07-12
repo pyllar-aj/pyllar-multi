@@ -6,6 +6,7 @@ interface IosAnalyticsBridge {
     fun setUserId(userId: String)
     fun generateReferralLink(referrerId: String, onComplete: (String?) -> Unit)
     fun getAttributionData(): Map<String, String?>
+    fun getSingularAttributionData(): Map<String, String?>
 }
 
 object SwiftAnalyticsScope {

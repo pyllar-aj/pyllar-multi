@@ -34,6 +34,7 @@ class AuthRepositoryImpl(
 
     override fun sendOtp(request: OtpRegistrationRequest): Flow<Resource<AuthToken>> = flow {
         emit(Resource.Loading())
+        val providerAttribution = attributionProvider.getProviderAttribution()
         val enrichedRequest = request.copy(
             utmSource = request.utmSource ?: sessionStore.getValue("utm_source") ?: attributionProvider.getMediaSource(),
             utmMedium = request.utmMedium ?: sessionStore.getValue("utm_medium") ?: attributionProvider.getChannel(),
@@ -49,7 +50,12 @@ class AuthRepositoryImpl(
             afCampaignId = request.afCampaignId ?: attributionProvider.getCampaignId(),
             afAdSet = request.afAdSet ?: attributionProvider.getAdSet(),
             afStatus = request.afStatus ?: attributionProvider.getAfStatus(),
-            afChannel = request.afChannel ?: attributionProvider.getChannel()
+            afChannel = request.afChannel ?: attributionProvider.getChannel(),
+            attributionProviderName = request.attributionProviderName ?: providerAttribution?.provider,
+            attributionMediaSource = request.attributionMediaSource ?: providerAttribution?.mediaSource,
+            attributionCampaign = request.attributionCampaign ?: providerAttribution?.campaign,
+            attributionCampaignId = request.attributionCampaignId ?: providerAttribution?.campaignId,
+            attributionAdSet = request.attributionAdSet ?: providerAttribution?.adSet
         )
         when (val result = remote.sendOtp(enrichedRequest)) {
             is Resource.Success -> {
