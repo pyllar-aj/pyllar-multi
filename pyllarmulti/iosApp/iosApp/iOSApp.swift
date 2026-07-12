@@ -66,6 +66,18 @@ class AppDelegate: NSObject, UIApplicationDelegate, AppsFlyerLibDelegate {
         AppsFlyerLib.shared().start()
     }
 
+    // Warm-start case: app already installed/running, user taps a pyllar:// Singular Link.
+    // Cold start is already covered by singularConfig.launchOptions above; this SDK does not
+    // swizzle application(_:open:options:) itself, so it must be forwarded explicitly.
+    func application(
+        _ app: UIApplication,
+        open url: URL,
+        options: [UIApplication.OpenURLOptionsKey: Any] = [:]
+    ) -> Bool {
+        Singular.startSession("pyllar_f3135c51", withKey: "f0d918a1e372e68b8c4a46b14bbe82c8", andLaunchURL: url)
+        return true
+    }
+
     // MARK: - AppsFlyerLibDelegate
 
     func onConversionDataSuccess(_ conversionInfo: [AnyHashable : Any]) {
