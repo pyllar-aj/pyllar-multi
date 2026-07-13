@@ -250,7 +250,7 @@ private fun InitialDashboardContentV2(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(48.dp))
                 
                 // Centered Top Header Badge
                 Column(
@@ -629,7 +629,7 @@ private fun InitialDashboardContentV2(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Text(
-                                text = "Invest Now",
+                                text = "Get Started",
                                 style = TextStyle(
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold,

@@ -59,6 +59,7 @@ import com.pyllar.consumer.platform.PermissionManager
 import kotlin.math.ceil
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.DrawableResource
+import org.jetbrains.compose.resources.stringResource
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Path
 import androidx.compose.material.icons.filled.Info
@@ -736,7 +737,7 @@ fun CombinedDashboardCard(
                             )
                         } else {
                             val unitsText = if (goldHasValue && goldUnitsInGm != null) {
-                                formatWeight(goldUnitsInGm)
+                                formatWeight(goldUnitsInGm, stringResource(Res.string.mg_label), stringResource(Res.string.g_label))
                             } else {
                                 "0 g"
                             }
@@ -830,7 +831,7 @@ fun CombinedDashboardCard(
                             )
                         } else {
                             val unitsText = if (silverHasValue && silverUnitsInGm != null) {
-                                formatWeight(silverUnitsInGm)
+                                formatWeight(silverUnitsInGm, stringResource(Res.string.mg_label), stringResource(Res.string.g_label))
                             } else {
                                 "0 g"
                             }

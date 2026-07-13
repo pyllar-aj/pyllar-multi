@@ -160,7 +160,7 @@ fun SchemeDetailsV2Screen(
     val unitsVal = when {
         isGoldOrSilver && (state.unitsInGm ?: schemeParams?.unitsInGm ?: 0.0) > 0 -> {
             val u = state.unitsInGm ?: schemeParams?.unitsInGm ?: 0.0
-            if (u < 1.0) "${formatDecimal(u * 1000, 0)}${stringResource(Res.string.mg_label)}" else "${formatDecimal(u, 2)}${stringResource(Res.string.g_label)}"
+            formatWeight(u, stringResource(Res.string.mg_label), stringResource(Res.string.g_label))
         }
         else -> {
             formatRupeeAmount(state.cummulativeValue, 0)

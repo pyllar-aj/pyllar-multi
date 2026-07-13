@@ -288,7 +288,11 @@ fun NomineeDetailsScreenV2(
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             LanguageLetterButton(textColor = NMV2LinkGreen)
-                            TextButton(onClick = onNavigateToHelp) {
+                            TextButton(onClick = {
+                                focusManager.clearFocus()
+                                keyboardController?.hide()
+                                onNavigateToHelp()
+                            }) {
                                 Text("Help", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = NMV2LinkGreen)
                             }
                         }

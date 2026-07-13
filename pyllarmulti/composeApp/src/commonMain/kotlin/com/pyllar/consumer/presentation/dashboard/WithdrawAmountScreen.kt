@@ -1,7 +1,9 @@
 package com.pyllar.consumer.presentation.dashboard
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -223,6 +225,56 @@ fun WithdrawAmountScreen(
                             enabled = !withdrawAll && !showOtpScreen,
                             textStyle = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
                         )
+                    }
+                }
+
+                // Withdrawal already in progress for this fund
+                val pendingWithdrawalAmount = selectedScheme?.redemptionInProgress ?: 0.0
+                if (pendingWithdrawalAmount > 0.0) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        border = BorderStroke(1.dp, V2SubtleBorder),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                        shape = RoundedCornerShape(18.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .background(V2GoldDeep.copy(alpha = 0.12f), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Schedule,
+                                    contentDescription = null,
+                                    tint = V2GoldDeep,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text(
+                                    text = org.jetbrains.compose.resources.stringResource(
+                                        Res.string.withdrawal_in_progress_card_title,
+                                        formatIndianWithDecimals(pendingWithdrawalAmount)
+                                    ),
+                                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 15.sp),
+                                    color = V2Ink
+                                )
+                                Text(
+                                    text = org.jetbrains.compose.resources.stringResource(Res.string.withdrawal_in_progress_card_subtitle),
+                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp, lineHeight = 18.sp),
+                                    color = V2InkSoft
+                                )
+                            }
+                        }
                     }
                 }
 
@@ -486,3 +538,11 @@ fun WithdrawAmountScreen(
         }
     }
 }
+
+fun formatIndianWithDecimals(value: Double): String {
+    val parts = value.toString().split(".")
+    val integerPart = parts[0].toDoubleOrNull() ?: 0.0
+    val decimalPart = parts.getOrNull(1)?.take(2)?.padEnd(2, '0') ?: "00"
+    return "${formatIndian(integerPart)}.$decimalPart"
+}
+

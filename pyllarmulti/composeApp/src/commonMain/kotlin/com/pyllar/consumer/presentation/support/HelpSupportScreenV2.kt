@@ -73,6 +73,8 @@ fun HelpSupportScreenV2(
     // Log screen view
     LaunchedEffect(Unit) {
         PlatformAnalyticsLogger.logScreenView("HelpSupportV2")
+        focusManager.clearFocus()
+        keyboardController?.hide()
     }
 
     // Key for the support categories section (header section)

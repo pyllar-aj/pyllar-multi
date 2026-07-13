@@ -2,6 +2,7 @@ package com.pyllar.consumer.domain.storage
 
 import platform.Foundation.NSUserDefaults
 import com.pyllar.consumer.data.remote.crypto.SwiftCryptoScope
+import com.pyllar.consumer.data.local.KeyValueConstants
 
 /**
  * iOS implementation of SessionStore using Keychain for sensitive data
@@ -57,6 +58,45 @@ class IosSessionStore : SessionStore {
         bridge?.deleteFromKeychain(KEY_PHONE)
         bridge?.deleteFromKeychain(KEY_AUTH_TOKEN)
         bridge?.deleteFromKeychain(KEY_FULL_NAME)
+        
+        // Clear onboarding and personal keys to prevent prefilling on new logins
+        val keysToClear = listOf(
+            KeyValueConstants.KYC_ATTEMPT_ID,
+            KeyValueConstants.INVESTOR_ID,
+            KeyValueConstants.RE_URL,
+            KeyValueConstants.ESIGN_URL,
+            KeyValueConstants.USER_PURPOSE_ID,
+            KeyValueConstants.ONBOARDING_STEP,
+            KeyValueConstants.ONBOARDING_COMPLETED,
+            KeyValueConstants.ACCOUNT_NUMBER,
+            KeyValueConstants.IFSC_CODE,
+            KeyValueConstants.BANK_NAME,
+            KeyValueConstants.ACCOUNT_HOLDER_NAME,
+            KeyValueConstants.ACCOUNT_TYPE,
+            KeyValueConstants.REDEMPTION_TOKEN_TRACKER_ID,
+            KeyValueConstants.CONSENT_TOKEN_TRACKER_ID,
+            KeyValueConstants.PAN,
+            KeyValueConstants.PAN_HOLDER_NAME,
+            KeyValueConstants.DOB,
+            KeyValueConstants.MARITAL_STATUS,
+            KeyValueConstants.OCCUPATION_TYPE,
+            KeyValueConstants.FATHER_NAME,
+            KeyValueConstants.ANNUAL_INCOME,
+            KeyValueConstants.IS_POLITICALLY_EXPOSED,
+            KeyValueConstants.NATIONALITY_COUNTRY,
+            KeyValueConstants.PLACE_OF_BIRTH,
+            KeyValueConstants.GENDER,
+            KeyValueConstants.SIP_AMOUNT,
+            KeyValueConstants.SELECTED_GOAL_ID,
+            KeyValueConstants.HELPER_CODE,
+            KeyValueConstants.HELPER_CODE_SUBMITTED,
+            KeyValueConstants.LONGITUDE,
+            KeyValueConstants.LATITUDE,
+            KeyValueConstants.LAST_SCREEN
+        )
+        keysToClear.forEach { key ->
+            bridge?.deleteFromKeychain(key)
+        }
         
         defaults.setBool(false, forKey = KEY_LOGGED_IN)
         defaults.synchronize()
