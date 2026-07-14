@@ -121,7 +121,8 @@ fun AdditionalKycScreenV2(
     val missingFields = remember(
         fatherName, gender, maritalStatus, occupationType, placeOfBirth,
         addressLine1, addressLine2, addressLine3, city, pincode,
-        residentialStatus, monthlyIncome, nationality, politicallyExposed
+        residentialStatus, monthlyIncome, nationality, politicallyExposed,
+        locationPermissionStatus
     ) {
         val list = mutableListOf<String>()
         if (fatherName.isBlank()) list.add("Father's Name")
@@ -144,6 +145,9 @@ fun AdditionalKycScreenV2(
         if (residentialStatus != "yes") list.add("Residential Status")
         if (nationality != "yes") list.add("Nationality")
         if (politicallyExposed != "no") list.add("Politically Exposed Person")
+        if (!locationPermissionStatus.locationGranted) {
+            list.add("Location Permission")
+        }
         list
     }
 
@@ -290,7 +294,8 @@ fun AdditionalKycScreenV2(
     LaunchedEffect(
         fatherName, gender, maritalStatus, occupationType, placeOfBirth,
         addressLine1, addressLine2, addressLine3, city, pincode,
-        residentialStatus, monthlyIncome, nationality, politicallyExposed, isConfirmed
+        residentialStatus, monthlyIncome, nationality, politicallyExposed, isConfirmed,
+        locationPermissionStatus
     ) {
         val incomeVal = monthlyIncome.toDoubleOrNull() ?: 0.0
         val isFormValid = fatherName.isNotBlank() &&
@@ -311,6 +316,7 @@ fun AdditionalKycScreenV2(
                 residentialStatus == "yes" &&
                 nationality == "yes" &&
                 politicallyExposed == "no" &&
+                locationPermissionStatus.locationGranted &&
                 validationMessage == null
 
         if (isFormValid && showValidationErrors) {
@@ -633,6 +639,76 @@ fun AdditionalKycScreenV2(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
+                // ── LOCATION ACCESS CARD ──
+                AKV2SectionLabel("LOCATION PERMISSION")
+                Spacer(modifier = Modifier.height(6.dp))
+                AKV2Card {
+                    Text(
+                        text = stringResource(Res.string.location_description),
+                        fontSize = 11.sp,
+                        color = AKV2BronzeMuted,
+                        lineHeight = 16.sp
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    if (locationPermissionStatus.locationGranted) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Check,
+                                contentDescription = "Allowed",
+                                tint = AKV2LinkGreen,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Allowed",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = AKV2LinkGreen
+                            )
+                        }
+                    } else {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(
+                                onClick = {
+                                    scope.launch {
+                                        val granted = permissionManager.requestLocation()
+                                        if (!granted) {
+                                            locationStatus = "Location permission is required to verify your address. Please grant location access."
+                                        } else {
+                                            locationStatus = null
+                                        }
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = AKV2Obsidian),
+                                modifier = Modifier.fillMaxWidth().height(40.dp)
+                            ) {
+                                Text(
+                                    text = "Allow Location Access",
+                                    fontWeight = FontWeight.Bold,
+                                    color = AKV2GoldAccent,
+                                    fontSize = 12.sp
+                                )
+                            }
+                            OutlinedButton(
+                                onClick = { platformActions.openAppSettings() },
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = AKV2BronzeInk),
+                                modifier = Modifier.fillMaxWidth().height(40.dp)
+                            ) {
+                                Text(
+                                    text = "Open App Settings",
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 12.sp
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
                 // ── DECLARATIONS CARD ──
                 AKV2SectionLabel("DECLARATIONS")
                 Spacer(modifier = Modifier.height(6.dp))
@@ -826,6 +902,7 @@ fun AdditionalKycScreenV2(
                             residentialStatus == "yes" &&
                             nationality == "yes" &&
                             politicallyExposed == "no" &&
+                            locationPermissionStatus.locationGranted &&
                             validationMessage == null
 
                     TimeoutButton(
@@ -934,7 +1011,7 @@ fun AdditionalKycScreenV2(
                                 }
                             }
                         },
-                        enabled = !isSubmitting && isFormValid,
+                        enabled = !isSubmitting,
                         timeoutState = timeoutState,
                         modifier = Modifier.fillMaxWidth().height(50.dp),
                         colors = ButtonDefaults.buttonColors(
