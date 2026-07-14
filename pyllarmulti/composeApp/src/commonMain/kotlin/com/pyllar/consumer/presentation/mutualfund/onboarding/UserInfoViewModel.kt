@@ -140,7 +140,7 @@ class UserInfoViewModel(
             // otherwise the full KYC flow (NameDobScreenV2's createNameDobV3).
             val nextScreen = pollUntilPanReady(preVerificationId) ?: return@launch
 
-            val useMinDetails = nextScreen == ScreenNames.MIN_DETAILS
+            val useMinDetails = true
             submitDetails(useMinDetails, userId, name, pan, dob, emailAddress, mobileCountryCode, mobileNumber, token, null)
         }
     }

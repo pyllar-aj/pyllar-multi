@@ -302,7 +302,10 @@ fun BankDetailsScreenV2(
                                     .clip(RoundedCornerShape(14.dp))
                                     .background(BDV2InfoBg)
                                     .border(1.dp, BDV2CardInfoBorder, RoundedCornerShape(14.dp))
-                                    .clickable { showUpiBankSheet = true }
+                                    .clickable {
+                                        PlatformAnalyticsLogger.logEvent("bank_details_upi_promo_card_click", emptyMap())
+                                        showUpiBankSheet = true
+                                    }
                                     .padding(horizontal = 16.dp, vertical = 14.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
@@ -350,7 +353,10 @@ fun BankDetailsScreenV2(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(10.dp))
                                         .background(BDV2Obsidian)
-                                        .clickable { showUpiBankSheet = true }
+                                        .clickable {
+                                            PlatformAnalyticsLogger.logEvent("bank_details_upi_promo_button_click", emptyMap())
+                                            showUpiBankSheet = true
+                                        }
                                         .padding(horizontal = 16.dp, vertical = 10.dp)
                                 ) {
                                     Text(
@@ -980,6 +986,7 @@ private fun UpiBankDetailsFetchSheet(
                                 onContinue(successState.accountNumber ?: "", successState.ifscCode ?: "")
                             } else {
                                 if (isValidUpi) {
+                                    PlatformAnalyticsLogger.logEvent("bank_details_fetch_my_details_click", emptyMap())
                                     viewModel.fetchBankDetailsViaUpi(userId, upi.trim())
                                 }
                             }

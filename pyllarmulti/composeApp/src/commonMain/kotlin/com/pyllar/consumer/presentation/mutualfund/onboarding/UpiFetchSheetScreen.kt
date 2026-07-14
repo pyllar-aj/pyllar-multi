@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.sp
 import org.jetbrains.compose.resources.stringResource
 import pyllar.composeapp.generated.resources.*
 import org.koin.compose.koinInject
+import com.pyllar.consumer.analytics.PlatformAnalyticsLogger
 
 private val V2Cream = Color(0xFFFBF9F4)
 private val V2BronzeInk = Color(0xFF3E2723)
@@ -408,6 +409,7 @@ fun UpiFetchSheetScreen(
                                     onNavigateBack()
                                 } else {
                                     if (isValidUpi) {
+                                        PlatformAnalyticsLogger.logEvent("upi_fetch_sheet_fetch_click", emptyMap())
                                         viewModel.fetchDetails()
                                     }
                                 }

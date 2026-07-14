@@ -30,6 +30,9 @@ import com.pyllar.consumer.presentation.ui.components.LanguageLetterButton
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+import org.jetbrains.compose.resources.stringResource
+import pyllar.composeapp.generated.resources.*
+
 // ── V2 Premium palette (matching PreVerificationScreenV2/NameDobScreenV2) ──
 private val V2Cream = Color(0xFFFBF9F4)
 private val V2DarkBrown = Color(0xFF3E2723)
@@ -68,14 +71,19 @@ fun KycInformationScreenV2(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp)
-                    .padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.End
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                LanguageLetterButton(textColor = V2MediumGreen)
-                TextButton(onClick = onNavigateToHelp) {
-                    Text("Help", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = V2MediumGreen)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(text = "Pyllar ", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = V2DarkGreen, letterSpacing = (-0.5).sp)
+                    Text(text = "Money", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = V2Gold, letterSpacing = (-0.5).sp)
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    LanguageLetterButton(textColor = V2MediumGreen)
+                    TextButton(onClick = onNavigateToHelp) {
+                        Text(text = stringResource(Res.string.help), style = MaterialTheme.typography.labelLarge, color = V2MediumGreen)
+                    }
                 }
             }
 

@@ -190,6 +190,9 @@ fun UserInfoScreenV2(
             val pName = sessionStore.getValue("prefilledName") ?: ""
             val pDob = sessionStore.getValue("prefilledDob") ?: ""
             val pPan = sessionStore.getValue("prefilledPan") ?: ""
+            if (pName.isNotBlank() || pDob.isNotBlank() || pPan.isNotBlank()) {
+                PlatformAnalyticsLogger.logEvent("user_info_upi_prefilled_success", emptyMap())
+            }
             if (pName.isNotBlank()) {
                 name = pName.filterEnglishName().uppercase()
                 namePrefilled = true
@@ -524,6 +527,7 @@ fun UserInfoScreenV2(
                             .background(V2InfoBg)
                             .border(1.dp, V2InfoBorder, RoundedCornerShape(14.dp))
                             .clickable {
+                                PlatformAnalyticsLogger.logEvent("user_info_upi_promo_card_click", emptyMap())
                                 onNavigateToUpiFetch()
                             }
                             .padding(horizontal = 16.dp, vertical = 14.dp),
@@ -574,6 +578,7 @@ fun UserInfoScreenV2(
                                 .clip(RoundedCornerShape(10.dp))
                                 .background(V2Obsidian)
                                 .clickable {
+                                    PlatformAnalyticsLogger.logEvent("user_info_upi_promo_button_click", emptyMap())
                                     onNavigateToUpiFetch()
                                 }
                                 .padding(horizontal = 16.dp, vertical = 10.dp)
@@ -724,6 +729,7 @@ fun UserInfoScreenV2(
                             Spacer(modifier = Modifier.height(10.dp))
                             Button(
                                 onClick = {
+                                    PlatformAnalyticsLogger.logEvent("user_info_find_my_pan_click", emptyMap())
                                     val lettersCount = name.filter { it.isLetter() }.length
                                     if (lettersCount < 4) {
                                         nameError = "Enter your Full name exactly as on your PAN card"

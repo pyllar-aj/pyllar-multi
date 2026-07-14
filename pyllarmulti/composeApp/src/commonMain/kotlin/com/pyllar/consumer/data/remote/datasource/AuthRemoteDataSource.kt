@@ -47,7 +47,7 @@ class AuthRemoteDataSourceImpl(
 
     override suspend fun uploadSignatureFile(bytes: ByteArray, kycAttemptId: String): Resource<EsignCreateResponseDto> {
         return apiClient.postMultipart<EsignCreateResponseDto>(
-            path = "api/kyc/onboarding/upload-file",
+            path = "api/kyc/onboarding/upload-file-v2",
             formData = {
                 append("kycAttemptId", kycAttemptId)
                 append("file", bytes, io.ktor.http.Headers.build {
