@@ -22,6 +22,8 @@ import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material.icons.filled.TrendingDown
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.VerifiedUser
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.Icons
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -104,6 +106,7 @@ fun InvestmentDashboardV2Screen(
     onNavigateToHelp: () -> Unit = {},
     onNavigateToReferral: () -> Unit = {},
     onRetryKyc: () -> Unit = {},
+    onStartKyc: () -> Unit = {},
     viewModel: InvestmentDashboardV2ViewModel = koinInject(),
     platformActions: PlatformActions = koinInject(),
     permissionManager: PermissionManager = koinInject(),
@@ -129,7 +132,7 @@ fun InvestmentDashboardV2Screen(
         it.mandateStatus?.contains("PENDING", ignoreCase = true) == true ||
         it.mandateStatus?.contains("SUBMITTED", ignoreCase = true) == true
     }
-    val hasStatusCard = !dashboardState.isLoading && (isKycPending || hasPendingMandates)
+    val hasStatusCard = !dashboardState.isLoading && (isKycPending || hasPendingMandates || dashboardState.kycStatus.equals("INITIATE", ignoreCase = true))
 
     var scrollIndex = 3 // 0: Spacer, 1: Spacer + UserHeader, 2: CombinedDashboardCard
     if (hasStatusCard) {
@@ -339,6 +342,12 @@ fun InvestmentDashboardV2Screen(
                             onContactSupport = {
                                 platformActions.openWhatsApp("917676596301", "Hello, my KYC has been submitted and is currently awaiting approval.")
                             }
+                        )
+                    }
+                } else if (dashboardState.kycStatus.equals("INITIATE", ignoreCase = true)) {
+                    item {
+                        InitiateKycCard(
+                            onStartKyc = onStartKyc
                         )
                     }
                 } else {
@@ -2617,3 +2626,297 @@ fun KycApprovedReadyToInvestCard(
         }
     }
 }
+
+enum class StepStatus {
+    COMPLETED,
+    PENDING
+}
+
+@Composable
+fun InitiateKycCard(
+    onStartKyc: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(24.dp),
+        border = BorderStroke(1.dp, Color(0xFFF2EFE9))
+    ) {
+        Column {
+            // Top Section with light warm background
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFFFDFBF7))
+                    .padding(horizontal = 20.dp, vertical = 20.dp)
+            ) {
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Verify identity",
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF2C1E11)
+                            )
+                        )
+                        // Pill badge with clock icon (~2 min)
+                        Surface(
+                            color = Color(0xFFF9F3EB),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Schedule,
+                                    contentDescription = null,
+                                    tint = Color(0xFF8C7153),
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Text(
+                                    text = "~ 2 mins",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.Medium,
+                                        color = Color(0xFF8C7153)
+                                    )
+                                )
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "SEBI requires us to verify your identity before you can start investing in mutual funds.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color(0xFF6B5843)
+                    )
+                }
+            }
+
+            // Divider line
+            HorizontalDivider(
+                color = Color(0xFFF2EFE9),
+                thickness = 1.dp,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            // Timeline Steps Section
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Step 1: PAN Verification
+                KycStepRow(
+                    title = "Verify PAN Card",
+                    description = "Instantly verified using income tax database",
+                    status = StepStatus.COMPLETED,
+                    showBottomLine = true,
+                    lineColor = Color(0xFF4CAF50)
+                )
+
+                // Step 2: Account setup
+                KycStepRow(
+                    title = "Complete Account Setup",
+                    description = "Personal, professional and bank details",
+                    status = StepStatus.COMPLETED,
+                    showBottomLine = true,
+                    lineColor = Color(0xFF4CAF50)
+                )
+
+                // Step 3: Aadhaar KYC
+                KycStepRow(
+                    title = "Verify Aadhaar (e-KYC)",
+                    description = "Authenticate securely using Aadhaar OTP",
+                    status = StepStatus.PENDING,
+                    showBottomLine = false
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Start KYC button
+                Button(
+                    onClick = onStartKyc,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .border(1.dp, Color(0xFFFFC107), RoundedCornerShape(28.dp)),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF071D12),
+                        contentColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(28.dp)
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "Complete KYC",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Icon(
+                            imageVector = Icons.Filled.ArrowForward,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+
+                // Powered by DigiLocker footer
+                Text(
+                    text = "Your data is encrypted · Powered by DigiLocker",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFF9E9E9E),
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun KycStepRow(
+    title: String,
+    description: String,
+    status: StepStatus,
+    showBottomLine: Boolean,
+    modifier: Modifier = Modifier,
+    lineColor: Color = Color.LightGray
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Left timeline column
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.width(28.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .then(
+                        if (status == StepStatus.PENDING) {
+                            Modifier.border(2.dp, Color(0xFFD4AF37), CircleShape)
+                        } else {
+                            Modifier
+                        }
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                if (status == StepStatus.COMPLETED) {
+                    Icon(
+                        imageVector = Icons.Filled.CheckCircle,
+                        contentDescription = null,
+                        tint = Color(0xFF2E7D32),
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Filled.Shield,
+                        contentDescription = null,
+                        tint = Color(0xFFD4AF37),
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+            if (showBottomLine) {
+                Box(
+                    modifier = Modifier
+                        .width(2.dp)
+                        .weight(1f)
+                        .background(lineColor)
+                )
+            }
+        }
+
+        // Content + Right Badge Column
+        Row(
+            modifier = Modifier.weight(1f),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = if (status == StepStatus.COMPLETED) Color(0xFF2E7D32) else Color(0xFF8D6E63)
+                        )
+                    )
+                    if (status == StepStatus.PENDING) {
+                        Surface(
+                            color = Color(0xFFFFF8E1),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text(
+                                text = "PENDING",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF8D6E63)
+                                ),
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                }
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFF5D4037)
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .padding(top = 2.dp)
+                    .size(20.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                if (status == StepStatus.COMPLETED) {
+                    Icon(
+                        imageVector = Icons.Filled.CheckCircle,
+                        contentDescription = null,
+                        tint = Color(0xFF2E7D32),
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    // Dotted circle on the right (Aadhaar KYC pending step)
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        drawCircle(
+                            color = Color(0xFFD4AF37),
+                            style = Stroke(
+                                width = 1.dp.toPx(),
+                                pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 8f), 0f)
+                            )
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+

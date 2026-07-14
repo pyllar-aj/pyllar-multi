@@ -728,7 +728,7 @@ fun App() {
                 )
             }
             is Screen.EsignInformation -> {
-                EsignInformationScreen(
+                EsignInformationScreenV2(
                     onProceed = {
                         scope.launch {
                             val esignUrl = sessionStore.getValue(KeyValueConstants.ESIGN_URL)
@@ -870,7 +870,9 @@ fun App() {
                     },
                     onNavigateToProfile = { navigateTo(Screen.Profile(screen.userId)) },
                     onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId)) },
-                    onNavigateToReferral = { navigateTo(Screen.Referral(screen.userId)) }
+                    onNavigateToReferral = { navigateTo(Screen.Referral(screen.userId)) },
+                    onStartKyc = { navigateTo(Screen.KycInformation(screen.userId)) },
+                    onRetryKyc = { navigateTo(Screen.PreVerification(screen.userId)) }
                 )
             }
             is Screen.SchemeDetails -> {
@@ -963,6 +965,7 @@ fun App() {
                     frequency = screen.frequency,
                     installmentDay = screen.installmentDay,
                     onBackClick = { navigateBack() },
+                    onStartKyc = { navigateTo(Screen.KycInformation(screen.userId)) },
                     onSipCreated = { amount, nextScreen, mandate ->
                         // Refresh or navigate forward after SIP creation
                         if (nextScreen == com.pyllar.consumer.navigation.ScreenNames.MANDATE_AUTH && mandate != null) {
@@ -1024,6 +1027,7 @@ fun App() {
                     investorId = screen.investorId,
                     goalId = screen.goalId,
                     isExistingInvestment = screen.isExistingInvestment,
+                    onStartKyc = { navigateTo(Screen.KycInformation(screen.userId)) },
                     onSipCreated = { amount, nextScreen, mandate ->
                         if (nextScreen == com.pyllar.consumer.navigation.ScreenNames.MANDATE_AUTH && mandate != null) {
                             navigateTo(Screen.MandateAuth(

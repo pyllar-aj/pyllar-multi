@@ -68,6 +68,7 @@ fun FundDetailsScreen(
     frequency: String = "daily",
     installmentDay: Int? = null,
     onBackClick: () -> Unit = {},
+    onStartKyc: () -> Unit = {},
     onSipCreated: (Double, String?, com.pyllar.consumer.data.remote.model.dto.MandateWrapper?) -> Unit = { _, _, _ -> },
     viewModel: FundDetailsViewModel = koinInject(),
     dashboardViewModel: InvestmentDashboardV2ViewModel = koinInject()
@@ -185,11 +186,17 @@ fun FundDetailsScreen(
                     accountNumber = state.bankAccountNumber,
                     ifscCode = state.bankIfscCode,
                     bankName = state.bankName,
+                    kycStatus = dashboardState.kycStatus,
                     onInvestClick = {
                         if (sipAmount <= 0) return@FundDetailsBottomBar
                         
-                        // Check KYC status before proceeding
                         val kycStatus = dashboardState.kycStatus
+                        if (kycStatus.equals("INITIATE", ignoreCase = true)) {
+                            onStartKyc()
+                            return@FundDetailsBottomBar
+                        }
+                        
+                        // Check KYC status before proceeding
                         val isKycPending = !dashboardState.isLoading &&
                                 (kycStatus.equals("PENDING", ignoreCase = true) ||
                                  kycStatus.equals("IN_PROGRESS", ignoreCase = true) ||
@@ -397,6 +404,7 @@ fun FundDetailsBottomBar(
     accountNumber: String?,
     ifscCode: String?,
     bankName: String?,
+    kycStatus: String = "",
     onInvestClick: () -> Unit
 ) {
     Surface(
@@ -451,7 +459,12 @@ fun FundDetailsBottomBar(
                         if (isLoading || isFetching) {
                             CircularProgressIndicator(modifier = Modifier.size(20.dp), color = V2Cream)
                         } else {
-                            Text("Invest Now", fontWeight = FontWeight.Bold)
+                            val buttonText = if (kycStatus.equals("INITIATE", ignoreCase = true)) {
+                                "Complete KYC"
+                            } else {
+                                "Invest Now"
+                            }
+                            Text(buttonText, fontWeight = FontWeight.Bold)
                         }
                     }
                 }

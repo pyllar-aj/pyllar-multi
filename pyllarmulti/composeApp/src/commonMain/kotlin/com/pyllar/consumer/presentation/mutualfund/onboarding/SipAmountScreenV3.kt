@@ -211,6 +211,7 @@ fun SipAmountScreenV3(
     onForceLogout: () -> Unit = {},
     onNavigateToHelp: () -> Unit = {},
     onNavigateToFundDetails: (userId: String, goalId: String, amount: Double, kycAttemptId: String, investorId: String, frequency: String, installmentDay: Int?) -> Unit = { _, _, _, _, _, _, _ -> },
+    onStartKyc: () -> Unit = {},
     viewModel: SipAmountScreenV2ViewModel = koinInject(),
     fundDetailsViewModel: FundDetailsViewModel = koinInject(),
     dashboardViewModel: InvestmentDashboardV2ViewModel = koinInject(),
@@ -502,6 +503,10 @@ fun SipAmountScreenV3(
                     Button(
                         onClick = {
                             if (isSheetLoading) return@Button
+                            if (dashboardState.kycStatus.equals("INITIATE", ignoreCase = true)) {
+                                onStartKyc()
+                                return@Button
+                            }
                             showDetailsBottomSheet = true
                         },
                         modifier = Modifier.fillMaxWidth().height(48.dp),
@@ -518,7 +523,12 @@ fun SipAmountScreenV3(
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(if (isSheetLoading) stringResource(Res.string.submitting) else "Fetching details...")
                         } else {
-                            Text(stringResource(Res.string.start_sip))
+                            val buttonText = if (dashboardState.kycStatus.equals("INITIATE", ignoreCase = true)) {
+                                "Complete KYC"
+                            } else {
+                                stringResource(Res.string.start_sip)
+                            }
+                            Text(buttonText)
                         }
                     }
                 }
