@@ -39,48 +39,52 @@ class IosLocationProvider : LocationProvider {
         }
 
         return withTimeoutOrNull(15000L) {
-            suspendCoroutine { continuation ->
-                val delegate = object : NSObject(), CLLocationManagerDelegateProtocol {
-                    override fun locationManager(manager: CLLocationManager, didUpdateLocations: List<*>) {
-                        val location = didUpdateLocations.lastOrNull() as? platform.CoreLocation.CLLocation
-                        if (location != null) {
-                            manager.stopUpdatingLocation()
-                            location.coordinate.useContents {
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                suspendCoroutine { continuation ->
+                    val delegate = object : NSObject(), CLLocationManagerDelegateProtocol {
+                        override fun locationManager(manager: CLLocationManager, didUpdateLocations: List<*>) {
+                            val location = didUpdateLocations.lastOrNull() as? platform.CoreLocation.CLLocation
+                            if (location != null) {
+                                manager.stopUpdatingLocation()
+                                val lat = location.coordinate.useContents { latitude }
+                                val lon = location.coordinate.useContents { longitude }
                                 continuation.resume(
                                     LocationCoordinates(
-                                        latitude = latitude,
-                                        longitude = longitude
+                                        latitude = lat,
+                                        longitude = lon
                                     )
                                 )
                             }
                         }
+
+                        override fun locationManager(manager: CLLocationManager, didFailWithError: platform.Foundation.NSError) {
+                            manager.stopUpdatingLocation()
+                            continuation.resume(null)
+                        }
                     }
 
-                    override fun locationManager(manager: CLLocationManager, didFailWithError: platform.Foundation.NSError) {
-                        manager.stopUpdatingLocation()
-                        continuation.resume(null)
-                    }
+                    currentDelegate = delegate
+                    locationManager.delegate = delegate
+                    locationManager.desiredAccuracy = kCLLocationAccuracyBest
+                    locationManager.startUpdatingLocation()
                 }
-
-                currentDelegate = delegate
-                locationManager.delegate = delegate
-                locationManager.desiredAccuracy = kCLLocationAccuracyBest
-                locationManager.startUpdatingLocation()
             }
         }
     }
 
-    override suspend fun reverseGeocode(latitude: Double, longitude: Double): GeocodedAddress? = suspendCoroutine { continuation ->
-        val geocoder = platform.CoreLocation.CLGeocoder()
-        val location = platform.CoreLocation.CLLocation(latitude = latitude, longitude = longitude)
-        geocoder.reverseGeocodeLocation(location) { placemarks, error ->
-            val placemark = placemarks?.firstOrNull() as? platform.CoreLocation.CLPlacemark
-            if (placemark != null) {
-                val city = placemark.locality ?: placemark.subAdministrativeArea ?: placemark.administrativeArea ?: ""
-                val pincode = placemark.postalCode ?: ""
-                continuation.resume(GeocodedAddress(city = city, pincode = pincode))
-            } else {
-                continuation.resume(null)
+    override suspend fun reverseGeocode(latitude: Double, longitude: Double): GeocodedAddress? = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+        suspendCoroutine { continuation ->
+            val geocoder = platform.CoreLocation.CLGeocoder()
+            val location = platform.CoreLocation.CLLocation(latitude = latitude, longitude = longitude)
+            geocoder.reverseGeocodeLocation(location) { placemarks, error ->
+                val placemark = placemarks?.firstOrNull() as? platform.CoreLocation.CLPlacemark
+                if (placemark != null) {
+                    val city = placemark.locality ?: placemark.subAdministrativeArea ?: placemark.administrativeArea ?: ""
+                    val pincode = placemark.postalCode ?: ""
+                    continuation.resume(GeocodedAddress(city = city, pincode = pincode))
+                } else {
+                    continuation.resume(null)
+                }
             }
         }
     }

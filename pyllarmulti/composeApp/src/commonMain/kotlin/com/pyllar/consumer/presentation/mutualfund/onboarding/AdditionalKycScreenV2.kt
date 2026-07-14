@@ -44,6 +44,7 @@ import com.pyllar.consumer.util.platformLog
 import com.pyllar.consumer.platform.PermissionManager
 import com.pyllar.consumer.platform.PlatformActions
 import com.pyllar.consumer.platform.LocationProvider
+import com.pyllar.consumer.platform.PermissionStatus
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -110,18 +111,29 @@ fun AdditionalKycScreenV2(
     var visitedFields by remember { mutableStateOf(setOf<String>()) }
     var currentFocusedField by remember { mutableStateOf<String?>(null) }
 
-    var locationPermissionStatus by remember { mutableStateOf(permissionManager.checkStatus()) }
+    var locationPermissionStatus by remember { mutableStateOf(PermissionStatus(false, false, false)) }
     LaunchedEffect(Unit) {
+        // Fetch initial status on Main thread
+        val initialStatus = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+            permissionManager.checkStatus()
+        }
+        locationPermissionStatus = initialStatus
+
         while (true) {
-            locationPermissionStatus = permissionManager.checkStatus()
             delay(1000)
+            val newStatus = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                permissionManager.checkStatus()
+            }
+            if (locationPermissionStatus != newStatus) {
+                locationPermissionStatus = newStatus
+            }
         }
     }
 
     val missingFields = remember(
         fatherName, gender, maritalStatus, occupationType, placeOfBirth,
         addressLine1, addressLine2, addressLine3, city, pincode,
-        residentialStatus, monthlyIncome, nationality, politicallyExposed,
+        residentialStatus, monthlyIncome, nationality, politicallyExposed, isConfirmed,
         locationPermissionStatus
     ) {
         val list = mutableListOf<String>()
@@ -145,7 +157,8 @@ fun AdditionalKycScreenV2(
         if (residentialStatus != "yes") list.add("Residential Status")
         if (nationality != "yes") list.add("Nationality")
         if (politicallyExposed != "no") list.add("Politically Exposed Person")
-        if (!locationPermissionStatus.locationGranted) {
+        if (!isConfirmed) list.add("Declarations Confirmation")
+        if (isConfirmed && !locationPermissionStatus.locationGranted) {
             list.add("Location Permission")
         }
         list
@@ -319,7 +332,8 @@ fun AdditionalKycScreenV2(
                 locationPermissionStatus.locationGranted &&
                 validationMessage == null
 
-        if (isFormValid && showValidationErrors) {
+        val isActuallyValid = isFormValid && missingFields.isEmpty() && validationMessage == null
+        if (isActuallyValid && showValidationErrors) {
             showValidationErrors = false
         }
     }
@@ -639,76 +653,6 @@ fun AdditionalKycScreenV2(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // ── LOCATION ACCESS CARD ──
-                AKV2SectionLabel("LOCATION PERMISSION")
-                Spacer(modifier = Modifier.height(6.dp))
-                AKV2Card {
-                    Text(
-                        text = stringResource(Res.string.location_description),
-                        fontSize = 11.sp,
-                        color = AKV2BronzeMuted,
-                        lineHeight = 16.sp
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    if (locationPermissionStatus.locationGranted) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.Check,
-                                contentDescription = "Allowed",
-                                tint = AKV2LinkGreen,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Allowed",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = AKV2LinkGreen
-                            )
-                        }
-                    } else {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Button(
-                                onClick = {
-                                    scope.launch {
-                                        val granted = permissionManager.requestLocation()
-                                        if (!granted) {
-                                            locationStatus = "Location permission is required to verify your address. Please grant location access."
-                                        } else {
-                                            locationStatus = null
-                                        }
-                                    }
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = AKV2Obsidian),
-                                modifier = Modifier.fillMaxWidth().height(40.dp)
-                            ) {
-                                Text(
-                                    text = "Allow Location Access",
-                                    fontWeight = FontWeight.Bold,
-                                    color = AKV2GoldAccent,
-                                    fontSize = 12.sp
-                                )
-                            }
-                            OutlinedButton(
-                                onClick = { platformActions.openAppSettings() },
-                                colors = ButtonDefaults.outlinedButtonColors(contentColor = AKV2BronzeInk),
-                                modifier = Modifier.fillMaxWidth().height(40.dp)
-                            ) {
-                                Text(
-                                    text = "Open App Settings",
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 12.sp
-                                )
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(14.dp))
-
                 // ── DECLARATIONS CARD ──
                 AKV2SectionLabel("DECLARATIONS")
                 Spacer(modifier = Modifier.height(6.dp))
@@ -799,6 +743,78 @@ fun AdditionalKycScreenV2(
                     if (isConfirmedError) AKV2InlineError("Field is required")
                 }
 
+                if (isConfirmed && locationStatus == null) {
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // ── LOCATION ACCESS CARD ──
+                    AKV2SectionLabel("LOCATION PERMISSION")
+                    Spacer(modifier = Modifier.height(6.dp))
+                    AKV2Card {
+                        Text(
+                            text = stringResource(Res.string.location_description),
+                            fontSize = 11.sp,
+                            color = AKV2BronzeMuted,
+                            lineHeight = 16.sp
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        if (locationPermissionStatus.locationGranted) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Check,
+                                    contentDescription = "Allowed",
+                                    tint = AKV2LinkGreen,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Allowed",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = AKV2LinkGreen
+                                )
+                            }
+                        } else {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Button(
+                                    onClick = {
+                                        scope.launch {
+                                            val granted = permissionManager.requestLocation()
+                                            if (!granted) {
+                                                locationStatus = "Location permission is required to verify your address. Please grant location access."
+                                            } else {
+                                                locationStatus = null
+                                            }
+                                        }
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = AKV2Obsidian),
+                                    modifier = Modifier.fillMaxWidth().height(40.dp)
+                                ) {
+                                    Text(
+                                        text = "Allow Location Access",
+                                        fontWeight = FontWeight.Bold,
+                                        color = AKV2GoldAccent,
+                                        fontSize = 12.sp
+                                    )
+                                }
+                                OutlinedButton(
+                                    onClick = { platformActions.openAppSettings() },
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = AKV2BronzeInk),
+                                    modifier = Modifier.fillMaxWidth().height(40.dp)
+                                ) {
+                                    Text(
+                                        text = "Open App Settings",
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 12.sp
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(20.dp))
 
                 if (validationMessage != null) {
@@ -806,7 +822,7 @@ fun AdditionalKycScreenV2(
                     Spacer(modifier = Modifier.height(12.dp))
                 }
 
-                if (isConfirmed && missingFields.isNotEmpty()) {
+                if (showValidationErrors && missingFields.isNotEmpty()) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -884,7 +900,7 @@ fun AdditionalKycScreenV2(
                         .padding(1.5.dp)
                 ) {
                     val parsedIncome = monthlyIncome.toDoubleOrNull() ?: 0.0
-                    val isFormValid = fatherName.isNotBlank() &&
+                    val isFormValidWithoutLocation = fatherName.isNotBlank() &&
                             gender.isNotBlank() &&
                             maritalStatus.isNotBlank() &&
                             occupationType.isNotBlank() &&
@@ -902,17 +918,37 @@ fun AdditionalKycScreenV2(
                             residentialStatus == "yes" &&
                             nationality == "yes" &&
                             politicallyExposed == "no" &&
-                            locationPermissionStatus.locationGranted &&
                             validationMessage == null
+
+                    val isFormValid = isFormValidWithoutLocation && locationPermissionStatus.locationGranted
 
                     TimeoutButton(
                         onClick = {
                             visitedFields = fieldOrder.toSet()
                             touchedFields = fieldOrder.toSet()
 
-                            if (!isFormValid) {
+                            if (!isFormValidWithoutLocation) {
                                 showValidationErrors = true
-                                scope.launch { scrollState.animateScrollTo(0) }
+                                // Scroll to the first missing field
+                                scope.launch {
+                                    val incomeVal = monthlyIncome.toDoubleOrNull() ?: 0.0
+                                    val targetScrollPosition = when {
+                                        fatherName.isBlank() -> 0
+                                        gender.isBlank() -> (scrollState.maxValue * 0.15f).toInt()
+                                        maritalStatus.isBlank() -> (scrollState.maxValue * 0.25f).toInt()
+                                        placeOfBirth.isBlank() -> (scrollState.maxValue * 0.35f).toInt()
+                                        occupationType.isBlank() -> (scrollState.maxValue * 0.45f).toInt()
+                                        monthlyIncome.isBlank() || incomeVal <= 0.0 -> (scrollState.maxValue * 0.55f).toInt()
+                                        addressLine1.isBlank() -> (scrollState.maxValue * 0.65f).toInt()
+                                        addressLine2.isBlank() -> (scrollState.maxValue * 0.70f).toInt()
+                                        addressLine3.isBlank() -> (scrollState.maxValue * 0.75f).toInt()
+                                        city.isBlank() -> (scrollState.maxValue * 0.80f).toInt()
+                                        pincode.isBlank() || pincode.length != 6 || !pincode.all { it.isDigit() } -> (scrollState.maxValue * 0.80f).toInt()
+                                        residentialStatus != "yes" || nationality != "yes" || politicallyExposed != "no" || !isConfirmed -> (scrollState.maxValue * 0.90f).toInt()
+                                        else -> 0
+                                    }
+                                    scrollState.animateScrollTo(targetScrollPosition)
+                                }
                                 return@TimeoutButton
                             }
 
@@ -927,20 +963,24 @@ fun AdditionalKycScreenV2(
                                     mapOf("kyc_attempt_id_present" to kycAttemptId.isNotBlank(), "screen_version" to "v4")
                                 )
 
-                                val status = permissionManager.checkStatus()
-                                if (!status.locationGranted) {
-                                    locationStatus = "Location permission is required to verify your address. Please grant location access."
-                                    val granted = permissionManager.requestLocation()
-                                    if (!granted) {
-                                        return@launch
-                                    }
-                                }
+                                 val status = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                                     permissionManager.checkStatus()
+                                 }
+                                 if (!status.locationGranted) {
+                                     locationStatus = "Location permission is required to verify your address. Please grant location access."
+                                     val granted = permissionManager.requestLocation()
+                                     if (!granted) {
+                                         return@launch
+                                     }
+                                 }
 
-                                val updatedStatus = permissionManager.checkStatus()
-                                if (!updatedStatus.gpsEnabled) {
-                                    locationStatus = "Location services/GPS are disabled. Please enable location services in Settings."
-                                    return@launch
-                                }
+                                 val updatedStatus = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                                     permissionManager.checkStatus()
+                                 }
+                                 if (!updatedStatus.gpsEnabled) {
+                                     locationStatus = "Location services/GPS are disabled. Please enable location services in Settings."
+                                     return@launch
+                                 }
 
                                 isSubmitting = true
                                 isFetchingLocation = true

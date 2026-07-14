@@ -19,6 +19,7 @@ import platform.darwin.dispatch_semaphore_signal
 import platform.darwin.dispatch_semaphore_wait
 import platform.darwin.DISPATCH_TIME_FOREVER
 import kotlin.coroutines.resume
+import kotlinx.coroutines.launch
 
 class IosPermissionManager : PermissionManager {
 
@@ -34,14 +35,16 @@ class IosPermissionManager : PermissionManager {
                 locationStatus == kCLAuthorizationStatusAuthorizedAlways
         val gpsEnabled = CLLocationManager.locationServicesEnabled()
 
-        // Refresh notification cache synchronously via semaphore (quick OS cache read)
-        val semaphore = dispatch_semaphore_create(0)
         UNUserNotificationCenter.currentNotificationCenter()
             .getNotificationSettingsWithCompletionHandler { settings ->
-                cachedNotifGranted = settings?.authorizationStatus == UNAuthorizationStatusAuthorized
-                dispatch_semaphore_signal(semaphore)
+                if (settings != null) {
+                    val isAuthorized = settings.authorizationStatus == UNAuthorizationStatusAuthorized
+                    // Dispatch to Main thread
+                    kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.Main) {
+                        cachedNotifGranted = isAuthorized
+                    }
+                }
             }
-        dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER)
 
         return PermissionStatus(
             notificationsGranted = cachedNotifGranted,
@@ -65,43 +68,45 @@ class IosPermissionManager : PermissionManager {
     private var activeLocationDelegate: CLLocationManagerDelegateProtocol? = null
 
     override suspend fun requestLocation(): Boolean {
-        val currentStatus = CLLocationManager.authorizationStatus()
-        com.pyllar.consumer.util.platformLog("IosPermissionManager: requestLocation - currentStatus: $currentStatus")
-        
-        if (currentStatus == kCLAuthorizationStatusAuthorizedWhenInUse ||
-            currentStatus == kCLAuthorizationStatusAuthorizedAlways
-        ) {
-            return true
-        }
-        if (currentStatus != kCLAuthorizationStatusNotDetermined) {
-            com.pyllar.consumer.util.platformLog("IosPermissionManager: Permission already denied or restricted, returning false")
-            return false
-        }
-
-        return suspendCancellableCoroutine { cont ->
-            val delegate = object : NSObject(), CLLocationManagerDelegateProtocol {
-                override fun locationManager(
-                    manager: CLLocationManager,
-                    didChangeAuthorizationStatus: CLAuthorizationStatus
-                ) {
-                    com.pyllar.consumer.util.platformLog("IosPermissionManager delegate: didChangeAuthorizationStatus called with status: $didChangeAuthorizationStatus")
-                    if (didChangeAuthorizationStatus == kCLAuthorizationStatusNotDetermined) return
-                    val granted = didChangeAuthorizationStatus == kCLAuthorizationStatusAuthorizedWhenInUse ||
-                            didChangeAuthorizationStatus == kCLAuthorizationStatusAuthorizedAlways
-                    
-                    activeLocationDelegate = null
-                    locationManager.delegate = null
-                    if (cont.isActive) cont.resume(granted)
-                }
-            }
-            activeLocationDelegate = delegate
-            locationManager.delegate = delegate
-            locationManager.desiredAccuracy = kCLLocationAccuracyBest
-            locationManager.requestWhenInUseAuthorization()
+        return kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+            val currentStatus = CLLocationManager.authorizationStatus()
+            com.pyllar.consumer.util.platformLog("IosPermissionManager: requestLocation - currentStatus: $currentStatus")
             
-            cont.invokeOnCancellation { 
-                activeLocationDelegate = null
-                locationManager.delegate = null 
+            if (currentStatus == kCLAuthorizationStatusAuthorizedWhenInUse ||
+                currentStatus == kCLAuthorizationStatusAuthorizedAlways
+            ) {
+                return@withContext true
+            }
+            if (currentStatus != kCLAuthorizationStatusNotDetermined) {
+                com.pyllar.consumer.util.platformLog("IosPermissionManager: Permission already denied or restricted, returning false")
+                return@withContext false
+            }
+
+            suspendCancellableCoroutine { cont ->
+                val delegate = object : NSObject(), CLLocationManagerDelegateProtocol {
+                    override fun locationManager(
+                        manager: CLLocationManager,
+                        didChangeAuthorizationStatus: CLAuthorizationStatus
+                    ) {
+                        com.pyllar.consumer.util.platformLog("IosPermissionManager delegate: didChangeAuthorizationStatus called with status: $didChangeAuthorizationStatus")
+                        if (didChangeAuthorizationStatus == kCLAuthorizationStatusNotDetermined) return
+                        val granted = didChangeAuthorizationStatus == kCLAuthorizationStatusAuthorizedWhenInUse ||
+                                didChangeAuthorizationStatus == kCLAuthorizationStatusAuthorizedAlways
+                        
+                        activeLocationDelegate = null
+                        locationManager.delegate = null
+                        if (cont.isActive) cont.resume(granted)
+                    }
+                }
+                activeLocationDelegate = delegate
+                locationManager.delegate = delegate
+                locationManager.desiredAccuracy = kCLLocationAccuracyBest
+                locationManager.requestWhenInUseAuthorization()
+                
+                cont.invokeOnCancellation { 
+                    activeLocationDelegate = null
+                    locationManager.delegate = null 
+                }
             }
         }
     }
