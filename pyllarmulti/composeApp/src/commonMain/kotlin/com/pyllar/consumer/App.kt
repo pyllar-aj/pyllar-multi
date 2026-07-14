@@ -630,11 +630,13 @@ fun App() {
                 var currentErrorMessage by remember { mutableStateOf(screen.errorMessage) }
 
                 LaunchedEffect(screen.errorMessage) {
-                    currentErrorMessage = screen.errorMessage
+                     currentErrorMessage = screen.errorMessage
                 }
 
                 KycInformationScreenV2(
                     errorMessage = currentErrorMessage,
+                    isLoading = isDigiLinkLoading,
+                    onBack = { navigateBack() },
                     onProceed = {
                         if (!screen.reUrl.isNullOrBlank() && currentErrorMessage == null) {
                             navigateTo(Screen.KycWebView(screen.userId, screen.reUrl, screen.kycAttemptId))
@@ -663,6 +665,9 @@ fun App() {
                                             isDigiLinkLoading = false
                                             val newReUrl = result.data?.reUrl
                                             val newAttemptId = result.data?.kycAttemptId
+                                            if (!newAttemptId.isNullOrBlank()) {
+                                                sessionStore.saveValue(KeyValueConstants.KYC_ATTEMPT_ID, newAttemptId)
+                                            }
                                             if (!newReUrl.isNullOrBlank()) {
                                                 navigateTo(Screen.KycWebView(screen.userId, newReUrl, newAttemptId))
                                             } else {
@@ -683,21 +688,18 @@ fun App() {
                     },
                     onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId)) }
                 )
-                
-                if (isDigiLinkLoading) {
-                    com.pyllar.consumer.presentation.components.LoadingScreen(text = "Initiating DigiLocker...")
-                }
             }
             is Screen.KycWebView -> {
                 KycWebViewScreen(
                     url = screen.url,
                     onKycComplete = { status ->
                         if (status == "successful" || status == "COMPLETED") {
-                            // Match Android logic: Navigate to AdditionalKyc directly
+                            // Match Android logic: Navigate to Signature directly
                             scope.launch {
                                 val kycAttemptId = screen.kycAttemptId ?: sessionStore.getValue(KeyValueConstants.KYC_ATTEMPT_ID)
-                                platformLog("App: KYC Complete. Navigating to AdditionalKyc with ID: $kycAttemptId")
-                                navigateTo(Screen.AdditionalKyc(screen.userId, kycAttemptId ?: ""))
+                                val investorId = sessionStore.getValue(KeyValueConstants.INVESTOR_ID) ?: ""
+                                platformLog("App: KYC Complete. Navigating to Signature with ID: $kycAttemptId, investorId: $investorId")
+                                navigateTo(Screen.Signature(screen.userId, kycAttemptId ?: "", investorId))
                             }
                         } else {
                             // Match Android logic: Go back to KYC Information to retry with an error message

@@ -47,10 +47,13 @@ private val V2SubtleBorder = Color(0xFFEFEBE9)
 fun KycInformationScreenV2(
     onProceed: () -> Unit,
     onNavigateToHelp: () -> Unit = {},
-    errorMessage: String? = null
+    onBack: () -> Unit = {},
+    errorMessage: String? = null,
+    isLoading: Boolean = false
 ) {
     val scrollState = rememberScrollState()
-    var showLoading by remember { mutableStateOf(false) }
+    var localLoading by remember { mutableStateOf(false) }
+    val showLoading = isLoading || localLoading
     var instructionsExpanded by remember { mutableStateOf(true) }
     val uriHandler = LocalUriHandler.current
     val scope = rememberCoroutineScope()
@@ -61,7 +64,7 @@ fun KycInformationScreenV2(
 
     LaunchedEffect(errorMessage) {
         if (errorMessage != null) {
-            showLoading = false
+            localLoading = false
         }
     }
 
@@ -76,6 +79,16 @@ fun KycInformationScreenV2(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(
+                        onClick = onBack,
+                        modifier = Modifier.size(32.dp).padding(end = 8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = V2MediumGreen
+                        )
+                    }
                     Text(text = "Pyllar ", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = V2DarkGreen, letterSpacing = (-0.5).sp)
                     Text(text = "Money", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = V2Gold, letterSpacing = (-0.5).sp)
                 }
@@ -233,7 +246,7 @@ fun KycInformationScreenV2(
                     text = "Proceed to DigiLocker",
                     onClick = {
                         PlatformAnalyticsLogger.logEvent("kyc_information_proceed_clicked")
-                        showLoading = true
+                        localLoading = true
                         scope.launch {
                             delay(500)
                             onProceed()
