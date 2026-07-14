@@ -3,8 +3,11 @@ import AppsFlyerLib
 import Clarity
 import Singular
 import FirebaseCore
+import FirebaseMessaging
+import UserNotifications
+import ComposeApp
 
-class AppDelegate: NSObject, UIApplicationDelegate, AppsFlyerLibDelegate {
+class AppDelegate: NSObject, UIApplicationDelegate, AppsFlyerLibDelegate, UNUserNotificationCenterDelegate, MessagingDelegate {
     func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil
@@ -15,6 +18,16 @@ class AppDelegate: NSObject, UIApplicationDelegate, AppsFlyerLibDelegate {
            let googleAppID = dict["GOOGLE_APP_ID"] as? String,
            !googleAppID.contains("placeholder") {
             FirebaseApp.configure()
+            
+            // Set delegates
+            UNUserNotificationCenter.current().delegate = self
+            Messaging.messaging().delegate = self
+            
+            // Request push authorization and register
+            let authOptions: UNAuthorizationOptions = [.alert, .badge, .sound]
+            UNUserNotificationCenter.current().requestAuthorization(options: authOptions) { _, _ in }
+            
+            application.registerForRemoteNotifications()
         } else {
             print("⚠️ Firebase App ID is a placeholder or GoogleService-Info.plist is missing. Skipping Firebase configuration.")
         }
@@ -102,6 +115,32 @@ class AppDelegate: NSObject, UIApplicationDelegate, AppsFlyerLibDelegate {
 
     func onAppOpenAttributionFailure(_ error: Error) {
         print("[AppsFlyer] App Open Attribution Error: \(error.localizedDescription)")
+    }
+    
+    // MARK: - Push Notifications & Firebase Messaging Delegate
+    
+    func application(
+        _ application: UIApplication,
+        didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
+    ) {
+        Messaging.messaging().apnsToken = deviceToken
+    }
+    
+    func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
+        print("Firebase registration token: \(String(describing: fcmToken))")
+        if let token = fcmToken {
+            // Pass the token to the KMP shared PushTokenManager
+            PushTokenManager.shared.setToken(token: token)
+        }
+    }
+
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        // Handle foreground notification presentation
+        completionHandler([.banner, .list, .sound])
     }
 }
 
