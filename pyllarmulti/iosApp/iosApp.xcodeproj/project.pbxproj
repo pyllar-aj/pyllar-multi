@@ -367,7 +367,10 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.1.9;
-				OTHER_LDFLAGS = "-ObjC";
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.pyllar.consumer;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "Pyllar Appstore";
@@ -408,7 +411,10 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.1.9;
-				OTHER_LDFLAGS = "-ObjC";
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.pyllar.consumer.debug;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "Debug Mac mini development";
