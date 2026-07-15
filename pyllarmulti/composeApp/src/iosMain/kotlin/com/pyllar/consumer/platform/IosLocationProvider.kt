@@ -7,6 +7,7 @@ import platform.CoreLocation.kCLLocationAccuracyBest
 import platform.darwin.NSObject
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.cinterop.ExperimentalForeignApi
 import com.pyllar.consumer.config.IS_DEBUG
@@ -40,26 +41,32 @@ class IosLocationProvider : LocationProvider {
 
         return withTimeoutOrNull(15000L) {
             kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                suspendCoroutine { continuation ->
+                suspendCancellableCoroutine { continuation ->
                     val delegate = object : NSObject(), CLLocationManagerDelegateProtocol {
                         override fun locationManager(manager: CLLocationManager, didUpdateLocations: List<*>) {
                             val location = didUpdateLocations.lastOrNull() as? platform.CoreLocation.CLLocation
                             if (location != null) {
                                 manager.stopUpdatingLocation()
+                                currentDelegate = null
                                 val lat = location.coordinate.useContents { latitude }
                                 val lon = location.coordinate.useContents { longitude }
-                                continuation.resume(
-                                    LocationCoordinates(
-                                        latitude = lat,
-                                        longitude = lon
+                                if (continuation.isActive) {
+                                    continuation.resume(
+                                        LocationCoordinates(
+                                            latitude = lat,
+                                            longitude = lon
+                                        )
                                     )
-                                )
+                                }
                             }
                         }
 
                         override fun locationManager(manager: CLLocationManager, didFailWithError: platform.Foundation.NSError) {
                             manager.stopUpdatingLocation()
-                            continuation.resume(null)
+                            currentDelegate = null
+                            if (continuation.isActive) {
+                                continuation.resume(null)
+                            }
                         }
                     }
 
@@ -67,6 +74,16 @@ class IosLocationProvider : LocationProvider {
                     locationManager.delegate = delegate
                     locationManager.desiredAccuracy = kCLLocationAccuracyBest
                     locationManager.startUpdatingLocation()
+
+                    continuation.invokeOnCancellation {
+                        locationManager.stopUpdatingLocation()
+                        if (locationManager.delegate === delegate) {
+                            locationManager.delegate = null
+                        }
+                        if (currentDelegate === delegate) {
+                            currentDelegate = null
+                        }
+                    }
                 }
             }
         }
