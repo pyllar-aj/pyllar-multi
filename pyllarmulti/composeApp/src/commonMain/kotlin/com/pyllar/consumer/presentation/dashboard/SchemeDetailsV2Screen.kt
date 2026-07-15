@@ -301,17 +301,19 @@ fun SchemeDetailsV2Screen(
         bottomBar = {
             if (!state.isLoading && !(state.errorMessage != null && schemeParams == null)) {
                 Surface(
-                    modifier = Modifier.fillMaxWidth().navigationBarsPadding(),
+                    modifier = Modifier.fillMaxWidth(),
                     color = Color.White,
                     tonalElevation = 0.dp,
                     shadowElevation = 24.dp
                 ) {
-                    Column {
+                    Column(
+                        modifier = Modifier.navigationBarsPadding()
+                    ) {
                         HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(start = 12.dp, end = 12.dp, top = 20.dp, bottom = 24.dp),
+                                .padding(start = 12.dp, end = 12.dp, top = 20.dp, bottom = 16.dp),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             ActionButtonModuleV2(

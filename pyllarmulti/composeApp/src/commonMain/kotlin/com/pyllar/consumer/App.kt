@@ -246,8 +246,8 @@ fun App() {
                         isInitializing = false
                     }
                 } else {
-                    // Default to PreVerification if no last screen saved
-                    navigateTo(Screen.PreVerification(userId), clearStack = true)
+                    // Default to PhoneVerification if no last screen saved
+                    navigateTo(Screen.PhoneVerification, clearStack = true)
                     isInitializing = false
                 }
             } else {

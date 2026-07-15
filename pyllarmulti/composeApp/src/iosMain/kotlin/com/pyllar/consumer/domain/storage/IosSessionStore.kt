@@ -19,57 +19,59 @@ class IosSessionStore : SessionStore {
         if (hasCheckedFirstRun) return
         val hasRunBefore = defaults.boolForKey("has_run_before")
         if (!hasRunBefore) {
-            val bridgeRef = bridge
-            if (bridgeRef != null) {
-                // Clean the keychain on fresh install
-                bridgeRef.deleteFromKeychain(KEY_USER_ID)
-                bridgeRef.deleteFromKeychain(KEY_EMAIL)
-                bridgeRef.deleteFromKeychain(KEY_PHONE)
-                bridgeRef.deleteFromKeychain(KEY_AUTH_TOKEN)
-                bridgeRef.deleteFromKeychain(KEY_FULL_NAME)
-                
-                val keysToClear = listOf(
-                    KeyValueConstants.KYC_ATTEMPT_ID,
-                    KeyValueConstants.INVESTOR_ID,
-                    KeyValueConstants.RE_URL,
-                    KeyValueConstants.ESIGN_URL,
-                    KeyValueConstants.USER_PURPOSE_ID,
-                    KeyValueConstants.ONBOARDING_STEP,
-                    KeyValueConstants.ONBOARDING_COMPLETED,
-                    KeyValueConstants.ACCOUNT_NUMBER,
-                    KeyValueConstants.IFSC_CODE,
-                    KeyValueConstants.BANK_NAME,
-                    KeyValueConstants.ACCOUNT_HOLDER_NAME,
-                    KeyValueConstants.ACCOUNT_TYPE,
-                    KeyValueConstants.REDEMPTION_TOKEN_TRACKER_ID,
-                    KeyValueConstants.CONSENT_TOKEN_TRACKER_ID,
-                    KeyValueConstants.PAN,
-                    KeyValueConstants.PAN_HOLDER_NAME,
-                    KeyValueConstants.DOB,
-                    KeyValueConstants.MARITAL_STATUS,
-                    KeyValueConstants.OCCUPATION_TYPE,
-                    KeyValueConstants.FATHER_NAME,
-                    KeyValueConstants.ANNUAL_INCOME,
-                    KeyValueConstants.IS_POLITICALLY_EXPOSED,
-                    KeyValueConstants.NATIONALITY_COUNTRY,
-                    KeyValueConstants.PLACE_OF_BIRTH,
-                    KeyValueConstants.GENDER,
-                    KeyValueConstants.SIP_AMOUNT,
-                    KeyValueConstants.SELECTED_GOAL_ID,
-                    KeyValueConstants.HELPER_CODE,
-                    KeyValueConstants.HELPER_CODE_SUBMITTED,
-                    KeyValueConstants.LONGITUDE,
-                    KeyValueConstants.LATITUDE,
-                    KeyValueConstants.LAST_SCREEN
-                )
-                keysToClear.forEach { key ->
-                    bridgeRef.deleteFromKeychain(key)
+            val isLoggedIn = defaults.boolForKey(KEY_LOGGED_IN)
+            if (!isLoggedIn) {
+                val bridgeRef = bridge
+                if (bridgeRef != null) {
+                    // Clean the keychain on fresh install
+                    bridgeRef.deleteFromKeychain(KEY_USER_ID)
+                    bridgeRef.deleteFromKeychain(KEY_EMAIL)
+                    bridgeRef.deleteFromKeychain(KEY_PHONE)
+                    bridgeRef.deleteFromKeychain(KEY_AUTH_TOKEN)
+                    bridgeRef.deleteFromKeychain(KEY_FULL_NAME)
+                    
+                    val keysToClear = listOf(
+                        KeyValueConstants.KYC_ATTEMPT_ID,
+                        KeyValueConstants.INVESTOR_ID,
+                        KeyValueConstants.RE_URL,
+                        KeyValueConstants.ESIGN_URL,
+                        KeyValueConstants.USER_PURPOSE_ID,
+                        KeyValueConstants.ONBOARDING_STEP,
+                        KeyValueConstants.ONBOARDING_COMPLETED,
+                        KeyValueConstants.ACCOUNT_NUMBER,
+                        KeyValueConstants.IFSC_CODE,
+                        KeyValueConstants.BANK_NAME,
+                        KeyValueConstants.ACCOUNT_HOLDER_NAME,
+                        KeyValueConstants.ACCOUNT_TYPE,
+                        KeyValueConstants.REDEMPTION_TOKEN_TRACKER_ID,
+                        KeyValueConstants.CONSENT_TOKEN_TRACKER_ID,
+                        KeyValueConstants.PAN,
+                        KeyValueConstants.PAN_HOLDER_NAME,
+                        KeyValueConstants.DOB,
+                        KeyValueConstants.MARITAL_STATUS,
+                        KeyValueConstants.OCCUPATION_TYPE,
+                        KeyValueConstants.FATHER_NAME,
+                        KeyValueConstants.ANNUAL_INCOME,
+                        KeyValueConstants.IS_POLITICALLY_EXPOSED,
+                        KeyValueConstants.NATIONALITY_COUNTRY,
+                        KeyValueConstants.PLACE_OF_BIRTH,
+                        KeyValueConstants.GENDER,
+                        KeyValueConstants.SIP_AMOUNT,
+                        KeyValueConstants.SELECTED_GOAL_ID,
+                        KeyValueConstants.HELPER_CODE,
+                        KeyValueConstants.HELPER_CODE_SUBMITTED,
+                        KeyValueConstants.LONGITUDE,
+                        KeyValueConstants.LATITUDE,
+                        KeyValueConstants.LAST_SCREEN
+                    )
+                    keysToClear.forEach { key ->
+                        bridgeRef.deleteFromKeychain(key)
+                    }
                 }
-                
-                defaults.setBool(true, forKey = "has_run_before")
-                defaults.synchronize()
-                hasCheckedFirstRun = true
             }
+            defaults.setBool(true, forKey = "has_run_before")
+            defaults.synchronize()
+            hasCheckedFirstRun = true
         } else {
             hasCheckedFirstRun = true
         }

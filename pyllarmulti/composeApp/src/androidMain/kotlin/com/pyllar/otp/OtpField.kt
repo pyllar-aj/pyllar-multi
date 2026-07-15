@@ -13,6 +13,11 @@ import androidx.compose.ui.text.input.VisualTransformation
 import com.pyllar.consumer.presentation.ui.theme.V2Obsidian
 import com.pyllar.consumer.presentation.ui.theme.V2Ink
 
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.sp
+
 @Composable
 actual fun OtpField(
     length: Int,
@@ -40,6 +45,11 @@ actual fun OtpField(
         modifier = modifier,
         enabled = enabled,
         isError = isError,
+        textStyle = TextStyle(
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center,
+            fontSize = 18.sp
+        ),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
         visualTransformation = VisualTransformation.None,
         singleLine = true,
@@ -50,8 +60,8 @@ actual fun OtpField(
             cursorColor = V2Obsidian,
             unfocusedContainerColor = Color(0xFFF5F5F5), // Subtle background
             focusedContainerColor = Color.White,
-            focusedTextColor = V2Ink,
-            unfocusedTextColor = V2Ink
+            focusedTextColor = V2Obsidian,
+            unfocusedTextColor = V2Obsidian
         ),
     )
 }

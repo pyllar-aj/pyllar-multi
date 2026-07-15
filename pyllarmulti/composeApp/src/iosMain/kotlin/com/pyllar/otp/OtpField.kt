@@ -60,12 +60,14 @@ actual fun OtpField(
                 this.textAlignment = NSTextAlignmentCenter
                 this.borderStyle = UITextBorderStyle.UITextBorderStyleNone
                 this.placeholder = "••••••"
-                this.textColor = UIColor.blackColor
+                this.textColor = UIColor.colorWithRed(10.0 / 255.0, green = 36.0 / 255.0, blue = 21.0 / 255.0, alpha = 1.0)
+                this.font = platform.UIKit.UIFont.boldSystemFontOfSize(20.0)
                 this.backgroundColor = UIColor.lightGrayColor.colorWithAlphaComponent(0.12) // Very light grey background
                 this.clipsToBounds = true
                 this.layer.cornerRadius = 12.0
                 this.layer.borderWidth = 1.0
                 this.layer.borderColor = UIColor.lightGrayColor.CGColor
+                this.becomeFirstResponder() // Force UITextField to become first responder to trigger keyboard and view shifting
                 
                 this.addTarget(
                     target = target,

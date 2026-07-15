@@ -108,7 +108,7 @@ fun NomineeDetailsScreenV2(
 
     var isSubmitting by remember { mutableStateOf(false) }
 
-    val bottomSheetScaffoldState = rememberBottomSheetScaffoldState()
+
 
     // Form state
     var skipAddingNominee by remember { mutableStateOf(true) }
@@ -203,12 +203,11 @@ fun NomineeDetailsScreenV2(
         }
     }
 
-    // Expand bottom sheet when OTP screen shown
+    // Clear focus when OTP screen shown
     LaunchedEffect(showOtpScreen) {
         if (showOtpScreen) {
             focusManager.clearFocus()
             keyboardController?.hide()
-            bottomSheetScaffoldState.bottomSheetState.expand()
         }
     }
 
@@ -227,47 +226,14 @@ fun NomineeDetailsScreenV2(
     }
 
     Box(modifier = Modifier.fillMaxSize().background(NMV2Cream)) {
-        BottomSheetScaffold(
-            scaffoldState = bottomSheetScaffoldState,
-            sheetSwipeEnabled = false,
-            containerColor = NMV2Cream,
-            sheetContainerColor = NMV2Cream,
-            sheetContent = {
-                if (showOtpScreen) {
-                    NMV2OtpBottomSheet(
-                        phoneNumber = phoneNumber,
-                        otpFieldValue = otpFieldValue,
-                        otpVerificationResult = otpVerificationResult,
-                        otpGenerationResult = otpGenerationResult,
-                        onOtpFieldValueChange = { otpFieldValue = it },
-                        onVerifyOtp = { otp ->
-                            scope.launch {
-                                val fullPhone = sessionStore.getCurrentPhone()
-                                viewModel.verifyOtp(fullPhone, otp)
-                            }
-                        },
-                        onResendOtp = {
-                            scope.launch {
-                                val fullPhone = sessionStore.getCurrentPhone()
-                                viewModel.generateOtp(fullPhone)
-                            }
-                        },
-                        onDismiss = { showOtpScreen = false },
-                        viewModel = viewModel
-                    )
-                } else {
-                    Box(modifier = Modifier.height(1.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) {
+                    keyboardController?.hide()
+                    focusManager.clearFocus()
                 }
-            }
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) {
-                        keyboardController?.hide()
-                        focusManager.clearFocus()
-                    }
-            ) {
                 Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
                     // ── Top App Bar ──
                     Row(
@@ -674,17 +640,6 @@ fun NomineeDetailsScreenV2(
                     }
                 }
 
-                // Dim overlay when OTP sheet is open
-                if (showOtpScreen) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.4f))
-                            .zIndex(99f)
-                            .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) {}
-                    )
-                }
-            }
         }
 
         // Loading overlay when submitting
@@ -698,6 +653,46 @@ fun NomineeDetailsScreenV2(
             ) {
                 LoadingScreen(text = "Submitting…", modifier = Modifier.fillMaxSize())
             }
+        }
+    }
+
+    if (showOtpScreen) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.4f))
+                .zIndex(99f)
+                .imePadding() // Shrink viewport when keyboard is active
+                .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) {
+                    // Prevent dismiss on outside click
+                },
+            contentAlignment = Alignment.BottomCenter
+        ) {
+            NMV2OtpBottomSheet(
+                phoneNumber = phoneNumber,
+                otpFieldValue = otpFieldValue,
+                otpVerificationResult = otpVerificationResult,
+                otpGenerationResult = otpGenerationResult,
+                onOtpFieldValueChange = { otpFieldValue = it },
+                onVerifyOtp = { otp ->
+                    scope.launch {
+                        val fullPhone = sessionStore.getCurrentPhone()
+                        viewModel.verifyOtp(fullPhone, otp)
+                    }
+                },
+                onResendOtp = {
+                    scope.launch {
+                        val fullPhone = sessionStore.getCurrentPhone()
+                        viewModel.generateOtp(fullPhone)
+                    }
+                },
+                onDismiss = {
+                    focusManager.clearFocus()
+                    keyboardController?.hide()
+                    showOtpScreen = false
+                },
+                viewModel = viewModel
+            )
         }
     }
 
@@ -823,9 +818,10 @@ private fun NMV2OtpBottomSheet(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(NMV2Cream)
-            .padding(start = 24.dp, top = 5.dp, end = 24.dp, bottom = 15.dp)
-            .imePadding(),
+            .background(NMV2Cream, RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
+            .border(1.dp, NMV2CardBorder, RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
+            .verticalScroll(rememberScrollState())
+            .padding(start = 24.dp, top = 5.dp, end = 24.dp, bottom = 15.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {

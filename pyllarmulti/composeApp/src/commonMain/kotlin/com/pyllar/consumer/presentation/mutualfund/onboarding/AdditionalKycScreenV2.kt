@@ -111,22 +111,12 @@ fun AdditionalKycScreenV2(
     var visitedFields by remember { mutableStateOf(setOf<String>()) }
     var currentFocusedField by remember { mutableStateOf<String?>(null) }
 
-    var locationPermissionStatus by remember { mutableStateOf(PermissionStatus(false, false, false)) }
+    var locationPermissionStatus by remember { mutableStateOf(permissionManager.checkStatus()) }
     LaunchedEffect(Unit) {
-        // Fetch initial status on Main thread
-        val initialStatus = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-            permissionManager.checkStatus()
-        }
-        locationPermissionStatus = initialStatus
-
-        while (true) {
-            delay(1000)
-            val newStatus = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                permissionManager.checkStatus()
-            }
-            if (locationPermissionStatus != newStatus) {
-                locationPermissionStatus = newStatus
-            }
+        // Only run status check once on launch to prevent transition crashes
+        val newStatus = permissionManager.checkStatus()
+        if (locationPermissionStatus != newStatus) {
+            locationPermissionStatus = newStatus
         }
     }
 
@@ -786,6 +776,7 @@ fun AdditionalKycScreenV2(
                                                 locationStatus = "Location permission is required to verify your address. Please grant location access."
                                             } else {
                                                 locationStatus = null
+                                                locationPermissionStatus = permissionManager.checkStatus()
                                             }
                                         }
                                     },
@@ -963,20 +954,17 @@ fun AdditionalKycScreenV2(
                                     mapOf("kyc_attempt_id_present" to kycAttemptId.isNotBlank(), "screen_version" to "v4")
                                 )
 
-                                 val status = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                                     permissionManager.checkStatus()
-                                 }
+                                 val status = permissionManager.checkStatus()
                                  if (!status.locationGranted) {
                                      locationStatus = "Location permission is required to verify your address. Please grant location access."
                                      val granted = permissionManager.requestLocation()
+                                     locationPermissionStatus = permissionManager.checkStatus()
                                      if (!granted) {
                                          return@launch
                                      }
                                  }
 
-                                 val updatedStatus = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                                     permissionManager.checkStatus()
-                                 }
+                                 val updatedStatus = permissionManager.checkStatus()
                                  if (!updatedStatus.gpsEnabled) {
                                      locationStatus = "Location services/GPS are disabled. Please enable location services in Settings."
                                      return@launch

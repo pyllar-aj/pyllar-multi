@@ -39,8 +39,7 @@ class IosPermissionManager : PermissionManager {
             .getNotificationSettingsWithCompletionHandler { settings ->
                 if (settings != null) {
                     val isAuthorized = settings.authorizationStatus == UNAuthorizationStatusAuthorized
-                    // Dispatch to Main thread
-                    kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.Main) {
+                    platform.darwin.dispatch_async(platform.darwin.dispatch_get_main_queue()) {
                         cachedNotifGranted = isAuthorized
                     }
                 }

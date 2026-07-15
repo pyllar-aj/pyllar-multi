@@ -54,7 +54,7 @@
     <string name="allocation_processing_sub">₹%1$s received · %2$s arriving soon</string>
     <string name="withdrawal_in_progress_amount">₹%1$s Withdrawal in progress</string>
     <string name="withdrawal_in_progress_card_title">₹%1$s withdrawal in progress</string>
-    <string name="withdrawal_in_progress_card_subtitle">Credited to your bank within 2 business days.\nPlacing a new request here will be in addition to it.</string>
+    <string name="withdrawal_in_progress_card_subtitle">Credited to your bank within 2 business days. Placing a new request here will be in addition to it.</string>
     <string name="withdrawal_in_progress_badge">IN PROGRESS</string>
     <string name="withdrawal_in_progress_card_caption">This fund has ₹%1$s withdrawing already. Placing a new request here will be in addition to it.</string>
     <string name="takes_upto_2_business_days">Takes up to 2 business days</string>
