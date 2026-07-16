@@ -3,6 +3,7 @@ import AppsFlyerLib
 import Clarity
 import Singular
 import FirebaseCore
+import FirebaseCrashlytics
 
 class AppDelegate: NSObject, UIApplicationDelegate, AppsFlyerLibDelegate {
     func application(
