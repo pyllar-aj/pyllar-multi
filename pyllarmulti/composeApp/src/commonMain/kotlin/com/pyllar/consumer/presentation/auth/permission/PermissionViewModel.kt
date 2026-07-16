@@ -10,6 +10,7 @@ import com.pyllar.consumer.platform.PermissionManager
 import com.pyllar.consumer.platform.PermissionStatus
 import com.pyllar.consumer.platform.PlatformActions
 import com.pyllar.consumer.util.Resource
+import com.pyllar.consumer.util.toUserFriendlyErrorMessage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -169,7 +170,7 @@ class PermissionViewModel(
                         _state.value = _state.value.copy(
                             updateEmailResult = result,
                             isProcessing = false,
-                            serverErrorMessage = result.message,
+                            serverErrorMessage = result.message?.toUserFriendlyErrorMessage(),
                             permissionFlow = PermissionFlowState.Idle
                         )
                     }

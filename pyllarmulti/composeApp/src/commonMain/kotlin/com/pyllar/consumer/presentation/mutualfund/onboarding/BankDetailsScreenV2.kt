@@ -38,6 +38,7 @@ import com.pyllar.consumer.analytics.PlatformAnalyticsLogger
 import com.pyllar.consumer.data.remote.model.dto.NavigationAction
 import com.pyllar.consumer.domain.storage.SessionStore
 import com.pyllar.consumer.navigation.ScreenNames
+import com.pyllar.consumer.util.toUserFriendlyErrorMessage
 import com.pyllar.consumer.presentation.components.LoadingScreen
 import com.pyllar.consumer.presentation.ui.components.LanguageLetterButton
 import com.pyllar.consumer.presentation.ui.components.TimeoutButton
@@ -162,7 +163,7 @@ fun BankDetailsScreenV2(
             is Resource.Error -> {
                 isSubmitting = false
                 isPolling = false
-                errorMessage = result.message ?: genericErrorMessage
+                errorMessage = (result.message ?: genericErrorMessage).toUserFriendlyErrorMessage()
                 timeoutState.triggerTimeout()
                 PlatformAnalyticsLogger.logEvent("bank_details_submit_error", mapOf("screen_version" to "v4"))
             }

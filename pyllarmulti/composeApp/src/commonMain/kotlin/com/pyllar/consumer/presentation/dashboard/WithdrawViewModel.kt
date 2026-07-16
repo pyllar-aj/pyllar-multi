@@ -8,6 +8,7 @@ import com.pyllar.consumer.data.remote.requests.TransactionDetailsRequest
 import com.pyllar.consumer.domain.repository.DashboardRepository
 import com.pyllar.consumer.util.Resource
 import com.pyllar.consumer.util.platformLog
+import com.pyllar.consumer.util.toUserFriendlyErrorMessage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -140,7 +141,7 @@ class WithdrawViewModel(
                             platformLog("Error loading withdraw data: ${result.message}")
                             _withdrawState.value = _withdrawState.value.copy(
                                 isLoading = false,
-                                errorMessage = result.message ?: "Error loading data"
+                                errorMessage = (result.message ?: "Error loading data").toUserFriendlyErrorMessage()
                             )
                         }
                         is Resource.Loading -> { }
@@ -148,7 +149,7 @@ class WithdrawViewModel(
                 }
             } catch (e: Exception) {
                 platformLog("Exception loading withdraw data: ${e.message}")
-                _withdrawState.value = _withdrawState.value.copy(isLoading = false, errorMessage = e.message)
+                _withdrawState.value = _withdrawState.value.copy(isLoading = false, errorMessage = e.message?.toUserFriendlyErrorMessage())
             }
         }
     }

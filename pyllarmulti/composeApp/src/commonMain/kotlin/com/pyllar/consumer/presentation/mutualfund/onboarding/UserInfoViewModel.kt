@@ -15,6 +15,7 @@ import com.pyllar.consumer.domain.repository.CommonRepository
 import com.pyllar.consumer.domain.storage.SessionStore
 import com.pyllar.consumer.util.Resource
 import com.pyllar.consumer.util.platformLog
+import com.pyllar.consumer.util.toUserFriendlyErrorMessage
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -125,13 +126,13 @@ class UserInfoViewModel(
             val readiness = readinessResult
             if (readiness == null || readiness is Resource.Error) {
                 platformLog("$TAG: Readiness check failed: ${readiness?.message}")
-                _submitState.value = SubmitState.Failed(readiness?.message, readiness?.fieldErrors, Stage.PAN)
+                _submitState.value = SubmitState.Failed(readiness?.message?.toUserFriendlyErrorMessage(), readiness?.fieldErrors, Stage.PAN)
                 return@launch
             }
 
             val preVerificationId = readiness.data?.data?.id ?: readiness.data?.id
             if (preVerificationId == null) {
-                _submitState.value = SubmitState.Failed("Invalid response from server", null, Stage.PAN)
+                _submitState.value = SubmitState.Failed("Invalid response from server".toUserFriendlyErrorMessage(), null, Stage.PAN)
                 return@launch
             }
 
@@ -186,7 +187,7 @@ class UserInfoViewModel(
                 }
                 is Resource.Error -> {
                     platformLog("$TAG: Readiness polling failed: ${result.message}")
-                    _submitState.value = SubmitState.Failed(result.message, result.fieldErrors, Stage.PAN)
+                    _submitState.value = SubmitState.Failed(result.message?.toUserFriendlyErrorMessage(), result.fieldErrors, Stage.PAN)
                     return null
                 }
                 else -> {}
@@ -268,7 +269,7 @@ class UserInfoViewModel(
                 }
                 is Resource.Error -> {
                     platformLog("$TAG: Details submission failed: ${result.message}")
-                    _submitState.value = SubmitState.Failed(result.message, result.fieldErrors, Stage.DETAILS)
+                    _submitState.value = SubmitState.Failed(result.message?.toUserFriendlyErrorMessage(), result.fieldErrors, Stage.DETAILS)
                 }
                 else -> {}
             }

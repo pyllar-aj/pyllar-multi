@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Job
 import com.pyllar.consumer.util.platformLog
+import com.pyllar.consumer.util.toUserFriendlyErrorMessage
 
 enum class VerificationStatus {
     IDLE,
@@ -138,7 +139,7 @@ class PreVerificationViewModel(
                             } else {
                                 _uiState.value = _uiState.value.copy(
                                     verificationResult = Resource.Error("Invalid response - no verification ID"),
-                                    errorMessage = "Invalid response from server",
+                                    errorMessage = "Invalid response from server".toUserFriendlyErrorMessage(),
                                     verificationStatus = VerificationStatus.UNKNOWN_FAILURE
                                 )
                             }
@@ -147,7 +148,7 @@ class PreVerificationViewModel(
                             platformLog("PreVerificationVM: \u274C Readiness check failed: ${result.message}")
                             _uiState.value = _uiState.value.copy(
                                 verificationResult = result,
-                                errorMessage = result.message,
+                                errorMessage = result.message?.toUserFriendlyErrorMessage(),
                                 verificationStatus = VerificationStatus.UNKNOWN_FAILURE
                             )
                         }
@@ -237,7 +238,7 @@ class PreVerificationViewModel(
                             platformLog("PreVerificationVM: Pre-verification failed: ${result.message}")
                             _uiState.value = _uiState.value.copy(
                                 verificationResult = Resource.Error(result.message ?: "Unknown error"),
-                                errorMessage = result.message,
+                                errorMessage = result.message?.toUserFriendlyErrorMessage(),
                                 verificationStatus = VerificationStatus.UNKNOWN_FAILURE
                             )
                         }
@@ -311,7 +312,7 @@ class PreVerificationViewModel(
                         stopPolling()
                         _uiState.value = _uiState.value.copy(
                             verificationResult = Resource.Error(result.message ?: "Polling failed"),
-                            errorMessage = result.message,
+                            errorMessage = result.message?.toUserFriendlyErrorMessage(),
                             verificationStatus = VerificationStatus.UNKNOWN_FAILURE
                         )
                     }

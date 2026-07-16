@@ -9,6 +9,7 @@ import com.pyllar.consumer.data.remote.model.dto.ReferredUserEntryDto
 import com.pyllar.consumer.data.remote.model.dto.CoinRedemptionHistoryEntryDto
 import com.pyllar.consumer.data.remote.model.dto.CoinRedemptionHistoryDto
 import com.pyllar.consumer.util.Resource
+import com.pyllar.consumer.util.toUserFriendlyErrorMessage
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -229,7 +230,7 @@ class ReferralViewModel(
                         ))
                         _uiState.value = _uiState.value.copy(
                             isWithdrawLoading = false,
-                            errorMessage = result.message ?: "Withdrawal failed. Please try again."
+                            errorMessage = (result.message ?: "Withdrawal failed. Please try again.").toUserFriendlyErrorMessage()
                         )
                     }
                     is Resource.Loading -> Unit

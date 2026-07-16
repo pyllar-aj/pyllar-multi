@@ -8,6 +8,7 @@ import com.pyllar.consumer.data.remote.requests.HelperCodeRequest
 import com.pyllar.consumer.domain.repository.OnboardingRepository
 import com.pyllar.consumer.util.Log
 import com.pyllar.consumer.util.Resource
+import com.pyllar.consumer.util.toUserFriendlyErrorMessage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -107,7 +108,7 @@ class HelperCodeViewModel(
                         is Resource.Error -> {
                             _helperCodeState.value = _helperCodeState.value.copy(
                                 isSubmitting = false,
-                                errorMessage = result.message ?: "Failed to submit helper code."
+                                errorMessage = (result.message ?: "Failed to submit helper code.").toUserFriendlyErrorMessage()
                             )
                         }
                         is Resource.Loading -> Unit
@@ -115,7 +116,7 @@ class HelperCodeViewModel(
                 }
             } catch (e: Exception) {
                 _helperCodeState.value = _helperCodeState.value.copy(
-                    isSubmitting = false, errorMessage = "Failed to submit helper code."
+                    isSubmitting = false, errorMessage = "Failed to submit helper code.".toUserFriendlyErrorMessage()
                 )
             }
         }

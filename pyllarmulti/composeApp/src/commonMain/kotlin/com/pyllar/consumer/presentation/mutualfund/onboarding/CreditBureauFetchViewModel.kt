@@ -7,6 +7,7 @@ import com.pyllar.consumer.data.remote.model.dto.CreditBureauLookupResponseDto
 import com.pyllar.consumer.domain.storage.SessionStore
 import com.pyllar.consumer.util.Resource
 import com.pyllar.consumer.util.filterEnglishName
+import com.pyllar.consumer.util.toUserFriendlyErrorMessage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -87,7 +88,7 @@ class CreditBureauFetchViewModel(
                                 isFetching = false,
                                 fetchSuccess = false,
                                 fetchError = true,
-                                errorMessage = result.message ?: "Could not fetch your PAN. Please check your name and try again"
+                                errorMessage = (result.message ?: "Could not fetch your PAN. Please check your name and try again").toUserFriendlyErrorMessage()
                             )
                         }
                     }

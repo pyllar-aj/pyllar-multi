@@ -38,6 +38,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
+import com.pyllar.consumer.util.toUserFriendlyErrorMessage
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.Dp
@@ -593,7 +594,7 @@ fun SipAmountScreenV2(
                             }
                             is SipCreationResult.Failure -> {
                                 platformLog("SipAmountV2: SIP Creation Failure: ${result.message}")
-                                errorMessage = result.message
+                                errorMessage = result.message?.toUserFriendlyErrorMessage()
                             }
                             else -> {
                                 platformLog("SipAmountV2: Unexpected result type: ${result::class.simpleName}")
@@ -601,7 +602,7 @@ fun SipAmountScreenV2(
                         }
                     } catch (e: Exception) {
                         platformLog("SipAmountV2: Exception during createSip: ${e.message}")
-                        errorMessage = "An unexpected error occurred: ${e.message}"
+                        errorMessage = ("An unexpected error occurred: " + e.message).toUserFriendlyErrorMessage()
                     } finally {
                         isLoading = false
                     }

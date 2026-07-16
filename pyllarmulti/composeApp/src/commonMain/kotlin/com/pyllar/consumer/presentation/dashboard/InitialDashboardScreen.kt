@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pyllar.consumer.analytics.PlatformAnalyticsLogger
+import com.pyllar.consumer.util.toUserFriendlyErrorMessage
 import com.pyllar.consumer.data.remote.model.dto.NavigationAction
 import com.pyllar.consumer.navigation.AppRoutes
 import com.pyllar.consumer.util.Resource
@@ -329,12 +330,12 @@ fun InitialDashboardScreen(
                                                 }
                                             }
                                             is Resource.Error -> {
-                                                errorMessage = result.message ?: "Unable to select goal"
+                                                errorMessage = (result.message ?: "Unable to select goal").toUserFriendlyErrorMessage()
                                             }
                                             else -> Unit
                                         }
                                     } catch (e: Exception) {
-                                        errorMessage = e.message ?: "Something went wrong"
+                                        errorMessage = (e.message ?: "Something went wrong").toUserFriendlyErrorMessage()
                                     } finally {
                                         isSubmitting = false
                                     }

@@ -27,6 +27,7 @@ import androidx.compose.ui.platform.LocalUriHandler
 import com.pyllar.consumer.presentation.ui.components.TimeoutButton
 import com.pyllar.consumer.presentation.ui.components.rememberTimeoutState
 import com.pyllar.consumer.util.platformLog
+import com.pyllar.consumer.util.toUserFriendlyErrorMessage
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
@@ -227,14 +228,14 @@ fun LumpsumFundDetailsScreen(
                                 }
                                 onLumpsumCreated(lumpsumAmount, result.nextScreen, mappedData)
                             }
-                            is SipCreationResult.Failure -> {
-                                com.pyllar.consumer.util.platformLog("LumpsumFundDetails: Failure: ${result.message}")
-                                errorMessage = result.message
-                            }
-                            else -> {
-                                com.pyllar.consumer.util.platformLog("LumpsumFundDetails: Unexpected result type")
-                                errorMessage = "Unexpected error"
-                            }
+                             is SipCreationResult.Failure -> {
+                                 com.pyllar.consumer.util.platformLog("LumpsumFundDetails: Failure: ${result.message}")
+                                 errorMessage = result.message?.toUserFriendlyErrorMessage()
+                             }
+                             else -> {
+                                 com.pyllar.consumer.util.platformLog("LumpsumFundDetails: Unexpected result type")
+                                 errorMessage = "Unexpected error".toUserFriendlyErrorMessage()
+                             }
                         }
                     }
                 }

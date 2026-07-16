@@ -364,7 +364,7 @@ fun UserInfoScreenV2(
                     val friendlyMsg = if (rawMsg.contains("HTTP", ignoreCase = true)) {
                         checkInternetConnection
                     } else {
-                        rawMsg
+                        rawMsg.toUserFriendlyErrorMessage()
                     }
                     if (state.stage == UserInfoViewModel.Stage.PAN) {
                         panError = friendlyMsg

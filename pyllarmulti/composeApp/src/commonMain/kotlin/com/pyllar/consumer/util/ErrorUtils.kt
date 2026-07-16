@@ -33,5 +33,17 @@ fun String.toUserFriendlyErrorMessage(): String {
         return "We are facing issues connecting to our servers. Please try again later."
     }
 
+    val isSystemOrTechnicalError = trimmed.contains("unrecognized field", ignoreCase = true) ||
+            trimmed.contains("jackson", ignoreCase = true) ||
+            trimmed.contains("deserialization", ignoreCase = true) ||
+            trimmed.contains("class com.pyllar", ignoreCase = true) ||
+            trimmed.contains("streamreadfeature", ignoreCase = true) ||
+            trimmed.contains("preverificationresponse", ignoreCase = true) ||
+            (trimmed.contains("Failed to check investor readiness", ignoreCase = true) && trimmed.contains("field", ignoreCase = true))
+
+    if (isSystemOrTechnicalError) {
+        return "Failed to check readiness. Please try again later."
+    }
+
     return trimmed
 }

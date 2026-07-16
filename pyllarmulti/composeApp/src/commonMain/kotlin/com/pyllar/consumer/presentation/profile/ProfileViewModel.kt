@@ -7,6 +7,7 @@ import com.pyllar.consumer.data.local.LocalOnboardingStore
 import com.pyllar.consumer.domain.repository.OnboardingRepository
 import com.pyllar.consumer.util.Log
 import com.pyllar.consumer.util.Resource
+import com.pyllar.consumer.util.toUserFriendlyErrorMessage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -106,7 +107,7 @@ class ProfileViewModel(
                         is Resource.Error -> {
                             _profileState.value = _profileState.value.copy(
                                 isLoading = false,
-                                error = result.message
+                                error = result.message?.toUserFriendlyErrorMessage()
                             )
                         }
                         is Resource.Loading -> Unit
@@ -140,7 +141,7 @@ class ProfileViewModel(
                         is Resource.Error -> {
                             _profileState.value = _profileState.value.copy(
                                 isDeletionRequestInProgress = false,
-                                deletionRequestError = result.message ?: "Failed to submit request."
+                                deletionRequestError = (result.message ?: "Failed to submit request.").toUserFriendlyErrorMessage()
                             )
                         }
                         is Resource.Loading -> Unit
@@ -149,7 +150,7 @@ class ProfileViewModel(
             } catch (e: Exception) {
                 _profileState.value = _profileState.value.copy(
                     isDeletionRequestInProgress = false,
-                    deletionRequestError = "Failed to submit request: ${e.message}"
+                    deletionRequestError = ("Failed to submit request: " + e.message).toUserFriendlyErrorMessage()
                 )
             }
         }

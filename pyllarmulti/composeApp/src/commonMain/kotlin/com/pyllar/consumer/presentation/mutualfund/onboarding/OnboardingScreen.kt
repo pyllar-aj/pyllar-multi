@@ -20,6 +20,7 @@ import com.pyllar.consumer.domain.models.MutualFundConstants
 import com.pyllar.consumer.presentation.ui.components.StandardTextFieldNewTwo
 import com.pyllar.consumer.presentation.ui.theme.TrueWhite
 import com.pyllar.consumer.util.Status
+import com.pyllar.consumer.util.toUserFriendlyErrorMessage
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -58,7 +59,7 @@ fun OnboardingScreen(
                     }
                 }
                 Status.ERROR -> {
-                    onShowMessage(result.message ?: "Onboarding failed")
+                    onShowMessage((result.message ?: "Onboarding failed").toUserFriendlyErrorMessage())
                 }
                 Status.LOADING -> {
                     // Loading state handled in UI
