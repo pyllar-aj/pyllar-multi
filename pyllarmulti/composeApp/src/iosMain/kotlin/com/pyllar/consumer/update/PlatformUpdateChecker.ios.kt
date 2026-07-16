@@ -75,7 +75,7 @@ private fun installedVersion(): String? =
 private suspend fun fetchStoreVersion(): Pair<String, Long>? {
     val client = HttpClient(Darwin)
     return try {
-        val body = client.get("https://itunes.apple.com/lookup?bundleId=$BUNDLE_ID").bodyAsText()
+        val body = client.get("https://itunes.apple.com/lookup?bundleId=$BUNDLE_ID&country=in").bodyAsText()
         val root = json.parseToJsonElement(body).jsonObject
         val results = root["results"]?.jsonArray ?: return null
         if (results.isEmpty()) return null

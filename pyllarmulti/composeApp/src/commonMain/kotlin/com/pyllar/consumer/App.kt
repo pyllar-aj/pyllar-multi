@@ -233,6 +233,12 @@ fun App() {
         }
 
         LaunchedEffect(Unit) {
+            if (sessionStore.getValue("force_logout_v1_done") != "true") {
+                platformLog("App: Forcing user logout once as per requested configuration")
+                sessionStore.logout()
+                sessionStore.saveValue("force_logout_v1_done", "true")
+            }
+
             val isLoggedIn = sessionStore.isLoggedIn()
             platformLog("App: Initializing. isLoggedIn=$isLoggedIn")
             if (isLoggedIn) {
@@ -1319,9 +1325,9 @@ private suspend fun handleNavigation(
             onNavigate(Screen.InvestmentDashboard(userId))
         }
         else -> {
-            platformLog("AppNav: Defaulting to PRE_VERIFICATION for action: '$action'")
-            com.pyllar.consumer.util.Log.d("AppNav", "Defaulting navigation to PRE_VERIFICATION for action: $action")
-            onNavigate(Screen.PreVerification(userId))
+            platformLog("AppNav: Defaulting to PhoneVerification for action: '$action'")
+            com.pyllar.consumer.util.Log.d("AppNav", "Defaulting navigation to PhoneVerification for action: $action")
+            onNavigate(Screen.PhoneVerification)
         }
     }
 }
