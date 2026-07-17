@@ -39,6 +39,12 @@ import com.pyllar.consumer.presentation.components.UpdateBottomSheet
 import com.pyllar.consumer.update.checkPlatformForUpdates
 import com.pyllar.consumer.update.onOptionalUpdateDismissed
 
+private sealed class OnboardedCheckResult {
+    data class Resolved(val screenName: String) : OnboardedCheckResult()
+    object DeadSession : OnboardedCheckResult()
+    object Inconclusive : OnboardedCheckResult()
+}
+
 sealed class Screen {
     object PhoneVerification : Screen()
     data class OtpVerification(val phoneNumber: String, val otpRef: String?) : Screen()
@@ -146,6 +152,7 @@ fun App() {
     val sessionStore: com.pyllar.consumer.domain.storage.SessionStore = koinInject()
     val authRepository: com.pyllar.consumer.domain.repository.AuthRepository = koinInject()
     val onboardingRepository: com.pyllar.consumer.domain.repository.OnboardingRepository = koinInject()
+    val dashboardRepository: com.pyllar.consumer.domain.repository.DashboardRepository = koinInject()
     val forceUpdateManager: ForceUpdateManager = koinInject()
     val scope = rememberCoroutineScope()
     val uriHandler = LocalUriHandler.current
@@ -232,7 +239,57 @@ fun App() {
             checkPlatformForUpdates(forceUpdateManager)
         }
 
+        // Confirms against the backend whether a user is actually onboarded/invested, for cases where
+        // a locally-cached screen checkpoint can't be trusted on its own (e.g. a stale leftover from a
+        // past session-storage bug, or any other unrecognized cached value). Also detects a "zombie"
+        // session — isLoggedIn() still true locally but the auth token is blank/rejected, which the
+        // original session-storage bug could produce — and signs out so the user re-authenticates.
+        suspend fun verifyOnboardedScreen(userId: String): OnboardedCheckResult {
+            if (sessionStore.getCurrentToken().isBlank()) {
+                sessionStore.logout()
+                return OnboardedCheckResult.DeadSession
+            }
+            var dashboardResult: Resource<com.pyllar.consumer.data.remote.model.dto.InvestorDashboardResponseV2Dto>? = null
+            dashboardRepository.getDashboardV2(userId).collect {
+                if (it !is Resource.Loading) dashboardResult = it
+            }
+            if (dashboardResult?.isAuthenticationError == true) {
+                sessionStore.logout()
+                return OnboardedCheckResult.DeadSession
+            }
+            val response = dashboardResult?.data
+            val hasInvestments = !response?.currentInvestments.isNullOrEmpty()
+            // Mirrors InvestmentDashboardV2Screen's own "KYC done, no goal picked yet" check.
+            val kycComplete = response?.kycDetails?.kycStatus.equals("SUCCESS", ignoreCase = true)
+            return when {
+                hasInvestments -> {
+                    sessionStore.saveValue(KeyValueConstants.LAST_SCREEN, ScreenNames.INVESTMENT_DASHBOARD)
+                    OnboardedCheckResult.Resolved(ScreenNames.INVESTMENT_DASHBOARD)
+                }
+                kycComplete -> {
+                    sessionStore.saveValue(KeyValueConstants.LAST_SCREEN, ScreenNames.INITIAL_DASHBOARD)
+                    OnboardedCheckResult.Resolved(ScreenNames.INITIAL_DASHBOARD)
+                }
+                else -> OnboardedCheckResult.Inconclusive
+            }
+        }
+
         LaunchedEffect(Unit) {
+            // One-time forced logout tied to this release, so every pre-existing session is guaranteed
+            // to start from a clean, backend-verified state after the LAST_SCREEN/session-storage bug.
+            // Only actually logs out if there's a session to clear — a new install has never been
+            // logged in, so there's nothing to force. Runs at most once ever per device — the flag is
+            // written last, after logout() completes, so a killed/interrupted app can't leave it set
+            // without the logout having actually happened.
+            val forceLogoutDone = sessionStore.getValue(KeyValueConstants.FORCE_LOGOUT_SESSION_FIX_DONE) == "true"
+            if (!forceLogoutDone) {
+                if (sessionStore.isLoggedIn()) {
+                    platformLog("App: Running one-time forced logout for session-storage fix")
+                    sessionStore.logout()
+                }
+                sessionStore.saveValue(KeyValueConstants.FORCE_LOGOUT_SESSION_FIX_DONE, "true")
+            }
+
             val isLoggedIn = sessionStore.isLoggedIn()
             platformLog("App: Initializing. isLoggedIn=$isLoggedIn")
             if (isLoggedIn) {
@@ -240,8 +297,44 @@ fun App() {
                 PlatformAnalyticsLogger.setUserId(userId)
                 val lastScreen = sessionStore.getValue(KeyValueConstants.LAST_SCREEN)
                 platformLog("App: Resuming. userId=$userId, lastScreen=$lastScreen")
-                if (lastScreen != null && lastScreen != ScreenNames.HOME) {
-                    handleNavigation(lastScreen, userId, sessionStore = sessionStore) { 
+
+                // A cached PRE_VERIFICATION checkpoint can be a stale leftover (e.g. from a past
+                // session-storage bug) rather than a real mid-onboarding user, so it's not trustworthy
+                // on its own. Confirm against the backend before honoring it.
+                val verifiedLastScreen = if (lastScreen == ScreenNames.PRE_VERIFICATION) {
+                    when (val result = verifyOnboardedScreen(userId)) {
+                        is OnboardedCheckResult.Resolved -> result.screenName
+                        OnboardedCheckResult.DeadSession -> null
+                        OnboardedCheckResult.Inconclusive -> lastScreen
+                    }
+                } else {
+                    lastScreen
+                }
+
+                if (verifiedLastScreen != null && verifiedLastScreen != ScreenNames.HOME) {
+                    handleNavigation(
+                        verifiedLastScreen, userId, sessionStore = sessionStore,
+                        onUnmatched = {
+                            // Any other unrecognized cached screen gets the same backend-verified
+                            // treatment, rather than blindly defaulting to onboarding.
+                            when (val result = verifyOnboardedScreen(userId)) {
+                                is OnboardedCheckResult.Resolved -> {
+                                    handleNavigation(result.screenName, userId, sessionStore = sessionStore) {
+                                        navigateTo(it, clearStack = true)
+                                        isInitializing = false
+                                    }
+                                }
+                                OnboardedCheckResult.DeadSession -> {
+                                    navigateTo(Screen.PhoneVerification, clearStack = true)
+                                    isInitializing = false
+                                }
+                                OnboardedCheckResult.Inconclusive -> {
+                                    navigateTo(Screen.PreVerification(userId), clearStack = true)
+                                    isInitializing = false
+                                }
+                            }
+                        }
+                    ) {
                         navigateTo(it, clearStack = true)
                         isInitializing = false
                     }
@@ -302,7 +395,12 @@ fun App() {
                                 action = targetAction,
                                 userId = userId,
                                 notificationUrl = notificationUrl,
-                                sessionStore = sessionStore
+                                sessionStore = sessionStore,
+                                onUnmatched = {
+                                    // An unrecognized/malformed push payload should never yank an
+                                    // actively-using-the-app user into onboarding — just ignore it.
+                                    platformLog("AppNav: Ignoring unrecognized push action: '$targetAction'")
+                                }
                             ) { screen ->
                                 navigateTo(screen)
                             }
@@ -1224,6 +1322,7 @@ private suspend fun handleNavigation(
     reUrl: String? = null,
     notificationUrl: String? = null,
     sessionStore: com.pyllar.consumer.domain.storage.SessionStore,
+    onUnmatched: (suspend () -> Unit)? = null,
     onNavigate: (Screen) -> Unit
 ) {
     platformLog("AppNav: handleNavigation: action='$action', userId='$userId'")
@@ -1319,9 +1418,13 @@ private suspend fun handleNavigation(
             onNavigate(Screen.InvestmentDashboard(userId))
         }
         else -> {
-            platformLog("AppNav: Defaulting to PRE_VERIFICATION for action: '$action'")
-            com.pyllar.consumer.util.Log.d("AppNav", "Defaulting navigation to PRE_VERIFICATION for action: $action")
-            onNavigate(Screen.PreVerification(userId))
+            platformLog("AppNav: Unmatched action: '$action'")
+            com.pyllar.consumer.util.Log.d("AppNav", "Unmatched navigation action: $action")
+            if (onUnmatched != null) {
+                onUnmatched()
+            } else {
+                onNavigate(Screen.PreVerification(userId))
+            }
         }
     }
 }

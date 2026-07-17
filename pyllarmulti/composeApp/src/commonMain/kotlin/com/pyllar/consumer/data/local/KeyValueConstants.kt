@@ -64,4 +64,7 @@ object KeyValueConstants {
     const val LANGUAGE_PREFERENCE = "language_preference"
     // Persistence
     const val LAST_SCREEN = "last_screen"
+
+    // One-time migration flags
+    const val FORCE_LOGOUT_SESSION_FIX_DONE = "force_logout_session_fix_done"
 }
