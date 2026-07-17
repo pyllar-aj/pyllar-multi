@@ -24,10 +24,6 @@ class AppDelegate: NSObject, UIApplicationDelegate, AppsFlyerLibDelegate, UNUser
             UNUserNotificationCenter.current().delegate = self
             Messaging.messaging().delegate = self
 
-            // Request push authorization and register
-            let authOptions: UNAuthorizationOptions = [.alert, .badge, .sound]
-            UNUserNotificationCenter.current().requestAuthorization(options: authOptions) { _, _ in }
-
             application.registerForRemoteNotifications()
         } else {
             print("⚠️ Firebase App ID is a placeholder or GoogleService-Info.plist is missing. Skipping Firebase configuration.")
