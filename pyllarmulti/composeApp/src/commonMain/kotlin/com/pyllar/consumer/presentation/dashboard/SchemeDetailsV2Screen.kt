@@ -594,31 +594,14 @@ fun SchemeDetailsV2Screen(
                                     color = goalColor,
                                     modifier = Modifier.padding(bottom = 4.dp)
                                 )
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Text(
-                                        text = formatRupeeAmount(state.cummulativeValue, 0),
-                                        style = MaterialTheme.typography.titleLarge.copy(
-                                            fontWeight = FontWeight.Black,
-                                            fontSize = 20.sp
-                                        ),
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-
-                                    val gain = state.availableGain
-                                    val invested = state.investedAmount + state.investmentInProgress
-                                    if (invested > 0) {
-                                        val isLoss = gain < 0
-                                        val percent = abs(gain / invested * 100)
-                                        Text(
-                                            text = "(${if(!isLoss)"+" else "-"}${formatDecimal(percent, 1)}%)",
-                                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                            color = if(!isLoss) Color(0xFF2E7D32) else Color(0xFF808080)
-                                        )
-                                    }
-                                }
+                                Text(
+                                    text = formatRupeeAmount(state.cummulativeValue, 0),
+                                    style = MaterialTheme.typography.titleLarge.copy(
+                                        fontWeight = FontWeight.Black,
+                                        fontSize = 20.sp
+                                    ),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
                             }
 
                             Box(
@@ -1912,7 +1895,38 @@ fun SchemeDetailsPopupContentV2(
                                 HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                             }
                             if (hasInvestedAmount || hasCurrentValue) {
-                                RecordRowV2(stringResource(Res.string.total_value_label), formatRupeeAmount(totalValue, 1))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.Top
+                                ) {
+                                    Text(
+                                        text = stringResource(Res.string.total_value_label),
+                                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Text(
+                                            text = formatRupeeAmount(totalValue, 1),
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        val gain = availableGain
+                                        val invested = investedAmount + investmentInProgress
+                                        if (invested > 0) {
+                                            val isLoss = gain < 0
+                                            val percent = abs(gain / invested * 100)
+                                            Text(
+                                                text = "(${if(!isLoss)"+" else "-"}${formatDecimal(percent, 1)}%)",
+                                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                                color = if(!isLoss) Color(0xFF2E7D32) else Color(0xFF808080)
+                                            )
+                                        }
+                                    }
+                                }
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Box(
                                     modifier = Modifier
