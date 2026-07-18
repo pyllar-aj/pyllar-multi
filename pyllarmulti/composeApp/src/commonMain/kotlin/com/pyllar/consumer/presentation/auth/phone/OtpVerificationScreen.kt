@@ -33,6 +33,7 @@ import com.pyllar.consumer.presentation.ui.theme.V2Cream
 import com.pyllar.consumer.presentation.ui.theme.V2Obsidian
 import com.pyllar.consumer.presentation.ui.theme.V2Ink
 import com.pyllar.consumer.presentation.ui.theme.V2HelpText
+import com.pyllar.consumer.getPlatform
 import kotlinx.coroutines.delay
 
 /**
@@ -50,6 +51,7 @@ fun OtpVerificationScreen(
     onShareApp: () -> Unit = {},
     onOpenUrl: (String) -> Unit = {}
 ) {
+    val isIos = remember { getPlatform().name.contains("iOS", ignoreCase = true) }
     val verificationResult: Resource<AuthUserDTO>? =
         viewModel.verificationResult.collectAsStateWithLifecycle().value
     val otp: String = viewModel.otp.collectAsStateWithLifecycle().value
@@ -171,7 +173,8 @@ fun OtpVerificationScreen(
 
         Card(
             modifier = Modifier
-                .align(Alignment.Center)
+                .align(if (isIos) Alignment.BottomCenter else Alignment.Center)
+                .padding(bottom = if (isIos) 120.dp else 0.dp)
                 .fillMaxWidth(0.95f)
                 .padding(horizontal = 4.dp),
             shape = RoundedCornerShape(24.dp),

@@ -40,6 +40,7 @@ import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import pyllar.composeapp.generated.resources.*
 import com.pyllar.consumer.presentation.ui.theme.*
+import com.pyllar.consumer.getPlatform
 import com.pyllar.consumer.util.toUserFriendlyErrorMessage
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DateTimeUnit
@@ -78,6 +79,7 @@ fun WithdrawAmountScreen(
     var isVerifyingOtp by remember { mutableStateOf(false) }
     
     val bottomSheetScaffoldState = rememberBottomSheetScaffoldState()
+    val isIos = remember { getPlatform().name.contains("iOS", ignoreCase = true) }
     
     // Bank Details State
     var bankName by remember { mutableStateOf("") }
@@ -660,7 +662,7 @@ fun WithdrawAmountScreen(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
                             .fillMaxWidth()
-                            .imePadding(),
+                            .run { if (isIos) this else imePadding() },
                         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
                     ) {
                         Column(
