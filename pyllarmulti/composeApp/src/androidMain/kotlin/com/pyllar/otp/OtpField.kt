@@ -48,7 +48,8 @@ actual fun OtpField(
         textStyle = TextStyle(
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
-            fontSize = 18.sp
+            fontSize = 18.sp,
+            letterSpacing = 8.sp
         ),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
         visualTransformation = VisualTransformation.None,

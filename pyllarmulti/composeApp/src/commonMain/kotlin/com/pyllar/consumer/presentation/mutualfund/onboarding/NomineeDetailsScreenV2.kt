@@ -54,6 +54,7 @@ import com.pyllar.consumer.util.filterEnglishName
 import com.pyllar.consumer.util.filterEnglishPan
 import com.pyllar.consumer.util.platformLog
 import com.pyllar.otp.OtpField
+import com.pyllar.consumer.getPlatform
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
@@ -92,6 +93,7 @@ fun NomineeDetailsScreenV2(
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
     val scrollState = rememberScrollState()
+    val isIos = remember { getPlatform().name.contains("iOS", ignoreCase = true) }
 
     // Initialization
     var effectiveUserId by remember { mutableStateOf(userId) }
@@ -112,7 +114,7 @@ fun NomineeDetailsScreenV2(
 
     // Form state
     var skipAddingNominee by remember { mutableStateOf(true) }
-    var nominees by remember { mutableStateOf(listOf(NomineeInfo("", "", "", ""))) }
+    var nominees by remember { mutableStateOf(listOf(NomineeInfo("", "", "", "", isAddressSame = true))) }
 
     // Date picker state
     var showNomineeDatePicker by remember { mutableStateOf<Int?>(null) }
@@ -499,6 +501,178 @@ fun NomineeDetailsScreenV2(
                                             )
                                             Icon(Icons.Filled.DateRange, contentDescription = "Pick date", tint = NMV2GoldAccent, modifier = Modifier.size(18.dp))
                                         }
+
+                                        // Address same checkbox
+                                        Spacer(modifier = Modifier.height(12.dp))
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable {
+                                                    nominees = nominees.toMutableList().apply {
+                                                        this[index] = this[index].copy(isAddressSame = !this[index].isAddressSame)
+                                                    }
+                                                }
+                                                .padding(vertical = 4.dp)
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(20.dp)
+                                                    .background(if (nominee.isAddressSame) NMV2Obsidian else Color.White, RoundedCornerShape(6.dp))
+                                                    .border(1.5.dp, if (nominee.isAddressSame) NMV2GoldAccent else NMV2FieldBorder, RoundedCornerShape(6.dp)),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                if (nominee.isAddressSame) {
+                                                    Icon(Icons.Filled.Check, contentDescription = null, tint = NMV2Cream, modifier = Modifier.size(12.dp))
+                                                }
+                                            }
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(
+                                                text = "Nominee contact details same as mine",
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                color = NMV2BronzeInk
+                                            )
+                                        }
+
+                                        // Contact & Address fields
+                                        if (!nominee.isAddressSame) {
+                                            // Email field
+                                            Spacer(modifier = Modifier.height(12.dp))
+                                            Text("Email Address", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = NMV2BronzeMuted, modifier = Modifier.padding(bottom = 5.dp))
+                                            val emailError = nominee.email.isNotEmpty() && !isValidEmail(nominee.email)
+                                            OutlinedTextField(
+                                                value = nominee.email,
+                                                onValueChange = { newValue ->
+                                                    nominees = nominees.toMutableList().apply {
+                                                        this[index] = this[index].copy(email = newValue.trim())
+                                                    }
+                                                },
+                                                placeholder = { Text("e.g. name@email.com", color = NMV2FieldBorder.copy(alpha = 0.6f), fontSize = 14.sp) },
+                                                singleLine = true,
+                                                isError = emailError,
+                                                shape = RoundedCornerShape(12.dp),
+                                                modifier = Modifier.fillMaxWidth(),
+                                                keyboardOptions = KeyboardOptions(
+                                                    keyboardType = KeyboardType.Email,
+                                                    imeAction = ImeAction.Next
+                                                ),
+                                                colors = OutlinedTextFieldDefaults.colors(
+                                                    focusedBorderColor = NMV2LinkGreen,
+                                                    unfocusedBorderColor = NMV2FieldBorder,
+                                                    errorBorderColor = NMV2VolatilityRed,
+                                                    focusedTextColor = NMV2BronzeInk,
+                                                    unfocusedTextColor = NMV2BronzeInk,
+                                                    cursorColor = NMV2LinkGreen
+                                                ),
+                                                supportingText = {
+                                                    if (emailError) {
+                                                        Text("Email address is not valid", color = NMV2VolatilityRed, fontSize = 11.sp)
+                                                    }
+                                                }
+                                            )
+
+                                            // Phone number field
+                                            Spacer(modifier = Modifier.height(12.dp))
+                                            Text("Phone Number", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = NMV2BronzeMuted, modifier = Modifier.padding(bottom = 5.dp))
+                                            val phoneError = nominee.phone.isNotEmpty() && nominee.phone.length < 10
+                                            OutlinedTextField(
+                                                value = nominee.phone,
+                                                onValueChange = { newValue ->
+                                                    val digitsOnly = newValue.filter { it.isDigit() }
+                                                    if (digitsOnly.length <= 10) {
+                                                        nominees = nominees.toMutableList().apply {
+                                                            this[index] = this[index].copy(phone = digitsOnly)
+                                                        }
+                                                    }
+                                                },
+                                                placeholder = { Text("10-digit mobile number", color = NMV2FieldBorder.copy(alpha = 0.6f), fontSize = 14.sp) },
+                                                singleLine = true,
+                                                isError = phoneError,
+                                                shape = RoundedCornerShape(12.dp),
+                                                modifier = Modifier.fillMaxWidth(),
+                                                keyboardOptions = KeyboardOptions(
+                                                    keyboardType = KeyboardType.Number,
+                                                    imeAction = ImeAction.Next
+                                                ),
+                                                colors = OutlinedTextFieldDefaults.colors(
+                                                    focusedBorderColor = NMV2LinkGreen,
+                                                    unfocusedBorderColor = NMV2FieldBorder,
+                                                    errorBorderColor = NMV2VolatilityRed,
+                                                    focusedTextColor = NMV2BronzeInk,
+                                                    unfocusedTextColor = NMV2BronzeInk,
+                                                    cursorColor = NMV2LinkGreen
+                                                ),
+                                                supportingText = {
+                                                    if (phoneError) {
+                                                        Text("Phone number is not valid", color = NMV2VolatilityRed, fontSize = 11.sp)
+                                                    }
+                                                }
+                                            )
+
+                                            // Address fields
+                                            Spacer(modifier = Modifier.height(12.dp))
+                                            Text("Address", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = NMV2BronzeMuted, modifier = Modifier.padding(bottom = 5.dp))
+                                            OutlinedTextField(
+                                                value = nominee.addressLine1,
+                                                onValueChange = { newValue ->
+                                                    nominees = nominees.toMutableList().apply {
+                                                        this[index] = this[index].copy(addressLine1 = newValue)
+                                                    }
+                                                },
+                                                placeholder = { Text("Flat, House no., Building, Street, Locality", color = NMV2FieldBorder.copy(alpha = 0.6f), fontSize = 14.sp) },
+                                                minLines = 3,
+                                                maxLines = 5,
+                                                shape = RoundedCornerShape(12.dp),
+                                                modifier = Modifier.fillMaxWidth().height(80.dp),
+                                                keyboardOptions = KeyboardOptions(
+                                                    capitalization = KeyboardCapitalization.Words,
+                                                    imeAction = ImeAction.Next
+                                                ),
+                                                colors = OutlinedTextFieldDefaults.colors(
+                                                    focusedBorderColor = NMV2LinkGreen,
+                                                    unfocusedBorderColor = NMV2FieldBorder,
+                                                    focusedTextColor = NMV2BronzeInk,
+                                                    unfocusedTextColor = NMV2BronzeInk,
+                                                    cursorColor = NMV2LinkGreen
+                                                )
+                                            )
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            val pinError = nominee.addressPostalCode.isNotEmpty() && nominee.addressPostalCode.length < 6
+                                            OutlinedTextField(
+                                                value = nominee.addressPostalCode,
+                                                onValueChange = { newValue ->
+                                                    val digitsOnly = newValue.filter { it.isDigit() }
+                                                    if (digitsOnly.length <= 6) {
+                                                        nominees = nominees.toMutableList().apply {
+                                                            this[index] = this[index].copy(addressPostalCode = digitsOnly)
+                                                        }
+                                                    }
+                                                },
+                                                placeholder = { Text("Pincode", color = NMV2FieldBorder.copy(alpha = 0.6f), fontSize = 14.sp) },
+                                                singleLine = true,
+                                                isError = pinError,
+                                                shape = RoundedCornerShape(12.dp),
+                                                modifier = Modifier.fillMaxWidth(),
+                                                keyboardOptions = KeyboardOptions(
+                                                    keyboardType = KeyboardType.Number,
+                                                    imeAction = ImeAction.Done
+                                                ),
+                                                colors = OutlinedTextFieldDefaults.colors(
+                                                    focusedBorderColor = NMV2LinkGreen,
+                                                    unfocusedBorderColor = NMV2FieldBorder,
+                                                    errorBorderColor = NMV2VolatilityRed,
+                                                    focusedTextColor = NMV2BronzeInk,
+                                                    unfocusedTextColor = NMV2BronzeInk,
+                                                    cursorColor = NMV2LinkGreen
+                                                ),
+                                                supportingText = {
+                                                    if (pinError) {
+                                                        Text("Pincode is not valid", color = NMV2VolatilityRed, fontSize = 11.sp)
+                                                    }
+                                                }
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -511,7 +685,7 @@ fun NomineeDetailsScreenV2(
                                         .height(48.dp)
                                         .background(Color.White, RoundedCornerShape(12.dp))
                                         .border(1.5.dp, NMV2GoldAccent, RoundedCornerShape(12.dp))
-                                        .clickable { nominees = nominees + NomineeInfo("", "", "", "") },
+                                        .clickable { nominees = nominees + NomineeInfo("", "", "", "", isAddressSame = true) },
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -560,8 +734,15 @@ fun NomineeDetailsScreenV2(
                             nominees.all { nominee ->
                                 val isPanValid = nominee.panNumber.length == 10 &&
                                     (nominee.panNumber.length < 4 || nominee.panNumber[3] == 'P')
+                                val isEmailValid = nominee.isAddressSame || isValidEmail(nominee.email)
+                                val isPhoneValid = nominee.isAddressSame || nominee.phone.length == 10
+                                val isAddressValid = nominee.isAddressSame || (
+                                    nominee.addressLine1.isNotBlank() &&
+                                    nominee.addressPostalCode.length == 6
+                                )
                                 nominee.name.isNotBlank() && nominee.relationship.isNotBlank() &&
-                                    nominee.dateOfBirth.isNotBlank() && isPanValid
+                                    nominee.dateOfBirth.isNotBlank() && isPanValid &&
+                                    isEmailValid && isPhoneValid && isAddressValid
                             }
                         }
 
@@ -613,8 +794,8 @@ fun NomineeDetailsScreenV2(
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = NMV2Obsidian,
                                     contentColor = NMV2Cream,
-                                    disabledContainerColor = NMV2Obsidian,
-                                    disabledContentColor = NMV2Cream
+                                    disabledContainerColor = NMV2Obsidian.copy(alpha = 0.5f),
+                                    disabledContentColor = NMV2Cream.copy(alpha = 0.5f)
                                 )
                             ) {
                                 when {
@@ -662,7 +843,7 @@ fun NomineeDetailsScreenV2(
                 .fillMaxSize()
                 .background(Color.Black.copy(alpha = 0.4f))
                 .zIndex(99f)
-                .imePadding() // Shrink viewport when keyboard is active
+                .run { if (isIos) this else imePadding() } // Avoid double padding on iOS where native pans window
                 .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) {
                     // Prevent dismiss on outside click
                 },
@@ -727,6 +908,15 @@ fun NomineeDetailsScreenV2(
             onDaySelected = { day: Int -> nomineeSelectedDay = day }
         )
     }
+}
+
+private fun isValidEmail(value: String): Boolean {
+    val emailRegex = "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}\$".toRegex()
+    if (value.isBlank() || !emailRegex.matches(value)) return false
+    val lastDot = value.lastIndexOf('.')
+    if (lastDot == -1 || lastDot >= value.length - 2) return false
+    val tld = value.substring(lastDot + 1)
+    return tld.length in 2..6 && tld.all { it.isLetter() }
 }
 
 private fun formatDobDisplay(dobIso: String): String {
@@ -820,7 +1010,6 @@ private fun NMV2OtpBottomSheet(
             .fillMaxWidth()
             .background(NMV2Cream, RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
             .border(1.dp, NMV2CardBorder, RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
-            .verticalScroll(rememberScrollState())
             .padding(start = 24.dp, top = 5.dp, end = 24.dp, bottom = 15.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(18.dp)

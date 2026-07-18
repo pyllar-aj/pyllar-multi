@@ -15,6 +15,8 @@ import platform.UIKit.UIControlEventEditingChanged
 import platform.UIKit.NSTextAlignmentCenter
 import platform.UIKit.UITextBorderStyle
 import platform.UIKit.UIColor
+import platform.UIKit.NSKernAttributeName
+import platform.Foundation.NSNumber
 import platform.darwin.NSObject
 import platform.Foundation.NSSelectorFromString
 import kotlinx.cinterop.ExperimentalForeignApi
@@ -62,6 +64,10 @@ actual fun OtpField(
                 this.placeholder = "••••••"
                 this.textColor = UIColor.colorWithRed(10.0 / 255.0, green = 36.0 / 255.0, blue = 21.0 / 255.0, alpha = 1.0)
                 this.font = platform.UIKit.UIFont.boldSystemFontOfSize(20.0)
+                val currentAttributes = (this.defaultTextAttributes ?: emptyMap<Any?, Any?>()).toMutableMap()
+                currentAttributes[NSKernAttributeName] = NSNumber(double = 8.0)
+                this.defaultTextAttributes = currentAttributes
+                
                 this.backgroundColor = UIColor.lightGrayColor.colorWithAlphaComponent(0.12) // Very light grey background
                 this.clipsToBounds = true
                 this.layer.cornerRadius = 12.0

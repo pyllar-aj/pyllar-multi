@@ -25,7 +25,17 @@ data class NomineeInfo(
     val name: String,
     val relationship: String,
     val dateOfBirth: String,
-    val panNumber: String
+    val panNumber: String,
+    val email: String = "",
+    val phone: String = "",
+    val addressLine1: String = "",
+    val addressLine2: String = "",
+    val addressLine3: String = "",
+    val addressCity: String = "",
+    val addressState: String = "",
+    val addressPostalCode: String = "",
+    val addressCountry: String = "India",
+    val isAddressSame: Boolean = true
 )
 
 class NomineeDetailsViewModel(
@@ -170,7 +180,11 @@ class NomineeDetailsViewModel(
                                 nomineeRelationship = nominee.relationship.takeIf { it.isNotBlank() },
                                 nomineeDateOfBirth = nominee.dateOfBirth.takeIf { it.isNotBlank() },
                                 nomineePanNumber = nominee.panNumber.takeIf { it.isNotBlank() },
-                                percentage = null
+                                percentage = null,
+                                emailAddress = if (nominee.isAddressSame) null else nominee.email.takeIf { it.isNotBlank() },
+                                phoneNumber = if (nominee.isAddressSame) null else nominee.phone.takeIf { it.isNotBlank() },
+                                line1 = if (nominee.isAddressSame) null else nominee.addressLine1.takeIf { it.isNotBlank() },
+                                pincode = if (nominee.isAddressSame) null else nominee.addressPostalCode.takeIf { it.isNotBlank() }
                             )
                         } else {
                             null

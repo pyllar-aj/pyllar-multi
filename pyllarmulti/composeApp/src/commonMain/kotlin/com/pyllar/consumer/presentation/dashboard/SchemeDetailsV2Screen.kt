@@ -536,7 +536,7 @@ fun SchemeDetailsV2Screen(
                                                             append(parts[0])
                                                         }
                                                         if (parts.size > 1) {
-                                                            withStyle(SpanStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold)) {
+                                                            withStyle(SpanStyle(fontSize = 52.sp, fontWeight = FontWeight.Black)) {
                                                                 append(" " + parts.subList(1, parts.size).joinToString(" "))
                                                             }
                                                         }
@@ -1916,15 +1916,15 @@ fun SchemeDetailsPopupContentV2(
                                         )
                                         val gain = availableGain
                                         val invested = investedAmount + investmentInProgress
-                                        if (invested > 0) {
-                                            val isLoss = gain < 0
-                                            val percent = abs(gain / invested * 100)
-                                            Text(
-                                                text = "(${if(!isLoss)"+" else "-"}${formatDecimal(percent, 1)}%)",
-                                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                                color = if(!isLoss) Color(0xFF2E7D32) else Color(0xFF808080)
-                                            )
-                                        }
+//                                        if (invested > 0) {
+//                                            val isLoss = gain < 0
+//                                            val percent = abs(gain / invested * 100)
+//                                            Text(
+//                                                text = "(${if(!isLoss)"+" else "-"}${formatDecimal(percent, 1)}%)",
+//                                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+//                                                color = if(!isLoss) Color(0xFF2E7D32) else Color(0xFF808080)
+//                                            )
+//                                        }
                                     }
                                 }
                                 Spacer(modifier = Modifier.height(8.dp))

@@ -22,6 +22,20 @@ data class NomineeDetailsRequest(
     val nomineePanNumber: String? = null,
 
     @SerialName("percentage")
-    val percentage: Int? = null
+    val percentage: Int? = null,
+
+    @SerialName("email_address")
+    val emailAddress: String? = null,
+
+    @SerialName("phone_number")
+    val phoneNumber: String? = null,
+
+    @SerialName("line1")
+    val line1: String? = null,
+
+    @SerialName("pincode")
+    val pincode: String? = null
 )
+
+
 
