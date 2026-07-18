@@ -123,6 +123,13 @@ class AppDelegate: NSObject, UIApplicationDelegate, AppsFlyerLibDelegate, UNUser
         Messaging.messaging().apnsToken = deviceToken
     }
 
+    func application(
+        _ application: UIApplication,
+        didFailToRegisterForRemoteNotificationsWithError error: Error
+    ) {
+        print("⚠️ Failed to register for remote notifications: \(error.localizedDescription)")
+    }
+
     func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
         print("Firebase registration token: \(String(describing: fcmToken))")
         if let token = fcmToken {
@@ -138,6 +145,40 @@ class AppDelegate: NSObject, UIApplicationDelegate, AppsFlyerLibDelegate, UNUser
     ) {
         // Handle foreground notification presentation
         completionHandler([.banner, .list, .sound])
+    }
+
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
+        let userInfo = response.notification.request.content.userInfo
+        print("[Push Notification Click] Received userInfo: \(userInfo)")
+        
+        // Convert the dictionary to JSON string and pass to KMP
+        if let jsonData = try? JSONSerialization.data(withJSONObject: userInfo, options: []),
+           let jsonString = String(data: jsonData, encoding: .utf8) {
+            print("[Push Notification Click] Passing JSON payload to KMP: \(jsonString)")
+            PushTokenManager.shared.setNotificationPayload(payload: jsonString)
+        }
+
+        completionHandler()
+    }
+
+    // Handle silent/background remote notifications (e.g. content-available pushes).
+    func application(
+        _ application: UIApplication,
+        didReceiveRemoteNotification userInfo: [AnyHashable : Any],
+        fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
+    ) {
+        print("[Push Notification] Received remote notification: \(userInfo)")
+
+        if let jsonData = try? JSONSerialization.data(withJSONObject: userInfo, options: []),
+           let jsonString = String(data: jsonData, encoding: .utf8) {
+            PushTokenManager.shared.setNotificationPayload(payload: jsonString)
+        }
+
+        completionHandler(.newData)
     }
 }
 
