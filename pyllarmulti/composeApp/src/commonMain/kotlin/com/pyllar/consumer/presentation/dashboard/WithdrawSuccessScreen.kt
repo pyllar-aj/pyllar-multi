@@ -23,9 +23,11 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.material.icons.filled.Schedule
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
+import com.pyllar.consumer.domain.storage.SessionStore
 import com.pyllar.consumer.platform.PlatformActions
 import pyllar.composeapp.generated.resources.*
 import com.pyllar.consumer.presentation.ui.theme.*
+import kotlinx.datetime.Clock
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,16 +40,25 @@ fun WithdrawSuccessScreen(
     folio: String?,
     redemptionMode: String = "NORMAL",
     platformActions: PlatformActions = koinInject(),
+    sessionStore: SessionStore = koinInject(),
     onNavigateToHome: () -> Unit
 ) {
     val scrollState = rememberScrollState()
 
     LaunchedEffect(Unit) {
-        platformActions.requestInAppReview(
-            screenName = "WithdrawSuccess",
-            silentFallback = true,
-            trigger = "auto"
-        )
+        val lastPromptTimeStr = sessionStore.getValue("last_review_prompt_time")
+        val lastPromptTime = lastPromptTimeStr?.toLongOrNull() ?: 0L
+        val currentTime = Clock.System.now().toEpochMilliseconds()
+        val thirtyDaysInMillis = 30L * 24 * 60 * 60 * 1000
+
+        if (currentTime - lastPromptTime > thirtyDaysInMillis) {
+            platformActions.requestInAppReview(
+                screenName = "WithdrawSuccess",
+                silentFallback = true,
+                trigger = "auto"
+            )
+            sessionStore.saveValue("last_review_prompt_time", currentTime.toString())
+        }
     }
 
     Scaffold(containerColor = V2Cream) { paddingValues ->

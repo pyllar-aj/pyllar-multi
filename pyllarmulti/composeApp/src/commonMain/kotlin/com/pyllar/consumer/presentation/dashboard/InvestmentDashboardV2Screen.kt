@@ -232,23 +232,27 @@ fun InvestmentDashboardV2Screen(
         }
     }
 
-    // Auto-trigger In-App Review after 1 second, once every 10 days, after data is loaded
+    // Auto-trigger In-App Review after 1 second, once ever on the dashboard (with a 30-day cooldown from other prompts)
     LaunchedEffect(dashboardState.isLoading) {
         if (!dashboardState.isLoading) {
             delay(1000)
-            val lastPromptTimeStr = sessionStore.getValue("last_review_prompt_time")
-            val lastPromptTime = lastPromptTimeStr?.toLongOrNull() ?: 0L
-            val currentTime = Clock.System.now().toEpochMilliseconds()
-            val tenDaysInMillis = 10L * 24 * 60 * 60 * 1000
+            val alreadyPromptedOnDashboard = sessionStore.getValue("dashboard_review_prompted") != null
+            if (!alreadyPromptedOnDashboard) {
+                val lastPromptTimeStr = sessionStore.getValue("last_review_prompt_time")
+                val lastPromptTime = lastPromptTimeStr?.toLongOrNull() ?: 0L
+                val currentTime = Clock.System.now().toEpochMilliseconds()
+                val thirtyDaysInMillis = 30L * 24 * 60 * 60 * 1000
 
-            val actualCurrentValue = dashboardState.primaryGoals.sumOf { it.currentValue }
-            if (currentTime - lastPromptTime > tenDaysInMillis && actualCurrentValue > 0) {
-                platformActions.requestInAppReview(
-                    screenName = "InvestmentDashboardV2",
-                    silentFallback = true,
-                    trigger = "auto"
-                )
-                sessionStore.saveValue("last_review_prompt_time", currentTime.toString())
+                val actualCurrentValue = dashboardState.primaryGoals.sumOf { it.currentValue }
+                if (currentTime - lastPromptTime > thirtyDaysInMillis && actualCurrentValue > 0) {
+                    platformActions.requestInAppReview(
+                        screenName = "InvestmentDashboardV2",
+                        silentFallback = true,
+                        trigger = "auto"
+                    )
+                    sessionStore.saveValue("last_review_prompt_time", currentTime.toString())
+                    sessionStore.saveValue("dashboard_review_prompted", "true")
+                }
             }
         }
     }
@@ -1052,6 +1056,8 @@ fun PrimaryGoalCard(
         MaterialTheme.colorScheme.onSurface
     }
 
+    val isGoldOrSilverWithGm = goal != null && (category == "GOLD" || category == "SILVER") && goal.unitsInGm != null && goal.unitsInGm > 0
+
     val topCardClickable = if (isLoading || goal == null) Modifier else Modifier.clickable { onTopCardClick() }
 
     Column(
@@ -1234,26 +1240,36 @@ fun PrimaryGoalCard(
                             }
                             
                             // Units in Gram (Gold/Silver) - Top Right
-                            if (goal.unitsInGm != null && goal.unitsInGm > 0) {
-                                val unitsText = formatWeight(goal.unitsInGm)
+                            if (isGoldOrSilverWithGm) {
+                                val ceiledCummulativeValue = ceil(goal.cummulativeValue)
+                                val amtColor = if (category == "GOLD") correlationColor else Color(0xFF2C343A)
                                 Text(
-                                    text = unitsText,
-                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                    color = correlationColor
+                                    text = "₹${formatIndian(ceiledCummulativeValue)}",
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = amtColor
                                 )
-                            }
-
-                            if (isSavingsPlus) {
-                                Surface(
-                                    color = Color(0xFF2E7D32),
-                                    shape = RoundedCornerShape(12.dp)
-                                ) {
+                            } else {
+                                if (goal.unitsInGm != null && goal.unitsInGm > 0) {
+                                    val unitsText = formatWeight(goal.unitsInGm)
                                     Text(
-                                        text = "⚡ Instant Redeem",
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                        color = Color.White
+                                        text = unitsText,
+                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                        color = correlationColor
                                     )
+                                }
+
+                                if (isSavingsPlus) {
+                                    Surface(
+                                        color = Color(0xFF2E7D32),
+                                        shape = RoundedCornerShape(12.dp)
+                                    ) {
+                                        Text(
+                                            text = "⚡ Instant Redeem",
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                            color = Color.White
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -1266,41 +1282,51 @@ fun PrimaryGoalCard(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.Center
                         ) {
-                            // Center-aligned column
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                // Use cumulative value for display
-                                val ceiledCummulativeValue = ceil(goal.cummulativeValue)
+                            if (isGoldOrSilverWithGm && goal.unitsInGm != null) {
+                                val unitsText = formatWeight(goal.unitsInGm)
+                                val gmColor = if (category == "GOLD") Color(0xFF381E00) else Color(0xFF2C343A)
                                 Text(
-                                    text = "₹${formatIndian(ceiledCummulativeValue)}",
-                                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                                    color = MaterialTheme.colorScheme.onSurface
+                                    text = unitsText,
+                                    style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold, fontSize = 26.sp),
+                                    color = gmColor
                                 )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.Center
+                            } else {
+                                // Center-aligned column
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
+                                    // Use cumulative value for display
+                                    val ceiledCummulativeValue = ceil(goal.cummulativeValue)
                                     Text(
-                                        text = "Total Value",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                        text = "₹${formatIndian(ceiledCummulativeValue)}",
+                                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                                        color = MaterialTheme.colorScheme.onSurface
                                     )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    IconButton(
-                                        onClick = { 
-                                            if (isSavingsPlus) showSavingsPlusInfo = true
-                                            else showInfoDialog = true 
-                                        },
-                                        modifier = Modifier.size(20.dp)
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Filled.Info,
-                                            contentDescription = "Info",
-                                            modifier = Modifier.size(16.dp),
-                                            tint = if (isSavingsPlus) Color(0xFF2E7D32) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                        Text(
+                                            text = "Total Value",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                                         )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        IconButton(
+                                            onClick = { 
+                                                if (isSavingsPlus) showSavingsPlusInfo = true
+                                                else showInfoDialog = true 
+                                            },
+                                            modifier = Modifier.size(20.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Filled.Info,
+                                                contentDescription = "Info",
+                                                modifier = Modifier.size(16.dp),
+                                                tint = if (isSavingsPlus) Color(0xFF2E7D32) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                            )
+                                        }
                                     }
                                 }
                             }

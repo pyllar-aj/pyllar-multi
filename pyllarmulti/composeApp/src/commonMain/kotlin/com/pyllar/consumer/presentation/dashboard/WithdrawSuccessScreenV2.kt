@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.jetbrains.compose.resources.stringResource
 import pyllar.composeapp.generated.resources.*
+import com.pyllar.consumer.domain.storage.SessionStore
 import com.pyllar.consumer.platform.PlatformActions
 import com.pyllar.consumer.analytics.PlatformAnalyticsLogger
 import com.pyllar.consumer.util.BackHandler
@@ -57,6 +58,7 @@ fun WithdrawSuccessScreenV2(
     onNavigateToHome: () -> Unit,
     viewModel: WithdrawSuccessViewModelV2 = koinInject(),
     platformActions: PlatformActions = koinInject(),
+    sessionStore: SessionStore = koinInject(),
     previewUiState: WithdrawSuccessV2UiState? = null
 ) {
     val uiState by if (previewUiState != null) {
@@ -84,11 +86,20 @@ fun WithdrawSuccessScreenV2(
     LaunchedEffect(uiState.status) {
         if ((uiState.status == RedemptionPollStatus.SUCCEEDED) || (uiState.status == RedemptionPollStatus.SUBMITTED)){
             platformActions.playRedemptionSuccessSound()
-            platformActions.requestInAppReview(
-                screenName = "WithdrawSuccessV2",
-                silentFallback = true,
-                trigger = "auto"
-            )
+
+            val lastPromptTimeStr = sessionStore.getValue("last_review_prompt_time")
+            val lastPromptTime = lastPromptTimeStr?.toLongOrNull() ?: 0L
+            val currentTime = Clock.System.now().toEpochMilliseconds()
+            val thirtyDaysInMillis = 30L * 24 * 60 * 60 * 1000
+
+            if (currentTime - lastPromptTime > thirtyDaysInMillis) {
+                platformActions.requestInAppReview(
+                    screenName = "WithdrawSuccessV2",
+                    silentFallback = true,
+                    trigger = "auto"
+                )
+                sessionStore.saveValue("last_review_prompt_time", currentTime.toString())
+            }
         }
     }
 

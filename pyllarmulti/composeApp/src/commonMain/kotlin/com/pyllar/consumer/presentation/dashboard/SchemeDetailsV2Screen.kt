@@ -589,30 +589,6 @@ fun SchemeDetailsV2Screen(
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = stringResource(Res.string.invested_label),
-                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.ExtraBold),
-                                    color = goalColor,
-                                    modifier = Modifier.padding(bottom = 4.dp)
-                                )
-                                Text(
-                                    text = formatRupeeAmount(state.investedAmount + state.investmentInProgress, 0),
-                                    style = MaterialTheme.typography.titleLarge.copy(
-                                        fontWeight = FontWeight.Black,
-                                        fontSize = 20.sp
-                                    ),
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-
-                            Box(
-                                modifier = Modifier
-                                    .height(44.dp)
-                                    .width(1.dp)
-                                    .background(goalColor.copy(alpha = 0.15f))
-                            )
-
-                            Column(modifier = Modifier.weight(1f).padding(start = 20.dp)) {
-                                Text(
                                     text = stringResource(Res.string.total_value_label),
                                     style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.ExtraBold),
                                     color = goalColor,
@@ -643,6 +619,30 @@ fun SchemeDetailsV2Screen(
                                         )
                                     }
                                 }
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .height(44.dp)
+                                    .width(1.dp)
+                                    .background(goalColor.copy(alpha = 0.15f))
+                            )
+
+                            Column(modifier = Modifier.weight(1f).padding(start = 20.dp)) {
+                                Text(
+                                    text = "In progress",
+                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.ExtraBold),
+                                    color = goalColor,
+                                    modifier = Modifier.padding(bottom = 4.dp)
+                                )
+                                Text(
+                                    text = formatRupeeAmount(state.investmentInProgress, 0),
+                                    style = MaterialTheme.typography.titleLarge.copy(
+                                        fontWeight = FontWeight.Black,
+                                        fontSize = 20.sp
+                                    ),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
                             }
                         }
                     }
