@@ -67,7 +67,6 @@ actual fun OtpField(
                 this.layer.cornerRadius = 12.0
                 this.layer.borderWidth = 1.0
                 this.layer.borderColor = UIColor.lightGrayColor.CGColor
-                this.becomeFirstResponder() // Force UITextField to become first responder to trigger keyboard and view shifting
                 
                 this.addTarget(
                     target = target,
