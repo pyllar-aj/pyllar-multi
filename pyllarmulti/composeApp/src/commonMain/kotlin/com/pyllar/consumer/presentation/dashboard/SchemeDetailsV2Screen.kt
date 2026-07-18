@@ -45,6 +45,10 @@ import com.pyllar.consumer.data.local.KeyValueConstants
 import com.pyllar.consumer.navigation.AppRoutes
 import kotlinx.coroutines.launch
 import kotlinx.datetime.toInstant
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.Clock
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
@@ -976,6 +980,7 @@ fun SchemeDetailsV2Screen(
                     schemeName = displaySchemeName,
                     dailyAmount = mandateForCancelSip?.amount ?: 0.0,
                     fundReturnPercent = getAnnualisedReturnPercent(goalType),
+                    mandate = mandateForCancelSip,
                     onCancelSip = {
                         showCancelSipScreen = false
                         showCancelReasonScreen = true
@@ -1023,6 +1028,7 @@ fun SchemeDetailsV2Screen(
                 val mandatePause = mandateForPauseSip
                 PauseSipConfirmBottomSheetV2(
                     isLoading = pauseSipLoading,
+                    mandate = mandatePause,
                     onCancel = {
                         showPauseSipQuestionSheet = false
                         mandateForPauseSip = null
@@ -1841,7 +1847,12 @@ fun SchemeDetailsPopupContentV2(
                                     else -> stringResource(Res.string.savings_being_allocated)
                                 }
                                 val amountStr = formatDecimal(investmentInProgress, 1)
-                                val inProgSub = stringResource(Res.string.allocation_processing_sub, amountStr, stringResource(Res.string.units))
+                                val allocationDateStr = activeMandates.firstOrNull()?.firstUnitAllocationDate
+                                val inProgSub = if (!allocationDateStr.isNullOrBlank()) {
+                                    "₹$amountStr received · will be allocated on ${formatDate(allocationDateStr)}"
+                                } else {
+                                    stringResource(Res.string.allocation_processing_sub, amountStr, stringResource(Res.string.units))
+                                }
                                 WhatsHappeningRowV2(
                                     title = inProgTitle,
                                     subtitle = inProgSub,
@@ -2130,9 +2141,19 @@ fun CancelSipInfoScreenV2(
     schemeName: String,
     dailyAmount: Double,
     fundReturnPercent: Double?,
+    mandate: MandateDisplayItem? = null,
     onCancelSip: () -> Unit,
     onGoBack: () -> Unit
 ) {
+    val firstDebitDateStr = mandate?.nextSipDate
+    val calculatedAllocationDateStr = mandate?.calculatedFirstUnitAllocationDate
+
+    val isFirstDebitPassed = isDatePassed(firstDebitDateStr)
+    val isAllocationPassed = isDatePassed(calculatedAllocationDateStr)
+
+    val showFirstDebitNotPassed = mandate != null && !firstDebitDateStr.isNullOrBlank() && !isFirstDebitPassed
+    val showAllocationNotPassed = mandate != null && isFirstDebitPassed && !calculatedAllocationDateStr.isNullOrBlank() && !isAllocationPassed
+
     Surface(
         modifier = Modifier
             .fillMaxSize()
@@ -2149,87 +2170,260 @@ fun CancelSipInfoScreenV2(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(32.dp))
-            Text(
-                text = stringResource(Res.string.cancel_sip_before_heading),
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onBackground,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
 
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
-                ),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+            if (showFirstDebitNotPassed || showAllocationNotPassed) {
+                Text(
+                    text = "Cancel SIP?",
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onBackground,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                if (showAllocationNotPassed) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Schedule,
+                            contentDescription = null,
+                            tint = Color(0xFFF57C00),
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            text = "Your investment is still being processed",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = Color(0xFFF57C00)
+                        )
+                    }
+
+
+                }
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFBF9F4)),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, Color(0xFF3E2723).copy(alpha = 0.08f))
                 ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        if (showFirstDebitNotPassed) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "PLAN CREATED",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.sp, letterSpacing = 0.7.sp),
+                                    color = Color(0xFF3E2723).copy(alpha = 0.5f)
+                                )
+                                Text(
+                                    text = formatDate(mandate?.mandateCreatedDate ?: mandate?.mandateApprovedDate).ifBlank { "—" },
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = Color(0xFF3E2723)
+                                )
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "FIRST DEBIT",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.sp, letterSpacing = 0.7.sp),
+                                    color = Color(0xFF3E2723).copy(alpha = 0.5f)
+                                )
+                                Text(
+                                    text = formatDate(firstDebitDateStr).ifBlank { "—" },
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = Color(0xFF3E2723)
+                                )
+                            }
+                        } else {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "FIRST DEBIT",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.sp, letterSpacing = 0.7.sp),
+                                    color = Color(0xFF3E2723).copy(alpha = 0.5f)
+                                )
+                                Text(
+                                    text = formatDate(firstDebitDateStr).ifBlank { "—" },
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = Color(0xFF3E2723)
+                                )
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "UNIT ALLOCATION (EXPECTED)",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.sp, letterSpacing = 0.7.sp),
+                                    color = Color(0xFF3E2723).copy(alpha = 0.5f)
+                                )
+                                Text(
+                                    text = formatDate(calculatedAllocationDateStr).ifBlank { "—" },
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = Color(0xFF3E2723)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                if (showAllocationNotPassed) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "Almost there!",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onBackground,
+                            textAlign = TextAlign.Center
+                        )
+
+                        Text(
+                            text = "Your first investment is still being processed. Waiting until the units are allocated lets you see your first SIP investment before deciding whether to cancel.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                } else {
                     Text(
-                        text = stringResource(Res.string.cancel_sip_fund_performance_title),
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    val percentText = fundReturnPercent?.let {
-                        "${formatDecimal(it, 1)}%"
-                    } ?: "--%"
-                    Text(
-                        text = stringResource(Res.string.cancel_sip_fund_performance_body, percentText),
+                        text = "Cancelling now will stop your SIP before your first investment begins.",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 16.dp)
                     )
                 }
-            }
 
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.05f)
-                ),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
+                    ),
+                    shape = RoundedCornerShape(16.dp)
                 ) {
-                    Text(
-                        text = stringResource(Res.string.cancel_sip_did_you_know_title),
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = stringResource(Res.string.cancel_sip_did_you_know_body),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
-                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = stringResource(Res.string.cancel_sip_fund_performance_title),
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        val percentText = fundReturnPercent?.let {
+                            "${formatDecimal(it, 1)}%"
+                        } ?: "--%"
+                        Text(
+                            text = stringResource(Res.string.cancel_sip_fund_performance_body, percentText),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
+                        )
+                    }
                 }
-            }
+            } else {
+                Text(
+                    text = stringResource(Res.string.cancel_sip_before_heading),
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onBackground,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
 
-            val amountText = formatIndian(dailyAmount)
-            val schemeLabel = if (schemeName.isNotBlank()) schemeName else "this scheme"
-            Text(
-                text = stringResource(Res.string.cancel_sip_warning_body, amountText, schemeLabel),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.error
-            )
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
+                    ),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = stringResource(Res.string.cancel_sip_fund_performance_title),
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        val percentText = fundReturnPercent?.let {
+                            "${formatDecimal(it, 1)}%"
+                        } ?: "--%"
+                        Text(
+                            text = stringResource(Res.string.cancel_sip_fund_performance_body, percentText),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
+                        )
+                    }
+                }
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.05f)
+                    ),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = stringResource(Res.string.cancel_sip_did_you_know_title),
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = stringResource(Res.string.cancel_sip_did_you_know_body),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
+                        )
+                    }
+                }
+
+                val amountText = formatIndian(dailyAmount)
+                val schemeLabel = if (schemeName.isNotBlank()) schemeName else "this scheme"
+                Text(
+                    text = stringResource(Res.string.cancel_sip_warning_body, amountText, schemeLabel),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
 
             Spacer(modifier = Modifier.height(8.dp))
 
             Button(
                 onClick = onCancelSip,
                 modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text(
                     text = stringResource(Res.string.cancel_sip),
-                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold, color = Color.White)
                 )
             }
 
@@ -2485,6 +2679,7 @@ fun CancelSipErrorBottomSheetV2(
 @Composable
 fun PauseSipConfirmBottomSheetV2(
     isLoading: Boolean = false,
+    mandate: MandateDisplayItem? = null,
     onCancel: () -> Unit,
     onConfirm: () -> Unit
 ) {
@@ -2516,12 +2711,33 @@ fun PauseSipConfirmBottomSheetV2(
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onSurface
                 )
+                val firstDebitDateStr = mandate?.nextSipDate
+                val calculatedAllocationDateStr = mandate?.calculatedFirstUnitAllocationDate
+
+                val isFirstDebitPassed = isDatePassed(firstDebitDateStr)
+                val isAllocationPassed = isDatePassed(calculatedAllocationDateStr)
+
+                val showFirstDebitNotPassed = mandate != null && !firstDebitDateStr.isNullOrBlank() && !isFirstDebitPassed
+                val showAllocationNotPassed = mandate != null && isFirstDebitPassed && !calculatedAllocationDateStr.isNullOrBlank() && !isAllocationPassed
+
+                val bodyText = when {
+                    showAllocationNotPassed -> {
+                        "Your first investment is still being processed. Waiting until the units are allocated lets you see your first SIP investment before deciding whether to continue."
+                    }
+                    showFirstDebitNotPassed -> {
+                        "Pausing now will stop your SIP before your first investment begins."
+                    }
+                    else -> {
+                        stringResource(Res.string.pause_sip_body)
+                    }
+                }
+
                 Text(
-                    text = stringResource(Res.string.pause_sip_body),
+                    text = bodyText,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                 )
-                Spacer(modifier = Modifier.height(16.dp))
+                SipDateDetailsDisplay(mandate)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -3779,5 +3995,113 @@ fun DashboardTile(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun SipDateDetailsDisplay(mandate: MandateDisplayItem?, modifier: Modifier = Modifier) {
+    if (mandate == null) return
+    val firstDebitDateStr = mandate.nextSipDate
+    val createdDateStr = mandate.mandateCreatedDate ?: mandate.mandateApprovedDate
+    val calculatedAllocationDateStr = mandate.calculatedFirstUnitAllocationDate
+
+    val isFirstDebitPassed = isDatePassed(firstDebitDateStr)
+    val isAllocationPassed = isDatePassed(calculatedAllocationDateStr)
+
+    val showFirstDebitNotPassed = !firstDebitDateStr.isNullOrBlank() && !isFirstDebitPassed
+    val showAllocationNotPassed = isFirstDebitPassed && !calculatedAllocationDateStr.isNullOrBlank() && !isAllocationPassed
+
+    if (showFirstDebitNotPassed || showAllocationNotPassed) {
+        Card(
+            modifier = modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFFBF9F4)),
+            shape = RoundedCornerShape(12.dp),
+            border = BorderStroke(1.dp, Color(0xFF3E2723).copy(alpha = 0.08f))
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                if (showFirstDebitNotPassed) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Plan created on",
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                            color = Color(0xFF3E2723).copy(alpha = 0.5f)
+                        )
+                        Text(
+                            text = formatDate(createdDateStr).ifBlank { "—" },
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                            color = Color(0xFF3E2723)
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "First debit on",
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                            color = Color(0xFF3E2723).copy(alpha = 0.5f)
+                        )
+                        Text(
+                            text = formatDate(firstDebitDateStr).ifBlank { "—" },
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                            color = Color(0xFF3E2723)
+                        )
+                    }
+                } else if (showAllocationNotPassed) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "First debit on",
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                            color = Color(0xFF3E2723).copy(alpha = 0.5f)
+                        )
+                        Text(
+                            text = formatDate(firstDebitDateStr).ifBlank { "—" },
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                            color = Color(0xFF3E2723)
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "First unit allocation will be by",
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                            color = Color(0xFF3E2723).copy(alpha = 0.5f)
+                        )
+                        Text(
+                            text = formatDate(calculatedAllocationDateStr).ifBlank { "—" },
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                            color = Color(0xFF3E2723)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun isDatePassed(dateString: String?): Boolean {
+    if (dateString.isNullOrBlank() || dateString == "null") return false
+    return try {
+        val datePart = dateString.substringBefore("T")
+        val targetDate = LocalDate.parse(datePart)
+        val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+        targetDate < today
+    } catch (e: Exception) {
+        false
     }
 }

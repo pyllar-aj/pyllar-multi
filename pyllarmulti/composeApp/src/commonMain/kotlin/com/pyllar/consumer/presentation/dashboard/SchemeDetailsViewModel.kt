@@ -13,6 +13,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.plus
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.DayOfWeek
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.encodeToString
@@ -97,7 +101,8 @@ data class MandateDisplayItem(
     val mandateApprovedDate: String?,
     val mandateCancelledDate: String?,
     val mandateCreatedDate: String? = null,
-    val firstUnitAllocationDate: String? = null
+    val firstUnitAllocationDate: String? = null,
+    val calculatedFirstUnitAllocationDate: String? = null
 )
 
 data class SchemeDetailsState(
@@ -385,6 +390,8 @@ class SchemeDetailsViewModel(
         }
         
         val displayMandates = response.planSummaryDtos?.map { planSummary ->
+            val createdDate = planSummary.mandateCreatedDate ?: planSummary.mandateApprovedDate
+            val calculatedAllocationDate = calculateFirstUnitAllocationDate(createdDate)
             MandateDisplayItem(
                 mandateId = planSummary.mandateId,
                 amount = planSummary.amount?.toDouble() ?: 0.0,
@@ -395,7 +402,8 @@ class SchemeDetailsViewModel(
                 mandateApprovedDate = planSummary.mandateApprovedDate,
                 mandateCancelledDate = planSummary.mandateCancelledDate,
                 mandateCreatedDate = planSummary.mandateCreatedDate,
-                firstUnitAllocationDate = planSummary.firstUnitAllocationDate
+                firstUnitAllocationDate = planSummary.firstUnitAllocationDate,
+                calculatedFirstUnitAllocationDate = calculatedAllocationDate
             )
         }?.sortedByDescending { it.mandateCreatedDate ?: "" } ?: emptyList()
         
@@ -643,5 +651,27 @@ class SchemeDetailsViewModel(
     private fun formatDate(dateString: String?): String? {
         if (dateString.isNullOrBlank()) return null
         return dateString.split("T").firstOrNull() ?: dateString
+    }
+
+    private fun calculateFirstUnitAllocationDate(createdDateStr: String?): String? {
+        if (createdDateStr.isNullOrBlank() || createdDateStr == "null") return null
+        return try {
+            val datePart = createdDateStr.substringBefore("T")
+            val localDate = LocalDate.parse(datePart)
+            val daysToAdd = when (localDate.dayOfWeek) {
+                DayOfWeek.MONDAY,
+                DayOfWeek.TUESDAY,
+                DayOfWeek.SUNDAY -> 4
+                DayOfWeek.SATURDAY -> 5
+                DayOfWeek.WEDNESDAY,
+                DayOfWeek.THURSDAY,
+                DayOfWeek.FRIDAY -> 6
+                else -> 4
+            }
+            val allocationDate = localDate.plus(daysToAdd, DateTimeUnit.DAY)
+            allocationDate.toString()
+        } catch (e: Exception) {
+            null
+        }
     }
 }
