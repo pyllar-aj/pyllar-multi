@@ -41,6 +41,11 @@ import org.koin.compose.koinInject
 import pyllar.composeapp.generated.resources.*
 import com.pyllar.consumer.presentation.ui.theme.*
 import com.pyllar.consumer.util.toUserFriendlyErrorMessage
+import kotlinx.datetime.Clock
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.plus
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -384,17 +389,208 @@ fun WithdrawAmountScreen(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
                             .fillMaxWidth()
-                            .navigationBarsPadding()
                             .imePadding()
-                            .padding(16.dp),
-                        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+                            .clickable(enabled = true, onClick = {}, interactionSource = remember { MutableInteractionSource() }, indication = null),
+                        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFCFAF7)) // Crisp premium background
                     ) {
-                        Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                            Text("Confirm Withdrawal", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                            Text("Amount: ₹${formatIndian(effectiveRedemptionAmount)}")
-                            Text("Fund: ${selectedScheme?.schemeName ?: "Unknown"}")
-                         //   Text("Bank: $bankName (**$bankAccountLast4)")
-                            
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .navigationBarsPadding()
+                                .padding(horizontal = 20.dp, vertical = 20.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            // Header
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text(
+                                        text = org.jetbrains.compose.resources.stringResource(
+                                            Res.string.withdrawing_amount,
+                                            "₹${formatIndian(effectiveRedemptionAmount)}"
+                                        ).replace("Withdrawing", "Withdraw"),
+                                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold, fontSize = 24.sp),
+                                        color = Color(0xFF1A1A1A)
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = org.jetbrains.compose.resources.stringResource(Res.string.confirm_your_withdrawal),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = Color(0xFF666666)
+                                    )
+                                }
+
+                                IconButton(
+                                    onClick = { showConfirmationSheet = false },
+                                    enabled = !isConfirming,
+                                    modifier = Modifier.background(Color(0xFFF2EFEA), CircleShape).size(36.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Close",
+                                        tint = Color(0xFF333333),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+
+                            // Details Card
+                            val exitLoadDetails = getExitLoadDetails(selectedScheme?.schemeName)
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(containerColor = Color.White),
+                                border = BorderStroke(1.dp, Color(0xFFECE7E2)),
+                                shape = RoundedCornerShape(20.dp)
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(20.dp),
+                                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    // Exit Load Row
+                                    if (exitLoadDetails != null) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                            verticalAlignment = Alignment.Top
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(48.dp)
+                                                    .background(Color(0xFFF5EFEB), CircleShape),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Info, // Fallback for tag/percent
+                                                    contentDescription = null,
+                                                    tint = Color(0xFF4A3E3D),
+                                                    modifier = Modifier.size(24.dp)
+                                                )
+                                            }
+                                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                                Text(
+                                                    text = org.jetbrains.compose.resources.stringResource(Res.string.exit_load_approx),
+                                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                                                    color = Color(0xFF666666)
+                                                )
+                                                Text(
+                                                    text = exitLoadDetails.title,
+                                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                                    color = Color(0xFF0F3A20) // Deep Premium Green
+                                                )
+                                                if (!exitLoadDetails.description.isNullOrBlank()) {
+                                                    Text(
+                                                        text = exitLoadDetails.description,
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = Color(0xFF888888)
+                                                    )
+                                                }
+                                            }
+                                        }
+
+                                        HorizontalDivider(color = Color(0xFFECE7E2), thickness = 1.dp)
+                                    }
+
+                                    // Estimated Credit Row
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                        verticalAlignment = Alignment.Top
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(48.dp)
+                                                .background(Color(0xFFF5EFEB), CircleShape),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.DateRange,
+                                                contentDescription = null,
+                                                tint = Color(0xFF4A3E3D),
+                                                modifier = Modifier.size(24.dp)
+                                            )
+                                        }
+                                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                            val isInstant = withdrawMode?.uppercase() == "INSTANT"
+                                            Text(
+                                                text = if (isInstant) "Estimated credit" else "Estimated credit date",
+                                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                                                color = Color(0xFF666666)
+                                            )
+                                            Text(
+                                                text = if (isInstant) "Within 30 minutes" else getProcessingDate(),
+                                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                                color = Color(0xFF0F3A20) // Deep Premium Green
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Folio Row
+                            val folioNumber = selectedScheme?.folioNo
+                            if (!folioNumber.isNullOrBlank()) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .background(Color(0xFFF5EFEB), CircleShape),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.AccountCircle,
+                                            contentDescription = null,
+                                            tint = Color(0xFF4A3E3D),
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                    Text(
+                                        text = org.jetbrains.compose.resources.stringResource(Res.string.folios),
+                                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                                        color = Color(0xFF333333)
+                                    )
+                                    Spacer(modifier = Modifier.weight(1f))
+                                    Text(
+                                        text = folioNumber,
+                                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                        color = Color(0xFF1A1A1A)
+                                    )
+                                }
+                            }
+
+                            // Disclaimer Banner
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(containerColor = Color(0xFFF0F5F1)), // Light premium greenish-gray banner
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(14.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Info,
+                                        contentDescription = null,
+                                        tint = Color(0xFF2E7D32),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Text(
+                                        text = org.jetbrains.compose.resources.stringResource(Res.string.once_processed_cannot_be_reversed),
+                                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                                        color = Color(0xFF2E7D32)
+                                    )
+                                }
+                            }
+
+                            // Confirm Button
                             Button(
                                 onClick = {
                                     isConfirming = true
@@ -403,14 +599,43 @@ fun WithdrawAmountScreen(
                                         viewModel.generateRedemptionOtp(finalUserId)
                                     }
                                 },
-                                modifier = Modifier.fillMaxWidth().height(50.dp),
-                                enabled = !isConfirming
+                                enabled = !isConfirming,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(56.dp),
+                                shape = RoundedCornerShape(16.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = V2Obsidian,
+                                    contentColor = Color.White,
+                                    disabledContainerColor = Color(0xFFB0BEC5),
+                                    disabledContentColor = Color.White
+                                )
                             ) {
-                                if (isConfirming) CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
-                                else Text("CONFIRM & SEND OTP")
-                            }
-                            TextButton(onClick = { showConfirmationSheet = false }, modifier = Modifier.fillMaxWidth()) {
-                                Text("Cancel")
+                                if (isConfirming) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(24.dp),
+                                        color = Color.White,
+                                        strokeWidth = 2.dp
+                                    )
+                                } else {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Spacer(modifier = Modifier.width(1.dp))
+                                        Text(
+                                            text = "CONFIRM & SEND OTP",
+                                            fontWeight = FontWeight.Bold,
+                                            style = MaterialTheme.typography.bodyLarge.copy(color = Color.White)
+                                        )
+                                        Icon(
+                                            imageVector = Icons.Default.KeyboardArrowRight,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -435,12 +660,17 @@ fun WithdrawAmountScreen(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
                             .fillMaxWidth()
-                            .navigationBarsPadding()
-                            .imePadding()
-                            .padding(16.dp),
-                        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+                            .imePadding(),
+                        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
                     ) {
-                        Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .navigationBarsPadding()
+                                .padding(horizontal = 20.dp, vertical = 20.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                 Text("Verify OTP", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                                 IconButton(onClick = { showOtpScreen = false }) { Icon(Icons.Default.Close, contentDescription = "Close") }
@@ -543,5 +773,180 @@ fun formatIndianWithDecimals(value: Double): String {
     val integerPart = parts[0].toDoubleOrNull() ?: 0.0
     val decimalPart = parts.getOrNull(1)?.take(2)?.padEnd(2, '0') ?: "00"
     return "${formatIndian(integerPart)}.$decimalPart"
+}
+
+// Helper function to get exit load text based on scheme name
+private fun getExitLoadText(schemeName: String?): String {
+    if (schemeName.isNullOrBlank()) {
+        return "0"
+    }
+
+    // Normalize scheme name: remove special characters, convert to uppercase, and trim
+    val normalizedName = schemeName
+        .replace(Regex("[–—]"), "-") // Replace em/en dashes with regular dash
+        .replace(Regex("[^A-Za-z0-9\\s-]"), "") // Remove special characters except spaces and dashes
+        .trim()
+        .uppercase()
+
+    return when {
+        // Nippon India Gold Savings Fund
+        normalizedName.contains("NIPPON INDIA") &&
+                normalizedName.contains("GOLD SAVINGS") ->
+            "1% within 15 days; Nil thereafter"
+
+        // Aditya Birla Sun Life Gold Fund
+        normalizedName.contains("ADITYA BIRLA") &&
+                normalizedName.contains("GOLD FUND") &&
+                !normalizedName.contains("SILVER") ->
+            "1% within 15 days; Nil thereafter"
+
+        // Axis Gold Fund
+        normalizedName.contains("AXIS") &&
+                normalizedName.contains("GOLD FUND") ->
+            "1% within 15 days; Nil thereafter"
+
+
+        // Invesco India Smallcap
+        normalizedName.contains("INVESCO INDIA") &&
+                (normalizedName.contains("SMALLCAP") || normalizedName.contains("SMALL CAP")) ->
+            "1% if redeemed within 1 year"
+
+        // Nippon India Multi Asset
+        normalizedName.contains("NIPPON INDIA") &&
+                normalizedName.contains("MULTI ASSET") ->
+            "1% if redeemed within 1 year"
+
+        // Aditya Birla Sun Life Multi Asset Allocation
+        normalizedName.contains("ADITYA BIRLA") &&
+                normalizedName.contains("MULTI ASSET ALLOCATION") ->
+            "1% if redeemed within 1 year"
+
+        // Aditya Birla Sun Life Liquid Fund
+        normalizedName.contains("ADITYA BIRLA") &&
+                normalizedName.contains("LIQUID FUND") ->
+            "Graded (0.007% to 0%) for 7 days."
+
+        // Nippon India Liquid Fund
+        normalizedName.contains("NIPPON INDIA") &&
+                normalizedName.contains("LIQUID FUND") ->
+            "Graded load (0.0070%–0.0045%) for days 1–6; Nil after 7 days"
+
+        // Nippon India Flexi Cap
+        normalizedName.contains("NIPPON INDIA") &&
+                normalizedName.contains("FLEXI CAP") ->
+            "1% for units > 10% within 1 year"
+
+        // Invesco India Flexi Cap
+        normalizedName.contains("INVESCO INDIA") &&
+                normalizedName.contains("FLEXI CAP") ->
+            "1% if redeemed within 1 year"
+
+        // Nippon India Low Duration
+        normalizedName.contains("NIPPON INDIA") &&
+                normalizedName.contains("LOW DURATION") ->
+            "NIL"
+
+        // Aditya Birla Sun Life Large Cap Fund
+        normalizedName.contains("ADITYA BIRLA") &&
+                normalizedName.contains("LARGE CAP FUND") ->
+            "1% if redeemed within 90 days"
+
+        // Nippon India Large Cap
+        normalizedName.contains("NIPPON INDIA") &&
+                normalizedName.contains("LARGE CAP") ->
+            "1% if redeemed within 7 days"
+
+        // Invesco India Midcap
+        normalizedName.contains("INVESCO INDIA") &&
+                normalizedName.contains("MIDCAP") ->
+            "1% if redeemed within 1 year"
+
+        // Axis Silver
+        normalizedName.contains("AXIS") &&
+                normalizedName.contains("SILVER") ->
+            "0.25% within 7 days; Nil thereafter"
+
+        // Aditya Birla Sun Life Silver ETF FOF – Regular Growth
+        normalizedName.contains("ADITYA BIRLA") &&
+                normalizedName.contains("SILVER") ->
+            "0.5% if redeemed within 30 days"
+
+        // Nippon India Silver ETF Fund of Fund – Regular Growth
+        normalizedName.contains("NIPPON INDIA") &&
+                normalizedName.contains("SILVER ETF") &&
+                normalizedName.contains("FUND OF FUND") ->
+            "1% if redeemed within 15 days"
+
+        // Nippon India Growth Fund
+        normalizedName.contains("NIPPON INDIA") &&
+                normalizedName.contains("GROWTH FUND") ->
+            "1% if redeemed within 30 days"
+
+        // Nippon India Ultra Short
+        normalizedName.contains("NIPPON INDIA") &&
+                normalizedName.contains("ULTRA SHORT") ->
+            "NIL"
+
+        else -> "0"
+    }
+}
+
+// Helper function to get processing date
+private fun getProcessingDate(): String {
+    return try {
+        val now = Clock.System.now()
+        val futureInstant = now.plus(2, DateTimeUnit.DAY, TimeZone.currentSystemDefault())
+        val localDateTime = futureInstant.toLocalDateTime(TimeZone.currentSystemDefault())
+        val monthName = when (localDateTime.monthNumber) {
+            1 -> "Jan"; 2 -> "Feb"; 3 -> "Mar"; 4 -> "Apr"; 5 -> "May"; 6 -> "Jun"
+            7 -> "Jul"; 8 -> "Aug"; 9 -> "Sep"; 10 -> "Oct"; 11 -> "Nov"; 12 -> "Dec"
+            else -> "Jan"
+        }
+        val dayOfWeek = when (localDateTime.dayOfWeek.name) {
+            "MONDAY" -> "Mon"
+            "TUESDAY" -> "Tue"
+            "WEDNESDAY" -> "Wed"
+            "THURSDAY" -> "Thu"
+            "FRIDAY" -> "Fri"
+            "SATURDAY" -> "Sat"
+            "SUNDAY" -> "Sun"
+            else -> ""
+        }
+        val paddedDay = localDateTime.dayOfMonth.toString().padStart(2, '0')
+        "$paddedDay $monthName ${localDateTime.year}, $dayOfWeek"
+    } catch (e: Exception) {
+        ""
+    }
+}
+
+private data class ExitLoadDetails(
+    val title: String,
+    val description: String? = null
+)
+
+private fun getExitLoadDetails(schemeName: String?): ExitLoadDetails? {
+    if (schemeName.isNullOrBlank()) return null
+    val text = getExitLoadText(schemeName)
+    if (text == "0" || text == "NIL" || text.uppercase() == "NIL") return null
+    
+    // Custom beautiful mapping for exit load display like the image
+    return when {
+        text.contains("Graded") && text.contains("Aditya Birla") -> ExitLoadDetails("0.007% to 0%", "Graded for the first 7 days")
+        text.contains("Graded") && text.contains("Nippon") -> ExitLoadDetails("0.0070% to 0.0045%", "Graded load for days 1–6; Nil after 7 days")
+        text.contains("1%") && text.contains("15 days") -> ExitLoadDetails("1% within 15 days", "Nil thereafter")
+        text.contains("1%") && text.contains("30 days") -> ExitLoadDetails("1% within 30 days", "Nil thereafter")
+        text.contains("1%") && text.contains("90 days") -> ExitLoadDetails("1% within 90 days", "Nil thereafter")
+        text.contains("1%") && text.contains("1 year") -> ExitLoadDetails("1% if redeemed", "Within 1 year")
+        text.contains("0.25%") -> ExitLoadDetails("0.25% within 7 days", "Nil thereafter")
+        text.contains("0.5%") -> ExitLoadDetails("0.5% within 30 days", "Nil thereafter")
+        else -> {
+            if (text.contains(";")) {
+                val parts = text.split(";")
+                ExitLoadDetails(parts[0].trim(), parts.getOrNull(1)?.trim())
+            } else {
+                ExitLoadDetails(text)
+            }
+        }
+    }
 }
 

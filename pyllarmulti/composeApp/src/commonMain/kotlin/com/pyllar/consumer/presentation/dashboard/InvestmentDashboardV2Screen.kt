@@ -1034,6 +1034,8 @@ fun PrimaryGoalCard(
 ) {
     var showInfoDialog by remember { mutableStateOf(false) }
     var showSavingsPlusInfo by remember { mutableStateOf(false) }
+    var showGoldValueInfoDialog by remember { mutableStateOf(false) }
+    var showSilverValueInfoDialog by remember { mutableStateOf(false) }
     val category = goal?.category?.uppercase().orEmpty()
     val isSavingsPlus = category == "SAVINGS_PLUS"
     val cursiveFontFamily = FontFamily(Font(Res.font.cursive_font))
@@ -1285,11 +1287,46 @@ fun PrimaryGoalCard(
                             if (isGoldOrSilverWithGm && goal.unitsInGm != null) {
                                 val unitsText = formatWeight(goal.unitsInGm)
                                 val gmColor = if (category == "GOLD") Color(0xFF381E00) else Color(0xFF2C343A)
-                                Text(
-                                    text = unitsText,
-                                    style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold, fontSize = 26.sp),
-                                    color = gmColor
-                                )
+                                val labelText = if (category == "GOLD") "22K GOLD" else "99.9% SILVER"
+                                val labelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        text = unitsText,
+                                        style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold, fontSize = 26.sp),
+                                        color = gmColor
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center
+                                    ) {
+                                        Text(
+                                            text = labelText,
+                                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                            color = labelColor
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        IconButton(
+                                            onClick = {
+                                                if (category == "GOLD") {
+                                                    showGoldValueInfoDialog = true
+                                                } else {
+                                                    showSilverValueInfoDialog = true
+                                                }
+                                            },
+                                            modifier = Modifier.size(20.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Filled.Info,
+                                                contentDescription = "Info",
+                                                modifier = Modifier.size(16.dp),
+                                                tint = labelColor
+                                            )
+                                        }
+                                    }
+                                }
                             } else {
                                 // Center-aligned column
                                 Column(
@@ -1308,7 +1345,7 @@ fun PrimaryGoalCard(
                                         horizontalArrangement = Arrangement.Center
                                     ) {
                                         Text(
-                                            text = "Total Value",
+                                            text = "TOTAL VALUE",
                                             style = MaterialTheme.typography.labelMedium,
                                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                                         )
@@ -1436,6 +1473,80 @@ fun PrimaryGoalCard(
                     onClick = { showInfoDialog = false }
                 ) {
                     Text("OK")
+                }
+            }
+        )
+    }
+
+    // Gold Value Info Dialog
+    if (showGoldValueInfoDialog) {
+        AlertDialog(
+            onDismissRequest = { showGoldValueInfoDialog = false },
+            title = {
+                Text(
+                    text = stringResource(Res.string.estimated_gold),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier.padding(12.dp)
+                ) {
+                    Text(
+                        text = stringResource(Res.string.estimated_gold_info_popup_body),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = stringResource(Res.string.for_representational_purposes_only),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { showGoldValueInfoDialog = false }
+                ) {
+                    Text(stringResource(Res.string.ok))
+                }
+            }
+        )
+    }
+
+    // Silver Value Info Dialog
+    if (showSilverValueInfoDialog) {
+        AlertDialog(
+            onDismissRequest = { showSilverValueInfoDialog = false },
+            title = {
+                Text(
+                    text = stringResource(Res.string.estimated_silver),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier.padding(12.dp)
+                ) {
+                    Text(
+                        text = stringResource(Res.string.estimated_silver_info_popup_body),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = stringResource(Res.string.for_representational_purposes_only),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { showSilverValueInfoDialog = false }
+                ) {
+                    Text(stringResource(Res.string.ok))
                 }
             }
         )

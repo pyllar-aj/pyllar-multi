@@ -755,4 +755,10 @@
     <string name="try_again">Try again</string>
     <string name="btn_fetch_my_details">Fetch my details</string>
     <string name="btn_fill_form_manually">Fill form manually</string>
+    <string name="withdrawing_amount">Withdrawing %1$s</string>
+    <string name="confirm_your_withdrawal">Confirm your withdrawal</string>
+    <string name="exit_load_approx">Exit load</string>
+    <string name="will_be_processed_by">Will be processed by</string>
+    <string name="folios">Folio Number</string>
+    <string name="once_processed_cannot_be_reversed">Once processed, this transaction cannot be reversed</string>
 </resources>
