@@ -177,7 +177,13 @@ fun SchemeDetailsV2Screen(
     }
     val hasApprovedPlan = activeMandate != null
     val nextSipDateStr = activeMandate?.nextSipDate
-    val showFirstSaveDate = hasApprovedPlan && state.investedAmount == 0.0 && state.cummulativeValue == 0.0 && !nextSipDateStr.isNullOrBlank()
+    val firstAllocationDateStr = activeMandate?.calculatedFirstUnitAllocationDate ?: activeMandate?.firstUnitAllocationDate
+    val isFirstInvestmentInProgress = state.currentValue == 0.0 &&
+            state.investmentInProgress > 0.0 &&
+            hasApprovedPlan &&
+            !firstAllocationDateStr.isNullOrBlank() &&
+            !isDatePassed(firstAllocationDateStr)
+    val showFirstSaveDate = hasApprovedPlan && state.investedAmount == 0.0 && state.cummulativeValue == 0.0 && !nextSipDateStr.isNullOrBlank() && !isFirstInvestmentInProgress
 
     LaunchedEffect(Unit) {
         PlatformAnalyticsLogger.logScreenView("SchemeDetailsV2")
@@ -367,7 +373,8 @@ fun SchemeDetailsV2Screen(
                                             canWithdraw = state.canWithdraw,
                                             redemptionInProgress = state.redemptionInProgress,
                                             redeemableAmount = state.redeemableAmount,
-                                            instantRedemptionValue = instantVal
+                                            instantRedemptionValue = instantVal,
+                                            unitsInGm = state.unitsInGm ?: schemeParams?.unitsInGm
                                         )
                                         WithdrawParamsManager.set(params)
                                         scope.launch {
@@ -604,13 +611,13 @@ fun SchemeDetailsV2Screen(
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = stringResource(Res.string.total_value_label),
+                                    text = stringResource(Res.string.current_value),
                                     style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.ExtraBold),
                                     color = goalColor,
                                     modifier = Modifier.padding(bottom = 4.dp)
                                 )
                                 Text(
-                                    text = formatRupeeAmount(state.cummulativeValue, 0),
+                                    text = formatRupeeAmount(state.currentValue, 0),
                                     style = MaterialTheme.typography.titleLarge.copy(
                                         fontWeight = FontWeight.Black,
                                         fontSize = 20.sp
@@ -774,15 +781,17 @@ fun SchemeDetailsV2Screen(
                                 }
                             }
                         } else {
-                            if (state.redemptionInProgress > 0 || showFirstSaveDate) {
+                            if (state.redemptionInProgress > 0 || showFirstSaveDate || isFirstInvestmentInProgress) {
                                 item {
                                     Card(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .padding(horizontal = 16.dp),
-                                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = if (isFirstInvestmentInProgress) goalColor.copy(alpha = 0.08f) else Color.White
+                                        ),
                                         shape = RoundedCornerShape(16.dp),
-                                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
                                         border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.2f))
                                     ) {
                                         Column(modifier = Modifier.padding(16.dp)) {
@@ -833,10 +842,61 @@ fun SchemeDetailsV2Screen(
                                                 }
                                             }
 
-                                            if (state.redemptionInProgress > 0 && showFirstSaveDate) {
+                                            if (state.redemptionInProgress > 0 && (showFirstSaveDate || isFirstInvestmentInProgress)) {
                                                 Spacer(modifier = Modifier.height(12.dp))
                                                 HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                                                 Spacer(modifier = Modifier.height(12.dp))
+                                            }
+
+                                            if (isFirstInvestmentInProgress) {
+                                                Column(
+                                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                                ) {
+                                                    Row(
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                                    ) {
+                                                        Text(
+                                                            text = "⏳ First investment in progress",
+                                                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                                            color = MaterialTheme.colorScheme.onSurface
+                                                        )
+                                                    }
+                                                    Text(
+                                                        text = "Your first unit allotment takes a little longer than future investments.",
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        color = Color.Gray
+                                                    )
+                                                    Spacer(modifier = Modifier.height(4.dp))
+                                                    Row(
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                                    ) {
+                                                        Text(
+                                                            text = "✓ Payment received",
+                                                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                                                            color = Color(0xFF2E7D32)
+                                                        )
+                                                    }
+                                                    Row(
+                                                        verticalAlignment = Alignment.Top,
+                                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                                    ) {
+                                                        Column {
+                                                            Text(
+                                                                text = "⏳ Unit allotment",
+                                                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                                                                color = MaterialTheme.colorScheme.onSurface
+                                                            )
+                                                            Spacer(modifier = Modifier.height(2.dp))
+                                                            Text(
+                                                                text = "Expected on ${formatExpectedDate(firstAllocationDateStr)}",
+                                                                style = MaterialTheme.typography.labelSmall,
+                                                                color = Color.Gray
+                                                            )
+                                                        }
+                                                    }
+                                                }
                                             }
 
                                             if (showFirstSaveDate) {
@@ -973,7 +1033,8 @@ fun SchemeDetailsV2Screen(
                                 canWithdraw = state.canWithdraw,
                                 redemptionInProgress = state.redemptionInProgress,
                                 redeemableAmount = state.redeemableAmount,
-                                instantRedemptionValue = instantVal
+                                instantRedemptionValue = instantVal,
+                                unitsInGm = state.unitsInGm ?: schemeParams?.unitsInGm
                             )
                             WithdrawParamsManager.set(params)
                             scope.launch {
@@ -1858,7 +1919,7 @@ fun SchemeDetailsPopupContentV2(
                                     else -> stringResource(Res.string.savings_being_allocated)
                                 }
                                 val amountStr = formatDecimal(investmentInProgress, 1)
-                                val allocationDateStr = activeMandates.firstOrNull()?.firstUnitAllocationDate
+                                val allocationDateStr = activeMandates.firstOrNull()?.calculatedFirstUnitAllocationDate ?: activeMandates.firstOrNull()?.firstUnitAllocationDate
                                 val inProgSub = if (!allocationDateStr.isNullOrBlank()) {
                                     "₹$amountStr received · will be allocated on ${formatDate(allocationDateStr)}"
                                 } else {
@@ -4113,5 +4174,34 @@ private fun isDatePassed(dateString: String?): Boolean {
         targetDate < today
     } catch (e: Exception) {
         false
+    }
+}
+
+private fun formatExpectedDate(dateString: String?): String {
+    if (dateString.isNullOrBlank() || dateString == "null") return ""
+    return try {
+        val parts = dateString.substringBefore("T").split("-")
+        if (parts.size < 3) return dateString
+        val year = parts[0]
+        val monthNum = parts[1].toInt()
+        val day = parts[2].toInt()
+        val monthName = when (monthNum) {
+            1 -> "Jan"
+            2 -> "Feb"
+            3 -> "Mar"
+            4 -> "Apr"
+            5 -> "May"
+            6 -> "Jun"
+            7 -> "Jul"
+            8 -> "Aug"
+            9 -> "Sep"
+            10 -> "Oct"
+            11 -> "Nov"
+            12 -> "Dec"
+            else -> ""
+        }
+        "$day $monthName $year"
+    } catch (e: Exception) {
+        dateString
     }
 }

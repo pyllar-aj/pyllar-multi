@@ -367,6 +367,18 @@ fun WithdrawAmountScreen(
                                     )
                                 }
                             }
+                            if (unitsInGm != null && unitsInGm > 0 && withdrawalAmount.isNotBlank()) {
+                                val enteredAmt = withdrawalAmount.toDoubleOrNull() ?: 0.0
+                                if (enteredAmt > 0 && withdrawableAmount > 0) {
+                                    val equivGm = (enteredAmt * unitsInGm) / withdrawableAmount
+                                    Text(
+                                        text = "≈ ${formatWeight(equivGm)}",
+                                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                                        color = Color(0xFF8B6B25),
+                                        modifier = Modifier.padding(start = 20.dp, top = 2.dp)
+                                    )
+                                }
+                            }
                         }
                     }
                 } else {
@@ -425,7 +437,7 @@ fun WithdrawAmountScreen(
                                 color = if (isGold) Color(0xFF6D4C41) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                             )
                             Text(
-                                "₹${formatIndian(withdrawableAmount)}", 
+                                "₹${formatIndianWithDecimals(withdrawableAmount)}", 
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                                 color = V2SuccessGreen
                             )
@@ -435,7 +447,7 @@ fun WithdrawAmountScreen(
                             val enteredAmount = withdrawalAmount.toDoubleOrNull() ?: 0.0
                             if (enteredAmount > withdrawableAmount) {
                                 Text(
-                                    text = org.jetbrains.compose.resources.stringResource(Res.string.amount_cannot_exceed, "₹${formatIndian(withdrawableAmount)}"),
+                                    text = org.jetbrains.compose.resources.stringResource(Res.string.amount_cannot_exceed, "₹${formatIndianWithDecimals(withdrawableAmount)}"),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.error
                                 )

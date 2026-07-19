@@ -288,24 +288,27 @@ fun ceil(value: Double): Double {
     return kotlin.math.ceil(value)
 }
 
+private fun formatToTwoDecimalPlaces(value: Double): String {
+    val factor = 100.0
+    val rounded = (kotlin.math.round(value * factor) / factor)
+    return if (rounded % 1.0 == 0.0) {
+        "${rounded.toLong()}.00"
+    } else {
+        val parts = rounded.toString().split(".")
+        if (parts.size == 2 && parts[1].length == 1) {
+            "${rounded}0"
+        } else {
+            rounded.toString()
+        }
+    }
+}
+
 fun formatWeight(value: Double, mgSuffix: String = " mg", gSuffix: String = " g"): String {
     return if (value < 1.0) {
-        val mgValue = kotlin.math.round(value * 1000).toLong()
-        "$mgValue$mgSuffix"
+        val mgValue = value * 1000.0
+        "${formatToTwoDecimalPlaces(mgValue)}$mgSuffix"
     } else {
-        val factor = 100.0
-        val rounded = (kotlin.math.round(value * factor) / factor)
-        val formatted = if (rounded % 1.0 == 0.0) {
-            "${rounded.toLong()}.00"
-        } else {
-            val parts = rounded.toString().split(".")
-            if (parts.size == 2 && parts[1].length == 1) {
-                "${rounded}0"
-            } else {
-                rounded.toString()
-            }
-        }
-        "$formatted$gSuffix"
+        "${formatToTwoDecimalPlaces(value)}$gSuffix"
     }
 }
 

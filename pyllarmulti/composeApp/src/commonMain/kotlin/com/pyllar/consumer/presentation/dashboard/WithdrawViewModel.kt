@@ -164,7 +164,7 @@ class WithdrawViewModel(
                 val currentValue = params?.amount ?: 0.0
                 val investmentInProgress = params?.investmentInProgress ?: 0.0
                 val withdrawalInProgress = params?.redemptionInProgress ?: 0.0
-                val availableToWithdraw = ((params?.redeemableAmount ?: 0.0) - withdrawalInProgress).coerceAtLeast(0.0)
+                val availableToWithdraw = (params?.redeemableAmount ?: 0.0).coerceAtLeast(0.0)
 
                 val state = WithdrawState(
                     currentBalance = currentValue,
@@ -327,7 +327,7 @@ class WithdrawViewModel(
         val totalInvestedFromResponse = investments.sumOf { it.investedAmount ?: 0.0 }
         val totalValue = investments.sumOf { it.currentValue ?: 0.0 }
         val withdrawalInProgress = investments.sumOf { it.redemptionInProgress ?: 0.0 }
-        val availableToWithdraw = investments.sumOf { (it.redeemableAmount ?: 0.0) - (it.redemptionInProgress ?: 0.0) }.coerceAtLeast(0.0)
+        val availableToWithdraw = investments.sumOf { it.redeemableAmount ?: 0.0 }.coerceAtLeast(0.0)
 
         val investmentInProgress = investments.sumOf { it.amountUnderProcessing ?: 0.0 }
 
@@ -416,7 +416,7 @@ class WithdrawViewModel(
             currentBalance = if (selectedGoal != null) selectedGoal.currentValue else totalValue,
             investmentInProgress = if (selectedGoal != null) 0.0 else investmentInProgress,
             withdrawalInProgress = withdrawalInProgress,
-            availableToWithdraw = if (selectedGoal != null) (selectedGoal.redeemableAmount - selectedGoal.redemptionInProgress).coerceAtLeast(0.0) else availableToWithdraw,
+            availableToWithdraw = if (selectedGoal != null) selectedGoal.redeemableAmount.coerceAtLeast(0.0) else availableToWithdraw,
             schemes = filteredSchemes,
             isInstantAvailable = isInstantAvailable,
             instantRedemptionValue = instantRedemptionValue,

@@ -336,14 +336,15 @@ fun BalanceSummaryCard(
             BalanceRow(
                 label = "Available to withdraw",
                 amount = availableToWithdraw,
-                isHighlighted = true
+                isHighlighted = true,
+                showDecimals = true
             )
         }
     }
 }
 
 @Composable
-fun BalanceRow(label: String, amount: Double, isHighlighted: Boolean = false) {
+fun BalanceRow(label: String, amount: Double, isHighlighted: Boolean = false, showDecimals: Boolean = false) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -355,7 +356,7 @@ fun BalanceRow(label: String, amount: Double, isHighlighted: Boolean = false) {
             color = if (isHighlighted) V2SuccessGreen else MaterialTheme.colorScheme.onSurface
         )
         Text(
-            text = "\u20B9${formatIndian(amount)}",
+            text = if (showDecimals) "\u20B9${formatIndianWithDecimals(amount)}" else "\u20B9${formatIndian(amount)}",
             style = if (isHighlighted) MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold, color = V2SuccessGreen) else MaterialTheme.typography.bodyMedium,
             color = if (isHighlighted) V2SuccessGreen else MaterialTheme.colorScheme.onSurface
         )
@@ -511,9 +512,9 @@ fun RegularWithdrawalCard(amount: Double, isSelected: Boolean, onSelect: () -> U
             HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = V2SubtleBorder)
             
             Text(
-                text = "Up to \u20B9${formatIndian(amount)}", 
+                text = "Up to \u20B9${formatIndianWithDecimals(amount)}", 
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), 
-                color = V2SuccessGreen
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
     }
@@ -545,11 +546,11 @@ fun SchemeSelectionItem(scheme: WithdrawScheme, isSelected: Boolean, selectedWit
             }
             Column(horizontalAlignment = Alignment.End) {
                 val available = if (selectedWithdrawMode == WithdrawMode.INSTANT) {
-                    ((scheme.instantRedemptionValue ?: 0.0) - scheme.redemptionInProgress).coerceAtLeast(0.0)
+                    scheme.instantRedemptionValue ?: 0.0
                 } else {
-                    (scheme.redeemableAmount - scheme.redemptionInProgress).coerceAtLeast(0.0)
+                    scheme.redeemableAmount
                 }
-                Text("\u20B9${formatIndian(available)}", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), color = V2SuccessGreen)
+                Text("\u20B9${formatIndianWithDecimals(available)}", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), color = V2SuccessGreen)
                 Text("Available", style = MaterialTheme.typography.bodySmall, modifier = Modifier.alpha(0.6f))
             }
         }
