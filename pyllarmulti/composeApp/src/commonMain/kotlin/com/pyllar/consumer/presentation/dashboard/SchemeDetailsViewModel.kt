@@ -102,7 +102,8 @@ data class MandateDisplayItem(
     val mandateCancelledDate: String?,
     val mandateCreatedDate: String? = null,
     val firstUnitAllocationDate: String? = null,
-    val calculatedFirstUnitAllocationDate: String? = null
+    val calculatedFirstUnitAllocationDate: String? = null,
+    val firstDebitDate: String? = null
 )
 
 data class SchemeDetailsState(
@@ -392,6 +393,7 @@ class SchemeDetailsViewModel(
         val displayMandates = response.planSummaryDtos?.map { planSummary ->
             val createdDate = planSummary.mandateCreatedDate ?: planSummary.mandateApprovedDate
             val calculatedAllocationDate = calculateFirstUnitAllocationDate(createdDate)
+            val calculatedDebitDate = calculateFirstDebitDate(createdDate)
             MandateDisplayItem(
                 mandateId = planSummary.mandateId,
                 amount = planSummary.amount?.toDouble() ?: 0.0,
@@ -403,7 +405,8 @@ class SchemeDetailsViewModel(
                 mandateCancelledDate = planSummary.mandateCancelledDate,
                 mandateCreatedDate = planSummary.mandateCreatedDate,
                 firstUnitAllocationDate = planSummary.firstUnitAllocationDate,
-                calculatedFirstUnitAllocationDate = calculatedAllocationDate
+                calculatedFirstUnitAllocationDate = calculatedAllocationDate,
+                firstDebitDate = calculatedDebitDate
             )
         }?.sortedByDescending { it.mandateCreatedDate ?: "" } ?: emptyList()
         
@@ -670,6 +673,28 @@ class SchemeDetailsViewModel(
             }
             val allocationDate = localDate.plus(daysToAdd, DateTimeUnit.DAY)
             allocationDate.toString()
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun calculateFirstDebitDate(createdDateStr: String?): String? {
+        if (createdDateStr.isNullOrBlank() || createdDateStr == "null") return null
+        return try {
+            val datePart = createdDateStr.substringBefore("T")
+            val localDate = LocalDate.parse(datePart)
+            val daysToAdd = when (localDate.dayOfWeek) {
+                DayOfWeek.MONDAY,
+                DayOfWeek.TUESDAY,
+                DayOfWeek.SUNDAY -> 1
+                DayOfWeek.WEDNESDAY,
+                DayOfWeek.THURSDAY -> 1
+                DayOfWeek.SATURDAY -> 2
+                DayOfWeek.FRIDAY -> 3
+                else -> 1
+            }
+            val debitDate = localDate.plus(daysToAdd, DateTimeUnit.DAY)
+            debitDate.toString()
         } catch (e: Exception) {
             null
         }

@@ -303,7 +303,18 @@ fun SchemeDetailsV2Screen(
     Scaffold(
         containerColor = scaffoldBgColor,
         bottomBar = {
-            if (!state.isLoading && !(state.errorMessage != null && schemeParams == null)) {
+            val inOverlayFlow = showCancelReasonScreen ||
+                    showCancelSipScreen ||
+                    showCancelSipSuccessSheet ||
+                    showCancelSipErrorSheet ||
+                    showPauseSipQuestionSheet ||
+                    showPauseSipSuccessSheet ||
+                    showPauseSipErrorSheet ||
+                    showResumeSipQuestionSheet ||
+                    showResumeSipSuccessSheet ||
+                    showResumeSipErrorSheet
+
+            if (!inOverlayFlow && !state.isLoading && !(state.errorMessage != null && schemeParams == null)) {
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     color = Color.White,
@@ -2145,32 +2156,28 @@ fun CancelSipInfoScreenV2(
     onCancelSip: () -> Unit,
     onGoBack: () -> Unit
 ) {
-    val firstDebitDateStr = mandate?.nextSipDate
+    val isDaily = mandate?.frequency?.uppercase() == "DAILY"
+    val firstDebitDateStr = mandate?.firstDebitDate ?: mandate?.nextSipDate
     val calculatedAllocationDateStr = mandate?.calculatedFirstUnitAllocationDate
 
     val isFirstDebitPassed = isDatePassed(firstDebitDateStr)
     val isAllocationPassed = isDatePassed(calculatedAllocationDateStr)
-
-    val showFirstDebitNotPassed = mandate != null && !firstDebitDateStr.isNullOrBlank() && !isFirstDebitPassed
-    val showAllocationNotPassed = mandate != null && isFirstDebitPassed && !calculatedAllocationDateStr.isNullOrBlank() && !isAllocationPassed
-
+    val showFirstDebitNotPassed = isDaily && mandate != null && !firstDebitDateStr.isNullOrBlank() && !isFirstDebitPassed
+    val showAllocationNotPassed = isDaily && mandate != null && isFirstDebitPassed && !calculatedAllocationDateStr.isNullOrBlank() && !isAllocationPassed
     Surface(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background.copy(alpha = 0.98f)),
+        modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
     ) {
         Column(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
                 .windowInsetsPadding(WindowInsets.systemBars)
-                .padding(horizontal = 16.dp, vertical = 16.dp)
+                .padding(start = 16.dp, end = 16.dp, bottom = 32.dp, top = 50.dp)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(32.dp))
-
+            Spacer(modifier = Modifier.height(8.dp))
             if (showFirstDebitNotPassed || showAllocationNotPassed) {
                 Text(
                     text = "Cancel SIP?",
@@ -2413,7 +2420,7 @@ fun CancelSipInfoScreenV2(
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             Button(
                 onClick = onCancelSip,
@@ -2711,18 +2718,19 @@ fun PauseSipConfirmBottomSheetV2(
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                val firstDebitDateStr = mandate?.nextSipDate
+                val isDaily = mandate?.frequency?.uppercase() == "DAILY"
+                val firstDebitDateStr = mandate?.firstDebitDate ?: mandate?.nextSipDate
                 val calculatedAllocationDateStr = mandate?.calculatedFirstUnitAllocationDate
 
                 val isFirstDebitPassed = isDatePassed(firstDebitDateStr)
                 val isAllocationPassed = isDatePassed(calculatedAllocationDateStr)
 
-                val showFirstDebitNotPassed = mandate != null && !firstDebitDateStr.isNullOrBlank() && !isFirstDebitPassed
-                val showAllocationNotPassed = mandate != null && isFirstDebitPassed && !calculatedAllocationDateStr.isNullOrBlank() && !isAllocationPassed
+                val showFirstDebitNotPassed = isDaily && mandate != null && !firstDebitDateStr.isNullOrBlank() && !isFirstDebitPassed
+                val showAllocationNotPassed = isDaily && mandate != null && isFirstDebitPassed && !calculatedAllocationDateStr.isNullOrBlank() && !isAllocationPassed
 
                 val bodyText = when {
                     showAllocationNotPassed -> {
-                        "Your first investment is still being processed. Waiting until the units are allocated lets you see your first SIP investment before deciding whether to continue."
+                        "Your first investment is still being processed. Waiting until the units are allocated lets you see your first SIP investment before deciding whether to pause."
                     }
                     showFirstDebitNotPassed -> {
                         "Pausing now will stop your SIP before your first investment begins."
@@ -4001,7 +4009,9 @@ fun DashboardTile(
 @Composable
 private fun SipDateDetailsDisplay(mandate: MandateDisplayItem?, modifier: Modifier = Modifier) {
     if (mandate == null) return
-    val firstDebitDateStr = mandate.nextSipDate
+    val isDaily = mandate.frequency?.uppercase() == "DAILY"
+    if (!isDaily) return
+    val firstDebitDateStr = mandate.firstDebitDate ?: mandate.nextSipDate
     val createdDateStr = mandate.mandateCreatedDate ?: mandate.mandateApprovedDate
     val calculatedAllocationDateStr = mandate.calculatedFirstUnitAllocationDate
 
