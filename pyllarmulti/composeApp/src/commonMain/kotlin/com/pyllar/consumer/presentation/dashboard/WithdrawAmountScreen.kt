@@ -27,6 +27,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.layout.ContentScale
+import org.jetbrains.compose.resources.painterResource
 import com.pyllar.consumer.analytics.PlatformAnalyticsLogger
 import com.pyllar.consumer.data.remote.model.dto.RedemptionRequest
 import com.pyllar.consumer.domain.storage.SessionStore
@@ -87,13 +96,15 @@ fun WithdrawAmountScreen(
     
     val selectedScheme = remember { WithdrawSchemeManager.get() }
     val withdrawMode = remember { WithdrawSchemeManager.getMode() }
+    val isGold = remember(selectedScheme) { selectedScheme?.schemeName?.contains("Gold", ignoreCase = true) == true }
+    val unitsInGm = remember(selectedScheme) { selectedScheme?.unitsInGm }
     
     val withdrawableAmount = remember(selectedScheme, withdrawMode) {
         selectedScheme?.let { scheme ->
             if (withdrawMode == "INSTANT") {
-                ((scheme.instantRedemptionValue ?: 0.0) - scheme.redemptionInProgress).coerceAtLeast(0.0)
+                scheme.instantRedemptionValue ?: 0.0
             } else {
-                (scheme.redeemableAmount - scheme.redemptionInProgress).coerceAtLeast(0.0)
+                scheme.redeemableAmount
             }
         } ?: 0.0
     }
@@ -108,10 +119,11 @@ fun WithdrawAmountScreen(
         bankAccountLast4 = if (accNo.length >= 4) accNo.takeLast(4) else accNo
     }
 
+    val withdrawAllDisplayAmount = remember(withdrawableAmount) { formatToTwoDecimals(withdrawableAmount) }
     LaunchedEffect(withdrawAll, withdrawableAmount) {
         if (withdrawAll) {
-            withdrawalAmount = (withdrawableAmount).toString()
-        } else if (withdrawalAmount == withdrawableAmount.toString()) {
+            withdrawalAmount = withdrawAllDisplayAmount
+        } else if (!withdrawAll && withdrawalAmount == withdrawAllDisplayAmount) {
             withdrawalAmount = ""
         }
     }
@@ -205,41 +217,198 @@ fun WithdrawAmountScreen(
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                 )
 
-                // Amount Card
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                // "Your gold" summary card — gold withdrawals only
+                if (isGold) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                        shape = RoundedCornerShape(20.dp),
+                        border = BorderStroke(1.dp, Color(0xFF8B6B25).copy(alpha = 0.35f))
                     ) {
-                        Text("₹", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-                        OutlinedTextField(
-                            value = withdrawalAmount,
-                            onValueChange = { 
-                                if (it.isEmpty() || it.all { char -> char.isDigit() }) {
-                                    withdrawalAmount = it
-                                    withdrawAll = false
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    Brush.linearGradient(
+                                        colors = listOf(
+                                            Color(0xFFFFFDF7),
+                                            Color(0xFFFFF9E6),
+                                            Color(0xFFFFF3CD)
+                                        )
+                                    )
+                                )
+                        ) {
+                            Box(
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Image(
+                                    painter = painterResource(Res.drawable.gold_jew),
+                                    contentDescription = null,
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .padding(top = 8.dp, end = 8.dp)
+                                        .size(86.dp)
+                                        .rotate(20f),
+                                    contentScale = ContentScale.Fit
+                                )
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth(0.68f)
+                                        .padding(start = 20.dp, top = 20.dp, end = 20.dp, bottom = 0.dp),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text(
+                                        text = org.jetbrains.compose.resources.stringResource(Res.string.your_gold).uppercase(),
+                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 12.sp),
+                                        color = Color(0xFF8B6B25)
+                                    )
+                                    if (unitsInGm != null && unitsInGm > 0) {
+                                        Text(
+                                            text = formatWeight(unitsInGm),
+                                            style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.ExtraBold, fontSize = 36.sp),
+                                            color = Color(0xFF1A1A1A)
+                                        )
+                                    }
+                                    Text(
+                                        text = "≈ ₹${formatIndian(withdrawableAmount)} today",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = Color(0xFF6B6B6B)
+                                    )
                                 }
-                            },
-                            modifier = Modifier.weight(1f),
-                            placeholder = { Text("0", color = Color.Gray.copy(alpha = 0.5f)) },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            enabled = !withdrawAll && !showOtpScreen,
-                            textStyle = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
-                        )
+                            }
+                            Text(
+                                text = org.jetbrains.compose.resources.stringResource(Res.string.withdraw_gold_holding_description),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFF3E2723),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 20.dp)
+                            )
+                        }
+                    }
+                }
+
+                // Amount Card
+                if (isGold) {
+                    // Design-matched underline input: label above, ₹ + input with a bottom rule
+                    val subtleBorder = Color(0xFFEFEBE9) // --v2-subtle-border
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Text(
+                                text = org.jetbrains.compose.resources.stringResource(Res.string.how_much_would_you_like_to_withdraw),
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                                color = Color(0xFF6D4C41) // --v2-ink-soft
+                            )
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 8.dp)
+                                    .drawBehind {
+                                        val strokeWidth = 2.dp.toPx()
+                                        drawLine(
+                                            color = subtleBorder,
+                                            start = Offset(0f, size.height),
+                                            end = Offset(size.width, size.height),
+                                            strokeWidth = strokeWidth
+                                        )
+                                    },
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                // Rupee Symbol
+                                Text(
+                                    text = "₹",
+                                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+
+                                // Amount TextField
+                                Box(modifier = Modifier.weight(1f)) {
+                                    if (withdrawalAmount.isEmpty()) {
+                                        Text(
+                                            text = "0",
+                                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                                        )
+                                    }
+                                    BasicTextField(
+                                        value = withdrawalAmount,
+                                        onValueChange = { newValue ->
+                                            // Allow only digits
+                                            if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
+                                                val amount = newValue.toDoubleOrNull() ?: 0.0
+                                                // Only allow if amount is within withdrawable limit
+                                                if (amount <= withdrawableAmount) {
+                                                    withdrawalAmount = newValue
+                                                    withdrawAll = false
+                                                }
+                                            }
+                                        },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        singleLine = true,
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                        enabled = !withdrawAll && !showOtpScreen,
+                                        textStyle = MaterialTheme.typography.titleLarge.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (withdrawAll) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurface
+                                        ),
+                                        cursorBrush = SolidColor(MaterialTheme.colorScheme.onSurface)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Text("₹", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                            OutlinedTextField(
+                                value = withdrawalAmount,
+                                onValueChange = { 
+                                    if (it.isEmpty() || it.all { char -> char.isDigit() }) {
+                                        withdrawalAmount = it
+                                        withdrawAll = false
+                                    }
+                                },
+                                modifier = Modifier.weight(1f),
+                                placeholder = { Text("0", color = Color.Gray.copy(alpha = 0.5f)) },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                enabled = !withdrawAll && !showOtpScreen,
+                                textStyle = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
+                            )
+                        }
                     }
                 }
 
                 // Available to Withdraw Info
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = V2SubtleBorder)
+                    shape = RoundedCornerShape(if (isGold) 14.dp else 12.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (isGold) Color.White.copy(alpha = 0.85f) else V2SubtleBorder
+                    ),
+                    border = if (isGold) BorderStroke(1.dp, Color(0xFFEFEBE9)) else null,
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
@@ -250,7 +419,11 @@ fun WithdrawAmountScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("Available to withdraw ", style = MaterialTheme.typography.bodyMedium)
+                            Text(
+                                "Available to withdraw ", 
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = if (isGold) Color(0xFF6D4C41) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                            )
                             Text(
                                 "₹${formatIndian(withdrawableAmount)}", 
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
@@ -768,6 +941,13 @@ fun WithdrawAmountScreen(
             }
         }
     }
+}
+
+fun formatToTwoDecimals(value: Double): String {
+    val parts = value.toString().split(".")
+    val integerPart = parts[0]
+    val decimalPart = parts.getOrNull(1)?.take(2)?.padEnd(2, '0') ?: "00"
+    return "$integerPart.$decimalPart"
 }
 
 fun formatIndianWithDecimals(value: Double): String {

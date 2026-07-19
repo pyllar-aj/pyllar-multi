@@ -33,7 +33,8 @@ data class WithdrawInitParams(
     val canWithdraw: Boolean? = true,
     val redemptionInProgress: Double = 0.0,
     val redeemableAmount: Double = 0.0,
-    val instantRedemptionValue: Double? = null
+    val instantRedemptionValue: Double? = null,
+    val unitsInGm: Double? = null
 )
 
 enum class WithdrawMode {
@@ -64,7 +65,8 @@ data class WithdrawScheme(
     val canWithdraw: Boolean,
     val redeemableAmount: Double = 0.0,
     val redemptionInProgress: Double = 0.0,
-    val instantRedemptionValue: Double? = null
+    val instantRedemptionValue: Double? = null,
+    val unitsInGm: Double? = null
 )
 
 object WithdrawParamsManager {
@@ -180,7 +182,8 @@ class WithdrawViewModel(
                             canWithdraw = true,
                             redemptionInProgress = withdrawalInProgress,
                             redeemableAmount = params?.redeemableAmount ?: 0.0,
-                            instantRedemptionValue = params?.instantRedemptionValue
+                            instantRedemptionValue = params?.instantRedemptionValue,
+                            unitsInGm = params?.unitsInGm
                         )
                     ),
                     isLoading = false,
@@ -354,7 +357,8 @@ class WithdrawViewModel(
                     canWithdraw = canWithdraw,
                     redemptionInProgress = investment.redemptionInProgress ?: 0.0,
                     redeemableAmount = investment.redeemableAmount ?: 0.0,
-                    instantRedemptionValue = investment.instantRedemptionValue
+                    instantRedemptionValue = investment.instantRedemptionValue,
+                    unitsInGm = investment.unitsInGm
                 )
             }
 
@@ -382,7 +386,8 @@ class WithdrawViewModel(
                             canWithdraw = canWithdraw,
                             redemptionInProgress = investment.redemptionInProgress ?: 0.0,
                             redeemableAmount = investment.redeemableAmount ?: 0.0,
-                            instantRedemptionValue = investment.instantRedemptionValue
+                            instantRedemptionValue = investment.instantRedemptionValue,
+                            unitsInGm = investment.unitsInGm
                         )
                     )
                 } else {
