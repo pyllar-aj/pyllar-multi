@@ -551,12 +551,14 @@ fun UserHeader(
         Spacer(modifier = Modifier.width(12.dp))
 
         if (isLoading) {
-            Box(modifier = Modifier.width(120.dp).height(20.dp)) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(16.dp),
-                    color = Color.White,
-                    strokeWidth = 2.dp
-                )
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                Box(modifier = Modifier.width(120.dp).height(20.dp)) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        color = Color.White,
+                        strokeWidth = 2.dp
+                    )
+                }
             }
         } else {
             Row(

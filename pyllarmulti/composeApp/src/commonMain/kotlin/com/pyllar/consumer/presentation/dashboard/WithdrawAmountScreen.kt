@@ -86,6 +86,7 @@ fun WithdrawAmountScreen(
     var phoneNumber by remember { mutableStateOf("") }
     var otpValidationError by remember { mutableStateOf<String?>(null) }
     var isVerifyingOtp by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
     
     val bottomSheetScaffoldState = rememberBottomSheetScaffoldState()
     val isIos = remember { getPlatform().name.contains("iOS", ignoreCase = true) }
@@ -97,6 +98,7 @@ fun WithdrawAmountScreen(
     val selectedScheme = remember { WithdrawSchemeManager.get() }
     val withdrawMode = remember { WithdrawSchemeManager.getMode() }
     val isGold = remember(selectedScheme) { selectedScheme?.schemeName?.contains("Gold", ignoreCase = true) == true }
+    val isSilver = remember(selectedScheme) { selectedScheme?.schemeName?.contains("Silver", ignoreCase = true) == true }
     val unitsInGm = remember(selectedScheme) { selectedScheme?.unitsInGm }
     
     val withdrawableAmount = remember(selectedScheme, withdrawMode) {
@@ -136,6 +138,9 @@ fun WithdrawAmountScreen(
         if (otpGenerationResult is Resource.Success) {
             showConfirmationSheet = false
             showOtpScreen = true
+        } else if (otpGenerationResult is Resource.Error) {
+            showConfirmationSheet = false
+            errorMessage = (otpGenerationResult?.message ?: "Failed to generate OTP").toUserFriendlyErrorMessage()
         }
     }
 
@@ -189,6 +194,17 @@ fun WithdrawAmountScreen(
             isVerifyingOtp = false
             otpValidationError = (redemptionResult?.message ?: "").toUserFriendlyErrorMessage()
         }
+    }
+
+    errorMessage?.let { errorMsg ->
+        AlertDialog(
+            onDismissRequest = { errorMessage = null },
+            title = { Text("Notice", fontWeight = FontWeight.Bold) },
+            text = { Text(errorMsg) },
+            confirmButton = {
+                TextButton(onClick = { errorMessage = null }) { Text("OK") }
+            }
+        )
     }
 
     Scaffold(
@@ -289,10 +305,82 @@ fun WithdrawAmountScreen(
                     }
                 }
 
+                // "Your silver" summary card — silver withdrawals only
+                if (isSilver) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                        shape = RoundedCornerShape(20.dp),
+                        border = BorderStroke(1.dp, Color(0xFF9E9E9E).copy(alpha = 0.35f))
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    Brush.linearGradient(
+                                        colors = listOf(
+                                            Color(0xFFFAFAFA),
+                                            Color(0xFFF5F5F5),
+                                            Color(0xFFE0E0E0)
+                                        )
+                                    )
+                                )
+                        ) {
+                            Box(
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Image(
+                                    painter = painterResource(Res.drawable.silver_icon),
+                                    contentDescription = null,
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .padding(top = 8.dp, end = 8.dp)
+                                        .size(86.dp)
+                                        .rotate(20f),
+                                    contentScale = ContentScale.Fit
+                                )
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth(0.68f)
+                                        .padding(start = 20.dp, top = 20.dp, end = 20.dp, bottom = 0.dp),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text(
+                                        text = org.jetbrains.compose.resources.stringResource(Res.string.your_silver).uppercase(),
+                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 12.sp),
+                                        color = Color(0xFF616161)
+                                    )
+                                    if (unitsInGm != null && unitsInGm > 0) {
+                                        Text(
+                                            text = formatWeight(unitsInGm),
+                                            style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.ExtraBold, fontSize = 36.sp),
+                                            color = Color(0xFF1A1A1A)
+                                        )
+                                    }
+                                    Text(
+                                        text = "≈ ₹${formatIndian(withdrawableAmount)} today",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = Color(0xFF6B6B6B)
+                                    )
+                                }
+                            }
+                            Text(
+                                text = "Just like silver, its value moves with the market day to day — the grams you've saved stay yours.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFF424242),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 20.dp)
+                            )
+                        }
+                    }
+                }
+
                 // Amount Card
-                if (isGold) {
+                if (isGold || isSilver) {
                     // Design-matched underline input: label above, ₹ + input with a bottom rule
-                    val subtleBorder = Color(0xFFEFEBE9) // --v2-subtle-border
+                    val subtleBorder = if (isGold) Color(0xFFEFEBE9) else Color(0xFFE0E0E0) // --v2-subtle-border
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -374,7 +462,7 @@ fun WithdrawAmountScreen(
                                     Text(
                                         text = "≈ ${formatWeight(equivGm)}",
                                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
-                                        color = Color(0xFF8B6B25),
+                                        color = if (isGold) Color(0xFF8B6B25) else Color(0xFF616161),
                                         modifier = Modifier.padding(start = 20.dp, top = 2.dp)
                                     )
                                 }
@@ -415,11 +503,11 @@ fun WithdrawAmountScreen(
                 // Available to Withdraw Info
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(if (isGold) 14.dp else 12.dp),
+                    shape = RoundedCornerShape(if (isGold || isSilver) 14.dp else 12.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = if (isGold) Color.White.copy(alpha = 0.85f) else V2SubtleBorder
+                        containerColor = if (isGold || isSilver) Color.White.copy(alpha = 0.85f) else V2SubtleBorder
                     ),
-                    border = if (isGold) BorderStroke(1.dp, Color(0xFFEFEBE9)) else null,
+                    border = if (isGold) BorderStroke(1.dp, Color(0xFFEFEBE9)) else if (isSilver) BorderStroke(1.dp, Color(0xFFE0E0E0)) else null,
                     elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
                     Column(
@@ -434,7 +522,7 @@ fun WithdrawAmountScreen(
                             Text(
                                 "Available to withdraw ", 
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = if (isGold) Color(0xFF6D4C41) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                color = if (isGold) Color(0xFF6D4C41) else if (isSilver) Color(0xFF616161) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                             )
                             Text(
                                 "₹${formatIndianWithDecimals(withdrawableAmount)}", 
@@ -647,32 +735,32 @@ fun WithdrawAmountScreen(
                                             Box(
                                                 modifier = Modifier
                                                     .size(48.dp)
-                                                    .background(Color(0xFFF5EFEB), CircleShape),
+                                                    .background(Color(0xFFF9F7F5), CircleShape),
                                                 contentAlignment = Alignment.Center
                                             ) {
                                                 Icon(
                                                     imageVector = Icons.Default.Info, // Fallback for tag/percent
                                                     contentDescription = null,
-                                                    tint = Color(0xFF4A3E3D),
+                                                    tint = Color(0xFF888888),
                                                     modifier = Modifier.size(24.dp)
                                                 )
                                             }
                                             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                                 Text(
                                                     text = org.jetbrains.compose.resources.stringResource(Res.string.exit_load_approx),
-                                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
-                                                    color = Color(0xFF666666)
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    color = Color(0xFF888888)
                                                 )
                                                 Text(
                                                     text = exitLoadDetails.title,
-                                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                                                    color = Color(0xFF0F3A20) // Deep Premium Green
+                                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                                                    color = Color(0xFF444444)
                                                 )
                                                 if (!exitLoadDetails.description.isNullOrBlank()) {
                                                     Text(
                                                         text = exitLoadDetails.description,
                                                         style = MaterialTheme.typography.bodySmall,
-                                                        color = Color(0xFF888888)
+                                                        color = Color(0xFF999999)
                                                     )
                                                 }
                                             }

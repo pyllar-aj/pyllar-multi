@@ -761,6 +761,6 @@
     <string name="will_be_processed_by">Will be processed by</string>
     <string name="folios">Folio Number</string>
     <string name="once_processed_cannot_be_reversed">Once processed, this transaction cannot be reversed</string>
-    <string name="withdraw_gold_holding_description">Just like gold jewellery, its value moves with the market day to day — the grams you\'ve saved stay yours.</string>
+    <string name="withdraw_gold_holding_description">Just like gold jewellery, its value moves with the market day to day — the grams you've saved stay yours.</string>
     <string name="how_much_would_you_like_to_withdraw">How much would you like to withdraw?</string>
 </resources>
