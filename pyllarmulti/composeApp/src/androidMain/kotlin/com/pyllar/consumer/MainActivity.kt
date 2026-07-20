@@ -57,7 +57,7 @@ class MainActivity : AppCompatActivity() {
         // Handle FCM notification action from the launching intent
         checkForUpdateIfNeeded(intent)
         checkForPendingUpdateCheck()
-        checkForForceUpdateOnStartup()
+        checkForUpdateOnStartup()
 
         setContent {
             KoinContext {
@@ -227,15 +227,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * On every launch, silently checks Play Store for a critical version (patch > 90).
+     * On every launch, checks Play Store for an available update - force (patch > 90),
+     * or optional immediate/flexible - independent of any FCM push.
      * Skipped within the first 30 hours after install to avoid blocking fresh-install users.
      */
-    private fun checkForForceUpdateOnStartup() {
+    private fun checkForUpdateOnStartup() {
         try {
             val pkgInfo = packageManager.getPackageInfo(packageName, 0)
             val millisSinceInstall = pkgInfo.lastUpdateTime - pkgInfo.firstInstallTime
             if (millisSinceInstall < (30 * 60 * 60 * 1000L)) {
-                Log.d("MainActivity", "Skipping force update check - fresh install")
+                Log.d("MainActivity", "Skipping update check - fresh install")
                 return
             }
         } catch (e: Exception) {
@@ -247,12 +248,24 @@ class MainActivity : AppCompatActivity() {
             onForceUpdateRequired = {
                 Log.d("MainActivity", "FORCE update required on startup (patch > 90)")
                 forceUpdateManager.setForceUpdate(updateUrl = null, webUrl = null, message = null)
+            },
+            onImmediateUpdateAvailable = {
+                if (canShowUpdateBottomSheet()) {
+                    AnalyticsLogger.logEvent(this, "update_available", mapOf("update_type" to "immediate", "source" to "app_startup"))
+                    showImmediateUpdateSheet.value = true
+                }
+            },
+            onFlexibleUpdateAvailable = {
+                if (canShowUpdateBottomSheet()) {
+                    AnalyticsLogger.logEvent(this, "update_available", mapOf("update_type" to "flexible", "source" to "app_startup"))
+                    showFlexibleUpdateSheet.value = true
+                }
             }
         )
     }
 
     private fun setNextShowTime() {
-        val nextShowTime = System.currentTimeMillis() + (24 * 60 * 60 * 1000L)
+        val nextShowTime = System.currentTimeMillis() + (10 * 24 * 60 * 60 * 1000L)
         getSharedPreferences("update_prefs", MODE_PRIVATE).edit()
             .putLong("next_show_time", nextShowTime)
             .apply()
