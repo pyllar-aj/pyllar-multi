@@ -45,5 +45,14 @@ fun String.toUserFriendlyErrorMessage(): String {
         return "Failed to check readiness. Please try again later."
     }
 
-    return trimmed
+    val lowerMsg = trimmed.lowercase()
+    return when {
+        lowerMsg.contains("incorrect otp") -> "Incorrect OTP. Please try again."
+        lowerMsg.contains("maximum attempts") -> "Maximum attempts reached. Please try again later."
+        lowerMsg.contains("no units available") -> "You have no units available to withdraw."
+        lowerMsg.contains("instant redemption range") || lowerMsg.contains("min_instant_redemption_amount") -> "The withdrawal amount is outside the allowed instant redemption range."
+        lowerMsg.contains("greater than the min withdrawal amount") -> "Amount should be greater than the minimum withdrawal amount."
+        lowerMsg.contains("less than the max redeemable amount") -> "Amount should be less than the maximum redeemable amount."
+        else -> trimmed
+    }
 }

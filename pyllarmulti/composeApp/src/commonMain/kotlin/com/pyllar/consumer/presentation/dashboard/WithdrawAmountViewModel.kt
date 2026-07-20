@@ -9,6 +9,7 @@ import com.pyllar.consumer.domain.repository.RedemptionRepository
 import com.pyllar.consumer.domain.storage.SessionStore
 import com.pyllar.consumer.util.Resource
 import com.pyllar.consumer.util.platformLog
+import com.pyllar.consumer.util.toUserFriendlyErrorMessage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -71,7 +72,8 @@ class WithdrawAmountViewModel(
                         }
                         is Resource.Error -> {
                             platformLog("❌ [generateRedemptionOtp] OTP generation failed: ${result.message}")
-                            _otpGenerationResult.value = Resource.Error(result.message ?: "Failed to send OTP. Please try again.")
+                            val errorMsg = sanitizeErrorMessage(result.message ?: "", "Error occurred. Please try again after some time")
+                            _otpGenerationResult.value = Resource.Error(errorMsg)
                         }
                         is Resource.Loading -> { }
                     }
@@ -123,7 +125,8 @@ class WithdrawAmountViewModel(
                         }
                         is Resource.Error -> {
                             platformLog("❌ [verifyRedemptionOtp] OTP verification failed: ${result.message}")
-                            _otpVerificationResult.value = Resource.Error(result.message ?: "Incorrect OTP. Please try again.")
+                            val errorMsg = sanitizeErrorMessage(result.message ?: "", "Error occurred. Please try again after some time")
+                            _otpVerificationResult.value = Resource.Error(errorMsg)
                         }
                         is Resource.Loading -> { }
                     }
@@ -132,6 +135,27 @@ class WithdrawAmountViewModel(
                 platformLog("❌ [verifyRedemptionOtp] Error: ${e.message}")
                 _otpVerificationResult.value = Resource.Error("Something went wrong. Please try again.")
             }
+        }
+    }
+
+    private fun sanitizeErrorMessage(rawMessage: String, fallback: String): String {
+        if (rawMessage.isBlank()) return fallback
+        
+        val friendly = rawMessage.toUserFriendlyErrorMessage()
+        // If the global utility converted it into a generic network or server error, use that
+        if (friendly != rawMessage.trim()) {
+            return friendly
+        }
+        
+        val lowerMsg = rawMessage.lowercase()
+        return when {
+            lowerMsg.contains("incorrect otp") -> "Incorrect OTP. Please try again."
+            lowerMsg.contains("maximum attempts") -> "Maximum attempts reached. Please try again later."
+            lowerMsg.contains("no units available") -> "You have no units available to withdraw."
+            lowerMsg.contains("instant redemption range") || lowerMsg.contains("min_instant_redemption_amount") -> "The withdrawal amount is outside the allowed instant redemption range."
+            lowerMsg.contains("greater than the min withdrawal amount") -> "Amount should be greater than the minimum withdrawal amount."
+            lowerMsg.contains("less than the max redeemable amount") -> "Amount should be less than the maximum redeemable amount."
+            else -> fallback
         }
     }
 }
