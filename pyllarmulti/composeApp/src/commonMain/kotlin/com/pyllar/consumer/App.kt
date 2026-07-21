@@ -233,6 +233,12 @@ fun App() {
         }
 
         LaunchedEffect(Unit) {
+            val isIos = getPlatform().name.contains("iOS", ignoreCase = true)
+            if (isIos && sessionStore.getValue("force_logout_v1_done") != "true") {
+                platformLog("App: Forcing user logout once as per requested configuration")
+                sessionStore.logout()
+                sessionStore.saveValue("force_logout_v1_done", "true")
+            }
             val isLoggedIn = sessionStore.isLoggedIn()
             platformLog("App: Initializing. isLoggedIn=$isLoggedIn")
             if (isLoggedIn) {
