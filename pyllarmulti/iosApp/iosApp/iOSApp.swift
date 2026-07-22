@@ -8,6 +8,9 @@ import FirebaseMessaging
 import UserNotifications
 import ComposeApp
 
+private let singularApiKey = "pyllar_f3135c51"
+private let singularSecretKey = "f0d918a1e372e68b8c4a46b14bbe82c8"
+
 class AppDelegate: NSObject, UIApplicationDelegate, AppsFlyerLibDelegate, UNUserNotificationCenterDelegate, MessagingDelegate {
     func application(
         _ application: UIApplication,
@@ -47,26 +50,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, AppsFlyerLibDelegate, UNUser
         ClaritySDK.initialize(config: clarityConfig)
 
         // Configure Singular
-        if let singularConfig = SingularConfig(apiKey: "pyllar_f3135c51", andSecret: "f0d918a1e372e68b8c4a46b14bbe82c8") {
-            singularConfig.launchOptions = launchOptions
-            singularConfig.singularLinksHandler = { params in
-                guard let params = params else { return }
-                var dict: [String: String] = [:]
-                if let deeplink = params.getDeepLink() {
-                    dict["deeplink"] = deeplink
-                }
-                if let passthrough = params.getPassthrough() {
-                    dict["passthrough"] = passthrough
-                }
-                dict["is_deferred"] = params.isDeferred() ? "true" : "false"
-                if let urlParams = params.getUrlParameters() as? [String: String] {
-                    dict.merge(urlParams) { _, new in new }
-                }
-                print("[Singular] Link params received: \(dict)")
-                SwiftAnalyticsBridge.singularAttributionData = dict
-            }
-            Singular.start(singularConfig)
-        }
+        processSingularLink(launchOptions: launchOptions)
 
         return true
     }
@@ -84,7 +68,21 @@ class AppDelegate: NSObject, UIApplicationDelegate, AppsFlyerLibDelegate, UNUser
         open url: URL,
         options: [UIApplication.OpenURLOptionsKey: Any] = [:]
     ) -> Bool {
-        Singular.startSession("pyllar_f3135c51", withKey: "f0d918a1e372e68b8c4a46b14bbe82c8", andLaunch: url)
+        processSingularLink(openUrl: url)
+        return true
+    }
+
+    // Universal Links case: user taps an https://pyllar.sng.link/... Singular Link.
+    // Requires the com.apple.developer.associated-domains entitlement (applinks:pyllar.sng.link).
+    // Cold start is covered by singularConfig.launchOptions above; this handles warm/background starts.
+    func application(
+        _ application: UIApplication,
+        continue userActivity: NSUserActivity,
+        restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void
+    ) -> Bool {
+        if userActivity.activityType == NSUserActivityTypeBrowsingWeb {
+            processSingularLink(userActivity: userActivity)
+        }
         return true
     }
 
@@ -193,6 +191,58 @@ struct iOSApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                // Belt-and-braces for Universal Links: this app has no custom UISceneDelegate,
+                // so AppDelegate's application(_:continue:restorationHandler:) is not reliably
+                // called by the Scene lifecycle. SwiftUI's onContinueUserActivity is the path
+                // that's actually guaranteed to fire when a pyllar.sng.link tap opens the app.
+                .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { userActivity in
+                    processSingularLink(userActivity: userActivity)
+                }
+                .onOpenURL { url in
+                    processSingularLink(openUrl: url)
+                }
         }
     }
+}
+
+private func processSingularLink(
+    launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil,
+    userActivity: NSUserActivity? = nil,
+    openUrl: URL? = nil
+) {
+    guard let singularConfig = SingularConfig(apiKey: singularApiKey, andSecret: singularSecretKey) else {
+        print("[Singular] ⚠️ SingularConfig(apiKey:andSecret:) returned nil — Singular did not start")
+        return
+    }
+    let idfv = UIDevice.current.identifierForVendor?.uuidString ?? "N/A"
+    NSLog("[Singular] Current IDFV for Testing Console: %@", idfv)
+    UIPasteboard.general.string = idfv
+    singularConfig.enableLogging = true
+    singularConfig.logLevel = .verbose
+    if let launchOptions = launchOptions {
+        singularConfig.launchOptions = launchOptions
+    }
+    if let userActivity = userActivity {
+        singularConfig.userActivity = userActivity
+    }
+    if let openUrl = openUrl {
+        singularConfig.openUrl = openUrl
+    }
+    singularConfig.singularLinksHandler = { params in
+        guard let params = params else { return }
+        var dict: [String: String] = [:]
+        if let deeplink = params.getDeepLink() {
+            dict["deeplink"] = deeplink
+        }
+        if let passthrough = params.getPassthrough() {
+            dict["passthrough"] = passthrough
+        }
+        dict["is_deferred"] = params.isDeferred() ? "true" : "false"
+        if let urlParams = params.getUrlParameters() as? [String: String] {
+            dict.merge(urlParams) { _, new in new }
+        }
+        print("[Singular] Link params received: \(dict)")
+        SwiftAnalyticsBridge.singularAttributionData = dict
+    }
+    Singular.start(singularConfig)
 }

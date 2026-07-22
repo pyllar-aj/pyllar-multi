@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import com.pyllar.consumer.analytics.AnalyticsLogger
+import com.pyllar.consumer.analytics.SingularTracker
 import com.pyllar.consumer.navigation.ForceUpdateManager
 import com.pyllar.consumer.platform.AndroidPermissionManager
 import com.pyllar.consumer.presentation.components.ImmediateUpdateBottomSheet
@@ -53,6 +54,9 @@ class MainActivity : AppCompatActivity() {
 
         // Capture UTM install referrer params on first launch
         InstallReferrerHelper.captureIfNeeded(this)
+
+        // Resolve a Singular Link (https://pyllar.sng.link/...) that launched the app, if any
+        SingularTracker.resolveLink(this, intent)
 
         // Handle FCM notification action from the launching intent
         checkForUpdateIfNeeded(intent)
@@ -138,6 +142,7 @@ class MainActivity : AppCompatActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        SingularTracker.resolveLink(this, intent)
         checkForUpdateIfNeeded(intent)
     }
 
