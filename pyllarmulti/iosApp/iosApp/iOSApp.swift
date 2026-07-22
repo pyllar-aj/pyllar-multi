@@ -214,11 +214,12 @@ private func processSingularLink(
         print("[Singular] ⚠️ SingularConfig(apiKey:andSecret:) returned nil — Singular did not start")
         return
     }
-    let idfv = UIDevice.current.identifierForVendor?.uuidString ?? "N/A"
-    NSLog("[Singular] Current IDFV for Testing Console: %@", idfv)
-    UIPasteboard.general.string = idfv
     singularConfig.enableLogging = true
+    #if DEBUG
     singularConfig.logLevel = .verbose
+    #else
+    singularConfig.logLevel = .error
+    #endif
     if let launchOptions = launchOptions {
         singularConfig.launchOptions = launchOptions
     }
