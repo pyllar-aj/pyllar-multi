@@ -176,46 +176,6 @@ class AppDelegate: NSObject, UIApplicationDelegate, AppsFlyerLibDelegate, UNUser
             PushTokenManager.shared.setNotificationPayload(payload: jsonString)
         }
 
-        // Present local notification if payload contains title and body details
-        var title = ""
-        var body = ""
-
-        if let aps = userInfo["aps"] as? [String: Any],
-           let alert = aps["alert"] as? [String: Any] {
-            title = alert["title"] as? String ?? ""
-            body = alert["body"] as? String ?? ""
-        }
-
-        if title.isEmpty {
-            title = userInfo["title"] as? String ?? (userInfo["gcm.notification.title"] as? String ?? "")
-        }
-        if body.isEmpty {
-            body = userInfo["body"] as? String ?? (userInfo["gcm.notification.body"] as? String ?? "")
-        }
-
-        if !title.isEmpty || !body.isEmpty {
-            let content = UNMutableNotificationContent()
-            content.title = title
-            content.body = body
-            content.sound = .default
-            content.userInfo = userInfo
-
-            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 0.1, repeats: false)
-            let request = UNNotificationRequest(
-                identifier: userInfo["notification_id"] as? String ?? (userInfo["gcm.message_id"] as? String ?? UUID().uuidString),
-                content: content,
-                trigger: trigger
-            )
-
-            UNUserNotificationCenter.current().add(request) { error in
-                if let error = error {
-                    print("⚠️ Failed to add local notification: \(error.localizedDescription)")
-                } else {
-                    print("✅ Successfully scheduled local notification presentation for background push.")
-                }
-            }
-        }
-
         completionHandler(.newData)
     }
 }

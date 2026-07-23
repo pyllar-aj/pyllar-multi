@@ -1325,9 +1325,8 @@ private suspend fun handleNavigation(
             onNavigate(Screen.InvestmentDashboard(userId))
         }
         else -> {
-            platformLog("AppNav: Defaulting to PhoneVerification for action: '$action'")
-            com.pyllar.consumer.util.Log.d("AppNav", "Defaulting navigation to PhoneVerification for action: $action")
-            onNavigate(Screen.PhoneVerification)
+            platformLog("AppNav: Unrecognized action '$action', staying on current screen.")
+            com.pyllar.consumer.util.Log.d("AppNav", "Unrecognized notification action '$action'. Staying on current screen.")
         }
     }
 }
