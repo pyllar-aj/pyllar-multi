@@ -527,7 +527,7 @@ fun UserInfoScreenV2(
                             .background(V2InfoBg)
                             .border(1.dp, V2InfoBorder, RoundedCornerShape(14.dp))
                             .clickable {
-                                PlatformAnalyticsLogger.logEvent("user_info_upi_promo_card_click", emptyMap())
+                                PlatformAnalyticsLogger.logEvent("user_info_upi_promo_click", mapOf("target" to "card"))
                                 onNavigateToUpiFetch()
                             }
                             .padding(horizontal = 16.dp, vertical = 14.dp),
@@ -578,7 +578,7 @@ fun UserInfoScreenV2(
                                 .clip(RoundedCornerShape(10.dp))
                                 .background(V2Obsidian)
                                 .clickable {
-                                    PlatformAnalyticsLogger.logEvent("user_info_upi_promo_button_click", emptyMap())
+                                    PlatformAnalyticsLogger.logEvent("user_info_upi_promo_click", mapOf("target" to "button"))
                                     onNavigateToUpiFetch()
                                 }
                                 .padding(horizontal = 16.dp, vertical = 10.dp)

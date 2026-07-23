@@ -304,7 +304,7 @@ fun BankDetailsScreenV2(
                                     .background(BDV2InfoBg)
                                     .border(1.dp, BDV2CardInfoBorder, RoundedCornerShape(14.dp))
                                     .clickable {
-                                        PlatformAnalyticsLogger.logEvent("bank_details_upi_promo_card_click", emptyMap())
+                                        PlatformAnalyticsLogger.logEvent("bank_details_upi_promo_click", mapOf("target" to "card"))
                                         showUpiBankSheet = true
                                     }
                                     .padding(horizontal = 16.dp, vertical = 14.dp),
@@ -355,7 +355,7 @@ fun BankDetailsScreenV2(
                                         .clip(RoundedCornerShape(10.dp))
                                         .background(BDV2Obsidian)
                                         .clickable {
-                                            PlatformAnalyticsLogger.logEvent("bank_details_upi_promo_button_click", emptyMap())
+                                            PlatformAnalyticsLogger.logEvent("bank_details_upi_promo_click", mapOf("target" to "button"))
                                             showUpiBankSheet = true
                                         }
                                         .padding(horizontal = 16.dp, vertical = 10.dp)
@@ -759,6 +759,7 @@ private fun UpiBankDetailsFetchSheet(
     LaunchedEffect(successState) {
         val state = successState
         if (state != null) {
+            PlatformAnalyticsLogger.logEvent("bank_details_upi_fetch_success", emptyMap())
             onContinue(state.accountNumber ?: "", state.ifscCode ?: "")
         }
     }
