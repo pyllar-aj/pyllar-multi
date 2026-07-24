@@ -56,6 +56,7 @@ class AndroidSessionStore(
 
     override suspend fun logout() {
         prefs.edit().clear().apply()
+        com.pyllar.consumer.data.remote.crypto.createSecureSessionStore().clear()
     }
 
     override suspend fun saveToken(token: String) {
