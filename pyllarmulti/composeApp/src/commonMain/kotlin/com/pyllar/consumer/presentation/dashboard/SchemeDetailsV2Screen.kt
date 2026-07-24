@@ -125,11 +125,11 @@ fun SchemeDetailsV2Screen(
 
     // Premium color system based on goal category
     val (contentColor, secondaryContentColor, pillBgColor, scaffoldBgColor) = when {
-        categoryUpper == "GOLD" -> {
-            listOf(Color(0xFF333333), Color.Black, Color.White.copy(alpha = 0.15f), Color.White)
-        }
-        categoryUpper == "SILVER" -> {
-            listOf(Color(0xFF333333), Color.Black, Color.White.copy(alpha = 0.15f), Color.White)
+        categoryUpper == "GOLD" || categoryUpper == "SILVER" || categoryUpper == "MARKET_EXPLORER" -> {
+            // Light-theme header cards (dark texts, transparent button style, etc.)
+            val primaryContentColor = if (categoryUpper == "GOLD") Color(0xFF381E00) else if (categoryUpper == "SILVER") Color(0xFF2C343A) else Color(0xFF8A4E1E)
+            val secondaryContentColor = if (categoryUpper == "GOLD") Color(0xFF6B5120) else if (categoryUpper == "SILVER") Color(0xFF5F6972) else Color(0xFF8A4E1E).copy(alpha = 0.8f)
+            listOf(primaryContentColor, secondaryContentColor, Color.Black.copy(alpha = 0.06f), Color.White)
         }
         categoryUpper == "SAVINGS" || categoryUpper == "SAVINGS_PLUS" -> {
             listOf(Color.White, Color.White.copy(alpha = 0.9f), Color.White.copy(alpha = 0.25f), Color.White)

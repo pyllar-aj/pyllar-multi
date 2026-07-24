@@ -1666,12 +1666,15 @@ fun NextGoalsSection(
 fun NextGoalCard(
     goal: InvestmentGoal,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    initialExpanded: Boolean = false
 ) {
     val gradientColors = getGoalGradientColors(goal.category, goal.colorTheme)
     val borderColor = getDarkBorderColorForCategory(goal.category, goal.colorTheme)
     val correlationColor = getCorrelationColorForCategory(goal.category, goal.colorTheme)
     val category = goal.category.uppercase()
+    val isAllInOne = category == "ALL_IN_ONE"
+    var expanded by remember(initialExpanded) { mutableStateOf(initialExpanded) }
 
     Card(
         modifier = modifier
@@ -1829,7 +1832,7 @@ fun NextGoalCard(
                             text = when (category) {
                                 "GOLD", "SAVINGS" -> "₹21 - ₹500"
                                 "FESTIVAL_SPENDS" -> "₹11 - ₹500"
-                                "GLOBAL_EXPOSURE", "ALL_IN_ONE" -> "₹101 - ₹1000"
+                                "GLOBAL_EXPOSURE", "ALL_IN_ONE", "MARKET_EXPLORER" -> "₹101 - ₹1000"
                                 else -> "₹101 - ₹500"
                             },
                             style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
@@ -1889,6 +1892,18 @@ fun NextGoalCard(
                                         append("~₹1.41 Lakhs")
                                     }
                                 }
+                                "MARKET_EXPLORER" -> {
+                                    val bronzeColor = Color(0xFF8A4E1E)
+                                    append("Investing ₹101 daily since Jan 2023 in a flexi-cap fund could have built a corpus of ~")
+                                    withStyle(
+                                        SpanStyle(
+                                            color = bronzeColor,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    ) {
+                                        append("₹1.37 Lakhs")
+                                    }
+                                }
                                 else -> append(goal.description)
                             }
                         }
@@ -1899,6 +1914,341 @@ fun NextGoalCard(
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis
                         )
+                    }
+                }
+
+                if (isAllInOne || category == "MARKET_EXPLORER") {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    if (isAllInOne) {
+                        val allInOneAccent = Color(0xFF2C4C9C)
+                        DashedDivider(
+                            modifier = Modifier.fillMaxWidth(),
+                            color = allInOneAccent.copy(alpha = 0.8f),
+                            dashLength = 4.dp,
+                            gapLength = 4.dp
+                        )
+                    } else {
+                        val bronzeColor = Color(0xFFB77A43).copy(alpha = 0.95f)
+                        Row(
+                            modifier = Modifier.fillMaxWidth().height(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            DashedDivider(
+                                modifier = Modifier.weight(1f),
+                                thickness = 1.dp,
+                                color = bronzeColor,
+                                dashLength = 2.dp,
+                                gapLength = 4.dp
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "↗",
+                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                color = Color(0xFF8A4E1E).copy(alpha = 0.7f)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            DashedDivider(
+                                modifier = Modifier.weight(1f),
+                                thickness = 1.dp,
+                                color = bronzeColor,
+                                dashLength = 2.dp,
+                                gapLength = 4.dp
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    val correlationText = getCorrelationText(goal.category)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { expanded = !expanded }
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            modifier = Modifier.weight(1f),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.TrendingUp,
+                                contentDescription = null,
+                                tint = borderColor,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = correlationText,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = borderColor
+                            )
+                        }
+                        Icon(
+                            imageVector = Icons.Filled.ExpandMore,
+                            contentDescription = null,
+                            tint = if (isAllInOne) Color(0xFF2C4C9C) else Color(0xFF8A4E1E),
+                            modifier = Modifier
+                                .size(28.dp)
+                                .rotate(if (expanded) 180f else 0f)
+                        )
+                    }
+                    if (expanded) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        if (isAllInOne) {
+                            // Goals badge: Ideal for long-term goals
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(
+                                        color = Color(0xFFFFEB3B).copy(alpha = 0.3f),
+                                        shape = RoundedCornerShape(20.dp)
+                                    )
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Star,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Ideal for long-term goals",
+                                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                                    color = Color(0xFF424242)
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Suggested holding period: 1 Year+ ⏰",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFF424242)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Asset Allocation",
+                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                color = Color(0xFF424242)
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            // Asset allocation bar: Equity 65%, Debt 20%, Gold 7.5%, Silver 7.5%
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(8.dp)
+                                    .clip(RoundedCornerShape(4.dp)),
+                                horizontalArrangement = Arrangement.spacedBy(0.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .weight(0.65f)
+                                        .fillMaxHeight()
+                                        .background(Color(0xFF2196F3))
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .weight(0.20f)
+                                        .fillMaxHeight()
+                                        .background(Color(0xFF00897B))
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .weight(0.075f)
+                                        .fillMaxHeight()
+                                        .background(Color(0xFFFF9800))
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .weight(0.075f)
+                                        .fillMaxHeight()
+                                        .background(Color(0xFF9E9E9E))
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            // Legend: two rows so Equity/Debt/Gold/Silver each stay on one line on narrow screens
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(8.dp)
+                                                .background(Color(0xFF2196F3), CircleShape)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = "Equity (65%)",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = Color(0xFF424242),
+                                            maxLines = 1
+                                        )
+                                    }
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(8.dp)
+                                                .background(Color(0xFF00897B), CircleShape)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = "Debt (20%)",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = Color(0xFF424242),
+                                            maxLines = 1
+                                        )
+                                    }
+                                }
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(8.dp)
+                                                .background(Color(0xFFFF9800), CircleShape)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = "Gold (7.5%)",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = Color(0xFF424242),
+                                            maxLines = 1
+                                        )
+                                    }
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(8.dp)
+                                                .background(Color(0xFF9E9E9E), CircleShape)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = "Silver (7.5%)",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = Color(0xFF424242),
+                                            maxLines = 1
+                                        )
+                                    }
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+                        } else {
+                            // MARKET_EXPLORER
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(
+                                        color = Color(0xFFFFEB3B).copy(alpha = 0.3f),
+                                        shape = RoundedCornerShape(20.dp)
+                                    )
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Star,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Adapts across market caps 🧭",
+                                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                                    color = Color(0xFF424242)
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Suggested holding period: 5 Years+ ⏰",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFF424242)
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text(
+                                text = "Market Cap Allocation",
+                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                color = Color(0xFF424242)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .background(Color(0xFF2196F3), CircleShape)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "Large Cap",
+                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                        color = Color(0xFF424242)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "• Established market leaders",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = Color(0xFF757575)
+                                    )
+                                }
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .background(Color(0xFFFF9800), CircleShape)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "Mid Cap",
+                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                        color = Color(0xFF424242)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "• Growing businesses",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = Color(0xFF757575)
+                                    )
+                                }
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .background(Color(0xFF4CAF50), CircleShape)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "Small Cap",
+                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                        color = Color(0xFF424242)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "• Emerging companies",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = Color(0xFF757575)
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Text(
+                                text = "Allocation changes over time to capture the best market opportunities.",
+                                style = MaterialTheme.typography.labelSmall.copy(fontStyle = FontStyle.Italic),
+                                color = Color(0xFF8A4E1E).copy(alpha = 0.8f)
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
                     }
                 }
             }

@@ -17,6 +17,10 @@ data class InvestorDashboardResponseV2Dto(
     val recommendations: List<RecommendationDto>?,
     @SerialName("showAll")
     val showAll: Boolean? = false,
+    @SerialName("allInOne")
+    val allInOne: Boolean? = false,
+    @SerialName("marketExplorer")
+    val marketExplorer: Boolean? = false,
     @SerialName("referralEnabled")
     val referralEnabled: Boolean? = false
 )

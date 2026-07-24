@@ -184,13 +184,15 @@ class InvestmentDashboardV2ViewModel(
 
         val allInOneGoal = presetGoals.find { it.goalId == "all_in_one" }
         val globalExposureGoal = presetGoals.find { it.goalId == "global_exposure" }
+        val marketExplorerEnabled = response.marketExplorer ?: false
         val otherPresetGoals = presetGoals.filter {
             it.goalId != "all_in_one" && 
             it.goalId != "global_exposure" &&
             it.goalId != "festival_spends" &&
             it.goalId != "childrens_education" &&
             it.goalId != "vacation" &&
-            it.goalId != "savings"
+            it.goalId != "savings" &&
+            (it.goalId != "market_explorer" || marketExplorerEnabled)
         }
 
         val allRecommendedGoals = if (recommendedGoalsFromApi.isEmpty()) {
@@ -206,17 +208,22 @@ class InvestmentDashboardV2ViewModel(
                 "GOLD" -> 1
                 "SILVER" -> 2
                 "SAVINGS_PLUS" -> 3
-                "SAVINGS" -> 4
-                "FESTIVAL_SPENDS" -> 5
-                else -> 7
+                "MARKET_EXPLORER" -> 4
+                "SAVINGS" -> 5
+                "FESTIVAL_SPENDS" -> 6
+                else -> 8
             }
         }
 
         val showAll = response.showAll ?: false
-        val allGoals = if (showAll) {
-            listOfNotNull(allInOneGoal, globalExposureGoal)
-        } else {
-            emptyList()
+        val allInOneEnabled = response.allInOne ?: false
+        val allGoals = mutableListOf<InvestmentGoal>().apply {
+            if (allInOneEnabled) {
+                allInOneGoal?.let { add(it) }
+            }
+            if (showAll) {
+                globalExposureGoal?.let { add(it) }
+            }
         }
 
         val fundDetails = currentInvestments.flatMap { investment ->
@@ -969,6 +976,24 @@ class InvestmentDashboardV2ViewModel(
                 category = "ALL_IN_ONE",
                 colorTheme = "multi",
                 actionButtonText = "Start Planning",
+                targetDate = calculateTargetDate(180)
+            ),
+            InvestmentGoal(
+                goalId = "market_explorer",
+                name = "Market Explorer",
+                description = "Explore high-growth market opportunities",
+                iconType = "🧭",
+                targetAmount = 1000000.0,
+                investedAmount = 0.0,
+                currentValue = 0.0,
+                returnsPercentage = 0.0,
+                progressPercentage = 0.0,
+                timeRemainingMonths = 180,
+                recommendedMonthlyAmount = 5000.0,
+                recommendedDailyAmount = 166.67,
+                category = "MARKET_EXPLORER",
+                colorTheme = "bronze",
+                actionButtonText = "Start Exploring",
                 targetDate = calculateTargetDate(180)
             )
         )
