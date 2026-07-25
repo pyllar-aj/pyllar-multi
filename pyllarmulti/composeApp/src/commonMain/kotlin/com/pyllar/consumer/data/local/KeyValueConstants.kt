@@ -62,6 +62,9 @@ object KeyValueConstants {
 
     // User preferences (metadata)
     const val LANGUAGE_PREFERENCE = "language_preference"
+    const val SIP_AMOUNT_V3_VISIT_COUNT = "sip_amount_v3_visit_count"
+    const val DOUBTS_SURVEY_SHOWN = "doubts_survey_shown"
+    const val HAS_STARTED_SIP = "has_started_sip"
     // Persistence
     const val LAST_SCREEN = "last_screen"
 }

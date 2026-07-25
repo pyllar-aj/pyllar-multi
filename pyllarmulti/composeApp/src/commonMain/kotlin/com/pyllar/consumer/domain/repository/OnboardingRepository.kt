@@ -111,5 +111,9 @@ interface OnboardingRepository {
         name: String,
         mobile: String
     ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.CreditBureauLookupResponseDto>>
+
+    fun submitDoubtsSurvey(
+        request: com.pyllar.consumer.data.remote.requests.DoubtsSurveyRequestDto
+    ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.StandardApiResponseDtoRaw>>
 }
 

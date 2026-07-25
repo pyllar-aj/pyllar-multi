@@ -239,6 +239,9 @@ fun SipAmountScreenV3(
     var showTrustStripInfoDialog by remember { mutableStateOf(false) }
     var showDisclaimerDialog by remember { mutableStateOf(false) }
 
+    var eligibleForDoubtsSurvey by remember { mutableStateOf(false) }
+    var showDoubtsSurvey by remember { mutableStateOf(false) }
+
     val minAmount = limitsState.minAmount.toFloat()
     val maxAmount = limitsState.maxAmount.toFloat()
     val defaultAmount = limitsState.defaultAmount?.toFloat() ?: minAmount
@@ -441,7 +444,7 @@ fun SipAmountScreenV3(
     val scrollState = rememberScrollState()
     val isFetching = isInitializing || isInitTxnLoading || limitsState.isLoading || fundDetailsState.isLoading || isFetchingIds
 
-    val handleBack: () -> Unit = {
+    val performExitCleanupAndNavigateBack: () -> Unit = {
         coroutineScope.launch {
             inMemorySessionStore.saveValue("selected_sip_amount", "")
             inMemorySessionStore.saveValue("selected_sip_monthly_amount", "")
@@ -452,8 +455,28 @@ fun SipAmountScreenV3(
         onNavigateBack()
     }
 
+    val handleBack: () -> Unit = {
+        if (eligibleForDoubtsSurvey) {
+            eligibleForDoubtsSurvey = false
+            coroutineScope.launch { sessionStore.saveValue(KeyValueConstants.DOUBTS_SURVEY_SHOWN, "true") }
+            showDoubtsSurvey = true
+        } else {
+            performExitCleanupAndNavigateBack()
+        }
+    }
+
     com.pyllar.consumer.util.BackHandler {
         handleBack()
+    }
+
+    // Exit-intent doubts survey eligibility: shown once, on the first back-press after the
+    // 5th visit to this screen, as long as the user hasn't already started a SIP here.
+    LaunchedEffect(Unit) {
+        val newVisitCount = (sessionStore.getValue(KeyValueConstants.SIP_AMOUNT_V3_VISIT_COUNT)?.toIntOrNull() ?: 0) + 1
+        sessionStore.saveValue(KeyValueConstants.SIP_AMOUNT_V3_VISIT_COUNT, newVisitCount.toString())
+        eligibleForDoubtsSurvey = newVisitCount > 4 &&
+            sessionStore.getValue(KeyValueConstants.DOUBTS_SURVEY_SHOWN) != "true" &&
+            sessionStore.getValue(KeyValueConstants.HAS_STARTED_SIP) != "true"
     }
 
     Scaffold(
@@ -983,6 +1006,16 @@ fun SipAmountScreenV3(
                     TextButton(onClick = { showTrustStripInfoDialog = false }) {
                         Text(stringResource(Res.string.ok))
                     }
+                }
+            )
+        }
+
+        if (showDoubtsSurvey) {
+            DoubtsSurveyBottomSheet(
+                goalId = effectiveGoalId,
+                onDismiss = {
+                    showDoubtsSurvey = false
+                    performExitCleanupAndNavigateBack()
                 }
             )
         }

@@ -444,4 +444,15 @@ class OnboardingRepositoryImpl(
         }
         emit(result)
     }
+
+    override fun submitDoubtsSurvey(
+        request: com.pyllar.consumer.data.remote.requests.DoubtsSurveyRequestDto
+    ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.StandardApiResponseDtoRaw>> = flow {
+        emit(Resource.Loading())
+        val result = apiClient.post<com.pyllar.consumer.data.remote.model.dto.StandardApiResponseDtoRaw, com.pyllar.consumer.data.remote.requests.DoubtsSurveyRequestDto>(
+            path = "api/doubts-survey",
+            body = request
+        )
+        emit(result)
+    }
 }
