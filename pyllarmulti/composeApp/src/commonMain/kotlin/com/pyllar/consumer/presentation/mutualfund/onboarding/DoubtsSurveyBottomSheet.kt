@@ -39,8 +39,8 @@ import com.pyllar.consumer.data.local.KeyValueConstants
 import com.pyllar.consumer.domain.storage.SessionStore
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
-import pyllarmulti.composeapp.generated.resources.Res
-import pyllarmulti.composeapp.generated.resources.*
+import pyllar.composeapp.generated.resources.Res
+import pyllar.composeapp.generated.resources.*
 
 private val DsObsidian = Color(0xFF0A2415)
 private val DsInk = Color(0xFF3E2723)
