@@ -1,0 +1,4 @@
+android/
+*.dSYM/
+*.dSYM.zip
+.DS_Store

@@ -14,7 +14,15 @@ actual object DateTimeUtils {
     actual fun isExpired(iso8601DateString: String): Boolean {
         return try {
             val formatter = NSISO8601DateFormatter()
-            val expiresAt = formatter.dateFromString(iso8601DateString) ?: return true
+            var expiresAt = formatter.dateFromString(iso8601DateString)
+            if (expiresAt == null) {
+                // Try parsing with fractional seconds
+                formatter.formatOptions = platform.Foundation.NSISO8601DateFormatWithInternetDateTime or platform.Foundation.NSISO8601DateFormatWithFractionalSeconds
+                expiresAt = formatter.dateFromString(iso8601DateString)
+            }
+            if (expiresAt == null) {
+                return true
+            }
             val now = NSDate()
             now.compare(expiresAt) == platform.Foundation.NSOrderedDescending
         } catch (e: Exception) {

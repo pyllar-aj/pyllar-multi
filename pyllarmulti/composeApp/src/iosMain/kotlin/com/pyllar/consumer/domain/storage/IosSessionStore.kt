@@ -30,6 +30,13 @@ class IosSessionStore : SessionStore {
                     bridgeRef.deleteFromKeychain(KEY_AUTH_TOKEN)
                     bridgeRef.deleteFromKeychain(KEY_FULL_NAME)
                     
+                    // Clear secure session keys on fresh install
+                    bridgeRef.deleteFromKeychain("secure_session_handshakeId")
+                    bridgeRef.deleteFromKeychain("secure_session_encryptionKey")
+                    bridgeRef.deleteFromKeychain("secure_session_hmacKey")
+                    bridgeRef.deleteFromKeychain("secure_session_expiresAt")
+                    bridgeRef.deleteFromKeychain("secure_session_clientSessionId")
+                    
                     val keysToClear = listOf(
                         KeyValueConstants.KYC_ATTEMPT_ID,
                         KeyValueConstants.INVESTOR_ID,
@@ -178,6 +185,9 @@ class IosSessionStore : SessionStore {
         
         defaults.setBool(false, forKey = KEY_LOGGED_IN)
         defaults.synchronize()
+        
+        // Clear secure session as well
+        com.pyllar.consumer.data.remote.crypto.createSecureSessionStore().clear()
     }
 
     override suspend fun saveToken(token: String) {
