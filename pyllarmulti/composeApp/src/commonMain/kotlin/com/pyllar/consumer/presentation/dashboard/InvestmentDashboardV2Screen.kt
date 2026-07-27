@@ -1288,7 +1288,7 @@ fun PrimaryGoalCard(
                         ) {
                             if (isGoldOrSilverWithGm && goal.unitsInGm != null) {
                                 val unitsText = formatWeight(goal.unitsInGm)
-                                val gmColor = if (category == "GOLD") Color(0xFF381E00) else Color(0xFF2C343A)
+                                val gmColor = correlationColor
                                 val labelText = if (category == "GOLD") "22K GOLD" else "99.9% SILVER"
                                 val labelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                                 Column(

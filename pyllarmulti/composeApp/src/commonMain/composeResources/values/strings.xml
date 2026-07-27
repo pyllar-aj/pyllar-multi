@@ -810,4 +810,19 @@
     <string name="doubts_thanks_continue">Continue exploring</string>
     <string name="doubts_masked_phone_default">your registered number</string>
     <string name="doubts_masked_phone_format">+91 •••••%1$s</string>
+
+    <string name="verify_with_upi_id">Verify with UPI ID</string>
+    <string name="verify_with_upi_id_desc">Fastest way — we\'ll auto-fetch your bank account details.</string>
+    <string name="btn_choose_your_upi_id">Choose your UPI ID →</string>
+    <string name="upi_build_sheet_title">Build your UPI ID</string>
+    <string name="upi_build_sheet_subtitle">Select your prefix and bank — we\'ll fill it in.</string>
+    <string name="upi_step_choose_prefix">STEP 1 — CHOOSE YOUR PREFIX</string>
+    <string name="upi_prefix_mobile">MOBILE</string>
+    <string name="upi_prefix_email">EMAIL</string>
+    <string name="upi_prefix_mobile_subtitle">Linked to your account</string>
+    <string name="upi_prefix_email_subtitle">From your email</string>
+    <string name="upi_step_choose_bank">STEP 2 — CHOOSE YOUR BANK</string>
+    <string name="upi_popular_banks">POPULAR</string>
+    <string name="upi_all_banks">ALL BANKS</string>
+    <string name="upi_choose_bank_placeholder">choose bank →</string>
 </resources>

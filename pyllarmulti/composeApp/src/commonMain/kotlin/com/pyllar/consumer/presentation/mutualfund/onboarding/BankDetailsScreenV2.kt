@@ -16,12 +16,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
@@ -297,74 +300,69 @@ fun BankDetailsScreenV2(
 
                         // ⚡ Skip the form card - only shown when bank details weren't auto-fetched
                         if (!bankDetailsAutoFetched) {
-                            Row(
+                            Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .background(BDV2InfoBg)
-                                    .border(1.dp, BDV2CardInfoBorder, RoundedCornerShape(14.dp))
-                                    .clickable {
-                                        PlatformAnalyticsLogger.logEvent("bank_details_upi_promo_click", mapOf("target" to "card"))
-                                        showUpiBankSheet = true
-                                    }
-                                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                                    .background(Color(0xFFFFFDF2), RoundedCornerShape(24.dp))
+                                    .border(1.5.dp, BDV2GoldAccent, RoundedCornerShape(24.dp))
+                                    .padding(vertical = 24.dp, horizontal = 20.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(36.dp)
-                                            .clip(CircleShape)
-                                            .background(BDV2Obsidian),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = "⚡",
-                                            fontSize = 16.sp,
-                                            color = BDV2GoldAccent
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Column {
-                                        val fullText = stringResource(Res.string.upi_promo_skip_entire_form)
-                                        val parts = remember(fullText) { fullText.split("?") }
-                                        val titleText = parts.getOrNull(0)?.let { "$it?" } ?: "Have your UPI ID?"
-                                        val subtitleText = parts.getOrNull(1)?.trim() ?: "Skip this form entirely"
-
-                                        Text(
-                                            text = titleText,
-                                            fontSize = 15.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = BDV2BronzeInk
-                                        )
-                                        Spacer(modifier = Modifier.height(2.dp))
-                                        Text(
-                                            text = subtitleText,
-                                            fontSize = 12.sp,
-                                            fontWeight = FontWeight.Medium,
-                                            color = BDV2GoldDeep
-                                        )
-                                    }
-                                }
                                 Box(
                                     modifier = Modifier
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(BDV2Obsidian)
-                                        .clickable {
-                                            PlatformAnalyticsLogger.logEvent("bank_details_upi_promo_click", mapOf("target" to "button"))
-                                            showUpiBankSheet = true
-                                        }
-                                        .padding(horizontal = 16.dp, vertical = 10.dp)
+                                        .size(52.dp)
+                                        .clip(CircleShape)
+                                        .background(BDV2Obsidian),
+                                    contentAlignment = Alignment.Center
                                 ) {
                                     Text(
-                                        text = stringResource(Res.string.upi_promo_try_it_btn),
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Bold,
+                                        text = "⚡",
+                                        fontSize = 24.sp,
                                         color = BDV2GoldAccent
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                Text(
+                                    text = stringResource(Res.string.verify_with_upi_id),
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = BDV2BronzeInk,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                Text(
+                                    text = stringResource(Res.string.verify_with_upi_id_desc),
+                                    fontSize = 13.sp,
+                                    color = BDV2BronzeMuted,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                    lineHeight = 18.sp
+                                )
+
+                                Spacer(modifier = Modifier.height(20.dp))
+
+                                Button(
+                                    onClick = {
+                                        PlatformAnalyticsLogger.logEvent("bank_details_upi_promo_click", mapOf("target" to "button"))
+                                        showUpiBankSheet = true
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(50.dp)
+                                        .border(BorderStroke(1.dp, BDV2GoldAccent), RoundedCornerShape(50)),
+                                    shape = RoundedCornerShape(50),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = BDV2Obsidian,
+                                        contentColor = BDV2Cream
+                                    )
+                                ) {
+                                    Text(
+                                        text = stringResource(Res.string.btn_choose_your_upi_id),
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Bold
                                     )
                                 }
                             }
@@ -689,6 +687,7 @@ fun BankDetailsScreenV2(
         if (showUpiBankSheet) {
             UpiBankDetailsFetchSheet(
                 viewModel = viewModel,
+                sessionStore = sessionStore,
                 userId = userId,
                 onDismiss = {
                     showUpiBankSheet = false
@@ -732,29 +731,30 @@ private fun BDV2TrustDot() {
 @Composable
 private fun UpiBankDetailsFetchSheet(
     viewModel: BankDetailsViewModel,
+    sessionStore: SessionStore,
     userId: String,
     onDismiss: () -> Unit,
     onContinue: (accountNumber: String, ifscCode: String) -> Unit
 ) {
-    var upi by remember { mutableStateOf("") }
-    val upiPattern = remember { Regex("^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+$") }
-    var localValidationError by remember { mutableStateOf<String?>(null) }
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
+
+    var userPhone by remember { mutableStateOf("") }
+    var userEmail by remember { mutableStateOf("") }
+
+    LaunchedEffect(Unit) {
+        userPhone = sessionStore.getCurrentPhone()
+        userEmail = sessionStore.getCurrentEmail()
+    }
+
+    var step by remember { mutableStateOf(1) }
+    var selectedPrefix by remember { mutableStateOf("") } // "mobile" or "email"
+    var selectedBankHandle by remember { mutableStateOf("") }
+
     val fetchState by viewModel.upiBankFetchState.collectAsState()
     val isFetching = fetchState is BankDetailsViewModel.UpiBankFetchState.Fetching
     val successState = fetchState as? BankDetailsViewModel.UpiBankFetchState.Success
     val errorState = fetchState as? BankDetailsViewModel.UpiBankFetchState.Error
-
-    val upiBringIntoViewRequester = remember { BringIntoViewRequester() }
-    var isUpiFocused by remember { mutableStateOf(false) }
-    val keyboardController = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
-    val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
-
-    LaunchedEffect(isUpiFocused) {
-        if (isUpiFocused) {
-            delay(300)
-            upiBringIntoViewRequester.bringIntoView()
-        }
-    }
 
     LaunchedEffect(successState) {
         val state = successState
@@ -764,20 +764,65 @@ private fun UpiBankDetailsFetchSheet(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize().zIndex(20f)) {
+    val formattedPhone = remember(userPhone) {
+        val clean = userPhone.replace(" ", "")
+        if (clean.length == 10) {
+            clean.substring(0, 5) + " " + clean.substring(5)
+        } else {
+            userPhone.ifBlank { "98765 43210" }
+        }
+    }
+    val emailPrefix = remember(userEmail) {
+        val clean = userEmail.substringBefore("@")
+        clean.ifBlank { "rahul.k" }
+    }
+
+    val prefixValue = remember(selectedPrefix, formattedPhone, emailPrefix) {
+        if (selectedPrefix == "mobile") {
+            formattedPhone.replace(" ", "")
+        } else if (selectedPrefix == "email") {
+            emailPrefix
+        } else {
+            ""
+        }
+    }
+
+    var upiInput by remember { mutableStateOf("") }
+
+    val chooseBankPlaceholder = stringResource(Res.string.upi_choose_bank_placeholder)
+
+    // Sync upiInput when prefix or bank handle changes
+    LaunchedEffect(prefixValue, selectedBankHandle, chooseBankPlaceholder) {
+        if (prefixValue.isNotEmpty()) {
+            val handle = if (selectedBankHandle.isNotEmpty()) {
+                selectedBankHandle.removePrefix("@")
+            } else {
+                chooseBankPlaceholder
+            }
+            upiInput = "$prefixValue@$handle"
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .zIndex(20f)
+    ) {
+        // Scrim Color Overlay
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color(0x7A140C08))
                 .clickable(
                     indication = null,
-                    interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+                    interactionSource = remember { MutableInteractionSource() }
                 ) {
                     keyboardController?.hide()
                     focusManager.clearFocus()
                 }
         )
 
+        // Bottom Sheet Overlay
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.BottomCenter
@@ -787,7 +832,7 @@ private fun UpiBankDetailsFetchSheet(
                     .fillMaxWidth()
                     .clickable(
                         indication = null,
-                        interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+                        interactionSource = remember { MutableInteractionSource() }
                     ) {
                         keyboardController?.hide()
                         focusManager.clearFocus()
@@ -797,19 +842,23 @@ private fun UpiBankDetailsFetchSheet(
                     .imePadding()
                     .verticalScroll(rememberScrollState())
             ) {
+                // Drag handle
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = 14.dp, bottom = 6.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 14.dp, bottom = 6.dp),
                     horizontalArrangement = Arrangement.Center
                 ) {
                     Box(
                         modifier = Modifier
                             .width(36.dp)
                             .height(4.dp)
-                            .clip(RoundedCornerShape(99.dp))
+                            .clip(CircleShape)
                             .background(BDV2GoldAccent.copy(alpha = 0.3f))
                     )
                 }
 
+                // Header
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -822,7 +871,7 @@ private fun UpiBankDetailsFetchSheet(
                             Text(text = "⚡", fontSize = 22.sp)
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = stringResource(Res.string.upi_promo_skip_form_title),
+                                text = stringResource(Res.string.upi_build_sheet_title),
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = BDV2Obsidian
@@ -830,23 +879,26 @@ private fun UpiBankDetailsFetchSheet(
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = stringResource(Res.string.upi_promo_enter_upi_id_bank_details),
+                            text = stringResource(Res.string.upi_build_sheet_subtitle),
                             fontSize = 13.sp,
                             color = BDV2BronzeMuted,
                             lineHeight = 18.sp,
                             modifier = Modifier.padding(start = 30.dp)
                         )
                     }
+                    // Close button - only this can close the sheet
                     Box(
                         modifier = Modifier
                             .size(30.dp)
-                            .clip(RoundedCornerShape(99.dp))
+                            .clip(CircleShape)
                             .background(BDV2GoldDeep.copy(alpha = 0.1f))
-                            .clickable { onDismiss() },
+                            .clickable {
+                                onDismiss()
+                            },
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Filled.ArrowBack,
+                            imageVector = Icons.Filled.Close,
                             contentDescription = "Close",
                             tint = BDV2BronzeMuted,
                             modifier = Modifier.size(14.dp)
@@ -862,166 +914,395 @@ private fun UpiBankDetailsFetchSheet(
                         .background(BDV2GoldDeep.copy(alpha = 0.12f))
                 )
 
+                // Step 1: Prefix Section
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(start = 20.dp, end = 20.dp, top = 20.dp)
                 ) {
                     Text(
-                        text = "YOUR UPI ID",
-                        fontSize = 10.sp,
+                        text = stringResource(Res.string.upi_step_choose_prefix),
+                        fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = BDV2BronzeInk,
-                        modifier = Modifier.padding(bottom = 8.dp)
+                        color = BDV2BronzeMuted,
+                        modifier = Modifier.padding(bottom = 12.dp)
                     )
 
-                    val fieldBorderColor = when {
-                        localValidationError != null -> BDV2VolatilityRed
-                        errorState != null -> BDV2VolatilityRed
-                        successState != null -> BDV2SuccessGreen
-                        else -> BDV2FieldBorder
-                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        // Mobile card
+                        val isMobileSelected = selectedPrefix == "mobile"
+                        val mobileBorderColor = if (isMobileSelected) BDV2SuccessGreen else BDV2CardBorder
+                        val mobileBgColor = if (isMobileSelected) Color(0xFFF1F8E9) else Color.White
+                        val mobileStrokeWidth = if (isMobileSelected) 1.5.dp else 1.dp
 
-                    OutlinedTextField(
-                        value = upi,
-                        onValueChange = {
-                            upi = it
-                            if (fetchState !is BankDetailsViewModel.UpiBankFetchState.Idle) {
-                                viewModel.resetUpiBankFetchState()
-                            }
-                            localValidationError = if (it.trim().isNotEmpty() && (it.contains("@") || it.length > 5) && !upiPattern.matches(it.trim())) {
-                                "Invalid UPI ID format"
-                            } else {
-                                null
-                            }
-                        },
-                        placeholder = { Text("yourname@okaxis", color = BDV2FieldBorder, fontSize = 14.sp) },
-                        singleLine = true,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .bringIntoViewRequester(upiBringIntoViewRequester)
-                            .onFocusChanged { isUpiFocused = it.isFocused },
-                        shape = RoundedCornerShape(14.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = fieldBorderColor,
-                            unfocusedBorderColor = fieldBorderColor
-                        )
-                    )
-
-                    val isNetError = errorState?.message?.let { msg ->
-                        val lower = msg.lowercase()
-                        lower.contains("unable to resolve host") ||
-                        lower.contains("connect") ||
-                        lower.contains("timeout") ||
-                        lower.contains("network")
-                    } == true
-
-                    val hintText = when {
-                        isNetError -> stringResource(Res.string.check_internet_connection)
-                        localValidationError != null -> localValidationError!!
-                        errorState != null -> stringResource(Res.string.upi_fetch_failed_error)
-                        successState != null -> stringResource(Res.string.upi_fetch_success_hint)
-                        else -> "e.g. yourname@okicici · yourname@ybl"
-                    }
-                    val hintColor = when {
-                        isNetError || errorState != null || localValidationError != null -> BDV2VolatilityRed
-                        successState != null -> BDV2SuccessGreen
-                        else -> BDV2BronzeMuted
-                    }
-                    Text(
-                        text = hintText,
-                        fontSize = 12.sp,
-                        color = hintColor,
-                        modifier = Modifier.padding(top = 8.dp).heightIn(min = 18.dp)
-                    )
-
-                    if (successState != null) {
-                        Column(
+                        Box(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 4.dp)
-                                .border(1.dp, BDV2SuccessGreen.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
-                                .background(BDV2SuccessGreen.copy(alpha = 0.07f))
-                                .padding(12.dp)
+                                .weight(1f)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(mobileBgColor)
+                                .border(mobileStrokeWidth, mobileBorderColor, RoundedCornerShape(16.dp))
+                                .clickable {
+                                    selectedPrefix = "mobile"
+                                    step = 2
+                                }
+                                .padding(16.dp)
                         ) {
-                            Text(
-                                text = stringResource(Res.string.upi_fetch_details_found_title),
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = BDV2SuccessGreen
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "Account: ${successState.accountNumber}",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = BDV2BronzeInk
-                            )
-                            Text(
-                                text = "IFSC: ${successState.ifscCode}",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = BDV2BronzeInk
-                            )
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = stringResource(Res.string.upi_prefix_mobile),
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = BDV2GoldDeep
+                                    )
+                                    if (isMobileSelected) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(16.dp)
+                                                .clip(CircleShape)
+                                                .background(BDV2SuccessGreen),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Filled.Check,
+                                                contentDescription = "Selected",
+                                                tint = Color.White,
+                                                modifier = Modifier.size(10.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(
+                                    text = formattedPhone,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = BDV2BronzeInk
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = stringResource(Res.string.upi_prefix_mobile_subtitle),
+                                    fontSize = 11.sp,
+                                    color = BDV2BronzeMuted
+                                )
+                            }
+                        }
+
+                        // Email card
+                        val isEmailSelected = selectedPrefix == "email"
+                        val emailBorderColor = if (isEmailSelected) BDV2SuccessGreen else BDV2CardBorder
+                        val emailBgColor = if (isEmailSelected) Color(0xFFF1F8E9) else Color.White
+                        val emailStrokeWidth = if (isEmailSelected) 1.5.dp else 1.dp
+
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(emailBgColor)
+                                .border(emailStrokeWidth, emailBorderColor, RoundedCornerShape(16.dp))
+                                .clickable {
+                                    selectedPrefix = "email"
+                                    step = 2
+                                }
+                                .padding(16.dp)
+                        ) {
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = stringResource(Res.string.upi_prefix_email),
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = BDV2GoldDeep
+                                    )
+                                    if (isEmailSelected) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(16.dp)
+                                                .clip(CircleShape)
+                                                .background(BDV2SuccessGreen),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Filled.Check,
+                                                contentDescription = "Selected",
+                                                tint = Color.White,
+                                                modifier = Modifier.size(10.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(
+                                    text = emailPrefix,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = BDV2BronzeInk
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = stringResource(Res.string.upi_prefix_email_subtitle),
+                                    fontSize = 11.sp,
+                                    color = BDV2BronzeMuted
+                                )
+                            }
                         }
                     }
                 }
 
-                Column(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 28.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    val hasReachedLimit = errorState?.message?.let { msg ->
-                        val lower = msg.lowercase()
-                        lower.contains("attempt") ||
-                        lower.contains("limit") ||
-                        lower.contains("exceed") ||
-                        // lower.contains("different upi") ||
-                        lower.contains("verify up to")
-                    } == true && successState == null
-                    val isValidUpi = upi.trim().isNotEmpty() && upiPattern.matches(upi.trim())
-                    val canFetch = (isValidUpi && !isFetching && !hasReachedLimit)
-                    Button(
-                        onClick = {
-                            keyboardController?.hide()
-                            if (successState != null) {
-                                onContinue(successState.accountNumber ?: "", successState.ifscCode ?: "")
-                            } else {
-                                if (isValidUpi) {
-                                    PlatformAnalyticsLogger.logEvent("bank_details_fetch_my_details_click", emptyMap())
-                                    viewModel.fetchBankDetailsViaUpi(userId, upi.trim())
+                // Step 2 Section
+                if (step == 2) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 20.dp, end = 20.dp, top = 24.dp)
+                    ) {
+                        Text(
+                            text = stringResource(Res.string.upi_step_choose_bank),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = BDV2BronzeMuted,
+                            modifier = Modifier.padding(bottom = 12.dp)
+                        )
+
+                        Text(
+                            text = stringResource(Res.string.upi_popular_banks),
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = BDV2MutedText,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+
+                        // Popular bank list Row
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            listOf("@okicici", "@ybl", "@okaxis", "@paytm").forEach { handle ->
+                                val isSelected = selectedBankHandle == handle
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(50))
+                                        .background(if (isSelected) BDV2Obsidian else Color.White)
+                                        .border(1.dp, if (isSelected) BDV2GoldAccent else BDV2FieldBorder, RoundedCornerShape(50))
+                                        .clickable { selectedBankHandle = handle }
+                                        .padding(horizontal = 14.dp, vertical = 8.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = handle,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isSelected) BDV2Cream else BDV2BronzeInk
+                                    )
                                 }
                             }
-                        },
-                        enabled = canFetch || successState != null,
-                        modifier = Modifier.fillMaxWidth().height(52.dp),
-                        shape = RoundedCornerShape(13.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = BDV2Obsidian, contentColor = Color.White)
-                    ) {
-                        if (isFetching) {
-                            CircularProgressIndicator(modifier = Modifier.size(17.dp), color = Color.White, strokeWidth = 2.dp)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(text = stringResource(Res.string.upi_fetch_loading), fontSize = 15.sp, fontWeight = FontWeight.Bold)
-                        } else {
-                            val label = if (errorState != null) stringResource(Res.string.try_again) else if (successState != null) stringResource(Res.string.user_info_btn_confirm_continue) else stringResource(Res.string.btn_fetch_my_details)
-                            Text(text = label, fontSize = 15.sp, fontWeight = FontWeight.Bold)
                         }
-                    }
 
-                    Button(
-                        onClick = onDismiss,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(44.dp)
-                            .border(1.5.dp, BDV2FieldBorder, RoundedCornerShape(12.dp)),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent, contentColor = BDV2BronzeMuted)
-                    ) {
-                        Text(text = stringResource(Res.string.btn_fill_form_manually), fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Text(
+                            text = stringResource(Res.string.upi_all_banks),
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = BDV2MutedText,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+
+                        // All banks lists Grid
+                        val row1 = listOf("@oksbi", "@okhdfc", "@upi", "@axisbank")
+                        val row2 = listOf("@kotak", "@indus", "@aubank", "@ibl")
+
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                row1.forEach { handle ->
+                                    val isSelected = selectedBankHandle == handle
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clip(RoundedCornerShape(50))
+                                            .background(if (isSelected) BDV2Obsidian else Color.White)
+                                            .border(1.dp, if (isSelected) BDV2GoldAccent else BDV2FieldBorder, RoundedCornerShape(50))
+                                            .clickable { selectedBankHandle = handle }
+                                            .padding(vertical = 8.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = handle,
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (isSelected) BDV2Cream else BDV2BronzeInk
+                                        )
+                                    }
+                                }
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                row2.forEach { handle ->
+                                    val isSelected = selectedBankHandle == handle
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clip(RoundedCornerShape(50))
+                                            .background(if (isSelected) BDV2Obsidian else Color.White)
+                                            .border(1.dp, if (isSelected) BDV2GoldAccent else BDV2FieldBorder, RoundedCornerShape(50))
+                                            .clickable { selectedBankHandle = handle }
+                                            .padding(vertical = 8.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = handle,
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (isSelected) BDV2Cream else BDV2BronzeInk
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        // YOUR UPI ID Title
+                        Text(
+                            text = stringResource(Res.string.verify_with_upi_id),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = BDV2BronzeInk,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+
+                        // Editable input box
+                        val outlineBorderColor = if (errorState != null) BDV2VolatilityRed else BDV2GoldAccent
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(Color.White)
+                                .border(1.5.dp, outlineBorderColor, RoundedCornerShape(14.dp))
+                                .padding(horizontal = 16.dp, vertical = 12.dp)
+                        ) {
+                            androidx.compose.foundation.text.BasicTextField(
+                                value = upiInput,
+                                onValueChange = {
+                                    upiInput = it
+                                },
+                                textStyle = androidx.compose.ui.text.TextStyle(
+                                    color = BDV2BronzeInk,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+
+                        if (errorState?.message != null) {
+                            Text(
+                                text = errorState!!.message!!,
+                                color = BDV2VolatilityRed,
+                                fontSize = 11.sp,
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
+                        }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(4.dp))
+                // Bottom Buttons CTA section
+                val canSubmit = selectedPrefix.isNotEmpty() && selectedBankHandle.isNotEmpty() && upiInput.isNotEmpty() && !upiInput.contains(chooseBankPlaceholder)
+                val opacity = if (canSubmit) 1f else 0.42f
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 28.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .alpha(opacity)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(
+                                Brush.linearGradient(
+                                    colors = listOf(BDV2GoldAccent, BDV2GoldDeep)
+                                )
+                            )
+                            .padding(1.5.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                if (canSubmit) {
+                                    keyboardController?.hide()
+                                    focusManager.clearFocus()
+                                    PlatformAnalyticsLogger.logEvent("bank_details_fetch_my_details_click", emptyMap())
+                                    viewModel.fetchBankDetailsViaUpi(userId, upiInput.trim())
+                                }
+                            },
+                            enabled = canSubmit && !isFetching,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp),
+                            shape = RoundedCornerShape(13.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = BDV2Obsidian,
+                                contentColor = Color.White
+                            ),
+                            contentPadding = PaddingValues(0.dp)
+                        ) {
+                            if (isFetching) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(17.dp),
+                                    color = Color.White,
+                                    strokeWidth = 2.dp
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = stringResource(Res.string.upi_fetch_loading),
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            } else {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Text(
+                                        text = stringResource(Res.string.btn_fetch_my_details),
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "→",
+                                        fontSize = 17.sp,
+                                        color = BDV2GoldAccent
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
