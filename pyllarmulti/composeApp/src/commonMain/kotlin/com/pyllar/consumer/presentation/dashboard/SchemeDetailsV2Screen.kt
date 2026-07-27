@@ -1067,6 +1067,7 @@ fun SchemeDetailsV2Screen(
 
             if (showCancelReasonScreen && mandateForCancelSip != null) {
                 CancelSipReasonScreenV2(
+                    isLoading = cancelSipLoading,
                     selectedReason = selectedCancelReason,
                     onReasonSelected = { selectedCancelReason = it },
                     onContinue = {
@@ -2526,6 +2527,7 @@ private enum class CancelSipReasonV2(val keyword: String, val labelRes: org.jetb
 
 @Composable
 private fun CancelSipReasonScreenV2(
+    isLoading: Boolean = false,
     selectedReason: CancelSipReasonV2?,
     onReasonSelected: (CancelSipReasonV2) -> Unit,
     onContinue: () -> Unit,
@@ -2571,13 +2573,14 @@ private fun CancelSipReasonScreenV2(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onReasonSelected(reason) }
+                        .clickable(enabled = !isLoading) { onReasonSelected(reason) }
                         .padding(vertical = 4.dp, horizontal = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     RadioButton(
                         selected = selectedReason == reason,
-                        onClick = { onReasonSelected(reason) }
+                        onClick = { onReasonSelected(reason) },
+                        enabled = !isLoading
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
@@ -2593,19 +2596,28 @@ private fun CancelSipReasonScreenV2(
                 onClick = onContinue,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
-                enabled = selectedReason != null
+                enabled = selectedReason != null && !isLoading
             ) {
-                Text(
-                    text = stringResource(Res.string.cancel_sip_continue),
-                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
-                )
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text(
+                        text = stringResource(Res.string.cancel_sip_continue),
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
+                    )
+                }
             }
             OutlinedButton(
                 onClick = onGoBack,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 4.dp),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(12.dp),
+                enabled = !isLoading
             ) {
                 Text(
                     text = stringResource(Res.string.go_back),
