@@ -113,7 +113,7 @@
     <string name="riskometer">RISKOMETER</string>
     <string name="scheme_documents">Scheme Documents</string>
     <string name="disclaimer">Disclaimer</string>
-    <string name="disclaimer_popup_content">Mutual Funds investments are subject to market risks, read all scheme-related documents careruliy. Past performance is not an indicator for future returns.\n\nThe figures have been calculated based on historic returns of this fund.</string>
+    <string name="disclaimer_popup_content">Mutual Funds investments are subject to market risks, read all scheme-related documents carefully. Past performance is not an indicator for future returns.\n\nThe figures have been calculated based on historic returns of this fund.</string>
     <string name="amfi_disclaimer">Pyllar Fintech Private Limited is an AMFI registered Mutual Fund distributor (ARN No: 341847)</string>
     <string name="investment_in_progress_title">Investment In Progress</string>
     <string name="investment_in_progress_message">If you have initiated an investment, it may currently be in progress. Investments typically take up to 2 working days to reflect. Once processed, the amount will be available for withdrawal.</string>
