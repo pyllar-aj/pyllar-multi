@@ -248,6 +248,8 @@ class NomineeDetailsViewModel(
     fun clearResult() {
         _nomineeSubmissionResult.value = null
         _navigationInfo.value = null
+        _otpVerificationResult.value = null
+        _otpGenerationResult.value = null
     }
 
     fun verifyOtp(phoneNumber: String, otp: String) {

@@ -525,7 +525,7 @@ private fun FreeTextStepContent(
     Spacer(modifier = Modifier.height(10.dp))
     OutlinedTextField(
         value = value,
-        onValueChange = onValueChange,
+        onValueChange = { if (it.length <= 700) onValueChange(it) },
         placeholder = { Text(stringResource(Res.string.doubts_freetext_placeholder)) },
         minLines = 4,
         modifier = Modifier.fillMaxWidth(),

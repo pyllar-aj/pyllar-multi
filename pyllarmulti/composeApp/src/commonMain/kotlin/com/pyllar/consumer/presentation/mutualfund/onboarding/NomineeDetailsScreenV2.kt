@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
@@ -102,11 +103,11 @@ fun NomineeDetailsScreenV2(
     var isInitialized by remember { mutableStateOf(false) }
 
     // OTP
-    var showOtpScreen by remember { mutableStateOf(false) }
+    var showOtpScreen by rememberSaveable { mutableStateOf(false) }
     var otpFieldValue by remember { mutableStateOf(TextFieldValue("")) }
     val otpCode = otpFieldValue.text
     var phoneNumber by remember { mutableStateOf("") }
-    var hasNavigatedAfterOtp by remember { mutableStateOf(false) }
+    var hasNavigatedAfterOtp by rememberSaveable { mutableStateOf(false) }
 
     var isSubmitting by remember { mutableStateOf(false) }
 
@@ -161,6 +162,7 @@ fun NomineeDetailsScreenV2(
                     platformLog("NomineeDetailsScreenV2: Error getting phone: ${e.message}")
                     isSubmitting = false
                     onNext(navigationInfo?.nextScreen)
+                    viewModel.clearResult()
                 }
             }
             is Resource.Error<*> -> {
@@ -194,6 +196,7 @@ fun NomineeDetailsScreenV2(
                 if (!hasNavigatedAfterOtp) {
                     hasNavigatedAfterOtp = true
                     onNext(navigationInfo?.nextScreen)
+                    viewModel.clearResult()
                 }
             }
             is Resource.Error<*> -> {
@@ -843,7 +846,6 @@ fun NomineeDetailsScreenV2(
                 .fillMaxSize()
                 .background(Color.Black.copy(alpha = 0.4f))
                 .zIndex(99f)
-                .run { if (isIos) this else imePadding() } // Avoid double padding on iOS where native pans window
                 .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) {
                     // Prevent dismiss on outside click
                 },
@@ -1010,6 +1012,7 @@ private fun NMV2OtpBottomSheet(
             .fillMaxWidth()
             .background(NMV2Cream, RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
             .border(1.dp, NMV2CardBorder, RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
+            .imePadding()
             .padding(start = 24.dp, top = 5.dp, end = 24.dp, bottom = 15.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(18.dp)

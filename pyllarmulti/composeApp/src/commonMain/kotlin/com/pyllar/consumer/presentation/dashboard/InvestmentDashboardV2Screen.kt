@@ -30,6 +30,11 @@ import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -109,6 +114,7 @@ fun InvestmentDashboardV2Screen(
     onRetryKyc: () -> Unit = {},
     onStartKyc: () -> Unit = {},
     viewModel: InvestmentDashboardV2ViewModel = koinInject(),
+    doubtsSurveyViewModel: com.pyllar.consumer.presentation.mutualfund.onboarding.DoubtsSurveyViewModel = koinInject(),
     platformActions: PlatformActions = koinInject(),
     permissionManager: PermissionManager = koinInject(),
     sessionStore: SessionStore = koinInject()
@@ -117,6 +123,13 @@ fun InvestmentDashboardV2Screen(
 
     val dashboardState by viewModel.dashboardState.collectAsState()
     
+    var isSurveyDoneOrSkipped by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        val done = sessionStore.getValue("survey_done_or_skipped") == "true"
+        isSurveyDoneOrSkipped = done
+    }
+    val showSurvey = false
+
     var isSelectingGoal by remember { mutableStateOf(false) }
     var showMenu by remember { mutableStateOf(false) }
     var showKycPendingBottomSheet by remember { mutableStateOf(false) }
@@ -158,50 +171,87 @@ fun InvestmentDashboardV2Screen(
         it.category.uppercase() !in listOf("RETIREMENT", "CHILDRENS_EDUCATION", "VACATION", "FESTIVAL_SPENDS", "SAVINGS") 
     }
 
-    val handleGoalSelection: (String) -> Unit = { goalId ->
-        coroutineScope.launch {
-            isSelectingGoal = true
-            val result = viewModel.initGoalTxn(userId, goalId)
-            if (result is Resource.Success) {
-                onNavigateToGoal(goalId)
+    var manualRetryUserId by remember { mutableStateOf("") }
+    var effectiveUserId by remember { mutableStateOf(userId) }
+    LaunchedEffect(userId) {
+        if (userId.isNotBlank()) {
+            effectiveUserId = userId
+        } else {
+            val sessionUserId = sessionStore.getCurrentUserId()
+            if (sessionUserId.isNotBlank()) {
+                effectiveUserId = sessionUserId
             }
-            isSelectingGoal = false
+        }
+    }
+    val resolvedUserId = if (effectiveUserId.isNotBlank()) effectiveUserId else manualRetryUserId
+
+    val notifyUserIdNotReady: () -> Unit = {
+        Log.w("InvestmentDashboardV2", "⚠️ Goal action blocked - effectiveUserId not resolved yet")
+        coroutineScope.launch {
+            val fetched = runCatching { sessionStore.getCurrentUserId() }.getOrNull().orEmpty()
+            if (fetched.isNotBlank()) {
+                manualRetryUserId = fetched
+                effectiveUserId = fetched
+            }
+        }
+    }
+
+    val handleGoalSelection: (String) -> Unit = { goalId ->
+        if (resolvedUserId.isBlank()) {
+            notifyUserIdNotReady()
+        } else if (!isSelectingGoal) {
+            isSelectingGoal = true
+            coroutineScope.launch {
+                val result = viewModel.initGoalTxn(resolvedUserId, goalId)
+                if (result is Resource.Success) {
+                    onNavigateToGoal(goalId)
+                } else if (result is Resource.Error) {
+                    Log.e("InvestmentDashboardV2", "❌ initGoalTxn failed: ${result.message}")
+                }
+                isSelectingGoal = false
+            }
         }
     }
 
     val handleActiveGoalClick: (InvestmentGoal, Int) -> Unit = { goal, tabIndex ->
-        coroutineScope.launch {
+        if (resolvedUserId.isBlank()) {
+            notifyUserIdNotReady()
+        } else if (!isSelectingGoal) {
             isSelectingGoal = true
-            val result = viewModel.initGoalTxn(userId, goal.goalId)
-            if (result is Resource.Success) {
-                val response = result.data
-                if (response != null) {
-                    val params = SchemeDetailsParams(
-                        isin = goal.isin,
-                        folioNumber = goal.folioNo,
-                        schemeName = goal.schemeName,
-                        currentValue = goal.currentValue,
-                        investmentInProgress = goal.investmentInProgressValue,
-                        investedAmount = goal.investedAmount,
-                        goalName = goal.name,
-                        unitsInGm = goal.unitsInGm,
-                        category = goal.category,
-                        colorTheme = goal.colorTheme,
-                        profit = goal.profit,
-                        realizedProfit = goal.realizedProfit,
-                        unrealizedProfit = goal.unrealizedProfit,
-                        redeemableAmount = goal.redeemableAmount,
-                        redemptionInProgress = goal.redemptionInProgress,
-                        instantRedemptionValue = goal.instantRedemptionValue,
-                        selectedTab = tabIndex,
-                        userPurposeId = response.userPurposeId
-                    )
-                    SchemeDetailsParamsManager.set(params)
-                    sessionStore.saveValue("scheme_details_params_${goal.goalId}", SchemeDetailsParamsManager.toJson(params))
-                    onNavigateToSchemeDetails(goal.goalId)
+            coroutineScope.launch {
+                val result = viewModel.initGoalTxn(resolvedUserId, goal.goalId)
+                if (result is Resource.Success) {
+                    val response = result.data
+                    if (response != null) {
+                        val params = SchemeDetailsParams(
+                            isin = goal.isin,
+                            folioNumber = goal.folioNo,
+                            schemeName = goal.schemeName,
+                            currentValue = goal.currentValue,
+                            investmentInProgress = goal.investmentInProgressValue,
+                            investedAmount = goal.investedAmount,
+                            goalName = goal.name,
+                            unitsInGm = goal.unitsInGm,
+                            category = goal.category,
+                            colorTheme = goal.colorTheme,
+                            profit = goal.profit,
+                            realizedProfit = goal.realizedProfit,
+                            unrealizedProfit = goal.unrealizedProfit,
+                            redeemableAmount = goal.redeemableAmount,
+                            redemptionInProgress = goal.redemptionInProgress,
+                            instantRedemptionValue = goal.instantRedemptionValue,
+                            selectedTab = tabIndex,
+                            userPurposeId = response.userPurposeId
+                        )
+                        SchemeDetailsParamsManager.set(params)
+                        sessionStore.saveValue("scheme_details_params_${goal.goalId}", SchemeDetailsParamsManager.toJson(params))
+                        onNavigateToSchemeDetails(goal.goalId)
+                    }
+                } else if (result is Resource.Error) {
+                    Log.e("InvestmentDashboardV2", "❌ initGoalTxn failed: ${result.message}")
                 }
+                isSelectingGoal = false
             }
-            isSelectingGoal = false
         }
     }
 
@@ -209,9 +259,9 @@ fun InvestmentDashboardV2Screen(
         PlatformAnalyticsLogger.logScreenView("InvestmentDashboardV2")
     }
 
-    LaunchedEffect(userId) {
-        if (userId.isNotBlank()) {
-            viewModel.loadDashboardData(userId)
+    LaunchedEffect(resolvedUserId) {
+        if (resolvedUserId.isNotBlank()) {
+            viewModel.loadDashboardData(resolvedUserId)
         }
     }
 
@@ -341,7 +391,35 @@ fun InvestmentDashboardV2Screen(
             }
 
             if (!dashboardState.isLoading) {
-                if (dashboardState.kycStatus.equals("IN_PROGRESS", ignoreCase = true)) {
+                if (showSurvey) {
+                    item {
+                        DashboardSurveyCard(
+                            onSurveyCompleted = {
+                                coroutineScope.launch { sessionStore.saveValue("survey_done_or_skipped", "true") }
+                                isSurveyDoneOrSkipped = true
+                            },
+                            onSurveySkipped = {
+                                doubtsSurveyViewModel.submit(
+                                    screenName = "InvestmentDashboardSurvey",
+                                    goalId = dashboardState.primaryGoals.firstOrNull()?.goalId,
+                                    selectedOption = "Skipped Survey"
+                                )
+                                coroutineScope.launch { sessionStore.saveValue("survey_done_or_skipped", "true") }
+                                isSurveyDoneOrSkipped = true
+                            },
+                            onSubmitAnswer = { option, freeText, callback ->
+                                doubtsSurveyViewModel.submit(
+                                    screenName = "InvestmentDashboardSurvey",
+                                    goalId = dashboardState.primaryGoals.firstOrNull()?.goalId,
+                                    selectedOption = option,
+                                    freeText = freeText,
+                                    requestCallback = callback
+                                )
+                            },
+                            platformActions = platformActions
+                        )
+                    }
+                } else if (dashboardState.kycStatus.equals("IN_PROGRESS", ignoreCase = true)) {
                     item {
                         KycSubmittedAwaitingApprovalCard(
                             onContactSupport = {
@@ -433,6 +511,8 @@ fun InvestmentDashboardV2Screen(
                     )
                 }
             }
+
+
 
             item {
                 DashboardTrustFooter()
@@ -3062,4 +3142,446 @@ fun KycStepRow(
         }
     }
 }
+
+private enum class SurveyStep {
+    START,
+    QUESTION_ISSUES,
+    QUESTION_WHY_INVESTING,
+    QUESTION_WANT_CALL,
+    QUESTION_RATE_APP,
+    SUBMITTING,
+    COMPLETED
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DashboardSurveyCard(
+    onSurveyCompleted: () -> Unit,
+    onSurveySkipped: () -> Unit,
+    onSubmitAnswer: (selectedOption: String, freeText: String?, requestCallback: Boolean) -> Unit,
+    platformActions: PlatformActions = koinInject(),
+    modifier: Modifier = Modifier
+) {
+    var currentStep by remember { mutableStateOf(SurveyStep.START) }
+    var issuesSelected by remember { mutableStateOf("") }
+    var issuesText by remember { mutableStateOf("") }
+    var whyInvesting by remember { mutableStateOf("") }
+    var wantCall by remember { mutableStateOf("") }
+    var selectedStars by remember { mutableIntStateOf(0) }
+    var ratingFeedbackText by remember { mutableStateOf("") }
+
+    val focusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(issuesSelected) {
+        if (issuesSelected == "Yes") {
+            try {
+                focusRequester.requestFocus()
+            } catch (e: Exception) {
+                // Ignore focus errors
+            }
+        }
+    }
+
+    LaunchedEffect(selectedStars) {
+        if (selectedStars > 0) {
+            try {
+                focusRequester.requestFocus()
+            } catch (e: Exception) {
+                // Ignore focus errors
+            }
+        }
+    }
+
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(24.dp),
+        border = BorderStroke(1.dp, Color(0xFFF2EFE9))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xFFFDFBF7))
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            if (currentStep == SurveyStep.START) {
+                Text(
+                    text = stringResource(Res.string.survey_help_us_serve),
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF2C1E11)
+                    )
+                )
+                Text(
+                    text = stringResource(Res.string.survey_quick_desc),
+                    style = MaterialTheme.typography.bodyMedium.copy(color = Color(0xFF5F5041))
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onSurveySkipped,
+                        modifier = Modifier.weight(1f),
+                        border = BorderStroke(1.dp, Color(0xFF103620)),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF103620)),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(stringResource(Res.string.survey_btn_skip))
+                    }
+                    Button(
+                        onClick = { currentStep = SurveyStep.QUESTION_ISSUES },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF103620)),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(stringResource(Res.string.survey_btn_start), color = Color.White)
+                    }
+                }
+            } else if (currentStep == SurveyStep.SUBMITTING) {
+                Box(
+                    modifier = Modifier.fillMaxWidth().height(150.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        CircularProgressIndicator(color = Color(0xFF103620))
+                        Text(
+                            stringResource(Res.string.survey_submitting),
+                            style = MaterialTheme.typography.bodyMedium.copy(color = Color(0xFF5F5041))
+                        )
+                    }
+                }
+            } else if (currentStep == SurveyStep.COMPLETED) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = stringResource(Res.string.survey_submitted_success),
+                        tint = Color(0xFF103620),
+                        modifier = Modifier.size(48.dp)
+                    )
+                    Text(
+                        text = stringResource(Res.string.survey_thank_you),
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, color = Color(0xFF2C1E11))
+                    )
+                    Text(
+                        text = stringResource(Res.string.survey_submitted_success),
+                        style = MaterialTheme.typography.bodyMedium.copy(color = Color(0xFF5F5041)),
+                        textAlign = TextAlign.Center
+                    )
+                    Button(
+                        onClick = onSurveyCompleted,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF103620)),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(stringResource(Res.string.survey_btn_done), color = Color.White)
+                    }
+                }
+            } else {
+                val totalQuestions = 4
+                val currentQuestionNumber = when (currentStep) {
+                    SurveyStep.QUESTION_ISSUES -> 1
+                    SurveyStep.QUESTION_WHY_INVESTING -> 2
+                    SurveyStep.QUESTION_WANT_CALL -> 3
+                    SurveyStep.QUESTION_RATE_APP -> 4
+                    else -> 1
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(Res.string.survey_title_feedback),
+                        style = MaterialTheme.typography.labelMedium.copy(color = Color(0xFF8C7F70))
+                    )
+                    Surface(
+                        color = Color(0xFFF9F3EB),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(
+                            text = "$currentQuestionNumber of $totalQuestions",
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF8C7F70)
+                            )
+                        )
+                    }
+                }
+
+                when (currentStep) {
+                    SurveyStep.QUESTION_ISSUES -> {
+                        Text(
+                            text = stringResource(Res.string.survey_q1_issues),
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, color = Color(0xFF2C1E11))
+                        )
+                        val options = listOf(
+                            stringResource(Res.string.survey_option_yes) to "Yes",
+                            stringResource(Res.string.survey_option_no) to "No"
+                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            options.forEach { (uiText, codeValue) ->
+                                SurveyOptionItem(
+                                    text = uiText,
+                                    isSelected = issuesSelected == codeValue,
+                                    onSelect = { issuesSelected = codeValue }
+                                )
+                            }
+                        }
+                        if (issuesSelected == "Yes") {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            OutlinedTextField(
+                                value = issuesText,
+                                onValueChange = { issuesText = it },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .focusRequester(focusRequester),
+                                placeholder = { Text(stringResource(Res.string.survey_placeholder_describe_issue), color = Color(0xFF8C7F70)) },
+                                textStyle = MaterialTheme.typography.bodyMedium.copy(color = Color(0xFF2C1E11)),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedTextColor = Color(0xFF2C1E11),
+                                    unfocusedTextColor = Color(0xFF2C1E11),
+                                    focusedBorderColor = Color(0xFF103620),
+                                    unfocusedBorderColor = Color(0xFFE5DFD5)
+                                )
+                            )
+                        }
+                    }
+                    SurveyStep.QUESTION_WHY_INVESTING -> {
+                        Text(
+                            text = stringResource(Res.string.survey_q2_why_investing),
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, color = Color(0xFF2C1E11))
+                        )
+                        val options = listOf(
+                            stringResource(Res.string.survey_option_children_school) to "Children School",
+                            stringResource(Res.string.survey_option_savings) to "Savings",
+                            stringResource(Res.string.survey_option_emergency) to "Emergency",
+                            stringResource(Res.string.survey_option_marriage) to "Marriage"
+                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            options.forEach { (uiText, codeValue) ->
+                                SurveyOptionItem(
+                                    text = uiText,
+                                    isSelected = whyInvesting == codeValue,
+                                    onSelect = { whyInvesting = codeValue }
+                                )
+                            }
+                        }
+                    }
+                    SurveyStep.QUESTION_WANT_CALL -> {
+                        Text(
+                            text = stringResource(Res.string.survey_q3_want_call),
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, color = Color(0xFF2C1E11))
+                        )
+                        val options = listOf(
+                            stringResource(Res.string.survey_option_yes) to "Yes",
+                            stringResource(Res.string.survey_option_no) to "No"
+                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            options.forEach { (uiText, codeValue) ->
+                                SurveyOptionItem(
+                                    text = uiText,
+                                    isSelected = wantCall == codeValue,
+                                    onSelect = { wantCall = codeValue }
+                                )
+                            }
+                        }
+                    }
+                    SurveyStep.QUESTION_RATE_APP -> {
+                        Text(
+                            text = stringResource(Res.string.survey_q4_rate_app),
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, color = Color(0xFF2C1E11))
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
+                        ) {
+                            for (i in 1..5) {
+                                val isSelected = i <= selectedStars
+                                Icon(
+                                    imageVector = Icons.Filled.Star,
+                                    contentDescription = "$i Stars",
+                                    tint = if (isSelected) Color(0xFFFFB300) else Color(0xFFE5DFD5),
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clickable {
+                                            selectedStars = i
+                                        }
+                                )
+                            }
+                        }
+                        if (selectedStars > 0) {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text(
+                                text = stringResource(Res.string.survey_how_can_we_improve),
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold, color = Color(0xFF2C1E11))
+                            )
+                            OutlinedTextField(
+                                value = ratingFeedbackText,
+                                onValueChange = { ratingFeedbackText = it },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .focusRequester(focusRequester),
+                                placeholder = { Text(stringResource(Res.string.survey_placeholder_feedback), color = Color(0xFF8C7F70)) },
+                                textStyle = MaterialTheme.typography.bodyMedium.copy(color = Color(0xFF2C1E11)),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedTextColor = Color(0xFF2C1E11),
+                                    unfocusedTextColor = Color(0xFF2C1E11),
+                                    focusedBorderColor = Color(0xFF103620),
+                                    unfocusedBorderColor = Color(0xFFE5DFD5)
+                                )
+                            )
+                        }
+                    }
+                    else -> {}
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = {
+                            currentStep = when (currentStep) {
+                                SurveyStep.QUESTION_ISSUES -> SurveyStep.START
+                                SurveyStep.QUESTION_WHY_INVESTING -> SurveyStep.QUESTION_ISSUES
+                                SurveyStep.QUESTION_WANT_CALL -> SurveyStep.QUESTION_WHY_INVESTING
+                                SurveyStep.QUESTION_RATE_APP -> SurveyStep.QUESTION_WANT_CALL
+                                else -> SurveyStep.START
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                        border = BorderStroke(1.dp, Color(0xFF103620)),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF103620)),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(stringResource(Res.string.survey_btn_back))
+                    }
+
+                    val isNextEnabled = when (currentStep) {
+                        SurveyStep.QUESTION_ISSUES -> {
+                            if (issuesSelected == "Yes") {
+                                issuesText.trim().isNotEmpty()
+                            } else {
+                                issuesSelected == "No"
+                            }
+                        }
+                        SurveyStep.QUESTION_WHY_INVESTING -> whyInvesting.isNotEmpty()
+                        SurveyStep.QUESTION_WANT_CALL -> wantCall.isNotEmpty()
+                        SurveyStep.QUESTION_RATE_APP -> {
+                            if (selectedStars in 1..3) {
+                                ratingFeedbackText.trim().isNotEmpty()
+                            } else {
+                                selectedStars >= 4
+                            }
+                        }
+                        else -> false
+                    }
+
+                    Button(
+                        onClick = {
+                            when (currentStep) {
+                                SurveyStep.QUESTION_ISSUES -> {
+                                    if (issuesSelected == "Yes") {
+                                        onSubmitAnswer("1. Facing issues using Pyllar: Yes", issuesText, false)
+                                    } else {
+                                        onSubmitAnswer("1. Facing issues using Pyllar: No", null, false)
+                                    }
+                                    currentStep = SurveyStep.QUESTION_WHY_INVESTING
+                                }
+                                SurveyStep.QUESTION_WHY_INVESTING -> {
+                                    onSubmitAnswer("2. Why are you investing: $whyInvesting", null, false)
+                                    currentStep = SurveyStep.QUESTION_WANT_CALL
+                                }
+                                SurveyStep.QUESTION_WANT_CALL -> {
+                                    onSubmitAnswer("3. Do you want a call: $wantCall", null, wantCall.equals("Yes", ignoreCase = true))
+                                    currentStep = SurveyStep.QUESTION_RATE_APP
+                                }
+                                SurveyStep.QUESTION_RATE_APP -> {
+                                    onSubmitAnswer("4. App Rating: $selectedStars Stars", ratingFeedbackText, false)
+                                    if (selectedStars >= 4) {
+                                        platformActions.requestInAppReview(
+                                            screenName = "InvestmentDashboardSurvey",
+                                            silentFallback = true,
+                                            trigger = "survey"
+                                        )
+                                    }
+                                    currentStep = SurveyStep.COMPLETED
+                                }
+                                else -> {}
+                            }
+                        },
+                        enabled = isNextEnabled,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF103620),
+                            disabledContainerColor = Color(0xFFE5DFD5)
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(
+                            text = if (currentStep == SurveyStep.QUESTION_RATE_APP) stringResource(Res.string.survey_btn_submit) else stringResource(Res.string.survey_btn_next),
+                            color = if (isNextEnabled) Color.White else Color(0xFF8C7F70)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SurveyOptionItem(
+    text: String,
+    isSelected: Boolean,
+    onSelect: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onSelect() },
+        shape = RoundedCornerShape(16.dp),
+        color = if (isSelected) Color(0xFFF4FAF6) else Color.White,
+        border = BorderStroke(
+            width = if (isSelected) 2.dp else 1.dp,
+            color = if (isSelected) Color(0xFF103620) else Color(0xFFE5DFD5)
+        )
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            RadioButton(
+                selected = isSelected,
+                onClick = onSelect,
+                colors = RadioButtonDefaults.colors(
+                    selectedColor = Color(0xFF103620),
+                    unselectedColor = Color(0xFF8C7F70)
+                )
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                    color = if (isSelected) Color(0xFF103620) else Color(0xFF2C1E11)
+                )
+            )
+        }
+    }
+}
+
+
 

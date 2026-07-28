@@ -1203,8 +1203,17 @@ fun App() {
                     onBack = { navigateBack() },
                     onComplete = { nextScreen ->
                         scope.launch {
-                            navigateBack()
-                            handleNavigation(nextScreen, screen.userId, sessionStore = sessionStore) { navigateTo(it) }
+                            if (screenStack.lastOrNull() is Screen.PennyDropLoading) {
+                                screenStack.removeAt(screenStack.size - 1)
+                            }
+                            handleNavigation(nextScreen, screen.userId, sessionStore = sessionStore) { targetScreen ->
+                                if (screenStack.lastOrNull() == targetScreen) {
+                                    // Target screen is already current screen, force refresh stack item
+                                    screenStack[screenStack.size - 1] = targetScreen
+                                } else {
+                                    navigateTo(targetScreen)
+                                }
+                            }
                         }
                     }
                 )

@@ -156,7 +156,7 @@ fun UserInfoScreenV2(
     var namePrefilled by remember { mutableStateOf(false) }
     var panPrefilled by remember { mutableStateOf(false) }
 
-    var detectedEmail by remember { mutableStateOf(email) }
+    var detectedEmail by remember { mutableStateOf(email.lowercase()) }
     var emailMode by remember { mutableStateOf(if (email.isNotBlank()) "chip" else "manual") }
     var manualEmail by remember { mutableStateOf("") }
     var confirmedEmail by remember { mutableStateOf("") }
@@ -300,7 +300,7 @@ fun UserInfoScreenV2(
         }
         val prepopulatedEmail = prefillData["email"] as? String
         if (!prepopulatedEmail.isNullOrBlank() && detectedEmail.isBlank()) {
-            detectedEmail = prepopulatedEmail
+            detectedEmail = prepopulatedEmail.lowercase()
             emailMode = "chip"
         }
     }
@@ -911,7 +911,7 @@ fun UserInfoScreenV2(
                         } else {
                             OutlinedTextField(
                                 value = manualEmail,
-                                onValueChange = { manualEmail = it; emailError = null },
+                                onValueChange = { manualEmail = it.lowercase(); emailError = null },
                                 placeholder = { Text("e.g. name@email.com", color = V2MutedText) },
                                 singleLine = true,
                                 isError = emailError != null,
@@ -929,7 +929,7 @@ fun UserInfoScreenV2(
                                         Spacer(modifier = Modifier.width(12.dp))
                                         GoogleAccountPickerButton(
                                             onEmailPicked = { 
-                                                manualEmail = it
+                                                manualEmail = it.lowercase()
                                                 emailError = null
                                             }
                                         )

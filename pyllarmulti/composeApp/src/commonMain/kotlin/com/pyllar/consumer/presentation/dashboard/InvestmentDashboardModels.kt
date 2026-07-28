@@ -19,6 +19,7 @@ data class InvestmentDashboardV2State(
     val kycStatus: String = "PENDING",
     val userName: String = "",
     val referralEnabled: Boolean = false,
+    val showSurvey: Boolean = false,
     val isLoading: Boolean = true,
     val errorMessage: String? = null
 )

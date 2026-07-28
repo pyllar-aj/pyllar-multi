@@ -290,6 +290,7 @@ class InvestmentDashboardV2ViewModel(
             kycStatus = response.kycDetails?.kycStatus ?: "PENDING",
             userName = response.userName ?: "",
             referralEnabled = response.referralEnabled ?: false,
+            showSurvey = response.showSurvey ?: false,
             isLoading = false
         )
     }

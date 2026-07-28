@@ -813,6 +813,28 @@ fun AdditionalKycScreenV2(
                     Spacer(modifier = Modifier.height(12.dp))
                 }
 
+                val scrollToField: (String) -> Unit = { fieldName ->
+                    scope.launch {
+                        val incomeVal = monthlyIncome.toDoubleOrNull() ?: 0.0
+                        val targetScrollPosition = when (fieldName) {
+                            "Father's Name" -> 0
+                            "Gender" -> (scrollState.maxValue * 0.15f).toInt()
+                            "Marital Status" -> (scrollState.maxValue * 0.25f).toInt()
+                            "Place of Birth" -> (scrollState.maxValue * 0.35f).toInt()
+                            "Occupation Type" -> (scrollState.maxValue * 0.45f).toInt()
+                            "Monthly Income" -> (scrollState.maxValue * 0.55f).toInt()
+                            "Address Line 1" -> (scrollState.maxValue * 0.65f).toInt()
+                            "Address Line 2" -> (scrollState.maxValue * 0.70f).toInt()
+                            "Address Line 3" -> (scrollState.maxValue * 0.75f).toInt()
+                            "City", "Pincode" -> (scrollState.maxValue * 0.80f).toInt()
+                            "Residential Status", "Nationality", "Politically Exposed Person", "Declarations Confirmation" -> (scrollState.maxValue * 0.90f).toInt()
+                            "Location Permission" -> scrollState.maxValue
+                            else -> 0
+                        }
+                        scrollState.animateScrollTo(targetScrollPosition)
+                    }
+                }
+
                 if (showValidationErrors && missingFields.isNotEmpty()) {
                     Box(
                         modifier = Modifier
@@ -830,7 +852,15 @@ fun AdditionalKycScreenV2(
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             missingFields.forEach { field ->
-                                Text("• $field", fontSize = 11.sp, color = AKV2VolatilityRed)
+                                Text(
+                                    text = "• $field",
+                                    fontSize = 11.sp,
+                                    color = AKV2VolatilityRed,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { scrollToField(field) }
+                                        .padding(vertical = 2.dp)
+                                )
                             }
                         }
                     }

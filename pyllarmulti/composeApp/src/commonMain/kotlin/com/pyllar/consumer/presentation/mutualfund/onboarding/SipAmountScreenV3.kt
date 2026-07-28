@@ -470,13 +470,16 @@ fun SipAmountScreenV3(
     }
 
     // Exit-intent doubts survey eligibility: shown once, on the first back-press after the
-    // 5th visit to this screen, as long as the user hasn't already started a SIP here.
-    LaunchedEffect(Unit) {
-        val newVisitCount = (sessionStore.getValue(KeyValueConstants.SIP_AMOUNT_V3_VISIT_COUNT)?.toIntOrNull() ?: 0) + 1
-        sessionStore.saveValue(KeyValueConstants.SIP_AMOUNT_V3_VISIT_COUNT, newVisitCount.toString())
-        eligibleForDoubtsSurvey = newVisitCount > 4 &&
-            sessionStore.getValue(KeyValueConstants.DOUBTS_SURVEY_SHOWN) != "true" &&
-            sessionStore.getValue(KeyValueConstants.HAS_STARTED_SIP) != "true"
+    // 5th visit to this screen, as long as the user hasn't already started a SIP here and has no active goals.
+    LaunchedEffect(dashboardState.primaryGoals, dashboardState.isLoading) {
+        if (!dashboardState.isLoading) {
+            val newVisitCount = (sessionStore.getValue(KeyValueConstants.SIP_AMOUNT_V3_VISIT_COUNT)?.toIntOrNull() ?: 0) + 1
+            sessionStore.saveValue(KeyValueConstants.SIP_AMOUNT_V3_VISIT_COUNT, newVisitCount.toString())
+            eligibleForDoubtsSurvey = newVisitCount > 4 &&
+                sessionStore.getValue(KeyValueConstants.DOUBTS_SURVEY_SHOWN) != "true" &&
+                sessionStore.getValue(KeyValueConstants.HAS_STARTED_SIP) != "true" &&
+                dashboardState.primaryGoals.isEmpty()
+        }
     }
 
     Scaffold(
