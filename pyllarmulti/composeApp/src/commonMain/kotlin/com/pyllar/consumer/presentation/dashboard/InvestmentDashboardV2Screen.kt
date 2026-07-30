@@ -54,6 +54,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.platform.LocalFocusManager
 import com.pyllar.consumer.analytics.PlatformAnalyticsLogger
 import com.pyllar.consumer.util.Log
 import com.pyllar.consumer.util.platformLog
@@ -128,7 +131,7 @@ fun InvestmentDashboardV2Screen(
         val done = sessionStore.getValue("survey_done_or_skipped") == "true"
         isSurveyDoneOrSkipped = done
     }
-    val showSurvey = false
+    val showSurvey = !dashboardState.isLoading && !isSurveyDoneOrSkipped
 
     var isSelectingGoal by remember { mutableStateOf(false) }
     var showMenu by remember { mutableStateOf(false) }
@@ -401,7 +404,7 @@ fun InvestmentDashboardV2Screen(
                             onSurveySkipped = {
                                 doubtsSurveyViewModel.submit(
                                     screenName = "InvestmentDashboardSurvey",
-                                    goalId = dashboardState.primaryGoals.firstOrNull()?.goalId,
+                                    goalId = dashboardState.primaryGoals.firstOrNull()?.goalId ?: "",
                                     selectedOption = "Skipped Survey"
                                 )
                                 coroutineScope.launch { sessionStore.saveValue("survey_done_or_skipped", "true") }
@@ -410,7 +413,7 @@ fun InvestmentDashboardV2Screen(
                             onSubmitAnswer = { option, freeText, callback ->
                                 doubtsSurveyViewModel.submit(
                                     screenName = "InvestmentDashboardSurvey",
-                                    goalId = dashboardState.primaryGoals.firstOrNull()?.goalId,
+                                    goalId = dashboardState.primaryGoals.firstOrNull()?.goalId ?: "",
                                     selectedOption = option,
                                     freeText = freeText,
                                     requestCallback = callback
@@ -3171,6 +3174,7 @@ fun DashboardSurveyCard(
     var ratingFeedbackText by remember { mutableStateOf("") }
 
     val focusRequester = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
 
     LaunchedEffect(issuesSelected) {
         if (issuesSelected == "Yes") {
@@ -3203,6 +3207,11 @@ fun DashboardSurveyCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Color(0xFFFDFBF7))
+                .pointerInput(Unit) {
+                    detectTapGestures(onTap = {
+                        focusManager.clearFocus()
+                    })
+                }
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -3342,7 +3351,7 @@ fun DashboardSurveyCard(
                             Spacer(modifier = Modifier.height(8.dp))
                             OutlinedTextField(
                                 value = issuesText,
-                                onValueChange = { issuesText = it },
+                                onValueChange = { if (it.length <= 700) issuesText = it },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .focusRequester(focusRequester),
@@ -3429,7 +3438,7 @@ fun DashboardSurveyCard(
                             )
                             OutlinedTextField(
                                 value = ratingFeedbackText,
-                                onValueChange = { ratingFeedbackText = it },
+                                onValueChange = { if (it.length <= 700) ratingFeedbackText = it },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .focusRequester(focusRequester),
