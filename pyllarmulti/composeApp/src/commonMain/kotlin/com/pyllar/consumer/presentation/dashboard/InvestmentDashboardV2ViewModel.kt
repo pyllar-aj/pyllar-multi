@@ -15,6 +15,8 @@ import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
 import kotlin.math.roundToLong
 
+import kotlinx.serialization.json.JsonPrimitive
+
 class InvestmentDashboardV2ViewModel(
     private val dashboardRepository: DashboardRepository
 ) : ViewModel() {
@@ -178,53 +180,27 @@ class InvestmentDashboardV2ViewModel(
             !(isCancelled && hasNoHoldings)
         }.sortedByDescending { it.currentValue }
 
-        val activeGoalIds = primaryGoals.map { it.goalId }.toSet()
-        val recommendedGoalsFromApi = buildRecommendedGoals(response.recommendations.orEmpty(), activeGoalIds)
-        val presetGoals = createAllPresetGoals().filter { it.goalId !in activeGoalIds }
-
-        val allInOneGoal = presetGoals.find { it.goalId == "all_in_one" }
-        val globalExposureGoal = presetGoals.find { it.goalId == "global_exposure" }
-        val marketExplorerEnabled = response.marketExplorer ?: false
-        val otherPresetGoals = presetGoals.filter {
-            it.goalId != "all_in_one" && 
-            it.goalId != "global_exposure" &&
-            it.goalId != "festival_spends" &&
-            it.goalId != "childrens_education" &&
-            it.goalId != "vacation" &&
-            it.goalId != "savings" &&
-            (it.goalId != "market_explorer" || marketExplorerEnabled)
-        }
-
-        val allRecommendedGoals = if (recommendedGoalsFromApi.isEmpty()) {
-            otherPresetGoals
-        } else {
-            val apiGoalIds = recommendedGoalsFromApi.map { it.goalId }.toSet()
-            val additionalPresetGoals = otherPresetGoals.filter { it.goalId !in apiGoalIds }
-            recommendedGoalsFromApi + additionalPresetGoals
-        }
-
-        val recommendedGoals = allRecommendedGoals.sortedBy { goal ->
-            when (goal.category.uppercase()) {
-                "GOLD" -> 1
-                "SILVER" -> 2
-                "SAVINGS_PLUS" -> 3
-                "MARKET_EXPLORER" -> 4
-                "SAVINGS" -> 5
-                "FESTIVAL_SPENDS" -> 6
-                else -> 8
+        val activeGoalIds = primaryGoals.map { it.goalId.lowercase() }.toSet()
+        val backendGoalsString = response.uiFlags?.get("goals")?.let {
+            if (it is JsonPrimitive) {
+                it.content
+            } else {
+                it.toString().removeSurrounding("\"")
             }
+        } ?: ""
+
+        val backendGoalIds = backendGoalsString.split(",")
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .map { it.lowercase() }
+
+        val targetGoalIds = backendGoalIds.filter { it !in activeGoalIds }
+        val allPresetGoals = createAllPresetGoals()
+        val recommendedGoals = targetGoalIds.mapNotNull { targetId ->
+            allPresetGoals.find { it.goalId.lowercase() == targetId }
         }
 
-        val showAll = response.showAll ?: false
-        val allInOneEnabled = response.allInOne ?: false
-        val allGoals = mutableListOf<InvestmentGoal>().apply {
-            if (allInOneEnabled) {
-                allInOneGoal?.let { add(it) }
-            }
-            if (showAll) {
-                globalExposureGoal?.let { add(it) }
-            }
-        }
+        val allGoals = emptyList<InvestmentGoal>()
 
         val fundDetails = currentInvestments.flatMap { investment ->
             val purpose = investment.purpose ?: "Unknown"

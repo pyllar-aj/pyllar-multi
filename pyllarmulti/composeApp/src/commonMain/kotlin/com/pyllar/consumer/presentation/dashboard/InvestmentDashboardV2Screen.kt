@@ -154,9 +154,7 @@ fun InvestmentDashboardV2Screen(
     }
     val nextGoalsIndex = scrollIndex
 
-    val nextGoals = (dashboardState.recommendedGoals + dashboardState.allGoals).filter { 
-        it.category.uppercase() !in listOf("RETIREMENT", "CHILDRENS_EDUCATION", "VACATION", "FESTIVAL_SPENDS", "SAVINGS") 
-    }
+    val nextGoals = dashboardState.recommendedGoals
 
     val handleGoalSelection: (String) -> Unit = { goalId ->
         coroutineScope.launch {
@@ -408,10 +406,8 @@ fun InvestmentDashboardV2Screen(
                 }
             }
 
-            if (!dashboardState.isLoading && (dashboardState.recommendedGoals.isNotEmpty() || dashboardState.allGoals.isNotEmpty())) {
-                val nextGoals = (dashboardState.recommendedGoals + dashboardState.allGoals).filter { 
-                    it.category.uppercase() !in listOf("RETIREMENT", "CHILDRENS_EDUCATION", "VACATION", "FESTIVAL_SPENDS", "SAVINGS") 
-                }
+            if (!dashboardState.isLoading && dashboardState.recommendedGoals.isNotEmpty()) {
+                val nextGoals = dashboardState.recommendedGoals
                 if (nextGoals.isNotEmpty()) {
                     item {
                         NextGoalsSection(
@@ -1820,80 +1816,98 @@ fun NextGoalCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(
-                        modifier = Modifier.weight(0.4f),
-                        horizontalAlignment = Alignment.Start
+                        modifier = Modifier.weight(0.32f),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
                             text = "Daily SIP",
                             style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFF424242)
+                            color = Color(0xFF424242),
+                            textAlign = TextAlign.Center
                         )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        var fontSize by remember { mutableStateOf(12.sp) }
                         Text(
-                            text = when (category) {
-                                "GOLD", "SAVINGS" -> "₹21 - ₹500"
+                            text = when (goal.category.uppercase()) {
+                                "GOLD", "SAVINGS", "MARKET_EXPLORER" -> "₹21 - ₹500"
                                 "FESTIVAL_SPENDS" -> "₹11 - ₹500"
-                                "GLOBAL_EXPOSURE", "ALL_IN_ONE", "MARKET_EXPLORER" -> "₹101 - ₹1000"
+                                "GLOBAL_EXPOSURE", "ALL_IN_ONE" -> "₹101 - ₹1000"
                                 else -> "₹101 - ₹500"
                             },
-                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                            color = Color(0xFF424242)
+                            style = MaterialTheme.typography.titleSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = fontSize
+                            ),
+                            color = Color(0xFF424242),
+                            textAlign = TextAlign.Center,
+                            maxLines = 1,
+                            softWrap = false,
+                            onTextLayout = { textLayoutResult ->
+                                if (textLayoutResult.didOverflowWidth) {
+                                    if (fontSize.value > 8f) {
+                                        fontSize = (fontSize.value - 0.5f).sp
+                                    }
+                                }
+                            }
                         )
                     }
 
+                    Spacer(modifier = Modifier.width(8.dp))
                     Box(
-                        modifier = Modifier.width(1.dp).height(32.dp).background(Color(0xFFE0E0E0))
+                        modifier = Modifier.width(2.dp).height(50.dp).background(Color(0xFFE0E0E0))
                     )
+                    Spacer(modifier = Modifier.width(8.dp))
 
                     Column(
-                        modifier = Modifier.weight(0.6f).padding(start = 12.dp),
+                        modifier = Modifier.weight(0.9f),
                         horizontalAlignment = Alignment.Start
                     ) {
                         val annotatedText = buildAnnotatedString {
                             when (category) {
                                 "GOLD" -> {
-                                    append("Investing ₹101 daily since Jan 2023 gives you power of ")
+                                    append("Investing ₹101 daily since Jan 2023 gives you purchasing power of ")
                                     withStyle(SpanStyle(color = Color(0xFFB8860B), fontWeight = FontWeight.Bold)) {
                                         append("~15.8g Gold")
                                     }
+                                    append(".")
                                 }
                                 "SILVER" -> {
                                     append("Investing ₹101 daily since Jan 2023 yields ")
                                     withStyle(SpanStyle(color = Color(0xFF616161), fontWeight = FontWeight.Bold)) {
                                         append("~1.24kg Silver")
                                     }
+                                    append(" worth.")
                                 }
-                                "SAVINGS" -> {
-                                    append("Investing ₹101 daily since Jan 2023 built a corpus of ")
+                                "SAVINGS", "SAVINGS_PLUS" -> {
+                                    append("Investing ₹101 daily since Jan 2023 in this fund built a corpus of ~")
                                     withStyle(SpanStyle(color = Color(0xFF004D40), fontWeight = FontWeight.Bold)) {
-                                        append("~₹1.24 Lakhs")
+                                        append("₹1.24 Lakhs")
                                     }
+                                    append(".")
                                 }
                                 "FESTIVAL_SPENDS" -> {
-                                    append("Investing ₹51 daily since Jan 2023 grew to ")
+                                    append("Investing ₹51 daily since Jan 2023 in this fund grew to ~")
                                     withStyle(SpanStyle(color = Color(0xFFFF6F00), fontWeight = FontWeight.Bold)) {
-                                        append("~₹62,408")
+                                        append("₹62,408")
                                     }
+                                    append(".")
                                 }
                                 "GLOBAL_EXPOSURE" -> {
-                                    append("Investing ₹101 daily since Jan 2023 in global fund grew to ")
+                                    append("Investing ₹101 daily since Jan 2023 in international equity fund grew into ~")
                                     withStyle(SpanStyle(color = Color(0xFF00897B), fontWeight = FontWeight.Bold)) {
-                                        append("~₹1.54 Lakhs")
+                                        append("₹1.54 Lakhs")
                                     }
-                                }
-                                "SAVINGS_PLUS" -> {
-                                    append("Investing ₹101 daily since Jan 2023 in Savings Plus grew to ")
-                                    withStyle(SpanStyle(color = Color(0xFF2E7D32), fontWeight = FontWeight.Bold)) {
-                                        append("~₹1.28 Lakhs")
-                                    }
+                                    append(".")
                                 }
                                 "ALL_IN_ONE" -> {
-                                    append("Investing ₹101 daily since Jan 2023 in a multi-asset fund grew to ")
+                                    append("Investing ₹101 daily since Jan 2023 in a diversified multi-asset fund helped build a corpus of ~")
                                     withStyle(SpanStyle(color = Color(0xFF2C4C9C), fontWeight = FontWeight.Bold)) {
-                                        append("~₹1.41 Lakhs")
+                                        append("₹1.41 Lakhs")
                                     }
+                                    append(".")
                                 }
                                 "MARKET_EXPLORER" -> {
-                                    val bronzeColor = Color(0xFF8A4E1E)
+                                    val bronzeColor = Color(0xFF0F6B5C)
                                     append("Investing ₹101 daily since Jan 2023 in a flexi-cap fund could have built a corpus of ~")
                                     withStyle(
                                         SpanStyle(
@@ -1901,8 +1915,9 @@ fun NextGoalCard(
                                             fontWeight = FontWeight.Bold
                                         )
                                     ) {
-                                        append("₹1.37 Lakhs")
+                                        append("₹1.42 Lakhs")
                                     }
+                                    append(".")
                                 }
                                 else -> append(goal.description)
                             }
@@ -1911,8 +1926,7 @@ fun NextGoalCard(
                             text = annotatedText,
                             style = MaterialTheme.typography.bodySmall,
                             color = Color(0xFF424242),
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
+                            lineHeight = MaterialTheme.typography.bodySmall.lineHeight
                         )
                     }
                 }

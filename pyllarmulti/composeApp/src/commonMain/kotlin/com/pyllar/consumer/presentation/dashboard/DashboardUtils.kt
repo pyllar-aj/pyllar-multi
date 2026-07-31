@@ -37,7 +37,7 @@ fun getCorrelationColorForCategory(category: String?, colorTheme: String?): Colo
         "SAVINGS_PLUS" -> Color(0xFF1B5E20) // Deep Forest Green
         "GLOBAL_EXPOSURE" -> Color(0xFF00897B) // Teal
         "ALL_IN_ONE" -> Color(0xFF2C4C9C) // Dark blue
-        "MARKET_EXPLORER" -> Color(0xFF8A4E1E) // Bronze
+        "MARKET_EXPLORER" -> Color(0xFF0F6B5C) // Emerald/Teal Accent
         else -> V2SuccessGreen // Default green
     }
 }
@@ -54,8 +54,8 @@ fun getBorderColorForCategory(category: String?): Color {
         cat == "SILVER" -> Color(0xFF000000) // Black for silver to match plans without blue
         cat == "SAVINGS" -> Color(0xFF009688) // Teal
         cat == "SAVINGS_PLUS" -> V2SuccessGreen // --v2-success-green
-        cat == "ALL_IN_ONE" -> Color(0xFF2C4C9C) // Dark red (same as correlation text)
-        cat == "MARKET_EXPLORER" -> Color(0xFF8A4E1E) // Bronze
+        cat == "ALL_IN_ONE" -> Color(0xFF2C4C9C) // Dark blue
+        cat == "MARKET_EXPLORER" -> Color(0xFF0F6B5C) // Emerald/Teal Accent
         else -> V2SuccessGreen // --v2-success-green fallback
     }
 }
@@ -80,8 +80,8 @@ fun getDarkBorderColorForCategory(category: String?, colorTheme: String?): Color
         "SAVINGS" -> Color(0xFF004D40) // Dark teal
         "SAVINGS_PLUS" -> Color(0xFF1B5E20) // Forest Green
         "GLOBAL_EXPOSURE" -> Color(0xFF00897B) // Teal
-        "ALL_IN_ONE" -> Color(0xFF2C4C9C) // Dark red explicitly retained for ALL IN ONE if needed
-        "MARKET_EXPLORER" -> Color(0xFF8A4E1E) // Bronze border
+        "ALL_IN_ONE" -> Color(0xFF2C4C9C) // Dark blue
+        "MARKET_EXPLORER" -> Color(0xFF0F6B5C) // Emerald/Teal Accent
         else -> V2SuccessGreen // --v2-success-green fallback
     }
 }
@@ -137,8 +137,9 @@ fun getGoalGradientColors(category: String?, colorTheme: String?): List<Color> {
             Color(0xFFE6E6FA)  // Lavender
         )
         "MARKET_EXPLORER" -> listOf(
-            Color(0xFFFFF9F4), // Light cream base
-            Color(0xFFFBE6D2)  // Soft terracotta/bronze bottom corner
+            Color(0xFFE4F3EE), // Richer emerald/jade start tint
+            Color(0xFFC7E7DD), // Vibrant jade mid-tone
+            Color(0xFFA5D8C9)  // Deep emerald base
         )
         else -> listOf(
             Color.White,
@@ -169,7 +170,7 @@ fun getIconBackgroundColorForCategory(category: String?, colorTheme: String?): C
         "SAVINGS_PLUS" -> Color(0xFFE4F1D4) // Vibrant Light Green
         "GLOBAL_EXPOSURE" -> Color(0xFFB2DFDB) // Light teal
         "ALL_IN_ONE" -> Color(0xFFD4DBEB) // Light blue-gray
-        "MARKET_EXPLORER" -> Color(0xFF8A4E1E).copy(alpha = 0.18f) // Frosted bronze background
+        "MARKET_EXPLORER" -> Color(0xFFE3F1EC) // Icon circle background
         else -> Color(0xFFC8E6C9) // Default light green
     }
 }

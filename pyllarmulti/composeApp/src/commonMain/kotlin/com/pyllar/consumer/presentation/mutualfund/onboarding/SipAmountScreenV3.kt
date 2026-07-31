@@ -83,7 +83,7 @@ private const val MONTHLY_MAX = 15000f
 private const val MONTHLY_DEFAULT = 5000f
 private const val MONTHLY_POPULAR_AMOUNT = 5000
 private val MONTHLY_PRESETS = listOf(1000, 5000, 15000)
-private const val PAST_PERF_BAR_MAX_HEIGHT_DP = 68
+private const val PAST_PERF_BAR_MAX_HEIGHT_DP = 60
 
 private data class SipGoalTheme(
     val accentColor: Color,
