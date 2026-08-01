@@ -705,6 +705,31 @@ class InvestmentDashboardV2ViewModel(
                 createdDate = createdDate,
                 isin = isin
             )
+            // TODO: When adding a new goal type, ensure it is added here in createPrimaryGoal as well as createPresetGoal so active investments are properly mapped
+            "market_explorer" -> InvestmentGoal(
+                goalId = "market_explorer",
+                name = "Market Explorer",
+                description = "Explore high-growth market opportunities",
+                iconType = "🧭",
+                targetAmount = progressiveTarget,
+                investedAmount = totalInvested,
+                cummulativeValue = cummulativeValue,
+                currentValue = totalValue,
+                returnsPercentage = returnsPercentage,
+                progressPercentage = progressPercentage,
+                timeRemainingMonths = timeRemaining,
+                recommendedMonthlyAmount = monthlySipAmount,
+                recommendedDailyAmount = monthlySipAmount / 30,
+                category = "MARKET_EXPLORER",
+                colorTheme = "jade",
+                actionButtonText = "Start Exploring",
+                targetDate = calculateTargetDate(timeRemaining),
+                schemeName = schemeName,
+                folioNo = folioNo,
+                planNumber = planNumber,
+                createdDate = createdDate,
+                isin = isin
+            )
             else -> InvestmentGoal(
                 goalId = "saving",
                 name = "Saving",

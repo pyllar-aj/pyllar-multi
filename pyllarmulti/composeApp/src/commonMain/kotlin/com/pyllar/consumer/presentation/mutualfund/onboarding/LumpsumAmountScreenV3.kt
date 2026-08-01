@@ -89,7 +89,7 @@ private val LumpsumInk = Color(0xFF3E2723)
 private val LumpsumSubtleBorder = Color(0xFFEFEBE9)
 private val LumpsumGold = Color(0xFFD4AF37)
 private val LumpsumGoldDeep = Color(0xFF8B6B25)
-private const val PAST_PERF_BAR_MAX_HEIGHT_DP = 68
+private const val PAST_PERF_BAR_MAX_HEIGHT_DP = 60
 
 private data class LumpsumGoalTheme(
     val accentColor: Color,
@@ -407,7 +407,7 @@ fun LumpsumAmountScreenV3(
                         Box(
                             modifier = Modifier
                                 .background(LumpsumHeroObsidian)
-                                .padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 14.dp)
+                                .padding(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 10.dp)
                         ) {
                             Box(
                                 modifier = Modifier
@@ -508,14 +508,14 @@ fun LumpsumAmountScreenV3(
                                             }
                                         }
                                     }
-                                    Spacer(modifier = Modifier.height(12.dp))
+                                    Spacer(modifier = Modifier.height(8.dp))
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .height(1.dp)
                                             .background(theme.dividerColor)
                                     )
-                                    Spacer(modifier = Modifier.height(12.dp))
+                                    Spacer(modifier = Modifier.height(8.dp))
                                     val maxMilestoneVal = navMilestones.maxOfOrNull {
                                         scalePastPerformanceValue(it.onetimeBaselinePortfolioValue ?: 0.0)
                                     } ?: 1.0

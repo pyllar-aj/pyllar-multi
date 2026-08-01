@@ -125,10 +125,10 @@ fun SchemeDetailsV2Screen(
 
     // Premium color system based on goal category
     val (contentColor, secondaryContentColor, pillBgColor, scaffoldBgColor) = when {
-        categoryUpper == "GOLD" || categoryUpper == "SILVER" || categoryUpper == "MARKET_EXPLORER" -> {
+        categoryUpper == "GOLD" || categoryUpper == "SILVER" -> {
             // Light-theme header cards (dark texts, transparent button style, etc.)
-            val primaryContentColor = if (categoryUpper == "GOLD") Color(0xFF381E00) else if (categoryUpper == "SILVER") Color(0xFF2C343A) else Color(0xFF8A4E1E)
-            val secondaryContentColor = if (categoryUpper == "GOLD") Color(0xFF6B5120) else if (categoryUpper == "SILVER") Color(0xFF5F6972) else Color(0xFF8A4E1E).copy(alpha = 0.8f)
+            val primaryContentColor = if (categoryUpper == "GOLD") Color(0xFF381E00) else Color(0xFF2C343A)
+            val secondaryContentColor = if (categoryUpper == "GOLD") Color(0xFF6B5120) else Color(0xFF5F6972)
             listOf(primaryContentColor, secondaryContentColor, Color.Black.copy(alpha = 0.06f), Color.White)
         }
         categoryUpper == "SAVINGS" || categoryUpper == "SAVINGS_PLUS" -> {
@@ -3832,6 +3832,7 @@ private fun getGradientForCategory(category: String?, colorTheme: String?): Brus
         "FESTIVAL_SPENDS" -> listOf(Color(0xFFE65100), Color(0xFFF2994A), Color(0xFFFFB74D))
         "VACATION" -> listOf(Color(0xFF6A1B9A), Color(0xFF8844EE), Color(0xFFCE93D8))
         "ALL_IN_ONE" -> listOf(Color(0xFF283593), Color(0xFF3F51B5), Color(0xFF9FA8DA))
+        "MARKET_EXPLORER" -> listOf(Color(0xFF0F6B5C), Color(0xFF148B75), Color(0xFFE4F3EE))
         else -> listOf(baseColor.copy(alpha = 0.8f), baseColor)
     }
     return Brush.verticalGradient(colors)
