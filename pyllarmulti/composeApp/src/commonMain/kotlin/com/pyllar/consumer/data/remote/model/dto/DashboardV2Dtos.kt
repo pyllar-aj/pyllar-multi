@@ -19,6 +19,8 @@ data class InvestorDashboardResponseV2Dto(
     val showAll: Boolean? = false,
     @SerialName("referralEnabled")
     val referralEnabled: Boolean? = false,
+    @SerialName("uiFlags")
+    val uiFlags: Map<String, kotlinx.serialization.json.JsonElement>? = null,
     @SerialName("show_survey")
     val showSurvey: Boolean? = false
 )

@@ -15,6 +15,8 @@ import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
 import kotlin.math.roundToLong
 
+import kotlinx.serialization.json.JsonPrimitive
+
 class InvestmentDashboardV2ViewModel(
     private val dashboardRepository: DashboardRepository
 ) : ViewModel() {
@@ -178,46 +180,27 @@ class InvestmentDashboardV2ViewModel(
             !(isCancelled && hasNoHoldings)
         }.sortedByDescending { it.currentValue }
 
-        val activeGoalIds = primaryGoals.map { it.goalId }.toSet()
-        val recommendedGoalsFromApi = buildRecommendedGoals(response.recommendations.orEmpty(), activeGoalIds)
-        val presetGoals = createAllPresetGoals().filter { it.goalId !in activeGoalIds }
-
-        val allInOneGoal = presetGoals.find { it.goalId == "all_in_one" }
-        val globalExposureGoal = presetGoals.find { it.goalId == "global_exposure" }
-        val otherPresetGoals = presetGoals.filter {
-            it.goalId != "all_in_one" && 
-            it.goalId != "global_exposure" &&
-            it.goalId != "festival_spends" &&
-            it.goalId != "childrens_education" &&
-            it.goalId != "vacation" &&
-            it.goalId != "savings"
-        }
-
-        val allRecommendedGoals = if (recommendedGoalsFromApi.isEmpty()) {
-            otherPresetGoals
-        } else {
-            val apiGoalIds = recommendedGoalsFromApi.map { it.goalId }.toSet()
-            val additionalPresetGoals = otherPresetGoals.filter { it.goalId !in apiGoalIds }
-            recommendedGoalsFromApi + additionalPresetGoals
-        }
-
-        val recommendedGoals = allRecommendedGoals.sortedBy { goal ->
-            when (goal.category.uppercase()) {
-                "GOLD" -> 1
-                "SILVER" -> 2
-                "SAVINGS_PLUS" -> 3
-                "SAVINGS" -> 4
-                "FESTIVAL_SPENDS" -> 5
-                else -> 7
+        val activeGoalIds = primaryGoals.map { it.goalId.lowercase() }.toSet()
+        val backendGoalsString = response.uiFlags?.get("goals")?.let {
+            if (it is JsonPrimitive) {
+                it.content
+            } else {
+                it.toString().removeSurrounding("\"")
             }
+        } ?: ""
+
+        val backendGoalIds = backendGoalsString.split(",")
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .map { it.lowercase() }
+
+        val targetGoalIds = backendGoalIds.filter { it !in activeGoalIds }
+        val allPresetGoals = createAllPresetGoals()
+        val recommendedGoals = targetGoalIds.mapNotNull { targetId ->
+            allPresetGoals.find { it.goalId.lowercase() == targetId }
         }
 
-        val showAll = response.showAll ?: false
-        val allGoals = if (showAll) {
-            listOfNotNull(allInOneGoal, globalExposureGoal)
-        } else {
-            emptyList()
-        }
+        val allGoals = emptyList<InvestmentGoal>()
 
         val fundDetails = currentInvestments.flatMap { investment ->
             val purpose = investment.purpose ?: "Unknown"
@@ -723,6 +706,31 @@ class InvestmentDashboardV2ViewModel(
                 createdDate = createdDate,
                 isin = isin
             )
+            // TODO: When adding a new goal type, ensure it is added here in createPrimaryGoal as well as createPresetGoal so active investments are properly mapped
+            "market_explorer" -> InvestmentGoal(
+                goalId = "market_explorer",
+                name = "Market Explorer",
+                description = "Explore high-growth market opportunities",
+                iconType = "🧭",
+                targetAmount = progressiveTarget,
+                investedAmount = totalInvested,
+                cummulativeValue = cummulativeValue,
+                currentValue = totalValue,
+                returnsPercentage = returnsPercentage,
+                progressPercentage = progressPercentage,
+                timeRemainingMonths = timeRemaining,
+                recommendedMonthlyAmount = monthlySipAmount,
+                recommendedDailyAmount = monthlySipAmount / 30,
+                category = "MARKET_EXPLORER",
+                colorTheme = "jade",
+                actionButtonText = "Start Exploring",
+                targetDate = calculateTargetDate(timeRemaining),
+                schemeName = schemeName,
+                folioNo = folioNo,
+                planNumber = planNumber,
+                createdDate = createdDate,
+                isin = isin
+            )
             else -> InvestmentGoal(
                 goalId = "saving",
                 name = "Saving",
@@ -970,6 +978,24 @@ class InvestmentDashboardV2ViewModel(
                 category = "ALL_IN_ONE",
                 colorTheme = "multi",
                 actionButtonText = "Start Planning",
+                targetDate = calculateTargetDate(180)
+            ),
+            InvestmentGoal(
+                goalId = "market_explorer",
+                name = "Market Explorer",
+                description = "Explore high-growth market opportunities",
+                iconType = "🧭",
+                targetAmount = 1000000.0,
+                investedAmount = 0.0,
+                currentValue = 0.0,
+                returnsPercentage = 0.0,
+                progressPercentage = 0.0,
+                timeRemainingMonths = 180,
+                recommendedMonthlyAmount = 5000.0,
+                recommendedDailyAmount = 166.67,
+                category = "MARKET_EXPLORER",
+                colorTheme = "bronze",
+                actionButtonText = "Start Exploring",
                 targetDate = calculateTargetDate(180)
             )
         )
