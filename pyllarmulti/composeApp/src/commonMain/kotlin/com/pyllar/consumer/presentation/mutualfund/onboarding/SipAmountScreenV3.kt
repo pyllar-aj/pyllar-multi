@@ -1886,6 +1886,7 @@ private fun FundDetailsBottomSheet(
                 GoalType.FESTIVAL_SPENDS -> "$frequencyLabel SIP"
                 GoalType.GLOBAL_EXPOSURE -> "Global Exposure $frequencyLabel SIP"
                 GoalType.ALL_IN_ONE -> "All-in-One $frequencyLabel SIP"
+                GoalType.MARKET_EXPLORER -> "Market Explorer $frequencyLabel SIP"
                 else -> "$frequencyLabel SIP"
             }
 
