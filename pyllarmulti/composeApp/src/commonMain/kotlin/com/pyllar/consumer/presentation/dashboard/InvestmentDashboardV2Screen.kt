@@ -1831,7 +1831,8 @@ fun NextGoalCard(
                             text = when (goal.category.uppercase()) {
                                 "GOLD", "SAVINGS", "MARKET_EXPLORER" -> "₹21 - ₹500"
                                 "FESTIVAL_SPENDS" -> "₹11 - ₹500"
-                                "GLOBAL_EXPOSURE", "ALL_IN_ONE" -> "₹101 - ₹1000"
+                                "GLOBAL_EXPOSURE" -> "₹101 - ₹1000"
+                                "ALL_IN_ONE" -> "₹51 - ₹1000"
                                 else -> "₹101 - ₹500"
                             },
                             style = MaterialTheme.typography.titleSmall.copy(

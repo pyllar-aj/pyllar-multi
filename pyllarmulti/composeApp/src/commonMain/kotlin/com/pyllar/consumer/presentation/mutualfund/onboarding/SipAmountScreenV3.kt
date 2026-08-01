@@ -459,7 +459,7 @@ fun SipAmountScreenV3(
     Scaffold(
         topBar = {
             TopAppBar(
-                modifier = Modifier.padding(top = 2.dp),
+                // modifier = Modifier.padding(top = 1.dp),
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(text = "Pyllar ", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = SipHeroObsidian, letterSpacing = (-0.5).sp)
