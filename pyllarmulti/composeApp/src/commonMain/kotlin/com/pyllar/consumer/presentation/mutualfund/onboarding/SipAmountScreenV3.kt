@@ -241,6 +241,27 @@ fun SipAmountScreenV3(
 
     var eligibleForDoubtsSurvey by remember { mutableStateOf(false) }
     var showDoubtsSurvey by remember { mutableStateOf(false) }
+    var showLimitReachedDialog by remember { mutableStateOf(false) }
+    var limitReachedMessage by remember { mutableStateOf("") }
+
+    val currentGoal = remember(dashboardState.primaryGoals, effectiveGoalId) {
+        dashboardState.primaryGoals.firstOrNull { it.goalId.equals(effectiveGoalId, ignoreCase = true) }
+            ?: dashboardState.primaryGoals.firstOrNull { it.category.equals(effectiveGoalId, ignoreCase = true) }
+    }
+    val activeDailyPlansCount = remember(currentGoal) {
+        currentGoal?.planSummaryDtos?.count {
+            (it.frequency.equals("daily", ignoreCase = true) || it.frequency.equals("day", ignoreCase = true)) &&
+            !it.status.equals("CANCELLED", ignoreCase = true) &&
+            !it.status.equals("EXPIRED", ignoreCase = true)
+        } ?: 0
+    }
+    val activeMonthlyPlansCount = remember(currentGoal) {
+        currentGoal?.planSummaryDtos?.count {
+            (it.frequency.equals("monthly", ignoreCase = true) || it.frequency.equals("month", ignoreCase = true)) &&
+            !it.status.equals("CANCELLED", ignoreCase = true) &&
+            !it.status.equals("EXPIRED", ignoreCase = true)
+        } ?: 0
+    }
 
     val minAmount = limitsState.minAmount.toFloat()
     val maxAmount = limitsState.maxAmount.toFloat()
@@ -533,6 +554,21 @@ fun SipAmountScreenV3(
                                 onStartKyc()
                                 return@Button
                             }
+
+                            if (!isMonthly && activeDailyPlansCount >= 5) {
+                                coroutineScope.launch {
+                                    limitReachedMessage = org.jetbrains.compose.resources.getString(Res.string.sip_daily_limit_reached_message)
+                                    showLimitReachedDialog = true
+                                }
+                                return@Button
+                            } else if (isMonthly && activeMonthlyPlansCount >= 3) {
+                                coroutineScope.launch {
+                                    limitReachedMessage = org.jetbrains.compose.resources.getString(Res.string.sip_monthly_limit_reached_message)
+                                    showLimitReachedDialog = true
+                                }
+                                return@Button
+                            }
+
                             showDetailsBottomSheet = true
                         },
                         modifier = Modifier.fillMaxWidth().height(48.dp),
@@ -1115,6 +1151,19 @@ fun SipAmountScreenV3(
             },
             confirmButton = {
                 TextButton(onClick = { showDisclaimerDialog = false }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
+
+    if (showLimitReachedDialog) {
+        AlertDialog(
+            onDismissRequest = { showLimitReachedDialog = false },
+            title = { Text(stringResource(Res.string.sip_limit_reached_title), fontWeight = FontWeight.Bold) },
+            text = { Text(limitReachedMessage) },
+            confirmButton = {
+                TextButton(onClick = { showLimitReachedDialog = false }) {
                     Text("OK")
                 }
             }

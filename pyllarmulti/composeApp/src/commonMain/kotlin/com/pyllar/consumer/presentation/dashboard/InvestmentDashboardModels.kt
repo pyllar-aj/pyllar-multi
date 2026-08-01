@@ -56,7 +56,8 @@ data class InvestmentGoal(
     val unrealizedProfit: Double = 0.0,
     val instantRedemptionValue: Double = 0.0,
     val redemptionInProgress: Double = 0.0,
-    val redeemableAmount: Double = 0.0
+    val redeemableAmount: Double = 0.0,
+    val planSummaryDtos: List<com.pyllar.consumer.data.remote.model.dto.PlanSummaryDto>? = null
 )
 
 data class PlanSummary(

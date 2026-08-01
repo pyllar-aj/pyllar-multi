@@ -359,7 +359,8 @@ class InvestmentDashboardV2ViewModel(
             unrealizedProfit = investment.unrealizedProfit ?: 0.0,
             redeemableAmount = investment.redeemableAmount ?: 0.0,
             redemptionInProgress = investment.redemptionInProgress ?: 0.0,
-            instantRedemptionValue = investment.instantRedemptionValue ?: 0.0
+            instantRedemptionValue = investment.instantRedemptionValue ?: 0.0,
+            planSummaryDtos = investment.planSummaryDtos
         )
     }
 
