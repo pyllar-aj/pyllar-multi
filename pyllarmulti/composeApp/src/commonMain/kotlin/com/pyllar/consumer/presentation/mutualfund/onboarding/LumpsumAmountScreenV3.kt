@@ -823,7 +823,7 @@ fun LumpsumAmountScreenV3(
                         }
                     } else {
                         if (fundDetailsState.fundDetails != null) {
-                            FundHeader(fundDetailsState.fundDetails!!)
+                            FundHeader(fundDetailsState.fundDetails!!, showNavChip = false)
                         }
 
                         val bankDetails = fundDetailsState.fundDetails?.bankDetails
@@ -854,7 +854,8 @@ fun LumpsumAmountScreenV3(
                                 val isKycPending = !dashboardState.isLoading &&
                                         (dashboardState.kycStatus.equals("PENDING", ignoreCase = true) ||
                                                 dashboardState.kycStatus.equals("IN_PROGRESS", ignoreCase = true) ||
-                                                dashboardState.kycStatus.equals("EXPIRED", ignoreCase = true))
+                                                dashboardState.kycStatus.equals("EXPIRED", ignoreCase = true) ||
+                                                dashboardState.kycStatus.equals("UNLINKED", ignoreCase = true))
                                 if (isKycPending) {
                                     showDetailsBottomSheet = false
                                     showKycPendingBottomSheet = true

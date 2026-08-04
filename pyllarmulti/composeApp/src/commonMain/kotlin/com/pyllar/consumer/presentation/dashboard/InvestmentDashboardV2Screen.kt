@@ -141,6 +141,7 @@ fun InvestmentDashboardV2Screen(
     val isKycPending = dashboardState.kycStatus.equals("PENDING", ignoreCase = true) ||
             dashboardState.kycStatus.equals("IN_PROGRESS", ignoreCase = true) ||
             dashboardState.kycStatus.equals("EXPIRED", ignoreCase = true) ||
+            // dashboardState.kycStatus.equals("UNLINKED", ignoreCase = true) ||
             dashboardState.kycStatus.equals("REJECTED", ignoreCase = true)
     val hasPendingMandates = dashboardState.fundDetails.any { 
         it.mandateStatus?.contains("PENDING", ignoreCase = true) == true ||
@@ -388,7 +389,7 @@ fun InvestmentDashboardV2Screen(
                 )
             }
 
-            if (!dashboardState.isLoading) {
+            if (hasStatusCard) {
                 if (showSurvey) {
                     item {
                         DashboardSurveyCard(
@@ -995,6 +996,7 @@ fun StatusInfoCard(
     val isKycPending = kycStatus.equals("PENDING", ignoreCase = true) ||
             kycStatus.equals("IN_PROGRESS", ignoreCase = true) ||
             kycStatus.equals("EXPIRED", ignoreCase = true) ||
+            // kycStatus.equals("UNLINKED", ignoreCase = true) ||
             kycStatus.equals("REJECTED", ignoreCase = true)
 
     // Filter only pending mandate statuses
@@ -1909,7 +1911,8 @@ fun NextGoalCard(
                         var fontSize by remember { mutableStateOf(12.sp) }
                         Text(
                             text = when (goal.category.uppercase()) {
-                                "GOLD", "SAVINGS", "MARKET_EXPLORER" -> "₹21 - ₹500"
+                                "GOLD", "SAVINGS" -> "₹21 - ₹500"
+                                "MARKET_EXPLORER" -> "₹21 - ₹1000"
                                 "FESTIVAL_SPENDS" -> "₹11 - ₹500"
                                 "GLOBAL_EXPOSURE" -> "₹101 - ₹1000"
                                 "ALL_IN_ONE" -> "₹51 - ₹1000"
@@ -1988,11 +1991,11 @@ fun NextGoalCard(
                                     append(".")
                                 }
                                 "MARKET_EXPLORER" -> {
-                                    val bronzeColor = Color(0xFF0F6B5C)
+                                    val marketExplorerAccent = Color(0xFF0F6B5C)
                                     append("Investing ₹101 daily since Jan 2023 in a flexi-cap fund could have built a corpus of ~")
                                     withStyle(
                                         SpanStyle(
-                                            color = bronzeColor,
+                                            color = marketExplorerAccent,
                                             fontWeight = FontWeight.Bold
                                         )
                                     ) {
@@ -2023,7 +2026,7 @@ fun NextGoalCard(
                             gapLength = 4.dp
                         )
                     } else {
-                        val bronzeColor = Color(0xFFB77A43).copy(alpha = 0.95f)
+                        val marketExplorerAccent = Color(0xFF0F6B5C).copy(alpha = 0.85f)
                         Row(
                             modifier = Modifier.fillMaxWidth().height(16.dp),
                             verticalAlignment = Alignment.CenterVertically
@@ -2031,7 +2034,7 @@ fun NextGoalCard(
                             DashedDivider(
                                 modifier = Modifier.weight(1f),
                                 thickness = 1.dp,
-                                color = bronzeColor,
+                                color = marketExplorerAccent,
                                 dashLength = 2.dp,
                                 gapLength = 4.dp
                             )
@@ -2039,13 +2042,13 @@ fun NextGoalCard(
                             Text(
                                 text = "↗",
                                 style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                                color = Color(0xFF8A4E1E).copy(alpha = 0.7f)
+                                color = Color(0xFF0F6B5C).copy(alpha = 0.7f)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             DashedDivider(
                                 modifier = Modifier.weight(1f),
                                 thickness = 1.dp,
-                                color = bronzeColor,
+                                color = marketExplorerAccent,
                                 dashLength = 2.dp,
                                 gapLength = 4.dp
                             )
@@ -2479,10 +2482,18 @@ fun PromotionShareCard(onShareClick: () -> Unit) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun KycPendingBottomSheet(onDismiss: () -> Unit, onRetryKyc: () -> Unit, kycStatus: String) {
+    val isUnlinked = kycStatus.equals("UNLINKED", ignoreCase = true)
+    val title = if (isUnlinked) "Aadhaar-PAN Link Required" else "KYC Verification Pending"
+    val message = if (isUnlinked) {
+        "Your PAN isn't linked with any Aadhaar. As per regulatory requirements, mutual fund investments can't be started until the Aadhaar-PAN linking is complete."
+    } else {
+        "Your KYC is being processed. This usually takes 24-48 hours."
+    }
+
     ModalBottomSheet(onDismissRequest = onDismiss, shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)) {
         Column(modifier = Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Text("KYC Verification Pending", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            Text("Your KYC is being processed. This usually takes 24-48 hours.", color = Color.Gray)
+            Text(title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Text(message, color = Color.Gray)
             Button(onClick = onDismiss, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = V2Obsidian)) {
                 Text("OK")
             }

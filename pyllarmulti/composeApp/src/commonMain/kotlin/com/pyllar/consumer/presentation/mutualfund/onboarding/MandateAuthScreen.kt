@@ -403,44 +403,56 @@ private fun MandateApprovedWaitingContent(
     }
     val lightBackground = V2SubtleBorder
     
+    val goalName = getGoalDisplayName(goalType)
     val sipStartDay = remember { getInvestmentStatus() }
     val isMonthly = sipFrequency.lowercase() == "monthly"
-    val amountVal = amount.toString()
+    val amountVal = if (amount % 1.0 == 0.0) amount.toLong().toString() else amount.toString()
 
     val step2Title = if (isPlanReady) {
-        "Saving plan created"
+        "$goalName plan created"
     } else {
-        if (isMonthly) "Setting up your monthly plan" else "Setting up your saving plan"
+        if (isMonthly) "Setting up your monthly $goalName plan" else "Setting up your $goalName plan"
     }
 
     val step2Subtitle = if (isPlanReady) {
-        if (isMonthly) "₹$amountVal/month saving is registered" else "₹$amountVal/day saving is registered"
+        if (isMonthly) "₹$amountVal/month $goalName is registered" else "₹$amountVal/day $goalName is registered"
     } else {
-        if (isMonthly) "Registering ₹$amountVal/month saving with your bank" else "Registering ₹$amountVal/day saving with your bank"
+        if (isMonthly) "Registering ₹$amountVal/month $goalName with your bank" else "Registering ₹$amountVal/day $goalName with your bank"
     }
 
     val step3Title = if (isPlanReady) {
-        if (isMonthly) "Monthly saving is ready!" else "Daily saving is ready!"
+        if (isMonthly) "Monthly $goalName is ready!" else "Daily $goalName is ready!"
     } else {
-        if (isMonthly) "Monthly saving ready" else "Daily saving ready"
+        if (isMonthly) "Monthly $goalName ready" else "Daily $goalName ready"
     }
 
     val step3Subtitle = if (isMonthly) {
-        val dayText = if (sipInstallmentDay.isNotBlank()) {
-            try {
-                val day = sipInstallmentDay.toInt()
-                val suffix = ordinalSuffix(day)
-                "$day$suffix of every month"
-            } catch (_: Exception) {
+        if (isPlanReady) {
+            val dayText = if (sipInstallmentDay.isNotBlank()) {
+                try {
+                    val day = sipInstallmentDay.toInt()
+                    val suffix = ordinalSuffix(day)
+                    "$day$suffix of every month"
+                } catch (_: Exception) {
+                    "chosen day of every month"
+                }
+            } else {
                 "chosen day of every month"
             }
+            "Your monthly SIP of ₹$amountVal will debit on $dayText"
         } else {
-            "chosen day of every month"
-        }
-        if (isPlanReady) {
-            "Your monthly SIP of ₹$amountVal will start on $dayText"
-        } else {
-            "First debit of ₹$amountVal will happen on $dayText"
+            val nextDayText = if (sipInstallmentDay.isNotBlank()) {
+                try {
+                    val day = sipInstallmentDay.toInt()
+                    val suffix = ordinalSuffix(day)
+                    "next $day$suffix"
+                } catch (_: Exception) {
+                    "next chosen day"
+                }
+            } else {
+                "next chosen day"
+            }
+            "First debit of ₹$amountVal will happen on $nextDayText"
         }
     } else {
         if (isPlanReady) {
@@ -458,7 +470,7 @@ private fun MandateApprovedWaitingContent(
         ) {
             Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(
-                    text = if (isMonthly) "Setting up your Pyllar saving..." else "Setup in Progress...",
+                    text = if (isMonthly) "Setting up your Pyllar $goalName..." else "Setting up your $goalName...",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,

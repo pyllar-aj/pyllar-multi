@@ -176,7 +176,7 @@ class InitialDashboardViewModel(
                 goalId = "savings_plus",
                 name = "Savings Plus",
                 description = "Save for your festive budget",
-                iconType = "🎊",
+                iconType = "⚡",
                 targetAmount = 100000.0,
                 investedAmount = 0.0,
                 currentValue = 0.0,
@@ -189,6 +189,24 @@ class InitialDashboardViewModel(
                 colorTheme = "green",
                 actionButtonText = "Start Saving",
                 targetDate = "Feb 2028"
+            ),
+            InvestmentGoal(
+                goalId = "market_explorer",
+                name = "Market Explorer",
+                description = "Explore equity markets with top performing funds",
+                iconType = "🧭",
+                targetAmount = 1000000.0,
+                investedAmount = 0.0,
+                currentValue = 0.0,
+                returnsPercentage = 0.0,
+                progressPercentage = 0.0,
+                timeRemainingMonths = 60,
+                recommendedMonthlyAmount = 5000.0,
+                recommendedDailyAmount = 101.0,
+                category = "MARKET_EXPLORER",
+                colorTheme = "emerald",
+                actionButtonText = "Start Exploring",
+                targetDate = "Jan 2030"
             ),
             InvestmentGoal(
                 goalId = "vacation",

@@ -51,6 +51,8 @@ import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.DrawableResource
 import pyllar.composeapp.generated.resources.*
 
+import com.pyllar.consumer.domain.storage.SessionStore
+
 // ─── DESIGN TOKENS (PREMIUM V2 THEME) ──────────────────────────────────────────
 private val WarmCreamBackground = Color(0xFFFBF9F4) // Sleek creamy warm white
 private val PremiumDarkBrown   = Color(0xFF3E2723) // Rich bronze-brown for headers/text
@@ -68,6 +70,7 @@ private val SubtleBorderColor  = Color(0xFFEFEBE9) // Ultra light brown-gray for
 private val GoldCardColorsV2    = listOf(Color(0xFFFFFDF7), Color(0xFFFFF9E6), Color(0xFFFFF3CD))
 private val SilverCardColorsV2  = listOf(Color(0xFFFCFCFD), Color(0xFFF5F5F7), Color(0xFFEAECEE))
 private val SavingsCardColorsV2 = listOf(Color(0xFFF9FBF7), Color(0xFFF1F8E9), Color(0xFFE8F5E9))
+private val MarketExplorerCardColorsV2 = listOf(Color(0xFFF4F9F7), Color(0xFFE3F1EC), Color(0xFFD0E7DF))
 
 // ─── CUSTOM SWALLOWTAIL SHAPE FOR BANNER ──────────────────────────────────────
 class SwallowtailShape(private val cutWidth: Dp) : Shape {
@@ -148,31 +151,82 @@ fun InitialDashboardScreenV2(
     userId: String = "",
     onNavigateToOnboarding: (goalId: String, userId: String) -> Unit,
     onNavigateToRoute: (screen: String, preVerificationId: String?) -> Unit = { _, _ -> },
-    onNavigateToHelp: () -> Unit = {}
+    onNavigateToHelp: () -> Unit = {},
+    onLogout: () -> Unit = {}
 ) {
     val viewModel: InitialDashboardViewModel = koinInject()
     val platformActions: PlatformActions = koinInject()
+    val sessionStore: SessionStore = koinInject()
     val coroutineScope = rememberCoroutineScope()
     var isSubmitting by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var showLogoutDialog by remember { mutableStateOf(false) }
 
     val goalsState by viewModel.goalsState.collectAsState()
 
     val allGoals = remember(goalsState.primaryGoals, goalsState.recommendedGoals) {
         (goalsState.primaryGoals + goalsState.recommendedGoals)
-            .filter { it.category.uppercase() in listOf("GOLD", "SILVER", "SAVINGS_PLUS") }
+            .filter { it.category.uppercase() in listOf("GOLD", "SILVER", "SAVINGS_PLUS", "MARKET_EXPLORER") }
             .sortedBy {
                 when (it.category.uppercase()) {
                     "GOLD" -> 1
                     "SILVER" -> 2
                     "SAVINGS_PLUS" -> 3
-                    else -> 4
+                    "MARKET_EXPLORER" -> 4
+                    else -> 5
                 }
             }
     }
 
     LaunchedEffect(Unit) {
         PlatformAnalyticsLogger.logScreenView("InitialDashboardV2")
+    }
+
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            title = {
+                Text(
+                    text = "Logout",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(text = "Are you sure you want to log out from this device?")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showLogoutDialog = false
+                        PlatformAnalyticsLogger.logEvent(
+                            name = "user_logged_out_initial_dashboard",
+                            params = mapOf(
+                                "screen_name" to "InitialDashboardV2",
+                                "user_id" to userId
+                            )
+                        )
+                        coroutineScope.launch {
+                            try {
+                                sessionStore.saveValue(com.pyllar.consumer.data.local.KeyValueConstants.LAST_SCREEN, "")
+                                sessionStore.logout()
+                            } catch (_: Exception) {}
+                            onLogout()
+                        }
+                    }
+                ) {
+                    Text(
+                        text = "Logout",
+                        color = MaterialTheme.colorScheme.error,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLogoutDialog = false }) {
+                    Text(text = "Cancel")
+                }
+            }
+        )
     }
 
     InitialDashboardContentV2(
@@ -182,10 +236,7 @@ fun InitialDashboardScreenV2(
         isSubmitting = isSubmitting,
         errorMessage = errorMessage,
         onNavigateToHelp = onNavigateToHelp,
-        onShareClick = {
-            PlatformAnalyticsLogger.logEvent("share_app_clicked", mapOf("screen_name" to "InitialDashboardV2"))
-            platformActions.shareText("Build your wealth with Pyllar! https://pyllar.in", "Share Pyllar")
-        },
+        onLogoutClick = { showLogoutDialog = true },
         onGoalClick = { goalId ->
             if (isSubmitting || userId.isBlank()) return@InitialDashboardContentV2
             isSubmitting = true
@@ -233,7 +284,7 @@ private fun InitialDashboardContentV2(
     isSubmitting: Boolean,
     errorMessage: String?,
     onNavigateToHelp: () -> Unit,
-    onShareClick: () -> Unit,
+    onLogoutClick: () -> Unit,
     onGoalClick: (String) -> Unit
 ) {
     val cursiveFont = getCursiveFontFamily()
@@ -267,21 +318,22 @@ private fun InitialDashboardContentV2(
                             Text(text = "Money", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = LuxuryGold, letterSpacing = (-0.5).sp)
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            // Share button
+                            LanguageLetterButton(textColor = GreenDark)
+                            Spacer(modifier = Modifier.width(4.dp))
+
+                            // Logout icon button
                             IconButton(
-                                onClick = onShareClick,
+                                onClick = onLogoutClick,
                                 modifier = Modifier.size(40.dp)
                             ) {
                                 Icon(
-                                    imageVector = Icons.Filled.Share,
-                                    contentDescription = stringResource(Res.string.content_description_share),
+                                    imageVector = Icons.Filled.Logout,
+                                    contentDescription = "Logout",
                                     tint = GreenDark,
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
 
-                            Spacer(modifier = Modifier.width(4.dp))
-                            LanguageLetterButton(textColor = GreenDark)
                             Spacer(modifier = Modifier.width(4.dp))
 
                             // Help text action
@@ -669,12 +721,15 @@ fun InitialGoalCardV2(
     val isGold = category == "GOLD"
     val isSilver = category == "SILVER"
     val isSavings = category == "SAVINGS_PLUS" || category == "SAVINGS"
+    val isMarketExplorer = category == "MARKET_EXPLORER"
     val cursiveFont = getCursiveFontFamily()
 
     val gradient = Brush.linearGradient(
         colors = when {
             isGold -> GoldCardColorsV2
             isSilver -> SilverCardColorsV2
+            isSavings -> SavingsCardColorsV2
+            isMarketExplorer -> MarketExplorerCardColorsV2
             else -> SavingsCardColorsV2
         },
         start = Offset(0f, 0f),
@@ -714,6 +769,7 @@ fun InitialGoalCardV2(
                     Color(0xFFBDBDBD).copy(alpha = 0.0f)
                 ), cornerRadius = 20.dp
             )
+        isMarketExplorer -> cardModifier.border(1.dp, Color(0xFF0F6B5C).copy(alpha = 0.45f), RoundedCornerShape(20.dp))
         else -> cardModifier.border(1.dp, AccentGreen.copy(alpha = 0.4f), RoundedCornerShape(20.dp))
     }
 
@@ -769,6 +825,16 @@ fun InitialGoalCardV2(
                                 modifier = Modifier.size(18.dp)
                             )
                         }
+                    } else if (isMarketExplorer) {
+                        Text(
+                            text = goal.name.ifBlank { "Market Explorer" },
+                            style = TextStyle(
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = PremiumDarkBrown,
+                                letterSpacing = (-0.5).sp
+                            )
+                        )
                     } else {
                         Text(
                             text = if (isGold) stringResource(Res.string.intro_goal_gold) else stringResource(Res.string.intro_goal_silver),
@@ -809,7 +875,8 @@ fun InitialGoalCardV2(
                         Text(
                             text = when {
                                 isGold || category == "SAVINGS" -> "₹21 - ₹500"
-                                else              -> "₹101 - ₹500"
+                                isMarketExplorer               -> "₹21 - ₹1000"
+                                else                            -> "₹101 - ₹500"
                             },
                             style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PremiumDarkBrown)
                         )
@@ -831,9 +898,10 @@ fun InitialGoalCardV2(
                     ) {
                         val date = bucketData?.startDate ?: "Jan 2023"
                         val highlightColor = when {
-                            isGold    -> AccentGoldDark
-                            isSilver  -> SecondaryBronze
-                            else      -> AccentGreen
+                            isGold           -> AccentGoldDark
+                            isSilver         -> SecondaryBronze
+                            isMarketExplorer -> Color(0xFF0F6B5C)
+                            else             -> AccentGreen
                         }
 
                         Column(
@@ -869,8 +937,8 @@ fun InitialGoalCardV2(
                                                 withStyle(hl) { append("≃${roundedVal}kg") }
                                                 append(" " + stringResource(Res.string.intro_goal_silver))
                                             }
-                                            isSavings -> {
-                                                val rawVal = bucketData?.currentValuation ?: 1.24
+                                            isSavings || isMarketExplorer -> {
+                                                val rawVal = bucketData?.currentValuation ?: (if (isMarketExplorer) 1.42 else 1.24)
                                                 withStyle(hl) { append("≃₹${rawVal} Lakhs") }
                                             }
                                             else -> ""
@@ -907,9 +975,10 @@ fun InitialGoalCardV2(
 
                 // ── Growth tag pill ───────────────────────────────────────────
                 val tagColor = when {
-                    isGold    -> AccentGoldDark
-                    isSilver  -> SecondaryBronze
-                    else      -> AccentGreen
+                    isGold           -> AccentGoldDark
+                    isSilver         -> SecondaryBronze
+                    isMarketExplorer -> Color(0xFF0F6B5C)
+                    else             -> AccentGreen
                 }
                 Surface(
                     shape = RoundedCornerShape(20.dp),
@@ -929,10 +998,11 @@ fun InitialGoalCardV2(
                         )
                         Text(
                             text = when {
-                                isGold    -> stringResource(Res.string.intro_goal_gold_desc)
-                                isSilver  -> stringResource(Res.string.intro_goal_silver_desc)
-                                isSavings -> stringResource(Res.string.up_to_7_returns)
-                                else      -> stringResource(Res.string.grows_market_performance)
+                                isGold           -> stringResource(Res.string.intro_goal_gold_desc)
+                                isSilver         -> stringResource(Res.string.intro_goal_silver_desc)
+                                isSavings        -> stringResource(Res.string.up_to_7_returns)
+                                isMarketExplorer -> "Growth through diversified equity investing"
+                                else             -> stringResource(Res.string.grows_market_performance)
                             },
                             style = TextStyle(fontSize = 11.sp, color = tagColor, fontWeight = FontWeight.SemiBold)
                         )
@@ -940,7 +1010,7 @@ fun InitialGoalCardV2(
                 }
             }
 
-            // Absolute positioned 3D Illustration / Instant Pill
+            // Absolute positioned 3D Illustration / Instant Pill / Emoji
             if (isSavings) {
                 Box(
                     modifier = Modifier
@@ -974,6 +1044,14 @@ fun InitialGoalCardV2(
                         }
                     }
                 }
+            } else if (isMarketExplorer) {
+                Text(
+                    text = "🧭",
+                    fontSize = 32.sp,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = 12.dp, end = 12.dp)
+                )
             } else {
                 val iconRes = if (isGold) Res.drawable.goldbar_icon else Res.drawable.silver_icon
                 Image(
@@ -996,9 +1074,10 @@ fun InitialGoalCardV2(
                     .size(32.dp)
                     .background(
                         color = when {
-                            isGold -> AccentGoldDark.copy(alpha = 0.12f)
-                            isSilver -> SecondaryBronze.copy(alpha = 0.12f)
-                            else -> AccentGreen.copy(alpha = 0.12f)
+                            isGold           -> AccentGoldDark.copy(alpha = 0.12f)
+                            isSilver         -> SecondaryBronze.copy(alpha = 0.12f)
+                            isMarketExplorer -> Color(0xFF0F6B5C).copy(alpha = 0.12f)
+                            else             -> AccentGreen.copy(alpha = 0.12f)
                         },
                         shape = CircleShape
                     ),
@@ -1008,9 +1087,10 @@ fun InitialGoalCardV2(
                     imageVector = Icons.Filled.KeyboardArrowRight,
                     contentDescription = null,
                     tint = when {
-                        isGold -> AccentGoldDark
-                        isSilver -> SecondaryBronze
-                        else -> AccentGreen
+                        isGold           -> AccentGoldDark
+                        isSilver         -> SecondaryBronze
+                        isMarketExplorer -> Color(0xFF0F6B5C)
+                        else             -> AccentGreen
                     },
                     modifier = Modifier.size(20.dp)
                 )

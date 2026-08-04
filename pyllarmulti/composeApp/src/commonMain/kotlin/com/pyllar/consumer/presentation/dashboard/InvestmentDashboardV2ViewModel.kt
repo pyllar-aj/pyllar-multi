@@ -995,7 +995,7 @@ class InvestmentDashboardV2ViewModel(
                 recommendedMonthlyAmount = 5000.0,
                 recommendedDailyAmount = 166.67,
                 category = "MARKET_EXPLORER",
-                colorTheme = "bronze",
+                colorTheme = "jade",
                 actionButtonText = "Start Exploring",
                 targetDate = calculateTargetDate(180)
             )

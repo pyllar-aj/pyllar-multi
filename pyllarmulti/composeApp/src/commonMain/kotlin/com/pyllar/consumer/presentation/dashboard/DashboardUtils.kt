@@ -249,6 +249,7 @@ fun String.toColor(): Color {
         "blue" -> Color(0xFF2196F3)
         "purple" -> Color(0xFF9C27B0)
         "teal" -> Color(0xFF009688)
+        "jade", "emerald" -> Color(0xFF0F6B5C)
         "bronze", "copper" -> Color(0xFF8A4E1E)
         else -> V2SuccessGreen
     }

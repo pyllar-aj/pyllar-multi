@@ -1075,7 +1075,8 @@ fun SipAmountScreenV3(
                 val isKycPending = !dashboardState.isLoading &&
                         (kycStatus.equals("PENDING", ignoreCase = true) ||
                          kycStatus.equals("IN_PROGRESS", ignoreCase = true) ||
-                         kycStatus.equals("EXPIRED", ignoreCase = true))
+                         kycStatus.equals("EXPIRED", ignoreCase = true) ||
+                         kycStatus.equals("UNLINKED", ignoreCase = true))
 
                 if (isKycPending) {
                     showDetailsBottomSheet = false
@@ -1972,7 +1973,7 @@ private fun FundDetailsBottomSheet(
                 }
             } else {
                 if (fundDetailsState.fundDetails != null) {
-                    FundHeader(fundDetailsState.fundDetails!!)
+                    FundHeader(fundDetailsState.fundDetails!!, showNavChip = false)
                 }
 
                 val bankDetails = fundDetailsState.fundDetails?.bankDetails

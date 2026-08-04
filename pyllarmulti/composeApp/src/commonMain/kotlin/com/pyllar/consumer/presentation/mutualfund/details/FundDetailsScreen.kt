@@ -200,7 +200,8 @@ fun FundDetailsScreen(
                         val isKycPending = !dashboardState.isLoading &&
                                 (kycStatus.equals("PENDING", ignoreCase = true) ||
                                  kycStatus.equals("IN_PROGRESS", ignoreCase = true) ||
-                                 kycStatus.equals("EXPIRED", ignoreCase = true))
+                                 kycStatus.equals("EXPIRED", ignoreCase = true) ||
+                                 kycStatus.equals("UNLINKED", ignoreCase = true))
                         
                         if (isKycPending) {
                             showKycPendingBottomSheet = true

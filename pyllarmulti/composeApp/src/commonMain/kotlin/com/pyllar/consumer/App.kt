@@ -853,7 +853,14 @@ fun App() {
                             handleNavigation(nextScreen, screen.userId, null, null, preVerificationId, sessionStore = sessionStore) { navigateTo(it) }
                         }
                     },
-                    onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId)) }
+                    onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId)) },
+                    onLogout = {
+                        scope.launch {
+                            sessionStore.saveValue(KeyValueConstants.LAST_SCREEN, "")
+                            sessionStore.logout()
+                            navigateTo(Screen.PhoneVerification, clearStack = true)
+                        }
+                    }
                 )
             }
             is Screen.UpiAccountLinking -> {

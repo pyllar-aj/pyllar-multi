@@ -67,7 +67,7 @@ fun getGoalDisplayName(goalType: GoalType): String {
         GoalType.GLOBAL_EXPOSURE -> "Global Exposure"
         GoalType.SAVINGS_PLUS -> "Savings Plus"
         GoalType.MARKET_EXPLORER -> "Market Explorer"
-        else -> "Goal"
+        else -> "Savings"
     }
 }
 
