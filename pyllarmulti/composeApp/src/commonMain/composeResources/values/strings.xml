@@ -838,6 +838,31 @@
     <string name="survey_btn_next">Next</string>
     <string name="survey_btn_submit">Submit</string>
 
+    <!-- SIP Allotment Timeline strings -->
+    <string name="your_first_3_days">Your first 3 days</string>
+    <string name="day_1_debited">Day 1 · Debited</string>
+    <string name="day_1_debited_desc">%1$s debited — queued for allotment</string>
+    <string name="day_2_folio_setup">Day 2 · Folio setup in progress</string>
+    <string name="day_2_folio_setup_desc">%1$s debited today — folio being verified with the fund house</string>
+    <string name="day_3_upcoming">Day 3 · Upcoming</string>
+    <string name="day_3_upcoming_desc">%1$s will debit as usual</string>
+    <string name="day_3_debited">Day 3 · Debited</string>
+    <string name="day_3_debited_desc">%1$s debited — queued for allotment</string>
+    <string name="day_4_units_allotted">Day 4 · Units allotted</string>
+    <string name="day_4_units_allotted_desc">First 2 days' units credited together</string>
+    <string name="allotment_checklist_1">No action needed — units are allotted automatically once the folio is ready</string>
+    <string name="allotment_checklist_2">Your debited amount is held safe with SEBI-registered partners</string>
+    <string name="allotment_checklist_3">From day 4 onward, units show up daily as usual</string>
+    <string name="your_money_invested_from_day_one">Your money is invested from day one</string>
+    <string name="every_mutual_fund_house_reassurance">Every mutual fund house needs 3 business days to set up your folio and allot units — this applies to all new SIPs, not just Pyllar. Your daily amount keeps debiting and queues up safely until then.</string>
+    <!-- KYC Unlinked / Pending strings -->
+    <string name="kyc_verification_pending_title">KYC Verification in Progress</string>
+    <string name="kyc_verification_pending_message">Your KYC verification is still being processed. You can continue investing after KYC verification is successful.</string>
+    <string name="kyc_unlinked_title">Aadhaar-PAN Link Required</string>
+    <string name="kyc_unlinked_message">Your PAN isn't linked with any Aadhaar. As per regulatory requirements, mutual fund investments can't be started until the Aadhaar-PAN linking is complete.</string>
+    <string name="kyc_unlinked_pan_title">Your PAN is</string>
+    <string name="kyc_unlinked_pan_with_suffix_title">Your PAN (%1$s) is</string>
+    <string name="kyc_unlinked_pan_subtitle">not linked with Aadhaar</string>
     <!-- SIP Limit Reached strings -->
     <string name="sip_limit_reached_title">Limit Reached</string>
     <string name="sip_daily_limit_reached_message">You have reached the limit of 5 active daily plans for this goal. Please contact support if you want to create another plan.</string>

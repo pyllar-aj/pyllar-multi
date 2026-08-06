@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.Icons
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -113,6 +114,7 @@ fun InvestmentDashboardV2Screen(
     onNavigateToReferral: () -> Unit = {},
     onRetryKyc: () -> Unit = {},
     onStartKyc: () -> Unit = {},
+    panNumber: String? = null,
     viewModel: InvestmentDashboardV2ViewModel = koinInject(),
     doubtsSurveyViewModel: com.pyllar.consumer.presentation.mutualfund.onboarding.DoubtsSurveyViewModel = koinInject(),
     platformActions: PlatformActions = koinInject(),
@@ -416,6 +418,15 @@ fun InvestmentDashboardV2Screen(
                                 )
                             },
                             platformActions = platformActions
+                        )
+                    }
+                } else if (dashboardState.kycStatus.equals("UNLINKED", ignoreCase = true)) {
+                    item {
+                        KycAadhaarLinkingRequiredCard(
+                            panNumber = panNumber,
+                            onLearnMoreClick = {
+                                platformActions.openUrl("https://www.incometax.gov.in/iec/foportal/help/all-topics/e-filing-services/%20Link%20Aadhaar-faq")
+                            }
                         )
                     }
                 } else if (dashboardState.kycStatus.equals("IN_PROGRESS", ignoreCase = true)) {
@@ -2479,27 +2490,130 @@ fun PromotionShareCard(onShareClick: () -> Unit) {
     }
 }
 
+@Composable
+fun KycAadhaarLinkingRequiredCard(
+    modifier: Modifier = Modifier,
+    panNumber: String? = null,
+    onLearnMoreClick: () -> Unit = {}
+) {
+    val titleDark = Color(0xFF103620)
+    val goldCursive = Color(0xFFBF9028)
+    val bodyMuted = Color(0xFF6B5E4F)
+    val accentGreen = Color(0xFF1E5E3A)
+
+    val panSuffix = remember(panNumber) {
+        if (!panNumber.isNullOrBlank() && panNumber.length >= 4) {
+            panNumber.takeLast(4).uppercase()
+        } else {
+            ""
+        }
+    }
+
+    val descriptionText = stringResource(Res.string.kyc_unlinked_message)
+
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFDF9)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        border = BorderStroke(1.dp, Color(0xFFF7EED8))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 28.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(64.dp)
+                    .background(Color(0xFFFFFDF9), shape = RoundedCornerShape(18.dp))
+                    .border(1.dp, Color(0xFFF2EAD3), shape = RoundedCornerShape(18.dp))
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Warning,
+                    contentDescription = null,
+                    tint = Color(0xFFB58424),
+                    modifier = Modifier.size(32.dp)
+                )
+            }
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                val titleText = if (panSuffix.isNotEmpty()) {
+                    stringResource(Res.string.kyc_unlinked_pan_with_suffix_title, panSuffix)
+                } else {
+                    stringResource(Res.string.kyc_unlinked_pan_title)
+                }
+                Text(
+                    text = titleText,
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                    color = titleDark,
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    text = stringResource(Res.string.kyc_unlinked_pan_subtitle),
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontStyle = FontStyle.Normal,
+                        fontSize = 22.sp
+                    ),
+                    color = goldCursive,
+                    textAlign = TextAlign.Center
+                )
+            }
+
+            Text(
+                text = descriptionText,
+                style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 20.sp),
+                color = bodyMuted,
+                textAlign = TextAlign.Center
+            )
+
+            Row(
+                modifier = Modifier
+                    .clickable { onLearnMoreClick() }
+                    .padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = "Learn why Aadhaar-PAN linking is required",
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                    color = accentGreen
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Icon(
+                    imageVector = Icons.Default.ArrowForward,
+                    contentDescription = null,
+                    tint = accentGreen,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun KycPendingBottomSheet(onDismiss: () -> Unit, onRetryKyc: () -> Unit, kycStatus: String) {
     val isUnlinked = kycStatus.equals("UNLINKED", ignoreCase = true)
-    val title = if (isUnlinked) "Aadhaar-PAN Link Required" else "KYC Verification Pending"
-    val message = if (isUnlinked) {
-        "Your PAN isn't linked with any Aadhaar. As per regulatory requirements, mutual fund investments can't be started until the Aadhaar-PAN linking is complete."
-    } else {
-        "Your KYC is being processed. This usually takes 24-48 hours."
-    }
+    val title = if (isUnlinked) stringResource(Res.string.kyc_unlinked_title) else stringResource(Res.string.kyc_verification_pending_title)
+    val message = if (isUnlinked) stringResource(Res.string.kyc_unlinked_message) else stringResource(Res.string.kyc_verification_pending_message)
 
     ModalBottomSheet(onDismissRequest = onDismiss, shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)) {
         Column(modifier = Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text(title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             Text(message, color = Color.Gray)
             Button(onClick = onDismiss, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = V2Obsidian)) {
-                Text("OK")
+                Text(stringResource(Res.string.ok))
             }
             if (kycStatus == "EXPIRED" || kycStatus == "REJECTED") {
                 OutlinedButton(onClick = onRetryKyc, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
-                    Text("Retry KYC")
+                    Text(stringResource(Res.string.retry))
                 }
             }
             Spacer(modifier = Modifier.height(16.dp))

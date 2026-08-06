@@ -176,13 +176,18 @@ fun SchemeDetailsV2Screen(
         (s.contains("APPROVED") || s.contains("ACTIVE")) && !s.contains("PAUSED")
     }
     val hasApprovedPlan = activeMandate != null
-    val nextSipDateStr = activeMandate?.nextSipDate
     val firstAllocationDateStr = activeMandate?.calculatedFirstUnitAllocationDate ?: activeMandate?.firstUnitAllocationDate
-    val isFirstInvestmentInProgress = state.currentValue == 0.0 &&
+    val hasSuccessfulTransaction = state.transactions.any { txn ->
+        val s = txn.state?.uppercase().orEmpty()
+        s == "SUCCESS" || s == "ALLOTTED" || s == "COMPLETED" || txn.allottedUnits > 0
+    }
+    val isDailySip = activeMandate?.frequency?.uppercase() == "DAILY" || activeMandate?.frequency.isNullOrBlank()
+    val isFirstInvestmentInProgress = isDailySip &&
+            !(hasSuccessfulTransaction && isDatePassed(firstAllocationDateStr)) &&
             state.investmentInProgress > 0.0 &&
             hasApprovedPlan &&
-            !firstAllocationDateStr.isNullOrBlank() &&
-            !isDatePassed(firstAllocationDateStr)
+            !firstAllocationDateStr.isNullOrBlank()
+    val nextSipDateStr = activeMandate?.nextSipDate
     val showFirstSaveDate = hasApprovedPlan && state.investedAmount == 0.0 && state.cummulativeValue == 0.0 && !nextSipDateStr.isNullOrBlank() && !isFirstInvestmentInProgress
 
     LaunchedEffect(Unit) {
@@ -848,51 +853,240 @@ fun SchemeDetailsV2Screen(
                                                 Spacer(modifier = Modifier.height(12.dp))
                                             }
 
-                                            if (isFirstInvestmentInProgress) {
+                                             if (isFirstInvestmentInProgress) {
+                                                // Dynamic SIP Allotment Timeline
+                                                val mandateForTimeline = activeMandate
+                                                val sipAmount = mandateForTimeline?.amount ?: (state.investmentInProgress.takeIf { it > 0 } ?: 100.0)
+                                                val dailyAmountStr = formatRupeeAmount(sipAmount, 0)
+                                                
+                                                val firstDebitStr = mandateForTimeline?.firstDebitDate ?: mandateForTimeline?.mandateApprovedDate
+                                                val nextSipStr = mandateForTimeline?.nextSipDate
+                                                
+                                                val firstInvestmentTxnDate = state.transactions.asReversed().firstOrNull { txn ->
+                                                    val s = txn.state?.uppercase().orEmpty()
+                                                    s in listOf("SUBMITTED", "IN_PROGRESS", "ALLOCATING UNITS", "DEBITED", "PROCESSING", "SUCCESS", "ALLOTTED", "COMPLETED", "FAILED", "CANCELLED", "REJECTED")
+                                                }?.let { txn ->
+                                                    val raw = (txn.sortDate ?: txn.date)?.trim()
+                                                    raw?.let { cleanVal ->
+                                                        try {
+                                                            val isoPart = cleanVal.substringBefore("T").substringBefore(" ")
+                                                            if (isoPart.contains("-")) {
+                                                                val parts = isoPart.split("-")
+                                                                if (parts.size == 3) {
+                                                                    return@let LocalDate(parts[0].toInt(), parts[1].toInt(), parts[2].toInt())
+                                                                }
+                                                            }
+                                                            LocalDate.parse(isoPart)
+                                                        } catch (e: Exception) { null }
+                                                    }
+                                                }
+
+                                                val day1Date = remember(firstDebitStr, nextSipStr, firstInvestmentTxnDate) {
+                                                    try {
+                                                        if (firstInvestmentTxnDate != null) {
+                                                            firstInvestmentTxnDate
+                                                        } else if (!firstDebitStr.isNullOrBlank() && firstDebitStr != "null") {
+                                                            val cleanVal = firstDebitStr.substringBefore("T").substringBefore(" ")
+                                                            LocalDate.parse(cleanVal)
+                                                        } else if (!nextSipStr.isNullOrBlank() && nextSipStr != "null") {
+                                                            val cleanVal = nextSipStr.substringBefore("T").substringBefore(" ")
+                                                            val parsedNext = LocalDate.parse(cleanVal)
+                                                            getPreviousBusinessDay(parsedNext, 1)
+                                                        } else {
+                                                            Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+                                                        }
+                                                    } catch (e: Exception) {
+                                                        Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+                                                    }
+                                                }
+
+                                                val day2Date = remember(day1Date) {
+                                                    getNextBusinessDay(day1Date, 1)
+                                                }
+
+                                                val day3Date = getNextBusinessDay(day2Date, 1)
+
+                                                val day4Date = remember(day1Date, firstAllocationDateStr) {
+                                                    try {
+                                                        if (!firstAllocationDateStr.isNullOrBlank() && firstAllocationDateStr != "null") {
+                                                            LocalDate.parse(firstAllocationDateStr.substringBefore("T"))
+                                                        } else {
+                                                            getNextBusinessDay(day1Date, 3)
+                                                        }
+                                                    } catch (e: Exception) {
+                                                        getNextBusinessDay(day1Date, 3)
+                                                    }
+                                                }
+
+                                                val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+
+                                                val daysElapsed = (today.toEpochDays() - day1Date.toEpochDays()).coerceAtLeast(0)
+                                                val debitedDays = when {
+                                                    today < day1Date -> 1
+                                                    today < day2Date -> 1
+                                                    today < day3Date -> 2
+                                                    else -> 3
+                                                }
+                                                val totalDebitedAmt = sipAmount * debitedDays
+
                                                 Column(
-                                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                                                ) {
+                                                    // Timeline Header
+                                                    Text(
+                                                        text = stringResource(Res.string.your_first_3_days),
+                                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                                        color = MaterialTheme.colorScheme.onSurface
+                                                    )
+
+                                                    // Timeline Steps
+                                                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                                                        // Helper parser
+                                                        fun parseTxnDate(raw: String?): LocalDate? {
+                                                            if (raw.isNullOrBlank() || raw == "null") return null
+                                                            val cleanVal = raw.trim()
+                                                            return try {
+                                                                val isoPart = cleanVal.substringBefore("T").substringBefore(" ")
+                                                                if (isoPart.contains("-")) {
+                                                                    val parts = isoPart.split("-")
+                                                                    if (parts.size == 3) {
+                                                                        return LocalDate(parts[0].toInt(), parts[1].toInt(), parts[2].toInt())
+                                                                    }
+                                                                }
+                                                                LocalDate.parse(isoPart)
+                                                            } catch (e: Exception) { null }
+                                                        }
+
+                                                        val failedTxnDates = state.transactions.filter { txn ->
+                                                            val s = txn.state?.uppercase().orEmpty()
+                                                            s == "FAILED" || s == "CANCELLED" || s == "REJECTED"
+                                                        }.mapNotNull { txn ->
+                                                            parseTxnDate(txn.sortDate ?: txn.date)
+                                                        }
+
+                                                        val validStates = listOf("SUBMITTED", "IN_PROGRESS", "ALLOCATING UNITS", "DEBITED", "PROCESSING", "SUCCESS", "COMPLETED", "ALLOTTED")
+
+                                                        val validTxns = state.transactions.filter { txn ->
+                                                            val s = txn.state?.uppercase().orEmpty()
+                                                            s in validStates
+                                                        }
+
+                                                        // Day 1: Debited/Payment Completed
+                                                        val day1IsFailed = failedTxnDates.any { it == day1Date }
+                                                        val day1HasTxn = validTxns.any { txn ->
+                                                            val d = parseTxnDate(txn.sortDate ?: txn.date)
+                                                            d == null || d == day1Date
+                                                        }
+                                                        val day1Completed = !day1IsFailed && (day1HasTxn || validTxns.isNotEmpty())
+                                                        TimelineStepRow(
+                                                            stepNumber = "1",
+                                                            title = stringResource(Res.string.day_1_debited),
+                                                            subtitle = stringResource(Res.string.day_1_debited_desc, dailyAmountStr),
+                                                            dateStr = formatExpectedDate(day1Date.toString()),
+                                                            isCompleted = day1Completed,
+                                                            isInProgress = !day1Completed && !day1IsFailed,
+                                                            isFailed = day1IsFailed,
+                                                            goalColor = goalColor
+                                                        )
+
+                                                        // Day 2: Folio Setup / 2nd Debit
+                                                        val day2IsFailed = failedTxnDates.any { it == day2Date }
+                                                        val day2HasTxn = validTxns.any { txn ->
+                                                            val d = parseTxnDate(txn.sortDate ?: txn.date)
+                                                            d == day2Date
+                                                        }
+                                                        val day2Completed = !day2IsFailed && (day2HasTxn || !state.folioNumber.isNullOrBlank())
+                                                        val day2InProgress = !day2Completed && !day2IsFailed && (day1Completed || today >= day1Date)
+                                                        TimelineStepRow(
+                                                            stepNumber = "2",
+                                                            title = stringResource(Res.string.day_2_folio_setup),
+                                                            subtitle = stringResource(Res.string.day_2_folio_setup_desc, dailyAmountStr),
+                                                            dateStr = formatExpectedDate(day2Date.toString()),
+                                                            isCompleted = day2Completed,
+                                                            isInProgress = day2InProgress,
+                                                            isFailed = day2IsFailed,
+                                                            goalColor = goalColor
+                                                        )
+
+                                                        // Day 3: Second Debit
+                                                        val day3IsFailed = failedTxnDates.any { it == day3Date }
+                                                        val day3HasTxn = validTxns.any { txn ->
+                                                            val d = parseTxnDate(txn.sortDate ?: txn.date)
+                                                            d == day3Date
+                                                        }
+                                                        val day3Completed = !day3IsFailed && day3HasTxn
+                                                        val day3InProgress = !day3Completed && !day3IsFailed && (day2Completed || today >= day2Date)
+                                                        val day3Title = if (day3Completed) stringResource(Res.string.day_3_debited) else stringResource(Res.string.day_3_upcoming)
+                                                        val day3Subtitle = if (day3Completed) stringResource(Res.string.day_3_debited_desc, dailyAmountStr) else stringResource(Res.string.day_3_upcoming_desc, dailyAmountStr)
+                                                        TimelineStepRow(
+                                                            stepNumber = "3",
+                                                            title = day3Title,
+                                                            subtitle = day3Subtitle,
+                                                            dateStr = formatExpectedDate(day3Date.toString()),
+                                                            isCompleted = day3Completed,
+                                                            isInProgress = day3InProgress,
+                                                            isFailed = day3IsFailed,
+                                                            goalColor = goalColor
+                                                        )
+
+                                                        // Day 4: Units Allotted
+                                                        val day4Completed = hasSuccessfulTransaction || !state.folioNumber.isNullOrBlank()
+                                                        val day4InProgress = !day4Completed && (day3Completed || today >= day3Date)
+                                                        TimelineStepRow(
+                                                            stepNumber = "4",
+                                                            title = stringResource(Res.string.day_4_units_allotted),
+                                                            subtitle = stringResource(Res.string.day_4_units_allotted_desc),
+                                                            dateStr = formatExpectedDate(day4Date.toString()),
+                                                            isCompleted = day4Completed,
+                                                            isInProgress = day4InProgress,
+                                                            goalColor = goalColor
+                                                        )
+                                                    }
+
+                                                    // Checklist Footer
+                                                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                        ChecklistRow(text = stringResource(Res.string.allotment_checklist_1))
+                                                        ChecklistRow(text = stringResource(Res.string.allotment_checklist_2))
+                                                        ChecklistRow(text = stringResource(Res.string.allotment_checklist_3))
+                                                    }
+                                                }
+                                                Spacer(modifier = Modifier.height(6.dp))
+                                                // Reassurance Box
+                                                Surface(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    shape = RoundedCornerShape(12.dp),
+                                                    color = Color(0xFFF4F6F8)
                                                 ) {
                                                     Row(
-                                                        verticalAlignment = Alignment.CenterVertically,
-                                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                                        modifier = Modifier.padding(12.dp),
+                                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                                        verticalAlignment = Alignment.Top
                                                     ) {
-                                                        Text(
-                                                            text = "⏳ First investment in progress",
-                                                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                                                            color = MaterialTheme.colorScheme.onSurface
-                                                        )
-                                                    }
-                                                    Text(
-                                                        text = "Your first unit allotment takes a little longer than future investments.",
-                                                        style = MaterialTheme.typography.labelSmall,
-                                                        color = Color.Gray
-                                                    )
-                                                    Spacer(modifier = Modifier.height(4.dp))
-                                                    Row(
-                                                        verticalAlignment = Alignment.CenterVertically,
-                                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                                    ) {
-                                                        Text(
-                                                            text = "✓ Payment received",
-                                                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
-                                                            color = Color(0xFF2E7D32)
-                                                        )
-                                                    }
-                                                    Row(
-                                                        verticalAlignment = Alignment.Top,
-                                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                                    ) {
-                                                        Column {
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .size(24.dp)
+                                                                .background(Color(0xFFE2E8F0), CircleShape),
+                                                            contentAlignment = Alignment.Center
+                                                        ) {
+                                                            Icon(
+                                                                imageVector = Icons.Default.Info,
+                                                                contentDescription = null,
+                                                                tint = Color(0xFF475569),
+                                                                modifier = Modifier.size(16.dp)
+                                                            )
+                                                        }
+                                                        Column(modifier = Modifier.weight(1f)) {
                                                             Text(
-                                                                text = "⏳ Unit allotment",
-                                                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
-                                                                color = MaterialTheme.colorScheme.onSurface
+                                                                text = stringResource(Res.string.your_money_invested_from_day_one),
+                                                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                                                                color = Color(0xFF1E293B)
                                                             )
                                                             Spacer(modifier = Modifier.height(2.dp))
                                                             Text(
-                                                                text = "Expected on ${formatExpectedDate(firstAllocationDateStr)}",
+                                                                text = stringResource(Res.string.every_mutual_fund_house_reassurance),
                                                                 style = MaterialTheme.typography.labelSmall,
-                                                                color = Color.Gray
+                                                                color = Color(0xFF64748B)
                                                             )
                                                         }
                                                     }
@@ -4213,8 +4407,140 @@ private fun formatExpectedDate(dateString: String?): String {
             12 -> "Dec"
             else -> ""
         }
-        "$day $monthName $year"
+        "$day $monthName"
     } catch (e: Exception) {
-        dateString
+        dateString ?: ""
     }
 }
+
+private fun getNextBusinessDay(startDate: LocalDate, businessDaysToAdd: Int): LocalDate {
+    var date = startDate
+    var added = 0
+    while (added < businessDaysToAdd) {
+        date = LocalDate.fromEpochDays(date.toEpochDays() + 1)
+        if (date.dayOfWeek != kotlinx.datetime.DayOfWeek.SATURDAY && date.dayOfWeek != kotlinx.datetime.DayOfWeek.SUNDAY) {
+            added++
+        }
+    }
+    return date
+}
+
+private fun getPreviousBusinessDay(startDate: LocalDate, businessDaysToSubtract: Int): LocalDate {
+    var date = startDate
+    var subtracted = 0
+    while (subtracted < businessDaysToSubtract) {
+        date = LocalDate.fromEpochDays(date.toEpochDays() - 1)
+        if (date.dayOfWeek != kotlinx.datetime.DayOfWeek.SATURDAY && date.dayOfWeek != kotlinx.datetime.DayOfWeek.SUNDAY) {
+            subtracted++
+        }
+    }
+    return date
+}
+
+@Composable
+private fun TimelineStepRow(
+    stepNumber: String,
+    title: String,
+    subtitle: String,
+    dateStr: String,
+    isCompleted: Boolean,
+    isInProgress: Boolean,
+    isFailed: Boolean = false,
+    goalColor: Color
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        val badgeBg = when {
+            isFailed -> Color(0xFFEF5350)
+            isCompleted -> Color(0xFF2E7D32)
+            isInProgress -> goalColor
+            else -> Color(0xFFE2E8F0)
+        }
+        val badgeContentColor = when {
+            isFailed || isCompleted || isInProgress -> Color.White
+            else -> Color(0xFF64748B)
+        }
+
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .background(badgeBg, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            if (isFailed) {
+                Icon(
+                    imageVector = Icons.Default.Cancel,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(18.dp)
+                )
+            } else if (isCompleted) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(18.dp)
+                )
+            } else {
+                Text(
+                    text = stepNumber,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                    color = badgeContentColor
+                )
+            }
+        }
+
+        Column(modifier = Modifier.weight(1f)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = if (isInProgress || isCompleted) FontWeight.Bold else FontWeight.SemiBold
+                    ),
+                    color = Color(0xFF1E293B)
+                )
+                if (dateStr.isNotBlank()) {
+                    Text(
+                        text = dateStr,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color(0xFF64748B)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.labelSmall,
+                color = Color(0xFF64748B)
+            )
+        }
+    }
+}
+
+@Composable
+private fun ChecklistRow(text: String) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Icon(
+            imageVector = Icons.Default.Check,
+            contentDescription = null,
+            tint = Color(0xFF2E7D32),
+            modifier = Modifier.size(16.dp)
+        )
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelSmall,
+            color = Color(0xFF475569)
+        )
+    }
+}
+
