@@ -176,19 +176,41 @@ fun SchemeDetailsV2Screen(
         (s.contains("APPROVED") || s.contains("ACTIVE")) && !s.contains("PAUSED")
     }
     val hasApprovedPlan = activeMandate != null
+    val nextSipDateStr = activeMandate?.nextSipDate
     val firstAllocationDateStr = activeMandate?.calculatedFirstUnitAllocationDate ?: activeMandate?.firstUnitAllocationDate
     val hasSuccessfulTransaction = state.transactions.any { txn ->
         val s = txn.state?.uppercase().orEmpty()
         s == "SUCCESS" || s == "ALLOTTED" || s == "COMPLETED" || txn.allottedUnits > 0
     }
-    val isDailySip = activeMandate?.frequency?.uppercase() == "DAILY" || activeMandate?.frequency.isNullOrBlank()
-    val isFirstInvestmentInProgress = isDailySip &&
-            !(hasSuccessfulTransaction && isDatePassed(firstAllocationDateStr)) &&
-            state.investmentInProgress > 0.0 &&
-            hasApprovedPlan &&
-            !firstAllocationDateStr.isNullOrBlank()
-    val nextSipDateStr = activeMandate?.nextSipDate
-    val showFirstSaveDate = hasApprovedPlan && state.investedAmount == 0.0 && state.cummulativeValue == 0.0 && !nextSipDateStr.isNullOrBlank() && !isFirstInvestmentInProgress
+    val isDailySip = activeMandate?.frequency?.uppercase() in listOf("DAILY", "DAY") || activeMandate?.frequency.isNullOrBlank()
+    val mandateApprovedDate = remember(activeMandate) {
+        try {
+            val dStr = activeMandate?.mandateApprovedDate ?: activeMandate?.firstDebitDate
+            if (!dStr.isNullOrBlank() && dStr != "null") {
+                val cleanVal = dStr.substringBefore("T").substringBefore(" ")
+                kotlinx.datetime.LocalDate.parse(cleanVal)
+            } else null
+        } catch (e: Exception) { null }
+    }
+    val isRecentPlanSetup = remember(mandateApprovedDate, state.transactions) {
+        if (mandateApprovedDate != null) {
+            val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+            (today.toEpochDays() - mandateApprovedDate.toEpochDays()) <= 10
+        } else {
+            true
+        }
+    }
+    // Only display for the user's FIRST plan ever created for this goal (not for subsequent/second plans)
+    val isFirstPlanEverForGoal = remember(state.mandates, activeMandate) {
+        val totalMandates = state.mandates.filter { m ->
+            val s = m.status?.uppercase().orEmpty()
+            s.contains("APPROVED") || s.contains("ACTIVE") || s.contains("COMPLETED") || s.contains("CLOSED")
+        }
+        // Is this active mandate the very first approved mandate created for this goal?
+        totalMandates.size <= 1 || totalMandates.firstOrNull()?.mandateId == activeMandate?.mandateId
+    }
+    val isFirstInvestmentInProgress = isDailySip && hasApprovedPlan && isRecentPlanSetup && isFirstPlanEverForGoal
+    val showFirstSaveDate = false
 
     LaunchedEffect(Unit) {
         PlatformAnalyticsLogger.logScreenView("SchemeDetailsV2")
@@ -927,167 +949,144 @@ fun SchemeDetailsV2Screen(
                                                     today < day3Date -> 2
                                                     else -> 3
                                                 }
-                                                val totalDebitedAmt = sipAmount * debitedDays
+                                                 val totalDebitedAmt = sipAmount * debitedDays
 
-                                                Column(
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                                                ) {
-                                                    // Timeline Header
-                                                    Text(
-                                                        text = stringResource(Res.string.your_first_3_days),
-                                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                                        color = MaterialTheme.colorScheme.onSurface
-                                                    )
+                                                 val validStates = setOf("SUBMITTED", "IN_PROGRESS", "ALLOCATING UNITS", "DEBITED", "PROCESSING", "SUCCESS", "ALLOTTED", "COMPLETED")
+                                                 val hasAnyDebit = state.transactions.any { txn ->
+                                                     val s = txn.state?.uppercase().orEmpty()
+                                                     s in validStates
+                                                 } || state.investmentInProgress > 0.0 || state.investedAmount > 0.0
+                                                 val hasFolio = !state.folioNumber.isNullOrBlank()
 
-                                                    // Timeline Steps
-                                                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                                                        // Helper parser
-                                                        fun parseTxnDate(raw: String?): LocalDate? {
-                                                            if (raw.isNullOrBlank() || raw == "null") return null
-                                                            val cleanVal = raw.trim()
-                                                            return try {
-                                                                val isoPart = cleanVal.substringBefore("T").substringBefore(" ")
-                                                                if (isoPart.contains("-")) {
-                                                                    val parts = isoPart.split("-")
-                                                                    if (parts.size == 3) {
-                                                                        return LocalDate(parts[0].toInt(), parts[1].toInt(), parts[2].toInt())
-                                                                    }
-                                                                }
-                                                                LocalDate.parse(isoPart)
-                                                            } catch (e: Exception) { null }
-                                                        }
+                                                 val day5Date = remember(day4Date) { getNextBusinessDay(day4Date, 1) }
 
-                                                        val failedTxnDates = state.transactions.filter { txn ->
-                                                            val s = txn.state?.uppercase().orEmpty()
-                                                            s == "FAILED" || s == "CANCELLED" || s == "REJECTED"
-                                                        }.mapNotNull { txn ->
-                                                            parseTxnDate(txn.sortDate ?: txn.date)
-                                                        }
+                                                 // Strict Sequential Progression logic for 5 steps:
+                                                 // Step 1 (Plan setup): Ticked immediately after plan is created
+                                                 val step1Done = true
+                                                
+                                                // Step 2 (Money debits started): Ticked after 1st debit transaction occurs
+                                                val step2Done = hasAnyDebit
 
-                                                        val validStates = listOf("SUBMITTED", "IN_PROGRESS", "ALLOCATING UNITS", "DEBITED", "PROCESSING", "SUCCESS", "COMPLETED", "ALLOTTED")
+                                                // Step 3 (Folio creation): Cannot complete before step 2 (debit); ticked on Day 4 (today > day3Date)
+                                                val step3Done = step2Done && today > day3Date
 
-                                                        val validTxns = state.transactions.filter { txn ->
-                                                            val s = txn.state?.uppercase().orEmpty()
-                                                            s in validStates
-                                                        }
+                                                // Step 4 (Unit allotment started): Cannot complete before step 3; ticked when folio is allocated
+                                                val step4Done = step3Done && hasFolio
 
-                                                        // Day 1: Debited/Payment Completed
-                                                        val day1IsFailed = failedTxnDates.any { it == day1Date }
-                                                        val day1HasTxn = validTxns.any { txn ->
-                                                            val d = parseTxnDate(txn.sortDate ?: txn.date)
-                                                            d == null || d == day1Date
-                                                        }
-                                                        val day1Completed = !day1IsFailed && (day1HasTxn || validTxns.isNotEmpty())
-                                                        TimelineStepRow(
-                                                            stepNumber = "1",
-                                                            title = stringResource(Res.string.day_1_debited),
-                                                            subtitle = stringResource(Res.string.day_1_debited_desc, dailyAmountStr),
-                                                            dateStr = formatExpectedDate(day1Date.toString()),
-                                                            isCompleted = day1Completed,
-                                                            isInProgress = !day1Completed && !day1IsFailed,
-                                                            isFailed = day1IsFailed,
-                                                            goalColor = goalColor
-                                                        )
+                                                 // Step 5 (Account setup complete): Ticked on Day 5 (today >= day5Date) when folio allocation completes
+                                                val step5Done = step4Done && today >= day5Date
+                                                // Timeline stays visible on Day 5 (ticked), and stops being displayed starting on Day 5 + 1 (today > day5Date)
+                                                val stepTimelineActive = !(step5Done && today > day5Date)
 
-                                                        // Day 2: Folio Setup / 2nd Debit
-                                                        val day2IsFailed = failedTxnDates.any { it == day2Date }
-                                                        val day2HasTxn = validTxns.any { txn ->
-                                                            val d = parseTxnDate(txn.sortDate ?: txn.date)
-                                                            d == day2Date
-                                                        }
-                                                        val day2Completed = !day2IsFailed && (day2HasTxn || !state.folioNumber.isNullOrBlank())
-                                                        val day2InProgress = !day2Completed && !day2IsFailed && (day1Completed || today >= day1Date)
-                                                        TimelineStepRow(
-                                                            stepNumber = "2",
-                                                            title = stringResource(Res.string.day_2_folio_setup),
-                                                            subtitle = stringResource(Res.string.day_2_folio_setup_desc, dailyAmountStr),
-                                                            dateStr = formatExpectedDate(day2Date.toString()),
-                                                            isCompleted = day2Completed,
-                                                            isInProgress = day2InProgress,
-                                                            isFailed = day2IsFailed,
-                                                            goalColor = goalColor
-                                                        )
-
-                                                        // Day 3: Second Debit
-                                                        val day3IsFailed = failedTxnDates.any { it == day3Date }
-                                                        val day3HasTxn = validTxns.any { txn ->
-                                                            val d = parseTxnDate(txn.sortDate ?: txn.date)
-                                                            d == day3Date
-                                                        }
-                                                        val day3Completed = !day3IsFailed && day3HasTxn
-                                                        val day3InProgress = !day3Completed && !day3IsFailed && (day2Completed || today >= day2Date)
-                                                        val day3Title = if (day3Completed) stringResource(Res.string.day_3_debited) else stringResource(Res.string.day_3_upcoming)
-                                                        val day3Subtitle = if (day3Completed) stringResource(Res.string.day_3_debited_desc, dailyAmountStr) else stringResource(Res.string.day_3_upcoming_desc, dailyAmountStr)
-                                                        TimelineStepRow(
-                                                            stepNumber = "3",
-                                                            title = day3Title,
-                                                            subtitle = day3Subtitle,
-                                                            dateStr = formatExpectedDate(day3Date.toString()),
-                                                            isCompleted = day3Completed,
-                                                            isInProgress = day3InProgress,
-                                                            isFailed = day3IsFailed,
-                                                            goalColor = goalColor
-                                                        )
-
-                                                        // Day 4: Units Allotted
-                                                        val day4Completed = hasSuccessfulTransaction || !state.folioNumber.isNullOrBlank()
-                                                        val day4InProgress = !day4Completed && (day3Completed || today >= day3Date)
-                                                        TimelineStepRow(
-                                                            stepNumber = "4",
-                                                            title = stringResource(Res.string.day_4_units_allotted),
-                                                            subtitle = stringResource(Res.string.day_4_units_allotted_desc),
-                                                            dateStr = formatExpectedDate(day4Date.toString()),
-                                                            isCompleted = day4Completed,
-                                                            isInProgress = day4InProgress,
-                                                            goalColor = goalColor
-                                                        )
-                                                    }
-
-                                                    // Checklist Footer
-                                                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                                        ChecklistRow(text = stringResource(Res.string.allotment_checklist_1))
-                                                        ChecklistRow(text = stringResource(Res.string.allotment_checklist_2))
-                                                        ChecklistRow(text = stringResource(Res.string.allotment_checklist_3))
-                                                    }
-                                                }
-                                                Spacer(modifier = Modifier.height(6.dp))
-                                                // Reassurance Box
-                                                Surface(
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                    shape = RoundedCornerShape(12.dp),
-                                                    color = Color(0xFFF4F6F8)
-                                                ) {
-                                                    Row(
-                                                        modifier = Modifier.padding(12.dp),
-                                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                                        verticalAlignment = Alignment.Top
+                                                if (stepTimelineActive) {
+                                                    Column(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        verticalArrangement = Arrangement.spacedBy(16.dp)
                                                     ) {
-                                                        Box(
-                                                            modifier = Modifier
-                                                                .size(24.dp)
-                                                                .background(Color(0xFFE2E8F0), CircleShape),
-                                                            contentAlignment = Alignment.Center
-                                                        ) {
-                                                            Icon(
-                                                                imageVector = Icons.Default.Info,
-                                                                contentDescription = null,
-                                                                tint = Color(0xFF475569),
-                                                                modifier = Modifier.size(16.dp)
+                                                        // Timeline Header
+                                                        Text(
+                                                            text = stringResource(Res.string.account_setup_progress_title),
+                                                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                                            color = MaterialTheme.colorScheme.onSurface
+                                                        )
+
+                                                        // Timeline Steps (5 Steps matching design image)
+                                                        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                                                            // Step 1: Plan setup
+                                                            SetupProgressStepRow(
+                                                                title = stringResource(Res.string.step_plan_setup_title),
+                                                                subtitle = stringResource(Res.string.step_plan_setup_desc),
+                                                                isCompleted = step1Done,
+                                                                isInProgress = false,
+                                                                goalColor = goalColor
+                                                            )
+
+                                                            // Step 2: Money debits started
+                                                            SetupProgressStepRow(
+                                                                title = stringResource(Res.string.step_money_debits_title),
+                                                                subtitle = stringResource(Res.string.step_money_debits_desc, dailyAmountStr),
+                                                                isCompleted = step2Done,
+                                                                isInProgress = !step2Done,
+                                                                goalColor = goalColor
+                                                            )
+
+                                                            // Step 3: Folio creation
+                                                            val step3InProgress = step2Done && !step3Done
+                                                            SetupProgressStepRow(
+                                                                title = stringResource(Res.string.step_folio_creation_title),
+                                                                subtitle = stringResource(Res.string.step_folio_creation_desc),
+                                                                isCompleted = step3Done,
+                                                                isInProgress = step3InProgress,
+                                                                goalColor = goalColor
+                                                            )
+
+                                                            // Step 4: Unit allotment started
+                                                            val step4InProgress = step3Done && !step4Done
+                                                            SetupProgressStepRow(
+                                                                title = stringResource(Res.string.step_unit_allotment_title),
+                                                                subtitle = stringResource(Res.string.step_unit_allotment_desc),
+                                                                isCompleted = step4Done,
+                                                                isInProgress = step4InProgress,
+                                                                goalColor = goalColor
+                                                            )
+
+                                                            // Step 5: Account setup complete
+                                                            val step5InProgress = step4Done && !step5Done
+                                                            SetupProgressStepRow(
+                                                                title = stringResource(Res.string.step_account_setup_complete_title),
+                                                                subtitle = stringResource(Res.string.step_account_setup_complete_desc),
+                                                                isCompleted = step5Done,
+                                                                isInProgress = step5InProgress,
+                                                                goalColor = goalColor
                                                             )
                                                         }
-                                                        Column(modifier = Modifier.weight(1f)) {
-                                                            Text(
-                                                                text = stringResource(Res.string.your_money_invested_from_day_one),
-                                                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                                                                color = Color(0xFF1E293B)
-                                                            )
-                                                            Spacer(modifier = Modifier.height(2.dp))
-                                                            Text(
-                                                                text = stringResource(Res.string.every_mutual_fund_house_reassurance),
-                                                                style = MaterialTheme.typography.labelSmall,
-                                                                color = Color(0xFF64748B)
-                                                            )
+
+                                                        // Checklist Footer
+                                                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                            ChecklistRow(text = stringResource(Res.string.allotment_checklist_1))
+                                                            ChecklistRow(text = stringResource(Res.string.allotment_checklist_2))
+                                                            ChecklistRow(text = stringResource(Res.string.allotment_checklist_3))
+                                                        }
+                                                    }
+
+                                                    Spacer(modifier = Modifier.height(6.dp))
+                                                    // Reassurance Box
+                                                    Surface(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        shape = RoundedCornerShape(12.dp),
+                                                        color = Color(0xFFF4F6F8)
+                                                    ) {
+                                                        Row(
+                                                            modifier = Modifier.padding(12.dp),
+                                                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                                            verticalAlignment = Alignment.Top
+                                                        ) {
+                                                            Box(
+                                                                modifier = Modifier
+                                                                    .size(24.dp)
+                                                                    .background(Color(0xFFE2E8F0), CircleShape),
+                                                                contentAlignment = Alignment.Center
+                                                            ) {
+                                                                Icon(
+                                                                    imageVector = Icons.Default.Info,
+                                                                    contentDescription = null,
+                                                                    tint = Color(0xFF475569),
+                                                                    modifier = Modifier.size(16.dp)
+                                                                )
+                                                            }
+                                                            Column(modifier = Modifier.weight(1f)) {
+                                                                Text(
+                                                                    text = stringResource(Res.string.your_money_invested_from_day_one),
+                                                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                                                                    color = Color(0xFF1E293B)
+                                                                )
+                                                                Spacer(modifier = Modifier.height(2.dp))
+                                                                Text(
+                                                                    text = stringResource(Res.string.every_mutual_fund_house_reassurance),
+                                                                    style = MaterialTheme.typography.labelSmall,
+                                                                    color = Color(0xFF64748B)
+                                                                )
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -4438,14 +4437,11 @@ private fun getPreviousBusinessDay(startDate: LocalDate, businessDaysToSubtract:
 }
 
 @Composable
-private fun TimelineStepRow(
-    stepNumber: String,
+private fun SetupProgressStepRow(
     title: String,
     subtitle: String,
-    dateStr: String,
     isCompleted: Boolean,
     isInProgress: Boolean,
-    isFailed: Boolean = false,
     goalColor: Color
 ) {
     Row(
@@ -4453,15 +4449,10 @@ private fun TimelineStepRow(
         verticalAlignment = Alignment.Top,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        val badgeBg = when {
-            isFailed -> Color(0xFFEF5350)
-            isCompleted -> Color(0xFF2E7D32)
-            isInProgress -> goalColor
-            else -> Color(0xFFE2E8F0)
-        }
-        val badgeContentColor = when {
-            isFailed || isCompleted || isInProgress -> Color.White
-            else -> Color(0xFF64748B)
+        val (badgeBg, iconOrDotColor) = when {
+            isCompleted -> Pair(Color(0xFF2E7D32), Color.White)
+            isInProgress -> Pair(goalColor, Color.White)
+            else -> Pair(Color(0xFFECEFF1), Color(0xFF78909C))
         }
 
         Box(
@@ -4470,25 +4461,24 @@ private fun TimelineStepRow(
                 .background(badgeBg, CircleShape),
             contentAlignment = Alignment.Center
         ) {
-            if (isFailed) {
-                Icon(
-                    imageVector = Icons.Default.Cancel,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(18.dp)
-                )
-            } else if (isCompleted) {
+            if (isCompleted) {
                 Icon(
                     imageVector = Icons.Default.Check,
                     contentDescription = null,
                     tint = Color.White,
                     modifier = Modifier.size(18.dp)
                 )
+            } else if (isInProgress) {
+                Box(
+                    modifier = Modifier
+                        .size(10.dp)
+                        .background(iconOrDotColor, CircleShape)
+                )
             } else {
-                Text(
-                    text = stepNumber,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                    color = badgeContentColor
+                Box(
+                    modifier = Modifier
+                        .size(12.dp)
+                        .border(1.5.dp, iconOrDotColor, CircleShape)
                 )
             }
         }
@@ -4502,17 +4492,25 @@ private fun TimelineStepRow(
                 Text(
                     text = title,
                     style = MaterialTheme.typography.bodyMedium.copy(
-                        fontWeight = if (isInProgress || isCompleted) FontWeight.Bold else FontWeight.SemiBold
+                        fontWeight = FontWeight.Bold
                     ),
                     color = Color(0xFF1E293B)
                 )
-                if (dateStr.isNotBlank()) {
-                    Text(
-                        text = dateStr,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color(0xFF64748B)
-                    )
+                val statusText = when {
+                    isCompleted -> stringResource(Res.string.status_done)
+                    isInProgress -> stringResource(Res.string.status_in_progress)
+                    else -> stringResource(Res.string.status_upcoming)
                 }
+                val statusColor = when {
+                    isCompleted -> Color(0xFF2E7D32)
+                    isInProgress -> goalColor
+                    else -> Color(0xFF8D6E63)
+                }
+                Text(
+                    text = statusText,
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                    color = statusColor
+                )
             }
             Spacer(modifier = Modifier.height(2.dp))
             Text(
