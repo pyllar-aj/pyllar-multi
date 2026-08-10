@@ -284,9 +284,41 @@ fun SchemeDetailsV2Screen(
     }
 
     val handleLumpsumClick: () -> Unit = {
-        val hasActualInvestment = state.investedAmount > 0 || !state.folioNumber.isNullOrBlank()
-        if (hasActualInvestment && state.folioNumber.isNullOrBlank()) {
-            showFolioPendingDialog = true
+        if (state.currentValue > 0 || !isDailySip) {
+            val hasActualInvestment = state.investedAmount > 0 || !state.folioNumber.isNullOrBlank()
+            if (hasActualInvestment && state.folioNumber.isNullOrBlank()) {
+                showFolioPendingDialog = true
+            } else {
+                scope.launch {
+                    try {
+                        val result = dashboardViewModel.initGoalTxn(userId, purpose)
+                        if (result is Resource.Success) {
+                            result.data?.let { response ->
+                                if (response.userPurposeId.isNotBlank()) {
+                                    sessionStore.saveValue(KeyValueConstants.USER_PURPOSE_ID, response.userPurposeId)
+                                }
+                            }
+                        }
+                        sessionStore.saveValue(KeyValueConstants.SELECTED_GOAL_ID, purpose)
+                        sessionStore.saveValue("isExistingInvestment", hasActualInvestment.toString())
+                        val kycAttemptId = sessionStore.getValue(KeyValueConstants.KYC_ATTEMPT_ID) ?: ""
+                        val investorId = sessionStore.getValue(KeyValueConstants.INVESTOR_ID) ?: ""
+                        onNavigateToLumpsum(userId, kycAttemptId, investorId, purpose, hasActualInvestment)
+                    } catch (e: Exception) {
+                        platformLog("Error: ${e.message}")
+                    }
+                }
+            }
+        } else {
+            showInvestmentInProgressDialog = true
+        }
+    }
+
+    val handleSipClick: () -> Unit = {
+        val hasFolio = !state.folioNumber.isNullOrBlank() && state.folioNumber != "null"
+        val hasPendingInvestmentOrSip = state.investmentInProgress > 0 || hasApprovedPlan
+        if (!hasFolio && hasPendingInvestmentOrSip && isDailySip) {
+            showInvestmentInProgressDialog = true
         } else {
             scope.launch {
                 try {
@@ -299,36 +331,14 @@ fun SchemeDetailsV2Screen(
                         }
                     }
                     sessionStore.saveValue(KeyValueConstants.SELECTED_GOAL_ID, purpose)
+                    val hasActualInvestment = state.investedAmount > 0 || !state.folioNumber.isNullOrBlank()
                     sessionStore.saveValue("isExistingInvestment", hasActualInvestment.toString())
                     val kycAttemptId = sessionStore.getValue(KeyValueConstants.KYC_ATTEMPT_ID) ?: ""
                     val investorId = sessionStore.getValue(KeyValueConstants.INVESTOR_ID) ?: ""
-                    onNavigateToLumpsum(userId, kycAttemptId, investorId, purpose, hasActualInvestment)
+                    onNavigateToAddFunds(userId, kycAttemptId, investorId, purpose, hasActualInvestment)
                 } catch (e: Exception) {
                     platformLog("Error: ${e.message}")
                 }
-            }
-        }
-    }
-
-    val handleSipClick: () -> Unit = {
-        scope.launch {
-            try {
-                val result = dashboardViewModel.initGoalTxn(userId, purpose)
-                if (result is Resource.Success) {
-                    result.data?.let { response ->
-                        if (response.userPurposeId.isNotBlank()) {
-                            sessionStore.saveValue(KeyValueConstants.USER_PURPOSE_ID, response.userPurposeId)
-                        }
-                    }
-                }
-                sessionStore.saveValue(KeyValueConstants.SELECTED_GOAL_ID, purpose)
-                val hasActualInvestment = state.investedAmount > 0 || !state.folioNumber.isNullOrBlank()
-                sessionStore.saveValue("isExistingInvestment", hasActualInvestment.toString())
-                val kycAttemptId = sessionStore.getValue(KeyValueConstants.KYC_ATTEMPT_ID) ?: ""
-                val investorId = sessionStore.getValue(KeyValueConstants.INVESTOR_ID) ?: ""
-                onNavigateToAddFunds(userId, kycAttemptId, investorId, purpose, hasActualInvestment)
-            } catch (e: Exception) {
-                platformLog("Error: ${e.message}")
             }
         }
     }
@@ -967,8 +977,8 @@ fun SchemeDetailsV2Screen(
                                                 // Step 2 (Money debits started): Ticked after 1st debit transaction occurs
                                                 val step2Done = hasAnyDebit
 
-                                                // Step 3 (Folio creation): Cannot complete before step 2 (debit); ticked on Day 4 (today > day3Date)
-                                                val step3Done = step2Done && today > day3Date
+                                                // Step 3 (Folio creation): Cannot complete before step 2 (debit); ticked on Day 3 (today >= day3Date)
+                                                val step3Done = step2Done && today >= day3Date
 
                                                 // Step 4 (Unit allotment started): Cannot complete before step 3; ticked when folio is allocated
                                                 val step4Done = step3Done && hasFolio
@@ -1007,6 +1017,7 @@ fun SchemeDetailsV2Screen(
                                                                 subtitle = stringResource(Res.string.step_money_debits_desc, dailyAmountStr),
                                                                 isCompleted = step2Done,
                                                                 isInProgress = !step2Done,
+                                                                overrideStatusText = if (!step2Done) stringResource(Res.string.status_upcoming) else null,
                                                                 goalColor = goalColor
                                                             )
 
@@ -4442,6 +4453,7 @@ private fun SetupProgressStepRow(
     subtitle: String,
     isCompleted: Boolean,
     isInProgress: Boolean,
+    overrideStatusText: String? = null,
     goalColor: Color
 ) {
     Row(
@@ -4496,7 +4508,7 @@ private fun SetupProgressStepRow(
                     ),
                     color = Color(0xFF1E293B)
                 )
-                val statusText = when {
+                val statusText = overrideStatusText ?: when {
                     isCompleted -> stringResource(Res.string.status_done)
                     isInProgress -> stringResource(Res.string.status_in_progress)
                     else -> stringResource(Res.string.status_upcoming)
