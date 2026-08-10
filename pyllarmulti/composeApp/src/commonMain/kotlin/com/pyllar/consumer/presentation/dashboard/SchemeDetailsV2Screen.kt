@@ -110,6 +110,7 @@ fun SchemeDetailsV2Screen(
     var showEstimatedSilverInfoPopup by remember { mutableStateOf(false) }
     var showInvestmentInProgressDialog by remember { mutableStateOf(false) }
     var showFolioPendingDialog by remember { mutableStateOf(false) }
+    var showNewPlanPendingDialog by remember { mutableStateOf(false) }
 
     var schemeParams by remember { mutableStateOf<SchemeDetailsParams?>(SchemeDetailsParamsManager.get()) }
     
@@ -171,9 +172,16 @@ fun SchemeDetailsV2Screen(
         }
     }
 
-    val activeMandate = state.mandates.firstOrNull { m ->
-        val s = m.status?.uppercase().orEmpty()
-        (s.contains("APPROVED") || s.contains("ACTIVE")) && !s.contains("PAUSED")
+    // Pick the earliest approved/active daily mandate for timeline calculation
+    val activeMandate = remember(state.mandates) {
+        state.mandates
+            .filter { m ->
+                val s = m.status?.uppercase().orEmpty()
+                (s.contains("APPROVED") || s.contains("ACTIVE")) && !s.contains("PAUSED")
+            }
+            .minByOrNull { m ->
+                m.mandateCreatedDate ?: m.mandateApprovedDate ?: "9999-99-99"
+            }
     }
     val hasApprovedPlan = activeMandate != null
     val nextSipDateStr = activeMandate?.nextSipDate
@@ -185,7 +193,7 @@ fun SchemeDetailsV2Screen(
     val isDailySip = activeMandate?.frequency?.uppercase() in listOf("DAILY", "DAY") || activeMandate?.frequency.isNullOrBlank()
     val mandateApprovedDate = remember(activeMandate) {
         try {
-            val dStr = activeMandate?.mandateApprovedDate ?: activeMandate?.firstDebitDate
+            val dStr = activeMandate?.mandateApprovedDate ?: activeMandate?.mandateCreatedDate ?: activeMandate?.firstDebitDate
             if (!dStr.isNullOrBlank() && dStr != "null") {
                 val cleanVal = dStr.substringBefore("T").substringBefore(" ")
                 kotlinx.datetime.LocalDate.parse(cleanVal)
@@ -202,12 +210,14 @@ fun SchemeDetailsV2Screen(
     }
     // Only display for the user's FIRST plan ever created for this goal (not for subsequent/second plans)
     val isFirstPlanEverForGoal = remember(state.mandates, activeMandate) {
-        val totalMandates = state.mandates.filter { m ->
+        val approvedMandates = state.mandates.filter { m ->
             val s = m.status?.uppercase().orEmpty()
             s.contains("APPROVED") || s.contains("ACTIVE") || s.contains("COMPLETED") || s.contains("CLOSED")
+        }.sortedBy { m ->
+            m.mandateCreatedDate ?: m.mandateApprovedDate ?: "9999-99-99"
         }
         // Is this active mandate the very first approved mandate created for this goal?
-        totalMandates.size <= 1 || totalMandates.firstOrNull()?.mandateId == activeMandate?.mandateId
+        approvedMandates.size <= 1 || approvedMandates.firstOrNull()?.mandateId == activeMandate?.mandateId
     }
     val isFirstInvestmentInProgress = isDailySip && hasApprovedPlan && isRecentPlanSetup && isFirstPlanEverForGoal
     val showFirstSaveDate = false
@@ -310,7 +320,7 @@ fun SchemeDetailsV2Screen(
                 }
             }
         } else {
-            showInvestmentInProgressDialog = true
+            showFolioPendingDialog = true
         }
     }
 
@@ -318,7 +328,7 @@ fun SchemeDetailsV2Screen(
         val hasFolio = !state.folioNumber.isNullOrBlank() && state.folioNumber != "null"
         val hasPendingInvestmentOrSip = state.investmentInProgress > 0 || hasApprovedPlan
         if (!hasFolio && hasPendingInvestmentOrSip && isDailySip) {
-            showInvestmentInProgressDialog = true
+            showNewPlanPendingDialog = true
         } else {
             scope.launch {
                 try {
@@ -820,17 +830,97 @@ fun SchemeDetailsV2Screen(
                         } else {
                             if (state.redemptionInProgress > 0 || showFirstSaveDate || isFirstInvestmentInProgress) {
                                 item {
-                                    Card(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = 16.dp),
-                                        colors = CardDefaults.cardColors(
-                                            containerColor = if (isFirstInvestmentInProgress) goalColor.copy(alpha = 0.08f) else Color.White
-                                        ),
-                                        shape = RoundedCornerShape(16.dp),
-                                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                                        border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.2f))
-                                    ) {
+                                    val mandateForTimeline = activeMandate
+                                    val firstDebitStr = mandateForTimeline?.firstDebitDate ?: mandateForTimeline?.mandateApprovedDate
+                                    val nextSipStr = mandateForTimeline?.nextSipDate
+                                    val firstAllocationDateStr = mandateForTimeline?.calculatedFirstUnitAllocationDate ?: mandateForTimeline?.firstUnitAllocationDate
+                                    val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+
+                                    val firstInvestmentTxnDate = remember(state.transactions) {
+                                        state.transactions.filter { txn ->
+                                            val s = txn.state?.uppercase().orEmpty()
+                                            s in listOf("SUBMITTED", "IN_PROGRESS", "ALLOCATING UNITS", "DEBITED", "PROCESSING", "SUCCESS", "ALLOTTED", "COMPLETED", "FAILED", "CANCELLED", "REJECTED")
+                                        }.minByOrNull { txn ->
+                                            (txn.sortDate ?: txn.date)?.trim() ?: "9999-99-99"
+                                        }?.let { txn ->
+                                            val raw = (txn.sortDate ?: txn.date)?.trim()
+                                            raw?.let { cleanVal ->
+                                                try {
+                                                    val isoPart = cleanVal.substringBefore("T").substringBefore(" ")
+                                                    if (isoPart.contains("-")) {
+                                                        val parts = isoPart.split("-")
+                                                        if (parts.size == 3) {
+                                                            return@let LocalDate(parts[0].toInt(), parts[1].toInt(), parts[2].toInt())
+                                                        }
+                                                    }
+                                                    LocalDate.parse(isoPart)
+                                                } catch (e: Exception) { null }
+                                            }
+                                        }
+                                    }
+
+                                    val day1Date = remember(firstDebitStr, nextSipStr, firstInvestmentTxnDate) {
+                                        try {
+                                            if (!firstDebitStr.isNullOrBlank() && firstDebitStr != "null") {
+                                                val cleanVal = firstDebitStr.substringBefore("T").substringBefore(" ")
+                                                LocalDate.parse(cleanVal)
+                                            } else if (firstInvestmentTxnDate != null) {
+                                                firstInvestmentTxnDate
+                                            } else if (!nextSipStr.isNullOrBlank() && nextSipStr != "null") {
+                                                val cleanVal = nextSipStr.substringBefore("T").substringBefore(" ")
+                                                val parsedNext = LocalDate.parse(cleanVal)
+                                                getPreviousBusinessDay(parsedNext, 1)
+                                            } else {
+                                                Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+                                            }
+                                        } catch (e: Exception) {
+                                            Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+                                        }
+                                    }
+
+                                    val day2Date = remember(day1Date) { getNextBusinessDay(day1Date, 1) }
+                                    val day3Date = remember(day2Date) { getNextBusinessDay(day2Date, 1) }
+                                    val day4Date = remember(day1Date, firstAllocationDateStr) {
+                                        try {
+                                            if (!firstAllocationDateStr.isNullOrBlank() && firstAllocationDateStr != "null") {
+                                                LocalDate.parse(firstAllocationDateStr.substringBefore("T"))
+                                            } else {
+                                                getNextBusinessDay(day1Date, 3)
+                                            }
+                                        } catch (e: Exception) {
+                                            getNextBusinessDay(day1Date, 3)
+                                        }
+                                    }
+                                    val day5Date = remember(day4Date) { getNextBusinessDay(day4Date, 1) }
+
+                                    val validStates = setOf("SUBMITTED", "IN_PROGRESS", "ALLOCATING UNITS", "DEBITED", "PROCESSING", "SUCCESS", "ALLOTTED", "COMPLETED")
+                                    val hasAnyDebit = state.transactions.any { txn ->
+                                        val s = txn.state?.uppercase().orEmpty()
+                                        s in validStates
+                                    } || state.investmentInProgress > 0.0 || state.investedAmount > 0.0
+                                    val hasFolio = !state.folioNumber.isNullOrBlank()
+
+                                    val step1Done = true
+                                    val step2Done = hasAnyDebit
+                                    val step3Done = step2Done && today >= day3Date
+                                    val step4Done = step3Done && hasFolio
+                                    val step5Done = step4Done && today >= day5Date
+                                    val stepTimelineActive = !(step5Done && today > day5Date)
+
+                                    val shouldShowInMotionCard = state.redemptionInProgress > 0 || showFirstSaveDate || (isFirstInvestmentInProgress && stepTimelineActive)
+
+                                    if (shouldShowInMotionCard) {
+                                        Card(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 16.dp),
+                                            colors = CardDefaults.cardColors(
+                                                containerColor = if (isFirstInvestmentInProgress && stepTimelineActive) goalColor.copy(alpha = 0.08f) else Color.White
+                                            ),
+                                            shape = RoundedCornerShape(16.dp),
+                                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                                            border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.2f))
+                                        ) {
                                         Column(modifier = Modifier.padding(16.dp)) {
                                             Text(
                                                 text = stringResource(Res.string.in_motion),
@@ -894,9 +984,11 @@ fun SchemeDetailsV2Screen(
                                                 val firstDebitStr = mandateForTimeline?.firstDebitDate ?: mandateForTimeline?.mandateApprovedDate
                                                 val nextSipStr = mandateForTimeline?.nextSipDate
                                                 
-                                                val firstInvestmentTxnDate = state.transactions.asReversed().firstOrNull { txn ->
+                                                val firstInvestmentTxnDate = state.transactions.filter { txn ->
                                                     val s = txn.state?.uppercase().orEmpty()
                                                     s in listOf("SUBMITTED", "IN_PROGRESS", "ALLOCATING UNITS", "DEBITED", "PROCESSING", "SUCCESS", "ALLOTTED", "COMPLETED", "FAILED", "CANCELLED", "REJECTED")
+                                                }.minByOrNull { txn ->
+                                                    (txn.sortDate ?: txn.date)?.trim() ?: "9999-99-99"
                                                 }?.let { txn ->
                                                     val raw = (txn.sortDate ?: txn.date)?.trim()
                                                     raw?.let { cleanVal ->
@@ -915,11 +1007,11 @@ fun SchemeDetailsV2Screen(
 
                                                 val day1Date = remember(firstDebitStr, nextSipStr, firstInvestmentTxnDate) {
                                                     try {
-                                                        if (firstInvestmentTxnDate != null) {
-                                                            firstInvestmentTxnDate
-                                                        } else if (!firstDebitStr.isNullOrBlank() && firstDebitStr != "null") {
+                                                        if (!firstDebitStr.isNullOrBlank() && firstDebitStr != "null") {
                                                             val cleanVal = firstDebitStr.substringBefore("T").substringBefore(" ")
                                                             LocalDate.parse(cleanVal)
+                                                        } else if (firstInvestmentTxnDate != null) {
+                                                            firstInvestmentTxnDate
                                                         } else if (!nextSipStr.isNullOrBlank() && nextSipStr != "null") {
                                                             val cleanVal = nextSipStr.substringBefore("T").substringBefore(" ")
                                                             val parsedNext = LocalDate.parse(cleanVal)
@@ -1014,7 +1106,10 @@ fun SchemeDetailsV2Screen(
                                                             // Step 2: Money debits started
                                                             SetupProgressStepRow(
                                                                 title = stringResource(Res.string.step_money_debits_title),
-                                                                subtitle = stringResource(Res.string.step_money_debits_desc, dailyAmountStr),
+                                                                subtitle = stringResource(
+                                                                    Res.string.step_money_debits_desc,
+                                                                    dailyAmountStr
+                                                                ),
                                                                 isCompleted = step2Done,
                                                                 isInProgress = !step2Done,
                                                                 overrideStatusText = if (!step2Done) stringResource(Res.string.status_upcoming) else null,
@@ -1056,54 +1151,15 @@ fun SchemeDetailsV2Screen(
                                                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                                             ChecklistRow(text = stringResource(Res.string.allotment_checklist_1))
                                                             ChecklistRow(text = stringResource(Res.string.allotment_checklist_2))
-                                                            ChecklistRow(text = stringResource(Res.string.allotment_checklist_3))
+                                                            ChecklistRow(text = stringResource(Res.string.your_money_invested_from_day_one))
                                                         }
                                                     }
 
                                                     Spacer(modifier = Modifier.height(6.dp))
-                                                    // Reassurance Box
-                                                    Surface(
-                                                        modifier = Modifier.fillMaxWidth(),
-                                                        shape = RoundedCornerShape(12.dp),
-                                                        color = Color(0xFFF4F6F8)
-                                                    ) {
-                                                        Row(
-                                                            modifier = Modifier.padding(12.dp),
-                                                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                                            verticalAlignment = Alignment.Top
-                                                        ) {
-                                                            Box(
-                                                                modifier = Modifier
-                                                                    .size(24.dp)
-                                                                    .background(Color(0xFFE2E8F0), CircleShape),
-                                                                contentAlignment = Alignment.Center
-                                                            ) {
-                                                                Icon(
-                                                                    imageVector = Icons.Default.Info,
-                                                                    contentDescription = null,
-                                                                    tint = Color(0xFF475569),
-                                                                    modifier = Modifier.size(16.dp)
-                                                                )
-                                                            }
-                                                            Column(modifier = Modifier.weight(1f)) {
-                                                                Text(
-                                                                    text = stringResource(Res.string.your_money_invested_from_day_one),
-                                                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                                                                    color = Color(0xFF1E293B)
-                                                                )
-                                                                Spacer(modifier = Modifier.height(2.dp))
-                                                                Text(
-                                                                    text = stringResource(Res.string.every_mutual_fund_house_reassurance),
-                                                                    style = MaterialTheme.typography.labelSmall,
-                                                                    color = Color(0xFF64748B)
-                                                                )
-                                                            }
-                                                        }
-                                                    }
                                                 }
                                             }
 
-                                            if (showFirstSaveDate) {
+                                             if (showFirstSaveDate) {
                                                 Row(
                                                     verticalAlignment = Alignment.CenterVertically,
                                                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -1133,6 +1189,7 @@ fun SchemeDetailsV2Screen(
                                     }
                                 }
                             }
+                        }
 
                             item {
                                 Column(
@@ -1365,6 +1422,19 @@ fun SchemeDetailsV2Screen(
                     text = { Text(stringResource(Res.string.folio_pending_message)) },
                     confirmButton = {
                         TextButton(onClick = { showFolioPendingDialog = false }) {
+                            Text(stringResource(Res.string.ok))
+                        }
+                    }
+                )
+            }
+
+            if (showNewPlanPendingDialog) {
+                AlertDialog(
+                    onDismissRequest = { showNewPlanPendingDialog = false },
+                    title = { Text(stringResource(Res.string.investment_in_progress_title)) },
+                    text = { Text(stringResource(Res.string.new_plan_pending_message)) },
+                    confirmButton = {
+                        TextButton(onClick = { showNewPlanPendingDialog = false }) {
                             Text(stringResource(Res.string.ok))
                         }
                     }
