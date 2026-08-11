@@ -483,7 +483,7 @@ private fun EmailCardV2(
 
             BasicTextField(
                 value = email,
-                onValueChange = onEmailChange,
+                onValueChange = { onEmailChange(it.lowercase()) },
                 singleLine = true,
                 textStyle = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF3E2723)),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Done),
@@ -526,7 +526,7 @@ private fun EmailCardV2(
         } else {
             EmailChooserWrapper(
                 onEmailPicked = { pickedEmail ->
-                    onEmailChange(pickedEmail)
+                    onEmailChange(pickedEmail.lowercase())
                 },
                 modifier = Modifier
                     .fillMaxWidth()

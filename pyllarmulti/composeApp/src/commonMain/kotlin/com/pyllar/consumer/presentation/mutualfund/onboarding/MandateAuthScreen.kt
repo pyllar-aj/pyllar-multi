@@ -78,10 +78,6 @@ fun MandateAuthScreen(
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     var upiAppClicked by remember { mutableStateOf(false) }
     
-    // Allow back button as requested
-    BackHandler(enabled = false) {
-        // Do nothing
-    }
     var availableUpiApps by remember { mutableStateOf<List<UpiAppInfo>>(emptyList()) }
     var showMoreUpiAppsSheet by remember { mutableStateOf(false) }
     var is30SecondsPassed by remember { mutableStateOf(false) }
@@ -152,12 +148,19 @@ fun MandateAuthScreen(
          uiState.mandateStatus == MandateStatus.REJECTED || 
          uiState.mandateStatus == MandateStatus.CANCELLED)
 
+    val isSyncOrQrActive = upiAppClicked || selectedTabIndex == 1
+
+    // Block back navigation if user has clicked a UPI app, selected QR tab, or reached final status
+    BackHandler(enabled = isSyncOrQrActive || isFinalStatus) {
+        // Intercepted and disabled when active or in final status
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("SIP Setup", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
-                    if (!isFinalStatus) {
+                    if (!isFinalStatus && !isSyncOrQrActive) {
                         IconButton(onClick = onNavigateBack) {
                             Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                         }
@@ -184,7 +187,7 @@ fun MandateAuthScreen(
                     uiState.error != null -> {
                         StatusDisplay(
                             icon = Icons.Default.Error,
-                            iconTint = Color.Red,
+                            iconTint = Color.Red.copy(alpha = 0.5f),
                             title = "Verification Timeout",
                             description = uiState.error ?: "An error occurred. Please try again.",
                             actionText = "Go to Home",
@@ -208,7 +211,7 @@ fun MandateAuthScreen(
                         } else {
                             StatusDisplay(
                                 icon = Icons.Default.Error,
-                                iconTint = Color.Red,
+                                iconTint = Color.Red.copy(alpha = 0.5f),
                                 title = "SIP ${status.name}",
                                 description = "Please try again or contact support.",
                                 actionText = "Go to Home",
@@ -255,12 +258,9 @@ fun MandateAuthScreen(
                 }
             }
 
-            // Bottom Buttons for Final State
-            if (isFinalStatus || uiState.error != null) {
-                val status = uiState.mandateStatus
-                val isBtnEnabled = if (status == MandateStatus.APPROVED) {
-                    uiState.planPollingResolved || uiState.planPollingTimedOut || is30SecondsPassed
-                } else true
+            // Bottom Buttons for Approved Final State
+            if (uiState.mandateStatus == MandateStatus.APPROVED) {
+                val isBtnEnabled = uiState.planPollingResolved || uiState.planPollingTimedOut || is30SecondsPassed
 
                 Column(
                     modifier = Modifier.fillMaxWidth().padding(24.dp),
@@ -275,7 +275,7 @@ fun MandateAuthScreen(
                         Text("Go to Home", fontWeight = FontWeight.Bold)
                     }
                 }
-            } else if (uiState.error == null) {
+            } else if (uiState.error == null && !isFinalStatus) {
                 // Tabbed Bottom Panel - Keep visible during syncing to allow switching methods
                 Surface(
                     color = MaterialTheme.colorScheme.surface,

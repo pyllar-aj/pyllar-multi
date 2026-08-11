@@ -26,6 +26,8 @@ import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Verified
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.Icons
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -47,6 +49,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -526,19 +529,6 @@ fun InvestmentDashboardV2Screen(
                 DashboardTrustFooter()
             }
 
-            item {
-                PoweredByAmcsSection()
-            }
-
-            item {
-                Text(
-                    text = "Mutual fund investments are subject to market risks. Read all scheme related documents carefully before investing.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(bottom = 32.dp)
-                )
-            }
         }
         }
 
@@ -2418,48 +2408,240 @@ fun StartInvestmentJourneyCard(
 
 @Composable
 fun DashboardTrustFooter() {
-    val creamBg = Color(0xFFFAF9F1)
-    val goldColor = Color(0xFFC5A358)
-    val darkGreenText = Color(0xFF1B4332)
+    val creamBg = Color(0xFFFBF9F4)
+    val goldColor = Color(0xFFD4AF37)
+    val premiumBrown = Color(0xFF3E2723)
 
     Column(
-        modifier = Modifier.fillMaxWidth().background(creamBg).padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(creamBg)
+            .padding(top = 20.dp, bottom = 16.dp, start = 12.dp, end = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Surface(modifier = Modifier.size(40.dp), shape = RoundedCornerShape(12.dp), color = Color.White, shadowElevation = 4.dp) {
-                Box(contentAlignment = Alignment.Center) {
-                    Image(
-                        painter = painterResource(Res.drawable.app_icon),
-                        contentDescription = "Pyllar Money Icon",
-                        modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(12.dp)),
-                        contentScale = ContentScale.Fit
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Image(
+                painter = painterResource(Res.drawable.app_icon),
+                contentDescription = stringResource(Res.string.app_name),
+                modifier = Modifier
+                    .size(40.dp)
+                    .shadow(elevation = 8.dp, shape = RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(12.dp)),
+                contentScale = ContentScale.Crop
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Column {
+                Text(
+                    text = stringResource(Res.string.app_name),
+                    style = TextStyle(
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = premiumBrown,
+                        fontFamily = FontFamily.Serif
+                    )
+                )
+                Text(
+                    text = stringResource(Res.string.built_for_everyday_indians),
+                    style = TextStyle(
+                        fontFamily = getCursiveFontFamily(),
+                        color = premiumBrown.copy(alpha = 0.8f),
+                        fontSize = 14.sp
+                    )
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        Box(
+            modifier = Modifier
+                .width(100.dp)
+                .height(1.dp)
+                .background(goldColor.copy(alpha = 0.3f))
+        )
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Surface(
+            modifier = Modifier
+                .wrapContentWidth()
+                .height(48.dp)
+                .shadow(elevation = 4.dp, shape = RoundedCornerShape(2.dp)),
+            shape = RoundedCornerShape(2.dp),
+            color = Color.White,
+            border = BorderStroke(1.dp, goldColor.copy(alpha = 0.2f))
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 20.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .background(goldColor, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Shield,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(14.dp)
                     )
                 }
-            }
-            Spacer(modifier = Modifier.width(12.dp))
-            Column {
-                Text("Pyllar Money", fontWeight = FontWeight.Bold, color = darkGreenText)
-                Text("Built for everyday Indians", style = MaterialTheme.typography.bodySmall, color = darkGreenText.copy(alpha = 0.7f))
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = stringResource(Res.string.amfi_registered),
+                    style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Medium, color = premiumBrown)
+                )
+                Spacer(modifier = Modifier.width(16.dp))
+                Box(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .height(20.dp)
+                        .background(Color.LightGray.copy(alpha = 0.5f))
+                )
+                Spacer(modifier = Modifier.width(16.dp))
+                Text(
+                    text = buildAnnotatedString {
+                        withStyle(SpanStyle(color = goldColor, fontWeight = FontWeight.Bold)) {
+                            append(stringResource(Res.string.arn_label) + " ")
+                        }
+                        withStyle(SpanStyle(color = premiumBrown, fontWeight = FontWeight.Bold)) {
+                            append(stringResource(Res.string.arn_value))
+                        }
+                    },
+                    style = TextStyle(fontSize = 15.sp)
+                )
             }
         }
-        Box(modifier = Modifier.width(60.dp).height(1.dp).background(goldColor.copy(alpha = 0.3f)))
-        Surface(shape = RoundedCornerShape(4.dp), color = Color.White, border = BorderStroke(1.dp, goldColor.copy(alpha = 0.2f))) {
-            Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.VerifiedUser, contentDescription = null, tint = goldColor, modifier = Modifier.size(16.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("AMFI Registered Mutual Fund Distributor", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+
+        Spacer(modifier = Modifier.height(15.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            TrustFeatureItemV2(
+                title = stringResource(Res.string.secure_title),
+                icon = Icons.Filled.Shield,
+                modifier = Modifier.weight(1f)
+            )
+            TrustFeatureItemV2(
+                title = stringResource(Res.string.trusted_title),
+                icon = Icons.Filled.Verified,
+                modifier = Modifier.weight(1f)
+            )
+            TrustFeatureItemV2(
+                title = stringResource(Res.string.transparent_title),
+                icon = Icons.Filled.Search,
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Box(modifier = Modifier.weight(1f).height(1.dp).background(goldColor.copy(alpha = 0.4f)))
+            Text(
+                text = stringResource(Res.string.powered_by_leading_amcs),
+                style = TextStyle(
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.5.sp,
+                    color = goldColor
+                ),
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+            Box(modifier = Modifier.weight(1f).height(1.dp).background(goldColor.copy(alpha = 0.4f)))
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 2.dp),
+            shape = RoundedCornerShape(24.dp),
+            color = Color.White,
+            border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.2f))
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 20.dp, horizontal = 12.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                AmcLogoItemV2(Res.drawable.axis_lo)
+                Box(modifier = Modifier.width(1.dp).height(40.dp).background(Color.LightGray.copy(alpha = 0.3f)))
+                AmcLogoItemV2(Res.drawable.invesco)
+                Box(modifier = Modifier.width(1.dp).height(40.dp).background(Color.LightGray.copy(alpha = 0.3f)))
+                AmcLogoItemV2(Res.drawable.aditya)
+                Box(modifier = Modifier.width(1.dp).height(40.dp).background(Color.LightGray.copy(alpha = 0.3f)))
+                AmcLogoItemV2(Res.drawable.nippon)
             }
         }
-        Text(
-            text = "Pyllar Fintech Private Limited is an AMFI registered Mutual Fund distributor (ARN No: 341847)",
-            style = MaterialTheme.typography.labelSmall,
-            color = darkGreenText.copy(alpha = 0.6f),
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 16.dp)
-        )
+        Spacer(modifier = Modifier.height(10.dp))
     }
+}
+
+@Composable
+private fun TrustFeatureItemV2(
+    title: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    modifier: Modifier = Modifier
+) {
+    val iconGreen = Color(0xFF1A7A42)
+    val premiumBrown = Color(0xFF3E2723)
+
+    Column(
+        modifier = modifier.padding(horizontal = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .background(iconGreen.copy(alpha = 0.1f), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = iconGreen,
+                modifier = Modifier.size(22.dp)
+            )
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = title,
+            style = TextStyle(
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                color = premiumBrown
+            ),
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+    }
+}
+
+@Composable
+private fun AmcLogoItemV2(resource: org.jetbrains.compose.resources.DrawableResource) {
+    Image(
+        painter = painterResource(resource),
+        contentDescription = null,
+        modifier = Modifier
+            .height(28.dp)
+            .widthIn(max = 65.dp),
+        contentScale = ContentScale.Fit
+    )
 }
 
 @Composable

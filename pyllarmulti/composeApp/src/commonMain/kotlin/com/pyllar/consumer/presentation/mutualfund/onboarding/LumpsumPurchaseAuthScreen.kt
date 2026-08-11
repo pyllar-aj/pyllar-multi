@@ -72,9 +72,10 @@ fun LumpsumPurchaseAuthScreen(
     var upiAppClicked by remember { mutableStateOf(false) }
     
     val isFinalStatus = uiState.status != PurchaseStatus.PENDING || uiState.errorMessage != null
-    
-    BackHandler(enabled = false) {
-        // Allow back as requested
+    val isSyncOrQrActive = upiAppClicked || selectedTabIndex == 1
+
+    BackHandler(enabled = isSyncOrQrActive || isFinalStatus) {
+        // Intercepted and disabled when active or in final status
     }
 
     var availableUpiApps by remember { mutableStateOf<List<UpiAppInfo>>(emptyList()) }
@@ -115,7 +116,7 @@ fun LumpsumPurchaseAuthScreen(
                 title = { Text("One-time Purchase", fontWeight = FontWeight.Bold, color = Color.White) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = tealPrimaryDark),
                 navigationIcon = {
-                    if (!isFinalStatus) {
+                    if (!isFinalStatus && !isSyncOrQrActive) {
                         IconButton(onClick = onNavigateBack) {
                             Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
                         }
@@ -142,7 +143,7 @@ fun LumpsumPurchaseAuthScreen(
                     uiState.errorMessage != null || uiState.status == PurchaseStatus.FAILED || uiState.status == PurchaseStatus.CANCELLED -> {
                         StatusDisplay(
                             icon = Icons.Default.Error,
-                            iconTint = Color.Red,
+                            iconTint = Color.Red.copy(alpha = 0.5f),
                             title = if (uiState.status == PurchaseStatus.CANCELLED) "Payment Cancelled" else "Payment Failed",
                             description = uiState.errorMessage ?: "An error occurred. Please try again or contact support.",
                             actionText = "Go to Home",
@@ -196,13 +197,13 @@ fun LumpsumPurchaseAuthScreen(
                 }
             }
 
-            // Bottom Panel
-            if (isFinalStatus) {
+            // Bottom Panel for Success State
+            if (uiState.status == PurchaseStatus.SUCCESS) {
                 Column(
                     modifier = Modifier.fillMaxWidth().padding(24.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    val isBtnEnabled = if (uiState.status == PurchaseStatus.SUCCESS) is30SecondsPassed else true
+                    val isBtnEnabled = is30SecondsPassed
                     
                     Button(
                         onClick = onGoToHome,
@@ -214,7 +215,7 @@ fun LumpsumPurchaseAuthScreen(
                         Text("Go to Home", fontWeight = FontWeight.Bold)
                     }
                 }
-            } else if (!upiAppClicked) {
+            } else if (uiState.errorMessage == null && !isFinalStatus) {
                 Surface(
                     color = MaterialTheme.colorScheme.surface,
                     shadowElevation = 8.dp,

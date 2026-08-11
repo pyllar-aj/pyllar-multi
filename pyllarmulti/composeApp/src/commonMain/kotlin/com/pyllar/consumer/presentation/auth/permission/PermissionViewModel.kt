@@ -56,7 +56,7 @@ class PermissionViewModel(
     }
 
     fun updateEmail(newEmail: String) {
-        _state.value = _state.value.copy(email = newEmail, showEmailError = false)
+        _state.value = _state.value.copy(email = newEmail.lowercase(), showEmailError = false)
     }
 
     fun toggleConsent(checked: Boolean) {

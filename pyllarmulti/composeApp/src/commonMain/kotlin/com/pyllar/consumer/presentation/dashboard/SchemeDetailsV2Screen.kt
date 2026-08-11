@@ -1062,18 +1062,18 @@ fun SchemeDetailsV2Screen(
 
                                                  val day5Date = remember(day4Date) { getNextBusinessDay(day4Date, 1) }
 
-                                                 // Strict Sequential Progression logic for 5 steps:
+                                                 // Progression logic for 5 steps:
                                                  // Step 1 (Plan setup): Ticked immediately after plan is created
                                                  val step1Done = true
                                                 
-                                                // Step 2 (Money debits started): Ticked after 1st debit transaction occurs
-                                                val step2Done = hasAnyDebit
+                                                // Step 2 (Money debits started): Ticked after 1st debit transaction occurs OR if folio allocated
+                                                val step2Done = hasAnyDebit || hasFolio
 
-                                                // Step 3 (Folio creation): Cannot complete before step 2 (debit); ticked on Day 3 (today >= day3Date)
-                                                val step3Done = step2Done && today >= day3Date
+                                                // Step 3 (Folio creation): Ticked if folio is allocated OR on Day 3 (today >= day3Date)
+                                                val step3Done = step2Done && (hasFolio || today >= day3Date)
 
-                                                // Step 4 (Unit allotment started): Cannot complete before step 3; ticked when folio is allocated
-                                                val step4Done = step3Done && hasFolio
+                                                // Step 4 (Unit allotment started): Ticked when folio is allocated
+                                                val step4Done = (step3Done && hasFolio) || hasFolio
 
                                                  // Step 5 (Account setup complete): Ticked on Day 5 (today >= day5Date) when folio allocation completes
                                                 val step5Done = step4Done && today >= day5Date

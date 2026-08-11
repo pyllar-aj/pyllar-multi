@@ -288,6 +288,8 @@ fun SipAmountScreenV3(
     var frequency by remember { mutableStateOf(SipFrequency.DAILY) }
     val isMonthly = frequency == SipFrequency.MONTHLY
 
+    val datePickerBringIntoViewRequester = remember { BringIntoViewRequester() }
+
     LaunchedEffect(userId, goalId, kycAttemptId, investorId) {
         if (userId.isNotBlank()) effectiveUserId = userId
         if (goalId.isNotBlank()) effectiveGoalId = goalId
@@ -937,7 +939,8 @@ fun SipAmountScreenV3(
                                             coroutineScope.launch {
                                                 inMemorySessionStore.saveValue("selected_sip_date", it.toString())
                                             }
-                                        }
+                                        },
+                                        modifier = Modifier.bringIntoViewRequester(datePickerBringIntoViewRequester)
                                     )
                                 }
                             }
@@ -951,7 +954,15 @@ fun SipAmountScreenV3(
                             )
                         } else {
                             val (monthlyTitle, monthlySubtitle) = getMonthlySipStartInfo(sipDate)
-                            SipStartInfoCard(title = monthlyTitle, subtitle = monthlySubtitle)
+                            SipStartInfoCard(
+                                title = monthlyTitle,
+                                subtitle = monthlySubtitle,
+                                onClick = {
+                                    coroutineScope.launch {
+                                        datePickerBringIntoViewRequester.bringIntoView()
+                                    }
+                                }
+                            )
                         }
 
                         // ── SCHEME CARD ──────────────────────────────────────────
@@ -1224,7 +1235,7 @@ private fun SipFrequencyTab(
     ) {
         Text(
             text = label,
-            color = if (isSelected) Color.White else SipInk.copy(alpha = 0.42f),
+            color = if (isSelected) Color.White else SipInk.copy(alpha = 0.98f),
             fontWeight = FontWeight.SemiBold,
             fontSize = 14.sp
         )
@@ -1576,10 +1587,11 @@ private fun MonthlyAmountSection(
 private fun MonthlyDatePicker(
     selectedDate: Int,
     accentColor: Color,
-    onDateSelected: (Int) -> Unit
+    onDateSelected: (Int) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val popularDates = remember { setOf(1, 5, 10, 15, 20, 25) }
-    Column(modifier = Modifier.fillMaxWidth()) {
+    Column(modifier = modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -1750,9 +1762,21 @@ private fun PastPerformanceBar(
 }
 
 @Composable
-private fun SipStartInfoCard(title: String, subtitle: String) {
+private fun SipStartInfoCard(
+    title: String,
+    subtitle: String,
+    onClick: (() -> Unit)? = null
+) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(
+                if (onClick != null) {
+                    Modifier.clickable(onClick = onClick)
+                } else {
+                    Modifier
+                }
+            ),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
