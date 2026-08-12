@@ -117,8 +117,8 @@
     <string name="amfi_disclaimer">Pyllar Fintech Private Limited is an AMFI registered Mutual Fund distributor (ARN No: 341847)</string>
     <string name="investment_in_progress_title">Investment In Progress</string>
     <string name="investment_in_progress_message">If you have initiated an investment, it may currently be in progress. Investments typically take up to 2 working days to reflect. Once processed, the amount will be available for withdrawal.</string>
-    <string name="folio_pending_message">If you have initiated an investment, it may currently be in progress. Investments typically take up to 2 working days to reflect. You can make lumpsum purchases once your folio number has been allocated.</string>
-    <string name="new_plan_pending_message">If you have initiated an investment, it may currently be in progress. Investments typically take up to 2 working days to reflect. You can create a new plan once your unit allocation is completed.</string>
+    <string name="folio_pending_message">Your folio allocation is in progress. You can add money once it is complete.</string>
+    <string name="new_plan_pending_message">Your folio allocation is in progress. You can start a new plan once it is complete.</string>
     <string name="first_save_date_message">Your first save will be updated before %1$s 10:00 AM.</string>
     <string name="payment_completed">PAYMENT COMPLETED</string>
     <string name="status_success">SUCCESS</string>

@@ -1418,7 +1418,6 @@ fun SchemeDetailsV2Screen(
             if (showFolioPendingDialog) {
                 AlertDialog(
                     onDismissRequest = { showFolioPendingDialog = false },
-                    title = { Text(stringResource(Res.string.investment_in_progress_title)) },
                     text = { Text(stringResource(Res.string.folio_pending_message)) },
                     confirmButton = {
                         TextButton(onClick = { showFolioPendingDialog = false }) {
@@ -1431,7 +1430,6 @@ fun SchemeDetailsV2Screen(
             if (showNewPlanPendingDialog) {
                 AlertDialog(
                     onDismissRequest = { showNewPlanPendingDialog = false },
-                    title = { Text(stringResource(Res.string.investment_in_progress_title)) },
                     text = { Text(stringResource(Res.string.new_plan_pending_message)) },
                     confirmButton = {
                         TextButton(onClick = { showNewPlanPendingDialog = false }) {
