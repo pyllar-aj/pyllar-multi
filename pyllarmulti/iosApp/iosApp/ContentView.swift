@@ -15,6 +15,32 @@ struct ComposeView: UIViewControllerRepresentable {
         SwiftCryptoScope.shared.bridge = SwiftCryptoBridge()
         SwiftGoogleSignInScope.shared.bridge = SwiftGoogleSignInBridge()
         SwiftAnalyticsScope.shared.bridge = SwiftAnalyticsBridge()
+        
+        // Register native SwiftUI dashboard view controller
+        IosDashboardRegistry.shared.factory = { state, onProfile, onHelp, onGoalClick, onRecommendedGoalClick, onRefresh in
+            let host = DashboardHostingController(
+                state: state,
+                onNavigateToProfile: { _ = onProfile() },
+                onNavigateToHelp: { _ = onHelp() },
+                onShareClick: {
+                    SwiftAnalyticsScope.shared.bridge?.logEvent(name: "share_click", params: [:])
+                },
+                onRateUsClick: {
+                    AppsFlyerLib.shared().logEvent("rate_us_click", withValues: [:])
+                },
+                onGoalClick: { goal in _ = onGoalClick(goal) },
+                onRecommendedGoalClick: { goal in _ = onRecommendedGoalClick(goal) },
+                onRefresh: { _ = onRefresh() }
+            )
+            return DashboardWrapperView(hostingController: host)
+        }
+        
+        IosDashboardRegistry.shared.updater = { view, state in
+            if let wrapper = view as? DashboardWrapperView {
+                wrapper.hostingController.state = state
+            }
+        }
+        
         return MainViewControllerKt.MainViewController()
     }
 

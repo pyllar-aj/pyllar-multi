@@ -872,7 +872,7 @@ fun App() {
                 )
             }
             is Screen.InvestmentDashboard -> {
-                InvestmentDashboardV2Screen(
+                InvestmentDashboardPlatformView(
                     userId = screen.userId,
                     onNavigateToSchemeDetails = { purpose ->
                         navigateTo(Screen.SchemeDetails(screen.userId, purpose))
