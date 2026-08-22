@@ -36,6 +36,7 @@ import androidx.compose.ui.graphics.painter.Painter
 import pyllar.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
 import pyllar.composeapp.generated.resources.Res
+import androidx.compose.material.icons.filled.Refresh
 import com.pyllar.consumer.platform.PlatformActions
 import com.pyllar.consumer.platform.UpiAppInfo
 import com.pyllar.consumer.util.BackHandler
@@ -142,8 +143,8 @@ fun LumpsumPurchaseAuthScreen(
                 when {
                     uiState.errorMessage != null || uiState.status == PurchaseStatus.FAILED || uiState.status == PurchaseStatus.CANCELLED -> {
                         StatusDisplay(
-                            icon = Icons.Default.Error,
-                            iconTint = Color.Red.copy(alpha = 0.5f),
+                            icon = Icons.Default.Refresh,
+                            iconTint = Color(0xFFF57C00).copy(alpha = 0.5f),
                             title = if (uiState.status == PurchaseStatus.CANCELLED) "Payment Cancelled" else "Payment Failed",
                             description = uiState.errorMessage ?: "An error occurred. Please try again or contact support.",
                             actionText = "Go to Home",

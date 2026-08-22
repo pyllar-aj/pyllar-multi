@@ -117,6 +117,8 @@
     <string name="amfi_disclaimer">Pyllar Fintech Private Limited is an AMFI registered Mutual Fund distributor (ARN No: 341847)</string>
     <string name="investment_in_progress_title">Investment In Progress</string>
     <string name="investment_in_progress_message">If you have initiated an investment, it may currently be in progress. Investments typically take up to 2 working days to reflect. Once processed, the amount will be available for withdrawal.</string>
+    <string name="withdrawal_not_available_title">Withdrawal Not Available Yet</string>
+    <string name="withdrawal_not_available_message">Your investment has been allocated successfully. Withdrawal will be available once your units become eligible, usually within a day.</string>
     <string name="folio_pending_message">Your folio allocation is in progress. You can add money once it is complete.</string>
     <string name="new_plan_pending_message">Your folio allocation is in progress. You can start a new plan once it is complete.</string>
     <string name="first_save_date_message">Your first save will be updated before %1$s 10:00 AM.</string>
@@ -881,5 +883,9 @@
     <string name="sip_limit_reached_title">Limit Reached</string>
     <string name="sip_daily_limit_reached_message">You have reached the limit of 5 active daily plans for this goal. Please contact support if you want to create another plan.</string>
     <string name="sip_monthly_limit_reached_message">You have reached the limit of 3 active monthly plans for this goal. Please contact support if you want to create another plan.</string>
+    <string name="mandate_status_rejected">Daily Saving couldn\'t be enabled</string>
+    <string name="mandate_status_rejected_monthly">Monthly Saving couldn\'t be enabled</string>
+    <string name="mandate_status_cancelled">Daily Saving couldn\'t be enabled</string>
+    <string name="mandate_status_cancelled_monthly">Monthly Saving couldn\'t be enabled</string>
 </resources>
 

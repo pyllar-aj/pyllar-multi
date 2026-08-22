@@ -36,7 +36,9 @@ import io.github.alexzhirkevich.qrose.rememberQrCodePainter
 import androidx.compose.ui.graphics.painter.Painter
 import pyllar.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
 import pyllar.composeapp.generated.resources.Res
+import androidx.compose.material.icons.filled.Refresh
 import com.pyllar.consumer.data.remote.model.dto.MandateStatus
 import com.pyllar.consumer.data.remote.model.dto.MandateWrapper
 import com.pyllar.consumer.platform.PlatformActions
@@ -186,8 +188,8 @@ fun MandateAuthScreen(
                 when {
                     uiState.error != null -> {
                         StatusDisplay(
-                            icon = Icons.Default.Error,
-                            iconTint = Color.Red.copy(alpha = 0.5f),
+                            icon = Icons.Default.Refresh,
+                            iconTint = Color(0xFFF57C00),
                             title = "Verification Timeout",
                             description = uiState.error ?: "An error occurred. Please try again.",
                             actionText = "Go to Home",
@@ -209,10 +211,22 @@ fun MandateAuthScreen(
                                 amount = amount
                             )
                         } else {
+                            val isMonthly = sipFrequency.lowercase() == "monthly"
+                            val titleText = when (status) {
+                                MandateStatus.REJECTED -> {
+                                    if (isMonthly) stringResource(Res.string.mandate_status_rejected_monthly)
+                                    else stringResource(Res.string.mandate_status_rejected)
+                                }
+                                MandateStatus.CANCELLED -> {
+                                    if (isMonthly) stringResource(Res.string.mandate_status_cancelled_monthly)
+                                    else stringResource(Res.string.mandate_status_cancelled)
+                                }
+                                else -> "Mandate ${status.name}"
+                            }
                             StatusDisplay(
-                                icon = Icons.Default.Error,
-                                iconTint = Color.Red.copy(alpha = 0.5f),
-                                title = "SIP ${status.name}",
+                                icon = Icons.Default.Refresh,
+                                iconTint = Color(0xFFF57C00).copy(alpha = 0.5f),
+                                title = titleText,
                                 description = "Please try again or contact support.",
                                 actionText = "Go to Home",
                                 onAction = onGoToHome

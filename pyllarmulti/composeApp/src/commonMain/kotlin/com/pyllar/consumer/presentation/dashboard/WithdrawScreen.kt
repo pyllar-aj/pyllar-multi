@@ -245,7 +245,15 @@ fun WithdrawScreen(
                                 onProceed(modeString, it)
                             }
                         },
-                        enabled = state.selectedSchemeId != null,
+                        enabled = state.selectedSchemeId != null && run {
+                            val scheme = state.schemes.find { it.id == state.selectedSchemeId }
+                            val availableAmount = if (state.selectedWithdrawMode == WithdrawMode.INSTANT) {
+                                scheme?.instantRedemptionValue ?: 0.0
+                            } else {
+                                scheme?.redeemableAmount ?: 0.0
+                            }
+                            availableAmount > 0.0
+                        },
                         modifier = Modifier.fillMaxWidth().height(56.dp),
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(

@@ -109,6 +109,7 @@ fun SchemeDetailsV2Screen(
     var showEstimatedGoldInfoPopup by remember { mutableStateOf(false) }
     var showEstimatedSilverInfoPopup by remember { mutableStateOf(false) }
     var showInvestmentInProgressDialog by remember { mutableStateOf(false) }
+    var showWithdrawalNotAvailableDialog by remember { mutableStateOf(false) }
     var showFolioPendingDialog by remember { mutableStateOf(false) }
     var showNewPlanPendingDialog by remember { mutableStateOf(false) }
 
@@ -405,29 +406,33 @@ fun SchemeDetailsV2Screen(
                                 containerColor = goalColor,
                                 onClick = {
                                     if (state.currentValue > 0) {
-                                        val instantVal = state.instantRedemptionValue 
-                                            ?: schemeParams?.instantRedemptionValue 
-                                            ?: SchemeDetailsParamsManager.get()?.instantRedemptionValue
+                                        if (state.redeemableAmount <= 0.0 && state.redemptionInProgress == 0.0) {
+                                            showWithdrawalNotAvailableDialog = true
+                                        } else {
+                                            val instantVal = state.instantRedemptionValue 
+                                                ?: schemeParams?.instantRedemptionValue 
+                                                ?: SchemeDetailsParamsManager.get()?.instantRedemptionValue
 
-                                        val params = WithdrawInitParams(
-                                            isin = state.isin ?: "",
-                                            folio = state.folioNumber,
-                                            amount = state.currentValue,
-                                            investmentInProgress = state.investmentInProgress,
-                                            bankAccountNumber = "",
-                                            bankAccountIfscCode = "",
-                                            schemeName = displaySchemeName,
-                                            canWithdraw = state.canWithdraw,
-                                            redemptionInProgress = state.redemptionInProgress,
-                                            redeemableAmount = state.redeemableAmount,
-                                            instantRedemptionValue = instantVal,
-                                            unitsInGm = state.unitsInGm ?: schemeParams?.unitsInGm
-                                        )
-                                        WithdrawParamsManager.set(params)
-                                        scope.launch {
-                                            sessionStore.saveValue("withdraw_init_params", WithdrawParamsManager.toJson(params))
+                                            val params = WithdrawInitParams(
+                                                isin = state.isin ?: "",
+                                                folio = state.folioNumber,
+                                                amount = state.currentValue,
+                                                investmentInProgress = state.investmentInProgress,
+                                                bankAccountNumber = "",
+                                                bankAccountIfscCode = "",
+                                                schemeName = displaySchemeName,
+                                                canWithdraw = state.canWithdraw,
+                                                redemptionInProgress = state.redemptionInProgress,
+                                                redeemableAmount = state.redeemableAmount,
+                                                instantRedemptionValue = instantVal,
+                                                unitsInGm = state.unitsInGm ?: schemeParams?.unitsInGm
+                                            )
+                                            WithdrawParamsManager.set(params)
+                                            scope.launch {
+                                                sessionStore.saveValue("withdraw_init_params", WithdrawParamsManager.toJson(params))
+                                            }
+                                            onNavigateToWithdraw(params)
                                         }
-                                        onNavigateToWithdraw(params)
                                     } else {
                                         showInvestmentInProgressDialog = true
                                     }
@@ -1279,29 +1284,35 @@ fun SchemeDetailsV2Screen(
                     onWithdrawClick = {
                         showDetailsPopup = false
                         if (state.currentValue > 0) {
-                            val instantVal = state.instantRedemptionValue 
-                                ?: schemeParams?.instantRedemptionValue 
-                                ?: SchemeDetailsParamsManager.get()?.instantRedemptionValue
+                            if (state.redeemableAmount <= 0.0 && state.redemptionInProgress == 0.0) {
+                                showWithdrawalNotAvailableDialog = true
+                            } else {
+                                val instantVal = state.instantRedemptionValue 
+                                    ?: schemeParams?.instantRedemptionValue 
+                                    ?: SchemeDetailsParamsManager.get()?.instantRedemptionValue
 
-                            val params = WithdrawInitParams(
-                                isin = state.isin ?: "",
-                                folio = state.folioNumber,
-                                amount = state.currentValue,
-                                investmentInProgress = state.investmentInProgress,
-                                bankAccountNumber = "",
-                                bankAccountIfscCode = "",
-                                schemeName = displaySchemeName,
-                                canWithdraw = state.canWithdraw,
-                                redemptionInProgress = state.redemptionInProgress,
-                                redeemableAmount = state.redeemableAmount,
-                                instantRedemptionValue = instantVal,
-                                unitsInGm = state.unitsInGm ?: schemeParams?.unitsInGm
-                            )
-                            WithdrawParamsManager.set(params)
-                            scope.launch {
-                                sessionStore.saveValue("withdraw_init_params", WithdrawParamsManager.toJson(params))
+                                val params = WithdrawInitParams(
+                                    isin = state.isin ?: "",
+                                    folio = state.folioNumber,
+                                    amount = state.currentValue,
+                                    investmentInProgress = state.investmentInProgress,
+                                    bankAccountNumber = "",
+                                    bankAccountIfscCode = "",
+                                    schemeName = displaySchemeName,
+                                    canWithdraw = state.canWithdraw,
+                                    redemptionInProgress = state.redemptionInProgress,
+                                    redeemableAmount = state.redeemableAmount,
+                                    instantRedemptionValue = instantVal,
+                                    unitsInGm = state.unitsInGm ?: schemeParams?.unitsInGm
+                                )
+                                WithdrawParamsManager.set(params)
+                                scope.launch {
+                                    sessionStore.saveValue("withdraw_init_params", WithdrawParamsManager.toJson(params))
+                                }
+                                onNavigateToWithdraw(params)
                             }
-                            onNavigateToWithdraw(params)
+                        } else {
+                            showInvestmentInProgressDialog = true
                         }
                     }
                 )
@@ -1409,6 +1420,19 @@ fun SchemeDetailsV2Screen(
                     text = { Text(stringResource(Res.string.investment_in_progress_message)) },
                     confirmButton = {
                         TextButton(onClick = { showInvestmentInProgressDialog = false }) {
+                            Text(stringResource(Res.string.ok))
+                        }
+                    }
+                )
+            }
+
+            if (showWithdrawalNotAvailableDialog) {
+                AlertDialog(
+                    onDismissRequest = { showWithdrawalNotAvailableDialog = false },
+                    title = { Text(stringResource(Res.string.withdrawal_not_available_title)) },
+                    text = { Text(stringResource(Res.string.withdrawal_not_available_message)) },
+                    confirmButton = {
+                        TextButton(onClick = { showWithdrawalNotAvailableDialog = false }) {
                             Text(stringResource(Res.string.ok))
                         }
                     }
