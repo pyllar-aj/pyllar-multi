@@ -166,14 +166,15 @@ fun InitialDashboardScreenV2(
 
     val allGoals = remember(goalsState.primaryGoals, goalsState.recommendedGoals) {
         (goalsState.primaryGoals + goalsState.recommendedGoals)
-            .filter { it.category.uppercase() in listOf("GOLD", "SILVER", "SAVINGS_PLUS", "MARKET_EXPLORER") }
+            .filter { it.category.uppercase() in listOf("GOLD", "SILVER", "SAVINGS_PLUS", "MARKET_EXPLORER", "INNOVATION") }
             .sortedBy {
                 when (it.category.uppercase()) {
                     "GOLD" -> 1
                     "SILVER" -> 2
-                    "SAVINGS_PLUS" -> 3
+                    "INNOVATION" -> 3
                     "MARKET_EXPLORER" -> 4
-                    else -> 5
+                    "SAVINGS_PLUS" -> 5
+                    else -> 6
                 }
             }
     }
@@ -722,6 +723,7 @@ fun InitialGoalCardV2(
     val isSilver = category == "SILVER"
     val isSavings = category == "SAVINGS_PLUS" || category == "SAVINGS"
     val isMarketExplorer = category == "MARKET_EXPLORER"
+    val isInnovation = category == "INNOVATION"
     val cursiveFont = getCursiveFontFamily()
 
     val gradient = Brush.linearGradient(
@@ -730,6 +732,7 @@ fun InitialGoalCardV2(
             isSilver -> SilverCardColorsV2
             isSavings -> SavingsCardColorsV2
             isMarketExplorer -> MarketExplorerCardColorsV2
+            isInnovation -> listOf(Color(0xFFFBF8FF), Color(0xFFF5EEFD), Color(0xFFECE0FA))
             else -> SavingsCardColorsV2
         },
         start = Offset(0f, 0f),
@@ -770,6 +773,7 @@ fun InitialGoalCardV2(
                 ), cornerRadius = 20.dp
             )
         isMarketExplorer -> cardModifier.border(1.dp, Color(0xFF0F6B5C).copy(alpha = 0.45f), RoundedCornerShape(20.dp))
+        isInnovation -> cardModifier.border(1.dp, Color(0xFF7656A8).copy(alpha = 0.45f), RoundedCornerShape(20.dp))
         else -> cardModifier.border(1.dp, AccentGreen.copy(alpha = 0.4f), RoundedCornerShape(20.dp))
     }
 
@@ -835,6 +839,16 @@ fun InitialGoalCardV2(
                                 letterSpacing = (-0.5).sp
                             )
                         )
+                    } else if (isInnovation) {
+                        Text(
+                            text = goal.name.ifBlank { "Innovation" },
+                            style = TextStyle(
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = PremiumDarkBrown,
+                                letterSpacing = (-0.5).sp
+                            )
+                        )
                     } else {
                         Text(
                             text = if (isGold) stringResource(Res.string.intro_goal_gold) else stringResource(Res.string.intro_goal_silver),
@@ -876,6 +890,7 @@ fun InitialGoalCardV2(
                             text = when {
                                 isGold || category == "SAVINGS" -> "₹21 - ₹500"
                                 isMarketExplorer               -> "₹21 - ₹1000"
+                                isInnovation                   -> "₹101 - ₹1000"
                                 else                            -> "₹101 - ₹500"
                             },
                             style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PremiumDarkBrown)
@@ -896,74 +911,143 @@ fun InitialGoalCardV2(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        val date = bucketData?.startDate ?: "Jan 2023"
-                        val highlightColor = when {
-                            isGold           -> AccentGoldDark
-                            isSilver         -> SecondaryBronze
-                            isMarketExplorer -> Color(0xFF0F6B5C)
-                            else             -> AccentGreen
-                        }
-
-                        Column(
-                            modifier = Modifier.weight(1f).padding(end = 8.dp),
-                            verticalArrangement = Arrangement.spacedBy(2.dp)
-                        ) {
-                            Text(
-                                text = stringResource(Res.string.daily_since_format, date),
-                                style = TextStyle(
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = PremiumDarkBrown
-                                )
-                            )
-                            
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        if (isInnovation) {
+                            Column(
+                                modifier = Modifier.weight(1f).padding(end = 8.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
                                 Text(
-                                    text = buildAnnotatedString {
-                                        val hl = SpanStyle(fontWeight = FontWeight.ExtraBold, color = highlightColor, fontSize = 15.sp)
-                                        when {
-                                            isGold -> {
-                                                val rawVal = bucketData?.accumulatedUnits ?: 15.8
-                                                val roundedVal = (rawVal * 10).toInt() / 10.0
-                                                withStyle(hl) { append("≃${roundedVal}gm") }
-                                                append(" " + stringResource(Res.string.intro_goal_gold))
-                                            }
-                                            isSilver -> {
-                                                val rawVal = bucketData?.accumulatedUnits ?: 1.24
-                                                val roundedVal = (rawVal * 100).toInt() / 100.0
-                                                withStyle(hl) { append("≃${roundedVal}kg") }
-                                                append(" " + stringResource(Res.string.intro_goal_silver))
-                                            }
-                                            isSavings || isMarketExplorer -> {
-                                                val rawVal = bucketData?.currentValuation ?: (if (isMarketExplorer) 1.42 else 1.24)
-                                                withStyle(hl) { append("≃₹${rawVal} Lakhs") }
-                                            }
-                                            else -> ""
-                                        }
-                                    },
+                                    text = "Key Themes Focus",
                                     style = TextStyle(
-                                        fontSize = 14.sp,
+                                        fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF68499A)
+                                    )
+                                )
+                                Column(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(6.dp)
+                                                .background(Color(0xFF9C27B0), CircleShape)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = "Tech & Internet • Fintech",
+                                            style = TextStyle(
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                color = PremiumDarkBrown
+                                            )
+                                        )
+                                    }
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(6.dp)
+                                                .background(Color(0xFF4CAF50), CircleShape)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = "Auto & Mobility • Industrials",
+                                            style = TextStyle(
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                color = PremiumDarkBrown
+                                            )
+                                        )
+                                    }
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(6.dp)
+                                                .background(Color(0xFF2196F3), CircleShape)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = "Healthcare • Services & Retail",
+                                            style = TextStyle(
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                color = PremiumDarkBrown
+                                            )
+                                        )
+                                    }
+                                }
+                            }
+                        } else {
+                            val date = bucketData?.startDate ?: "Jan 2023"
+                            val highlightColor = when {
+                                isGold           -> AccentGoldDark
+                                isSilver         -> SecondaryBronze
+                                isMarketExplorer -> Color(0xFF0F6B5C)
+                                else             -> AccentGreen
+                            }
+
+                            Column(
+                                modifier = Modifier.weight(1f).padding(end = 8.dp),
+                                verticalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Text(
+                                    text = stringResource(Res.string.daily_since_format, date),
+                                    style = TextStyle(
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Medium,
                                         color = PremiumDarkBrown
                                     )
                                 )
                                 
-                                if (isGold || isSilver) {
-                                    IconButton(
-                                        onClick = {
-                                            if (isGold) showGoldInfo = true else showSilverInfo = true
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Text(
+                                        text = buildAnnotatedString {
+                                            val hl = SpanStyle(fontWeight = FontWeight.ExtraBold, color = highlightColor, fontSize = 15.sp)
+                                            when {
+                                                isGold -> {
+                                                    val rawVal = bucketData?.accumulatedUnits ?: 15.8
+                                                    val roundedVal = (rawVal * 10).toInt() / 10.0
+                                                    withStyle(hl) { append("≃${roundedVal}gm") }
+                                                    append(" " + stringResource(Res.string.intro_goal_gold))
+                                                }
+                                                isSilver -> {
+                                                    val rawVal = bucketData?.accumulatedUnits ?: 1.24
+                                                    val roundedVal = (rawVal * 100).toInt() / 100.0
+                                                    withStyle(hl) { append("≃${roundedVal}kg") }
+                                                    append(" " + stringResource(Res.string.intro_goal_silver))
+                                                }
+                                                isSavings || isMarketExplorer -> {
+                                                    val rawVal = bucketData?.currentValuation ?: (if (isMarketExplorer) 1.42 else 1.24)
+                                                    withStyle(hl) { append("≃₹${rawVal} Lakhs") }
+                                                }
+                                                else -> ""
+                                            }
                                         },
-                                        modifier = Modifier.size(20.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Filled.Info,
-                                            contentDescription = stringResource(Res.string.content_description_info),
-                                            tint = PremiumDarkBrown.copy(alpha = 0.6f),
-                                            modifier = Modifier.size(15.dp)
+                                        style = TextStyle(
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = PremiumDarkBrown
                                         )
+                                    )
+                                    
+                                    if (isGold || isSilver) {
+                                        IconButton(
+                                            onClick = {
+                                                if (isGold) showGoldInfo = true else showSilverInfo = true
+                                            },
+                                            modifier = Modifier.size(20.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Filled.Info,
+                                                contentDescription = stringResource(Res.string.content_description_info),
+                                                tint = PremiumDarkBrown.copy(alpha = 0.6f),
+                                                modifier = Modifier.size(15.dp)
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -978,6 +1062,7 @@ fun InitialGoalCardV2(
                     isGold           -> AccentGoldDark
                     isSilver         -> SecondaryBronze
                     isMarketExplorer -> Color(0xFF0F6B5C)
+                    isInnovation     -> Color(0xFF68499A)
                     else             -> AccentGreen
                 }
                 Surface(
@@ -991,7 +1076,7 @@ fun InitialGoalCardV2(
                         horizontalArrangement = Arrangement.spacedBy(5.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Filled.TrendingUp,
+                            imageVector = if (isInnovation) Icons.Filled.Star else Icons.Filled.TrendingUp,
                             contentDescription = null,
                             tint = tagColor,
                             modifier = Modifier.size(13.dp)
@@ -1002,6 +1087,7 @@ fun InitialGoalCardV2(
                                 isSilver         -> stringResource(Res.string.intro_goal_silver_desc)
                                 isSavings        -> stringResource(Res.string.up_to_7_returns)
                                 isMarketExplorer -> "Growth through diversified equity investing"
+                                isInnovation     -> "Focuses on breakthrough & innovative themes"
                                 else             -> stringResource(Res.string.grows_market_performance)
                             },
                             style = TextStyle(fontSize = 11.sp, color = tagColor, fontWeight = FontWeight.SemiBold)
@@ -1047,6 +1133,14 @@ fun InitialGoalCardV2(
             } else if (isMarketExplorer) {
                 Text(
                     text = "🧭",
+                    fontSize = 32.sp,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = 12.dp, end = 12.dp)
+                )
+            } else if (isInnovation) {
+                Text(
+                    text = "🚀",
                     fontSize = 32.sp,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
