@@ -429,6 +429,8 @@ class InvestmentDashboardV2ViewModel(
             "savings_plus" -> "⚡"
             "all_in_one" -> "🛡️"
             "global_exposure" -> "🌍"
+            "market_explorer" -> "🧭"
+            "innovation" -> "🚀"
             else -> "💡"
         }
     }
@@ -732,6 +734,30 @@ class InvestmentDashboardV2ViewModel(
                 createdDate = createdDate,
                 isin = isin
             )
+            "innovation" -> InvestmentGoal(
+                goalId = "innovation",
+                name = "Innovation",
+                description = "Invest in next-gen tech and trends",
+                iconType = "🚀",
+                targetAmount = progressiveTarget,
+                investedAmount = totalInvested,
+                cummulativeValue = cummulativeValue,
+                currentValue = totalValue,
+                returnsPercentage = returnsPercentage,
+                progressPercentage = progressPercentage,
+                timeRemainingMonths = timeRemaining,
+                recommendedMonthlyAmount = monthlySipAmount,
+                recommendedDailyAmount = monthlySipAmount / 30,
+                category = "INNOVATION",
+                colorTheme = "innovation",
+                actionButtonText = "Start Planning",
+                targetDate = calculateTargetDate(timeRemaining),
+                schemeName = schemeName,
+                folioNo = folioNo,
+                planNumber = planNumber,
+                createdDate = createdDate,
+                isin = isin
+            )
             else -> InvestmentGoal(
                 goalId = "saving",
                 name = "Saving",
@@ -997,6 +1023,24 @@ class InvestmentDashboardV2ViewModel(
                 category = "MARKET_EXPLORER",
                 colorTheme = "jade",
                 actionButtonText = "Start Exploring",
+                targetDate = calculateTargetDate(180)
+            ),
+            InvestmentGoal(
+                goalId = "innovation",
+                name = "Innovation",
+                description = "Invest in next-gen tech and trends",
+                iconType = "🚀",
+                targetAmount = 1000000.0,
+                investedAmount = 0.0,
+                currentValue = 0.0,
+                returnsPercentage = 0.0,
+                progressPercentage = 0.0,
+                timeRemainingMonths = 180,
+                recommendedMonthlyAmount = 5000.0,
+                recommendedDailyAmount = 166.67,
+                category = "INNOVATION",
+                colorTheme = "innovation",
+                actionButtonText = "Start Planning",
                 targetDate = calculateTargetDate(180)
             )
         )

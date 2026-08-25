@@ -67,6 +67,8 @@ private val LabelText       = Color(0xFF6B7280)
 private val GoldCardColors    = listOf(Color(0xFFF8EAB8), Color(0xFFEDD57A), Color(0xFFD4AF37))
 private val SilverCardColors  = listOf(Color(0xFFECEEF1), Color(0xFFD6DCE8), Color(0xFFCBD2DD))
 private val SavingsPlusCardColors = listOf(Color(0xFFF1F8E9), Color(0xFFDCEDC8), Color(0xFFC5E1A5))
+private val MarketExplorerCardColors = listOf(Color(0xFFF4F9F7), Color(0xFFE3F1EC), Color(0xFFD0E7DF))
+private val InnovationCardColors = listOf(Color(0xFFFBF8FF), Color(0xFFF5EEFD), Color(0xFFECE0FA))
 
 private val GoldShimmerColors = listOf(
     Color(0xFFD4AF37).copy(alpha = 0.0f),
@@ -195,13 +197,15 @@ fun InitialDashboardScreen(
 
     val allGoals = remember(goalsState.primaryGoals, goalsState.recommendedGoals) {
         (goalsState.primaryGoals + goalsState.recommendedGoals)
-            .filter { it.category.uppercase() in listOf("GOLD", "SILVER", "SAVINGS_PLUS") }
+            .filter { it.category.uppercase() in listOf("GOLD", "SILVER", "INNOVATION", "MARKET_EXPLORER", "SAVINGS_PLUS") }
             .sortedBy {
                 when (it.category.uppercase()) {
                     "GOLD" -> 1
                     "SILVER" -> 2
-                    "SAVINGS_PLUS" -> 3
-                    else -> 4
+                    "INNOVATION" -> 3
+                    "MARKET_EXPLORER" -> 4
+                    "SAVINGS_PLUS" -> 5
+                    else -> 6
                 }
             }
     }
@@ -541,6 +545,8 @@ fun InitialGoalCard(
             "GOLD"    -> GoldCardColors
             "SILVER"  -> SilverCardColors
             "SAVINGS", "SAVINGS_PLUS" -> SavingsPlusCardColors
+            "MARKET_EXPLORER" -> MarketExplorerCardColors
+            "INNOVATION" -> InnovationCardColors
             else      -> listOf(Color.White, Color.White)
         },
         start = Offset(0f, 0f),
@@ -551,12 +557,16 @@ fun InitialGoalCard(
         "GOLD"    -> Color(0xFFB8860B)
         "SILVER"  -> Color(0xFF3A3A3A)
         "SAVINGS", "SAVINGS_PLUS" -> GreenDark
+        "MARKET_EXPLORER" -> Color(0xFF0F6B5C)
+        "INNOVATION" -> Color(0xFF68499A)
         else      -> PrimaryText
     }
 
     val highlightColor = when (category) {
         "GOLD"    -> Color(0xFFB8860B)
         "SILVER"  -> Color(0xFF4A4A4A)
+        "MARKET_EXPLORER" -> Color(0xFF0F6B5C)
+        "INNOVATION" -> Color(0xFF68499A)
         else      -> GreenDark
     }
 
@@ -580,10 +590,25 @@ fun InitialGoalCard(
     Surface(
         modifier = cardModifier,
         shape = RoundedCornerShape(20.dp),
-        border = if (category == "SILVER") BorderStroke(1.dp, Color.White.copy(alpha = 0.5f)) else if (category == "SAVINGS_PLUS") BorderStroke(1.dp, GreenDark.copy(alpha = 0.4f)) else null
+        border = when (category) {
+            "SILVER" -> BorderStroke(1.dp, Color.White.copy(alpha = 0.5f))
+            "SAVINGS_PLUS" -> BorderStroke(1.dp, GreenDark.copy(alpha = 0.4f))
+            "MARKET_EXPLORER" -> BorderStroke(1.dp, Color(0xFF0F6B5C).copy(alpha = 0.45f))
+            "INNOVATION" -> BorderStroke(1.dp, Color(0xFF7656A8).copy(alpha = 0.45f))
+            else -> null
+        }
     ) {
         var showSavingsPlusInfo by remember { mutableStateOf(false) }
         Box(modifier = Modifier.background(gradient)) {
+            if (category == "INNOVATION") {
+                Text(
+                    text = "🚀",
+                    fontSize = 32.sp,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = 12.dp, end = 12.dp)
+                )
+            }
 
             // Silver shimmer highlight at top
             if (category == "SILVER") {
@@ -752,6 +777,8 @@ fun InitialGoalCard(
                         Text(
                             text = when (category) {
                                 "GOLD", "SAVINGS" -> "₹21 - ₹500"
+                                "MARKET_EXPLORER" -> "₹21 - ₹1000"
+                                "INNOVATION" -> "₹101 - ₹1000"
                                 else              -> "₹101 - ₹500"
                             },
                             style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PrimaryText)
@@ -772,39 +799,108 @@ fun InitialGoalCard(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        val date = bucketData?.startDate ?: "Jan 2023"
-                        val infoText = buildAnnotatedString {
-                            val hl = SpanStyle(fontWeight = FontWeight.Bold, color = highlightColor)
-                            when (category) {
-                                "GOLD" -> {
-                                    val w = bucketData?.accumulatedUnits?.let { "~${it.format(1)}g" } ?: "~15.8g"
-                                    append("Investing ₹101 daily since $date gives you purchase power of ")
-                                    withStyle(hl) { append(w) }
-                                    append(" Gold.")
+                        if (category == "INNOVATION") {
+                            Column(
+                                modifier = Modifier.weight(1f).padding(end = 8.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = "Key Themes Focus",
+                                    style = TextStyle(
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = titleColor
+                                    )
+                                )
+                                Column(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(6.dp)
+                                                .background(Color(0xFF9C27B0), CircleShape)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = "Tech & Internet • Fintech",
+                                            style = TextStyle(
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                color = PrimaryText
+                                            )
+                                        )
+                                    }
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(6.dp)
+                                                .background(Color(0xFF4CAF50), CircleShape)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = "Auto & Mobility • Industrials",
+                                            style = TextStyle(
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                color = PrimaryText
+                                            )
+                                        )
+                                    }
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(6.dp)
+                                                .background(Color(0xFF2196F3), CircleShape)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = "Healthcare • Services & Retail",
+                                            style = TextStyle(
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                color = PrimaryText
+                                            )
+                                        )
+                                    }
                                 }
-                                "SILVER" -> {
-                                    val w = bucketData?.accumulatedUnits?.let { "~${it.format(2)}kg" } ?: "~1.24kg"
-                                    append("Investing ₹101 daily since $date yields ")
-                                    withStyle(hl) { append(w) }
-                                    append(" Silver worth.")
-                                }
-                                "SAVINGS", "SAVINGS_PLUS" -> {
-                                    val c = bucketData?.currentValuation?.let {
-                                        "~₹${(it / 100000.0).format(2)} Lakhs"
-                                    } ?: "~₹1.24 Lakhs"
-                                    append("Investments since $date build a corpus of ")
-                                    withStyle(hl) { append(c) }
-                                    append(".")
-                                }
-                                else -> append(getCorrelationTextInternal(category))
                             }
-                        }
+                        } else {
+                            val date = bucketData?.startDate ?: "Jan 2023"
+                            val infoText = buildAnnotatedString {
+                                val hl = SpanStyle(fontWeight = FontWeight.Bold, color = highlightColor)
+                                when (category) {
+                                    "GOLD" -> {
+                                        val w = bucketData?.accumulatedUnits?.let { "~${it.format(1)}g" } ?: "~15.8g"
+                                        append("Investing ₹101 daily since $date gives you purchase power of ")
+                                        withStyle(hl) { append(w) }
+                                        append(" Gold.")
+                                    }
+                                    "SILVER" -> {
+                                        val w = bucketData?.accumulatedUnits?.let { "~${it.format(2)}kg" } ?: "~1.24kg"
+                                        append("Investing ₹101 daily since $date yields ")
+                                        withStyle(hl) { append(w) }
+                                        append(" Silver worth.")
+                                    }
+                                    "SAVINGS", "SAVINGS_PLUS" -> {
+                                        val c = bucketData?.currentValuation?.let {
+                                            "~₹${(it / 100000.0).format(2)} Lakhs"
+                                        } ?: "~₹1.24 Lakhs"
+                                        append("Investments since $date build a corpus of ")
+                                        withStyle(hl) { append(c) }
+                                        append(".")
+                                    }
+                                    else -> append(getCorrelationTextInternal(category))
+                                }
+                            }
 
-                        Text(
-                            text = infoText,
-                            style = TextStyle(fontSize = 12.sp, color = SecondaryText, lineHeight = 16.sp),
-                            modifier = Modifier.weight(1f).padding(end = 8.dp)
-                        )
+                            Text(
+                                text = infoText,
+                                style = TextStyle(fontSize = 12.sp, color = SecondaryText, lineHeight = 16.sp),
+                                modifier = Modifier.weight(1f).padding(end = 8.dp)
+                            )
+                        }
 
                         // Arrow chevron button
                         ChevronButton(onClick = onClick)
@@ -825,7 +921,7 @@ fun InitialGoalCard(
                         horizontalArrangement = Arrangement.spacedBy(5.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Filled.TrendingUp,
+                            imageVector = if (category == "INNOVATION") Icons.Filled.Star else Icons.Filled.TrendingUp,
                             contentDescription = null,
                             tint = titleColor,
                             modifier = Modifier.size(13.dp)
@@ -867,6 +963,7 @@ private fun getCorrelationTextInternal(category: String) = when (category.upperc
     "GOLD"    -> "Grows in line with gold price"
     "SILVER"  -> "Grows in line with silver price"
     "SAVINGS", "SAVINGS_PLUS" -> "Expected growth up to 7%"
+    "INNOVATION" -> "Focuses on breakthrough & innovative themes"
     else      -> "Grows with market performance"
 }
 

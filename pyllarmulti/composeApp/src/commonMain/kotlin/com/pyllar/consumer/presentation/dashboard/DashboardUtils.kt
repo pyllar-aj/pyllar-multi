@@ -38,6 +38,7 @@ fun getCorrelationColorForCategory(category: String?, colorTheme: String?): Colo
         "GLOBAL_EXPOSURE" -> Color(0xFF00897B) // Teal
         "ALL_IN_ONE" -> Color(0xFF2C4C9C) // Dark blue
         "MARKET_EXPLORER" -> Color(0xFF0F6B5C) // Emerald/Teal Accent
+        "INNOVATION" -> Color(0xFF68499A) // Violet text color for Innovation
         else -> V2SuccessGreen // Default green
     }
 }
@@ -56,6 +57,7 @@ fun getBorderColorForCategory(category: String?): Color {
         cat == "SAVINGS_PLUS" -> V2SuccessGreen // --v2-success-green
         cat == "ALL_IN_ONE" -> Color(0xFF2C4C9C) // Dark blue
         cat == "MARKET_EXPLORER" -> Color(0xFF0F6B5C) // Emerald/Teal Accent
+        cat == "INNOVATION" -> Color(0xFF7656A8)
         else -> V2SuccessGreen // --v2-success-green fallback
     }
 }
@@ -82,6 +84,7 @@ fun getDarkBorderColorForCategory(category: String?, colorTheme: String?): Color
         "GLOBAL_EXPOSURE" -> Color(0xFF00897B) // Teal
         "ALL_IN_ONE" -> Color(0xFF2C4C9C) // Dark blue
         "MARKET_EXPLORER" -> Color(0xFF0F6B5C) // Emerald/Teal Accent
+        "INNOVATION" -> Color(0xFF7656A8)
         else -> V2SuccessGreen // --v2-success-green fallback
     }
 }
@@ -141,6 +144,11 @@ fun getGoalGradientColors(category: String?, colorTheme: String?): List<Color> {
             Color(0xFFC7E7DD), // Vibrant jade mid-tone
             Color(0xFFA5D8C9)  // Deep emerald base
         )
+        "INNOVATION" -> listOf(
+            Color(0xFFF1ECF8),
+            Color(0xFFF1ECF8),
+            Color(0xFFF1ECF8)
+        )
         else -> listOf(
             Color.White,
             Color.White
@@ -171,6 +179,7 @@ fun getIconBackgroundColorForCategory(category: String?, colorTheme: String?): C
         "GLOBAL_EXPOSURE" -> Color(0xFFB2DFDB) // Light teal
         "ALL_IN_ONE" -> Color(0xFFD4DBEB) // Light blue-gray
         "MARKET_EXPLORER" -> Color(0xFFE3F1EC) // Icon circle background
+        "INNOVATION" -> Color.White // White background for the icon
         else -> Color(0xFFC8E6C9) // Default light green
     }
 }
@@ -209,6 +218,7 @@ fun getCorrelationText(category: String?): String {
         "GLOBAL_EXPOSURE" -> "Grows with global market performance"
         "ALL_IN_ONE" -> "Diversified growth across asset classes"
         "MARKET_EXPLORER" -> "Growth through diversified equity investing"
+        "INNOVATION" -> "Grows with market performance"
         else -> "Grows with market performance"
     }
 }
@@ -224,6 +234,7 @@ fun getInvestmentTypeText(category: String?): String {
         "GLOBAL_EXPOSURE" -> "International Equity Funds"
         "ALL_IN_ONE" -> "Diversified Portfolio"
         "MARKET_EXPLORER" -> "Active Equity Funds"
+        "INNOVATION" -> "Equity Funds"
         else -> "Equity Funds"
     }
 }
@@ -251,6 +262,7 @@ fun String.toColor(): Color {
         "teal" -> Color(0xFF009688)
         "jade", "emerald" -> Color(0xFF0F6B5C)
         "bronze", "copper" -> Color(0xFF8A4E1E)
+        "innovation" -> Color(0xFF68499A)
         else -> V2SuccessGreen
     }
 }

@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.RocketLaunch
 import androidx.compose.material.icons.Icons
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -1917,6 +1918,7 @@ fun NextGoalCard(
                                 "FESTIVAL_SPENDS" -> "₹11 - ₹500"
                                 "GLOBAL_EXPOSURE" -> "₹101 - ₹1000"
                                 "ALL_IN_ONE" -> "₹51 - ₹1000"
+                                "INNOVATION" -> "₹101 - ₹1000"
                                 else -> "₹101 - ₹500"
                             },
                             style = MaterialTheme.typography.titleSmall.copy(
@@ -1947,72 +1949,125 @@ fun NextGoalCard(
                         modifier = Modifier.weight(0.9f),
                         horizontalAlignment = Alignment.Start
                     ) {
-                        val annotatedText = buildAnnotatedString {
-                            when (category) {
-                                "GOLD" -> {
-                                    append("Investing ₹101 daily since Jan 2023 gives you purchasing power of ")
-                                    withStyle(SpanStyle(color = Color(0xFFB8860B), fontWeight = FontWeight.Bold)) {
-                                        append("~15.8g Gold")
-                                    }
-                                    append(".")
+                        if (category == "INNOVATION") {
+                            Text(
+                                text = "Key Themes Focus",
+                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                color = Color(0xFF424242)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .background(Color(0xFF9C27B0), CircleShape)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "Tech & Internet • Fintech",
+                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium),
+                                        color = Color(0xFF424242)
+                                    )
                                 }
-                                "SILVER" -> {
-                                    append("Investing ₹101 daily since Jan 2023 yields ")
-                                    withStyle(SpanStyle(color = Color(0xFF616161), fontWeight = FontWeight.Bold)) {
-                                        append("~1.24kg Silver")
-                                    }
-                                    append(" worth.")
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .background(Color(0xFF4CAF50), CircleShape)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "Auto & Mobility • Industrials",
+                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium),
+                                        color = Color(0xFF424242)
+                                    )
                                 }
-                                "SAVINGS", "SAVINGS_PLUS" -> {
-                                    append("Investing ₹101 daily since Jan 2023 in this fund built a corpus of ~")
-                                    withStyle(SpanStyle(color = Color(0xFF004D40), fontWeight = FontWeight.Bold)) {
-                                        append("₹1.24 Lakhs")
-                                    }
-                                    append(".")
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .background(Color(0xFF2196F3), CircleShape)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "Healthcare • Services & Retail",
+                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium),
+                                        color = Color(0xFF424242)
+                                    )
                                 }
-                                "FESTIVAL_SPENDS" -> {
-                                    append("Investing ₹51 daily since Jan 2023 in this fund grew to ~")
-                                    withStyle(SpanStyle(color = Color(0xFFFF6F00), fontWeight = FontWeight.Bold)) {
-                                        append("₹62,408")
-                                    }
-                                    append(".")
-                                }
-                                "GLOBAL_EXPOSURE" -> {
-                                    append("Investing ₹101 daily since Jan 2023 in international equity fund grew into ~")
-                                    withStyle(SpanStyle(color = Color(0xFF00897B), fontWeight = FontWeight.Bold)) {
-                                        append("₹1.54 Lakhs")
-                                    }
-                                    append(".")
-                                }
-                                "ALL_IN_ONE" -> {
-                                    append("Investing ₹101 daily since Jan 2023 in a diversified multi-asset fund helped build a corpus of ~")
-                                    withStyle(SpanStyle(color = Color(0xFF2C4C9C), fontWeight = FontWeight.Bold)) {
-                                        append("₹1.41 Lakhs")
-                                    }
-                                    append(".")
-                                }
-                                "MARKET_EXPLORER" -> {
-                                    val marketExplorerAccent = Color(0xFF0F6B5C)
-                                    append("Investing ₹101 daily since Jan 2023 in a flexi-cap fund could have built a corpus of ~")
-                                    withStyle(
-                                        SpanStyle(
-                                            color = marketExplorerAccent,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    ) {
-                                        append("₹1.42 Lakhs")
-                                    }
-                                    append(".")
-                                }
-                                else -> append(goal.description)
                             }
+                        } else {
+                            val annotatedText = buildAnnotatedString {
+                                when (category) {
+                                    "GOLD" -> {
+                                        append("Investing ₹101 daily since Jan 2023 gives you purchasing power of ")
+                                        withStyle(SpanStyle(color = Color(0xFFB8860B), fontWeight = FontWeight.Bold)) {
+                                            append("~15.8g Gold")
+                                        }
+                                        append(".")
+                                    }
+                                    "SILVER" -> {
+                                        append("Investing ₹101 daily since Jan 2023 yields ")
+                                        withStyle(SpanStyle(color = Color(0xFF616161), fontWeight = FontWeight.Bold)) {
+                                            append("~1.24kg Silver")
+                                        }
+                                        append(" worth.")
+                                    }
+                                    "SAVINGS", "SAVINGS_PLUS" -> {
+                                        append("Investing ₹101 daily since Jan 2023 in this fund built a corpus of ~")
+                                        withStyle(SpanStyle(color = Color(0xFF004D40), fontWeight = FontWeight.Bold)) {
+                                            append("₹1.24 Lakhs")
+                                        }
+                                        append(".")
+                                    }
+                                    "FESTIVAL_SPENDS" -> {
+                                        append("Investing ₹51 daily since Jan 2023 in this fund grew to ~")
+                                        withStyle(SpanStyle(color = Color(0xFFFF6F00), fontWeight = FontWeight.Bold)) {
+                                            append("₹62,408")
+                                        }
+                                        append(".")
+                                    }
+                                    "GLOBAL_EXPOSURE" -> {
+                                        append("Investing ₹101 daily since Jan 2023 in international equity fund grew into ~")
+                                        withStyle(SpanStyle(color = Color(0xFF00897B), fontWeight = FontWeight.Bold)) {
+                                            append("₹1.54 Lakhs")
+                                        }
+                                        append(".")
+                                    }
+                                    "ALL_IN_ONE" -> {
+                                        append("Investing ₹101 daily since Jan 2023 in a diversified multi-asset fund helped build a corpus of ~")
+                                        withStyle(SpanStyle(color = Color(0xFF2C4C9C), fontWeight = FontWeight.Bold)) {
+                                            append("₹1.41 Lakhs")
+                                        }
+                                        append(".")
+                                    }
+                                    "MARKET_EXPLORER" -> {
+                                        val marketExplorerAccent = Color(0xFF0F6B5C)
+                                        append("Investing ₹101 daily since Jan 2023 in a flexi-cap fund could have built a corpus of ~")
+                                        withStyle(
+                                            SpanStyle(
+                                                color = marketExplorerAccent,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        ) {
+                                            append("₹1.42 Lakhs")
+                                        }
+                                        append(".")
+                                    }
+                                    else -> append(goal.description)
+                                }
+                            }
+                            Text(
+                                text = annotatedText,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFF424242),
+                                lineHeight = MaterialTheme.typography.bodySmall.lineHeight
+                            )
                         }
-                        Text(
-                            text = annotatedText,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color(0xFF424242),
-                            lineHeight = MaterialTheme.typography.bodySmall.lineHeight
-                        )
                     }
                 }
 
@@ -2085,11 +2140,37 @@ fun NextGoalCard(
                         Icon(
                             imageVector = Icons.Filled.ExpandMore,
                             contentDescription = null,
-                            tint = if (isAllInOne) Color(0xFF2C4C9C) else Color(0xFF8A4E1E),
+                            tint = if (isAllInOne) Color(0xFF2C4C9C) else if (category == "INNOVATION") Color(0xFF7656A8) else Color(0xFF8A4E1E),
                             modifier = Modifier
                                 .size(28.dp)
                                 .rotate(if (expanded) 180f else 0f)
                         )
+                    }
+                    if (category == "INNOVATION") {
+                        Spacer(modifier = Modifier.height(1.dp))
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    color = Color(0xFF68499A).copy(alpha = 0.12f),
+                                    shape = RoundedCornerShape(20.dp)
+                                )
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Star,
+                                contentDescription = null,
+                                tint = Color(0xFF68499A),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Focuses on breakthrough & innovative themes 🚀",
+                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                                color = Color(0xFF68499A)
+                            )
+                        }
                     }
                     if (expanded) {
                         Spacer(modifier = Modifier.height(12.dp))
@@ -2239,6 +2320,20 @@ fun NextGoalCard(
                                     }
                                 }
                             }
+                            Spacer(modifier = Modifier.height(12.dp))
+                        } else if (category == "INNOVATION") {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Suggested holding period: 5 Years+ ⏰",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFF424242)
+                            )
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Text(
+                                text = "Holdings are actively picked by the fund manager and change as new innovative companies emerge.",
+                                style = MaterialTheme.typography.labelSmall.copy(fontStyle = FontStyle.Italic),
+                                color = Color(0xFF68499A)
+                            )
                             Spacer(modifier = Modifier.height(12.dp))
                         } else {
                             // MARKET_EXPLORER

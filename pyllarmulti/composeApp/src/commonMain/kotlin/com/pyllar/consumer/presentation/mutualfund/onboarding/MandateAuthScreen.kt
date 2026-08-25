@@ -413,6 +413,7 @@ private fun MandateApprovedWaitingContent(
         GoalType.ALL_IN_ONE -> Color(0xFF7B1FA2)
         GoalType.GLOBAL_EXPOSURE -> Color(0xFF2196F3)
         GoalType.MARKET_EXPLORER -> Color(0xFF0F6B5C)
+        GoalType.INNOVATION -> Color(0xFF68499A)
         else -> MaterialTheme.colorScheme.primary
     }
     val lightBackground = V2SubtleBorder

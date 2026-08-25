@@ -139,6 +139,9 @@ fun SchemeDetailsV2Screen(
         categoryUpper == "GLOBAL_EXPOSURE" || categoryUpper == "GLOBAL" -> {
             listOf(Color.White, Color.White.copy(alpha = 0.9f), Color.White.copy(alpha = 0.25f), Color.White)
         }
+        categoryUpper == "INNOVATION" -> {
+            listOf(Color.White, Color.White.copy(alpha = 0.9f), Color.White.copy(alpha = 0.25f), Color.White)
+        }
         categoryUpper == "FESTIVAL_SPENDS" -> {
             listOf(Color.White, Color.White.copy(alpha = 0.9f), Color.White.copy(alpha = 0.25f), Color.White)
         }
@@ -2944,6 +2947,7 @@ private fun getAnnualisedReturnPercent(goalType: GoalType, years: Int = 3): Doub
         goalType == GoalType.FESTIVAL_SPENDS -> 0.075
         goalType == GoalType.GLOBAL_EXPOSURE -> 0.23
         goalType == GoalType.ALL_IN_ONE -> 0.175
+        goalType == GoalType.INNOVATION -> 0.15
         else -> 0.10
     }
     return annualRateDecimal * 100.0
@@ -4141,6 +4145,7 @@ private fun getGradientForCategory(category: String?, colorTheme: String?): Brus
         "VACATION" -> listOf(Color(0xFF6A1B9A), Color(0xFF8844EE), Color(0xFFCE93D8))
         "ALL_IN_ONE" -> listOf(Color(0xFF283593), Color(0xFF3F51B5), Color(0xFF9FA8DA))
         "MARKET_EXPLORER" -> listOf(Color(0xFF0F6B5C), Color(0xFF148B75), Color(0xFFE4F3EE))
+        "INNOVATION" -> listOf(Color(0xFF7A5F9E), Color(0xFF876DAF), Color(0xFFF1ECF8))
         else -> listOf(baseColor.copy(alpha = 0.8f), baseColor)
     }
     return Brush.verticalGradient(colors)

@@ -18,6 +18,7 @@ enum class GoalType {
     GLOBAL_EXPOSURE,
     ALL_IN_ONE,
     MARKET_EXPLORER,
+    INNOVATION,
     OTHER
 }
 
@@ -34,6 +35,7 @@ fun identifyGoalType(goalId: String): GoalType {
         lowerGoalId == "global_exposure" || lowerGoalId.contains("global_exposure") || lowerGoalId.contains("global-exposure") -> GoalType.GLOBAL_EXPOSURE
         lowerGoalId == "savings_plus" || lowerGoalId.contains("savings_plus") || lowerGoalId.contains("savings-plus") -> GoalType.SAVINGS_PLUS
         lowerGoalId == "market_explorer" || lowerGoalId.contains("market_explorer") || lowerGoalId.contains("market-explorer") -> GoalType.MARKET_EXPLORER
+        lowerGoalId == "innovation" || lowerGoalId.contains("innovation") -> GoalType.INNOVATION
         else -> GoalType.OTHER
     }
 }
@@ -53,6 +55,7 @@ fun identifyGoalType(category: String?, schemeName: String?): GoalType {
         cat == "GLOBAL_EXPOSURE" -> GoalType.GLOBAL_EXPOSURE
         cat == "ALL_IN_ONE" -> GoalType.ALL_IN_ONE
         cat == "MARKET_EXPLORER" -> GoalType.MARKET_EXPLORER
+        cat == "INNOVATION" -> GoalType.INNOVATION
         else -> GoalType.OTHER
     }
 }
@@ -67,6 +70,7 @@ fun getGoalDisplayName(goalType: GoalType): String {
         GoalType.GLOBAL_EXPOSURE -> "Global Exposure"
         GoalType.SAVINGS_PLUS -> "Savings Plus"
         GoalType.MARKET_EXPLORER -> "Market Explorer"
+        GoalType.INNOVATION -> "Innovation"
         else -> "Savings"
     }
 }
@@ -106,6 +110,7 @@ fun calculateLumpsumFutureValue(oneTimeAmount: Double, years: Int, goalType: Goa
         goalType == GoalType.FESTIVAL_SPENDS -> 0.075
         goalType == GoalType.GLOBAL_EXPOSURE -> 0.23
         goalType == GoalType.ALL_IN_ONE -> 0.175
+        goalType == GoalType.INNOVATION -> 0.15
         else -> 0.10
     }
     return (oneTimeAmount * (1.0 + annualRate).pow(years.toDouble())).coerceAtLeast(0.0)

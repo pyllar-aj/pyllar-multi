@@ -209,6 +209,24 @@ class InitialDashboardViewModel(
                 targetDate = "Jan 2030"
             ),
             InvestmentGoal(
+                goalId = "innovation",
+                name = "Innovation",
+                description = "Grows with market performance",
+                iconType = "🚀",
+                targetAmount = 1000000.0,
+                investedAmount = 0.0,
+                currentValue = 0.0,
+                returnsPercentage = 24.5,
+                progressPercentage = 0.0,
+                timeRemainingMonths = 60,
+                recommendedMonthlyAmount = 5000.0,
+                recommendedDailyAmount = 166.67,
+                category = "INNOVATION",
+                colorTheme = "innovation",
+                actionButtonText = "Invest now",
+                targetDate = "Jan 2030"
+            ),
+            InvestmentGoal(
                 goalId = "vacation",
                 name = "Vacation",
                 description = "Save for your dream getaway",

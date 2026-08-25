@@ -789,6 +789,7 @@ fun LumpsumAmountScreenV3(
                         GoalType.GLOBAL_EXPOSURE -> "Global Exposure One-time Investment"
                         GoalType.ALL_IN_ONE -> "All-in-One One-time Investment"
                         GoalType.MARKET_EXPLORER -> "Market Explorer One-time Investment"
+                        GoalType.INNOVATION -> "Innovation One-time Investment"
                         else -> "One-time Investment"
                     }
 
