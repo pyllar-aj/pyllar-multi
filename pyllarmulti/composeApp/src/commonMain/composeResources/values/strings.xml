@@ -845,7 +845,7 @@
     <string name="step_plan_setup_title">Plan setup</string>
     <string name="step_plan_setup_desc">Your SIP plan is confirmed and ready to go</string>
     <string name="step_money_debits_title">Money debits started</string>
-    <string name="step_money_debits_desc">%1$s debits from the next working day — this queues up safely</string>
+    <string name="step_money_debits_desc">%1$s debits from the next day — this queues up safely</string>
     <string name="step_folio_creation_title">Folio creation</string>
     <string name="step_folio_creation_desc">Usually takes 2–3 working days to set up with the fund house</string>
     <string name="step_unit_allotment_title">Unit allotment started</string>

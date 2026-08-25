@@ -949,8 +949,8 @@ fun SipAmountScreenV3(
                         // ── SIP START INFO CARD ───────────────────────────────────
                         if (!isMonthly) {
                             SipStartInfoCard(
-                                title = "SIP starts ${getInvestmentStatus()}",
-                                subtitle = "First Debit by ${getNextAllocationDayName()}, 8 am"
+                                title = "SIP starts Tomorrow",
+                                subtitle = "First Debit by Tomorrow, 8 am"
                             )
                         } else {
                             val (monthlyTitle, monthlySubtitle) = getMonthlySipStartInfo(sipDate)
