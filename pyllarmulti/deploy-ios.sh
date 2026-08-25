@@ -6,8 +6,9 @@
 #   bash deploy-ios.sh [--flavor release|debug] [-f release|debug]
 #
 # Flavors:
-#   release  (default) → https://api.pyllar.in
-#   debug              → http://10.222.186.212:8080
+#   release     (default) → https://api.pyllar.in
+#   debug                 → http://localhost:8080
+#   debug-prod            → https://api.pyllar.in (Debug build pointing to production)
 # ─────────────────────────────────────────────────────────────────────────────
 set -e
 
@@ -17,19 +18,19 @@ FLAVOR="release"  # default flavor
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --flavor|-f)
-            FLAVOR="${2:?'--flavor requires an argument: release|debug'}"
+            FLAVOR="${2:?'--flavor requires an argument: release|debug|debug-prod'}"
             shift 2
             ;;
         *)
             echo "Unknown argument: $1" >&2
-            echo "Usage: bash deploy-ios.sh [--flavor release|debug]" >&2
+            echo "Usage: bash deploy-ios.sh [--flavor release|debug|debug-prod]" >&2
             exit 1
             ;;
     esac
 done
 
-if [[ "$FLAVOR" != "release" && "$FLAVOR" != "debug" ]]; then
-    echo "Invalid flavor '$FLAVOR'. Must be 'release' or 'debug'." >&2
+if [[ "$FLAVOR" != "release" && "$FLAVOR" != "debug" && "$FLAVOR" != "debug-prod" ]]; then
+    echo "Invalid flavor '$FLAVOR'. Must be 'release', 'debug', or 'debug-prod'." >&2
     exit 1
 fi
 
@@ -58,7 +59,16 @@ else
     echo "    $SIMULATOR_NAME already booted."
 fi
 
-XCODE_CONFIGURATION=$([ "$FLAVOR" = "debug" ] && echo "Debug" || echo "Release")
+if [[ "$FLAVOR" == "debug" ]]; then
+    XCODE_CONFIGURATION="Debug"
+    PYLLAR_FLAVOR="debug"
+elif [[ "$FLAVOR" == "debug-prod" ]]; then
+    XCODE_CONFIGURATION="Debug"
+    PYLLAR_FLAVOR="release"
+else
+    XCODE_CONFIGURATION="Release"
+    PYLLAR_FLAVOR="release"
+fi
 
 echo "==> Building Xcode project..."
 cd "$PROJECT_ROOT/iosApp"
@@ -68,6 +78,7 @@ xcodebuild \
     -configuration "$XCODE_CONFIGURATION" \
     -destination "id=$SIMULATOR_UDID" \
     -derivedDataPath "$DERIVED_DATA" \
+    PYLLAR_FLAVOR="$PYLLAR_FLAVOR" \
     clean build CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY="-" | grep -E "(error:|warning: |BUILD (SUCCEEDED|FAILED))"
 
 echo "==> Uninstalling and Installing app..."

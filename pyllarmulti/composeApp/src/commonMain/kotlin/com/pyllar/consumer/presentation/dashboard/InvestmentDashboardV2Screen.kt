@@ -2071,7 +2071,7 @@ fun NextGoalCard(
                     }
                 }
 
-                if (isAllInOne || category == "MARKET_EXPLORER") {
+                if (isAllInOne || category == "MARKET_EXPLORER" || category == "INNOVATION") {
                     Spacer(modifier = Modifier.height(8.dp))
                     if (isAllInOne) {
                         val allInOneAccent = Color(0xFF2C4C9C)
@@ -2081,6 +2081,34 @@ fun NextGoalCard(
                             dashLength = 4.dp,
                             gapLength = 4.dp
                         )
+                    } else if (category == "INNOVATION") {
+                        val innovationAccent = Color(0xFF68499A).copy(alpha = 0.85f)
+                        Row(
+                            modifier = Modifier.fillMaxWidth().height(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            DashedDivider(
+                                modifier = Modifier.weight(1f),
+                                thickness = 1.dp,
+                                color = innovationAccent,
+                                dashLength = 2.dp,
+                                gapLength = 4.dp
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "↗",
+                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                color = Color(0xFF68499A).copy(alpha = 0.7f)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            DashedDivider(
+                                modifier = Modifier.weight(1f),
+                                thickness = 1.dp,
+                                color = innovationAccent,
+                                dashLength = 2.dp,
+                                gapLength = 4.dp
+                            )
+                        }
                     } else {
                         val marketExplorerAccent = Color(0xFF0F6B5C).copy(alpha = 0.85f)
                         Row(
