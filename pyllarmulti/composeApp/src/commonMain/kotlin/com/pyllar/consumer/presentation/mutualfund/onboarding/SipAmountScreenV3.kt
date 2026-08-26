@@ -206,6 +206,7 @@ fun SipAmountScreenV3(
     investorId: String = "",
     goalId: String = "",
     isExistingInvestment: Boolean = false,
+    kycStatus: String = "",
     onSipCreated: (Double, String?, MandateWrapper?) -> Unit = { _, _, _ -> },
     onNavigateBack: () -> Unit = {},
     onForceLogout: () -> Unit = {},
@@ -221,7 +222,6 @@ fun SipAmountScreenV3(
 ) {
     val limitsState by viewModel.limitsState.collectAsState()
     val fundDetailsState by fundDetailsViewModel.uiState.collectAsState()
-    val dashboardState by dashboardViewModel.dashboardState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -231,12 +231,14 @@ fun SipAmountScreenV3(
     var effectiveKycAttemptId by remember(kycAttemptId) { mutableStateOf(kycAttemptId) }
     var effectiveInvestorId by remember(investorId) { mutableStateOf(investorId) }
     var effectiveGoalId by remember(goalId) { mutableStateOf(goalId) }
+    var currentKycStatus by remember(kycStatus) { mutableStateOf(kycStatus) }
     var isFetchingIds by remember { mutableStateOf(false) }
     var isInitializing by remember { mutableStateOf(true) }
     var isInitTxnLoading by remember { mutableStateOf(false) }
     var submitResult by remember { mutableStateOf<String?>(null) }
     var showUnexpectedErrorDialog by remember { mutableStateOf(false) }
     var showTrustStripInfoDialog by remember { mutableStateOf(false) }
+
     var showDisclaimerDialog by remember { mutableStateOf(false) }
 
     var eligibleForDoubtsSurvey by remember { mutableStateOf(false) }
@@ -244,9 +246,10 @@ fun SipAmountScreenV3(
     var showLimitReachedDialog by remember { mutableStateOf(false) }
     var limitReachedMessage by remember { mutableStateOf("") }
 
-    val currentGoal = remember(dashboardState.primaryGoals, effectiveGoalId) {
-        dashboardState.primaryGoals.firstOrNull { it.goalId.equals(effectiveGoalId, ignoreCase = true) }
-            ?: dashboardState.primaryGoals.firstOrNull { it.category.equals(effectiveGoalId, ignoreCase = true) }
+    val currentGoal = remember(effectiveGoalId) {
+        val emptyGoals = emptyList<com.pyllar.consumer.presentation.dashboard.InvestmentGoal>()
+        emptyGoals.firstOrNull { it.goalId.equals(effectiveGoalId, ignoreCase = true) }
+            ?: emptyGoals.firstOrNull { it.category.equals(effectiveGoalId, ignoreCase = true) }
     }
     val activeDailyPlansCount = remember(currentGoal) {
         currentGoal?.planSummaryDtos?.count {
@@ -360,14 +363,7 @@ fun SipAmountScreenV3(
             fundDetailsState.fundDetails != null &&
             !fundDetailsState.pastPerformanceLoading &&
             fundDetailsState.pastPerformance != null &&
-            !isInitTxnLoading &&
-            !dashboardState.isLoading
-
-    LaunchedEffect(effectiveUserId) {
-        if (effectiveUserId.isNotBlank()) {
-            dashboardViewModel.loadDashboardData(effectiveUserId)
-        }
-    }
+            !isInitTxnLoading
 
     LaunchedEffect(effectiveUserId, effectiveGoalId) {
         if (effectiveUserId.isNotBlank() && effectiveGoalId.isNotBlank()) {
@@ -494,15 +490,12 @@ fun SipAmountScreenV3(
 
     // Exit-intent doubts survey eligibility: shown once, on the first back-press after the
     // 5th visit to this screen, as long as the user hasn't already started a SIP here and has no active goals.
-    LaunchedEffect(dashboardState.primaryGoals, dashboardState.isLoading) {
-        if (!dashboardState.isLoading) {
-            val newVisitCount = (sessionStore.getValue(KeyValueConstants.SIP_AMOUNT_V3_VISIT_COUNT)?.toIntOrNull() ?: 0) + 1
-            sessionStore.saveValue(KeyValueConstants.SIP_AMOUNT_V3_VISIT_COUNT, newVisitCount.toString())
-            eligibleForDoubtsSurvey = newVisitCount > 4 &&
-                sessionStore.getValue(KeyValueConstants.DOUBTS_SURVEY_SHOWN) != "true" &&
-                sessionStore.getValue(KeyValueConstants.HAS_STARTED_SIP) != "true" &&
-                dashboardState.primaryGoals.isEmpty()
-        }
+    LaunchedEffect(Unit) {
+        val newVisitCount = (sessionStore.getValue(KeyValueConstants.SIP_AMOUNT_V3_VISIT_COUNT)?.toIntOrNull() ?: 0) + 1
+        sessionStore.saveValue(KeyValueConstants.SIP_AMOUNT_V3_VISIT_COUNT, newVisitCount.toString())
+        eligibleForDoubtsSurvey = newVisitCount > 4 &&
+            sessionStore.getValue(KeyValueConstants.DOUBTS_SURVEY_SHOWN) != "true" &&
+            sessionStore.getValue(KeyValueConstants.HAS_STARTED_SIP) != "true"
     }
 
     Scaffold(
@@ -552,7 +545,7 @@ fun SipAmountScreenV3(
                     Button(
                         onClick = {
                             if (isSheetLoading) return@Button
-                            if (dashboardState.kycStatus.equals("INITIATE", ignoreCase = true)) {
+                            if (currentKycStatus.equals("INITIATE", ignoreCase = true)) {
                                 onStartKyc()
                                 return@Button
                             }
@@ -587,7 +580,7 @@ fun SipAmountScreenV3(
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(if (isSheetLoading) stringResource(Res.string.submitting) else "Fetching details...")
                         } else {
-                            val buttonText = if (dashboardState.kycStatus.equals("INITIATE", ignoreCase = true)) {
+                            val buttonText = if (currentKycStatus.equals("INITIATE", ignoreCase = true)) {
                                 "Complete KYC"
                             } else {
                                 stringResource(Res.string.start_sip)
@@ -1082,12 +1075,12 @@ fun SipAmountScreenV3(
             sheetError = sheetError,
             areDetailsLoaded = areDetailsLoaded,
             onConfirm = {
-                val kycStatus = dashboardState.kycStatus
-                val isKycPending = !dashboardState.isLoading &&
-                        (kycStatus.equals("PENDING", ignoreCase = true) ||
-                         kycStatus.equals("IN_PROGRESS", ignoreCase = true) ||
-                         kycStatus.equals("EXPIRED", ignoreCase = true) ||
-                         kycStatus.equals("UNLINKED", ignoreCase = true))
+                val kycStatusVal = currentKycStatus
+                val isKycPending = !false &&
+                        (kycStatusVal.equals("PENDING", ignoreCase = true) ||
+                         kycStatusVal.equals("IN_PROGRESS", ignoreCase = true) ||
+                         kycStatusVal.equals("EXPIRED", ignoreCase = true) ||
+                         kycStatusVal.equals("UNLINKED", ignoreCase = true))
 
                 if (isKycPending) {
                     showDetailsBottomSheet = false
@@ -1186,7 +1179,7 @@ fun SipAmountScreenV3(
         com.pyllar.consumer.presentation.dashboard.KycPendingBottomSheet(
             onDismiss = { showKycPendingBottomSheet = false },
             onRetryKyc = { showKycPendingBottomSheet = false },
-            kycStatus = dashboardState.kycStatus
+            kycStatus = currentKycStatus
         )
     }
 }

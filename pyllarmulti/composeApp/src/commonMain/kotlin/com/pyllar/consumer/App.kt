@@ -103,7 +103,7 @@ sealed class Screen {
     ) : Screen()
     data class FundDetailsViewOnly(val isin: String, val userId: String, val goalId: String) : Screen()
     data class LumpsumFundDetails(val isin: String, val userId: String, val goalId: String, val lumpsumAmount: Double, val kycAttemptId: String = "", val investorId: String = "") : Screen()
-    data class SipAmountV2(val userId: String, val kycAttemptId: String, val investorId: String, val goalId: String, val fromDashboard: Boolean = false, val isExistingInvestment: Boolean = false) : Screen()
+    data class SipAmountV2(val userId: String, val kycAttemptId: String, val investorId: String, val goalId: String, val fromDashboard: Boolean = false, val isExistingInvestment: Boolean = false, val kycStatus: String = "") : Screen()
     data class LumpsumAmountV2(val userId: String, val kycAttemptId: String, val investorId: String, val goalId: String, val isExistingInvestment: Boolean = false) : Screen()
     data class LumpsumPurchaseAuth(
         val userId: String,
@@ -877,8 +877,8 @@ fun App() {
                     onNavigateToSchemeDetails = { purpose ->
                         navigateTo(Screen.SchemeDetails(screen.userId, purpose))
                     },
-                    onNavigateToGoal = { goalId ->
-                        navigateTo(Screen.SipAmountV2(screen.userId, "", "", goalId, fromDashboard = true, isExistingInvestment = false))
+                    onNavigateToGoal = { goalId, kycStatus ->
+                        navigateTo(Screen.SipAmountV2(screen.userId, "", "", goalId, fromDashboard = true, isExistingInvestment = false, kycStatus = kycStatus))
                     },
                     onNavigateToWithdraw = {
                         navigateTo(Screen.Withdraw(screen.userId))
@@ -899,8 +899,8 @@ fun App() {
                         WithdrawParamsManager.set(params)
                         navigateTo(Screen.Withdraw(screen.userId))
                     },
-                    onNavigateToAddFunds = { uid, kycId, invId, gid, isExisting ->
-                        navigateTo(Screen.SipAmountV2(uid, kycId, invId, gid, fromDashboard = true, isExistingInvestment = isExisting))
+                    onNavigateToAddFunds = { uid, kycId, invId, gid, isExisting, kycStatus ->
+                        navigateTo(Screen.SipAmountV2(uid, kycId, invId, gid, fromDashboard = true, isExistingInvestment = isExisting, kycStatus = kycStatus))
                     },
                     onNavigateToLumpsum = { uid, kycId, invId, gid, isExisting ->
                         navigateTo(Screen.LumpsumAmountV2(uid, kycId, invId, gid, isExistingInvestment = isExisting))
@@ -1042,6 +1042,7 @@ fun App() {
                     investorId = screen.investorId,
                     goalId = screen.goalId,
                     isExistingInvestment = screen.isExistingInvestment,
+                    kycStatus = screen.kycStatus,
                     onStartKyc = { navigateTo(Screen.KycInformation(screen.userId)) },
                     onSipCreated = { amount, nextScreen, mandate ->
                         if (nextScreen == com.pyllar.consumer.navigation.ScreenNames.MANDATE_AUTH && mandate != null) {

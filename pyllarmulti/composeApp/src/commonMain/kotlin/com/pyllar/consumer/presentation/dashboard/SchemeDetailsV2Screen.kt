@@ -65,7 +65,7 @@ fun SchemeDetailsV2Screen(
     purpose: String = "",
     onNavigateBack: () -> Unit = {},
     onNavigateToWithdraw: (WithdrawInitParams) -> Unit = {},
-    onNavigateToAddFunds: (userId: String, kycAttemptId: String, investorId: String, goalId: String, isExistingInvestment: Boolean) -> Unit = { _, _, _, _, _ -> },
+    onNavigateToAddFunds: (userId: String, kycAttemptId: String, investorId: String, goalId: String, isExistingInvestment: Boolean, kycStatus: String) -> Unit = { _, _, _, _, _, _ -> },
     onNavigateToLumpsum: (userId: String, kycAttemptId: String, investorId: String, goalId: String, isExistingInvestment: Boolean) -> Unit = { _, _, _, _, _ -> },
     onNavigateToFundDetails: (isin: String, userId: String, goalId: String, sipAmount: Double, kycAttemptId: String, investorId: String, fromSipAmount: Boolean) -> Unit = { _, _, _, _, _, _, _ -> },
     viewModel: SchemeDetailsViewModel = koinInject(),
@@ -169,7 +169,11 @@ fun SchemeDetailsV2Screen(
     val unitsVal = when {
         isGoldOrSilver && (state.unitsInGm ?: schemeParams?.unitsInGm ?: 0.0) > 0 -> {
             val u = state.unitsInGm ?: schemeParams?.unitsInGm ?: 0.0
-            formatWeight(u, stringResource(Res.string.mg_label), stringResource(Res.string.g_label))
+            if (u < 1.0) {
+                "${formatDecimal(u * 1000.0, 1)}${stringResource(Res.string.mg_label)}"
+            } else {
+                formatWeight(u, stringResource(Res.string.mg_label), stringResource(Res.string.g_label))
+            }
         }
         else -> {
             formatRupeeAmount(state.cummulativeValue, 0)
@@ -216,7 +220,7 @@ fun SchemeDetailsV2Screen(
     val isFirstPlanEverForGoal = remember(state.mandates, activeMandate) {
         val approvedMandates = state.mandates.filter { m ->
             val s = m.status?.uppercase().orEmpty()
-            s.contains("APPROVED") || s.contains("ACTIVE") || s.contains("COMPLETED") || s.contains("CLOSED")
+            s.contains("APPROVED") || s.contains("ACTIVE") || s.contains("COMPLETED") || s.contains("CLOSED") || s.contains("CANCELLED")
         }.sortedBy { m ->
             m.mandateCreatedDate ?: m.mandateApprovedDate ?: "9999-99-99"
         }
@@ -349,7 +353,7 @@ fun SchemeDetailsV2Screen(
                     sessionStore.saveValue("isExistingInvestment", hasActualInvestment.toString())
                     val kycAttemptId = sessionStore.getValue(KeyValueConstants.KYC_ATTEMPT_ID) ?: ""
                     val investorId = sessionStore.getValue(KeyValueConstants.INVESTOR_ID) ?: ""
-                    onNavigateToAddFunds(userId, kycAttemptId, investorId, purpose, hasActualInvestment)
+                    onNavigateToAddFunds(userId, kycAttemptId, investorId, purpose, hasActualInvestment, "SUCCESS")
                 } catch (e: Exception) {
                     platformLog("Error: ${e.message}")
                 }
@@ -1628,7 +1632,7 @@ fun SchemeDetailsCardV2(
 
     val allottedValue = when {
         isGoldOrSilver && unitsInGm != null && unitsInGm > 0 -> {
-            if (unitsInGm < 1.0) "${formatDecimal(unitsInGm * 1000, 0)}${stringResource(Res.string.mg_label)}" else "${formatDecimal(unitsInGm, 2)}${stringResource(Res.string.g_label)}"
+            if (unitsInGm < 1.0) "${formatDecimal(unitsInGm * 1000.0, 1)}${stringResource(Res.string.mg_label)}" else "${formatDecimal(unitsInGm, 2)}${stringResource(Res.string.g_label)}"
         }
         else -> {
             formatRupeeAmount(totalValue, 0)
@@ -2027,7 +2031,7 @@ fun SchemeDetailsPopupContentV2(
 
     val allottedValue = when {
         isGoldOrSilver && unitsInGm != null && unitsInGm > 0 -> {
-            if (unitsInGm < 1.0) "${formatDecimal(unitsInGm * 1000, 0)}${stringResource(Res.string.mg_label)}" else "${formatDecimal(unitsInGm, 2)}${stringResource(Res.string.g_label)}"
+            if (unitsInGm < 1.0) "${formatDecimal(unitsInGm * 1000.0, 1)}${stringResource(Res.string.mg_label)}" else "${formatDecimal(unitsInGm, 2)}${stringResource(Res.string.g_label)}"
         }
         else -> {
             formatRupeeAmount(totalValue, 0)

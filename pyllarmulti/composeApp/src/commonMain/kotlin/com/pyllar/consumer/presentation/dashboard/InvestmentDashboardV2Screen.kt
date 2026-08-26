@@ -110,7 +110,7 @@ import com.pyllar.consumer.presentation.ui.theme.getCursiveFontFamily
 fun InvestmentDashboardV2Screen(
     userId: String = "",
     onNavigateToPortfolio: () -> Unit = {},
-    onNavigateToGoal: (String) -> Unit = {},
+    onNavigateToGoal: (String, String) -> Unit = { _, _ -> },
     onNavigateToSchemeDetails: (String) -> Unit = {},
     onNavigateToWithdraw: () -> Unit = {},
     onNavigateToProfile: () -> Unit = {},
@@ -209,7 +209,7 @@ fun InvestmentDashboardV2Screen(
             coroutineScope.launch {
                 val result = viewModel.initGoalTxn(resolvedUserId, goalId)
                 if (result is Resource.Success) {
-                    onNavigateToGoal(goalId)
+                    onNavigateToGoal(goalId, dashboardState.kycStatus)
                 } else if (result is Resource.Error) {
                     Log.e("InvestmentDashboardV2", "❌ initGoalTxn failed: ${result.message}")
                 }
