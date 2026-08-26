@@ -44,7 +44,6 @@ echo "==> Flavor: $FLAVOR  (baseUrl: $BASE_URL)"
 # ── Simulator config ───────────────────────────────────────────────────────
 SIMULATOR_UDID="A6D26BBA-A765-4A93-9E72-F7730AC04F8A"
 SIMULATOR_NAME="Test iPhone 26.4"
-BUNDLE_ID="com.pyllar.consumer"
 DERIVED_DATA="/tmp/pyllar-ios-build"
 PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
 
@@ -62,12 +61,15 @@ fi
 if [[ "$FLAVOR" == "debug" ]]; then
     XCODE_CONFIGURATION="Debug"
     PYLLAR_FLAVOR="debug"
+    BUNDLE_ID="com.pyllar.consumer.debug"
 elif [[ "$FLAVOR" == "debug-prod" ]]; then
     XCODE_CONFIGURATION="Debug"
     PYLLAR_FLAVOR="release"
+    BUNDLE_ID="com.pyllar.consumer.debug"
 else
     XCODE_CONFIGURATION="Release"
     PYLLAR_FLAVOR="release"
+    BUNDLE_ID="com.pyllar.consumer"
 fi
 
 echo "==> Building Xcode project..."
@@ -83,7 +85,7 @@ xcodebuild \
 
 echo "==> Uninstalling and Installing app..."
 xcrun simctl terminate "$SIMULATOR_UDID" "$BUNDLE_ID" 2>/dev/null || true
-# xcrun simctl uninstall "$SIMULATOR_UDID" "$BUNDLE_ID" 2>/dev/null || true
+#xcrun simctl uninstall "$SIMULATOR_UDID" "$BUNDLE_ID" 2>/dev/null || true
 xcrun simctl install "$SIMULATOR_UDID" "$DERIVED_DATA/Build/Products/${XCODE_CONFIGURATION}-iphonesimulator/Pyllar.app"
 
 echo "==> Launching app (console output follows)..."
