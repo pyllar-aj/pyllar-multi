@@ -22,14 +22,28 @@ import platform.Foundation.NSSelectorFromString
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ObjCAction
+import kotlinx.cinterop.useContents
 
-@OptIn(BetaInteropApi::class)
+@OptIn(BetaInteropApi::class, ExperimentalForeignApi::class)
 private class TextFieldTarget(
+    private val maxLength: Int,
     private val onTextChanged: (String) -> Unit
-) : NSObject() {
+) : NSObject(), platform.UIKit.UITextFieldDelegateProtocol {
     @ObjCAction
     fun textFieldDidChange(sender: UITextField) {
         onTextChanged(sender.text ?: "")
+    }
+
+    override fun textField(
+        textField: UITextField,
+        shouldChangeCharactersInRange: kotlinx.cinterop.CValue<platform.Foundation.NSRange>,
+        replacementString: String
+    ): Boolean {
+        val currentText = textField.text ?: ""
+        val rangeLength = shouldChangeCharactersInRange.useContents { this.length.toInt() }
+        val newLength = currentText.length + replacementString.length - rangeLength
+        if (newLength > maxLength) return false
+        return replacementString.all { it.isDigit() }
     }
 }
 
@@ -45,7 +59,7 @@ actual fun OtpField(
     onOtpComplete: () -> Unit,
 ) {
     val target = remember(onOtpFieldValueChange) {
-        TextFieldTarget { text ->
+        TextFieldTarget(length) { text ->
             val cleanText = text.take(length).filter { it.isDigit() }
             onOtpFieldValueChange(TextFieldValue(cleanText, TextRange(cleanText.length)))
             if (cleanText.length == length) {
@@ -57,6 +71,7 @@ actual fun OtpField(
     UIKitView(
         factory = {
             val textField = UITextField().apply {
+                this.delegate = target
                 this.keyboardType = UIKeyboardTypeNumberPad
                 this.textContentType = UITextContentTypeOneTimeCode
                 this.textAlignment = NSTextAlignmentCenter

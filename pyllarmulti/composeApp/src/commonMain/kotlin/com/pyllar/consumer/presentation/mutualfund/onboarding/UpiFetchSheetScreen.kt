@@ -480,6 +480,19 @@ fun UpiFetchSheetScreen(
                             fontWeight = FontWeight.SemiBold
                         )
                     }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Text(
+                        text = "I authorise Pyllar Money to validate my bank details via the penny drop mechanism. An amount of Rs. 0.01 may be credited to your primary bank/UPI that is linked to the mobile number shared.",
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontSize = 11.sp,
+                            lineHeight = 15.sp
+                        ),
+                        color = V2BronzeMuted,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(4.dp))

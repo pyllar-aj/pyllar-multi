@@ -222,10 +222,17 @@ fun OtpVerificationScreen(
                     isError = verificationResult is Resource.Error,
                     otpFieldValue = otpFieldValue,
                     onOtpFieldValueChange = { newValue ->
-                        if (newValue.text.length <= 6 && newValue.text.all { ch -> ch.isDigit() }) {
-                            otpFieldValue = newValue
-                            viewModel.updateOtp(newValue.text)
+                        val filteredText = newValue.text.filter { it.isDigit() }.take(6)
+                        val updatedValue = if (newValue.text != filteredText) {
+                            newValue.copy(
+                                text = filteredText,
+                                selection = TextRange(filteredText.length)
+                            )
+                        } else {
+                            newValue
                         }
+                        otpFieldValue = updatedValue
+                        viewModel.updateOtp(filteredText)
                     },
                     onOtpComplete = {
                         keyboardController?.hide()
@@ -233,7 +240,7 @@ fun OtpVerificationScreen(
                     }
                 )
 
-                Row(
+                /*Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp),
@@ -257,7 +264,7 @@ fun OtpVerificationScreen(
                         ),
                         color = Color(0xFF2D2D2D)
                     )
-                }
+                }*/
 
                 if (verificationResult is Resource.Error) {
                     val errorMsg = verificationResult.message.orEmpty()
@@ -363,18 +370,18 @@ fun OtpVerificationScreen(
             }
         }
 
-        val linkColor = Color(0xFFEFFDEE)
+        val linkColor = Color(0xFF103620)
         val annotatedText = remember(linkColor) {
             buildAnnotatedString {
                 append("By proceeding, I agree to Pyllar's ")
                 pushStringAnnotation(tag = "URL", annotation = "https://www.pyllar.in/terms.html")
-                withStyle(style = SpanStyle(color = linkColor)) {
+                withStyle(style = SpanStyle(color = linkColor, fontWeight = FontWeight.SemiBold)) {
                     append("T&C")
                 }
                 pop()
                 append(" and ")
                 pushStringAnnotation(tag = "URL", annotation = "https://www.pyllar.in/privacy.html")
-                withStyle(style = SpanStyle(color = linkColor)) {
+                withStyle(style = SpanStyle(color = linkColor, fontWeight = FontWeight.SemiBold)) {
                     append("Privacy Policy")
                 }
                 pop()
@@ -382,7 +389,7 @@ fun OtpVerificationScreen(
         }
         ClickableText(
             text = annotatedText,
-            style = MaterialTheme.typography.bodySmall.copy(color = Color.White),
+            style = MaterialTheme.typography.bodySmall.copy(color = Color(0xFF5D5D5D)),
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 24.dp),
