@@ -3744,11 +3744,28 @@ fun SipPlanCardV2(
     val cardGradientColors = when (category) {
         "GOLD" -> listOf(Color(0xFFFFFDF7), Color(0xFFFBF6E8), Color(0xFFF5EDD4))
         "SILVER" -> listOf(Color(0xFFF8FBFD), Color(0xFFEEF4F8), Color(0xFFE2EDF4))
+        "INNOVATION" -> listOf(Color(0xFFF9F7FC), Color(0xFFF1ECF8), Color(0xFFE6DDF2))
+        "FESTIVAL_SPENDS" -> listOf(Color(0xFFFFFDF8), Color(0xFFFFF5E6), Color(0xFFFFECC7))
+        "CHILDRENS_EDUCATION" -> listOf(Color(0xFFF7FAFE), Color(0xFFEDF4FE), Color(0xFFDCEBFE))
+        "VACATION" -> listOf(Color(0xFFFCF7FD), Color(0xFFF7EDFD), Color(0xFFEDDCFD))
+        "GLOBAL_EXPOSURE" -> listOf(Color(0xFFF2FBFB), Color(0xFFE6F7F7), Color(0xFFD2EFEF))
+        "MARKET_EXPLORER" -> listOf(Color(0xFFF2F9F7), Color(0xFFE4F3EE), Color(0xFFC7E7DD))
+        "ALL_IN_ONE" -> listOf(Color(0xFFF5F6FB), Color(0xFFEBEDF7), Color(0xFFD7DBF0))
+        "SAVINGS", "SAVINGS_PLUS" -> listOf(Color(0xFFFFFDF5), Color(0xFFF5FFF5), Color(0xFFEBFFEB))
         else -> listOf(Color(0xFFF5FBF7), Color(0xFFEAF7EE), Color(0xFFD9F0E2))
     }
     val cardBorderColor = when (category) {
         "GOLD" -> Color(0xFFD4AF37).copy(alpha = 0.28f)
         "SILVER" -> Color(0xFF6A9AB0).copy(alpha = 0.28f)
+        "INNOVATION" -> Color(0xFF876DAF).copy(alpha = 0.28f)
+        "FESTIVAL_SPENDS" -> Color(0xFFFF9800).copy(alpha = 0.28f)
+        "CHILDRENS_EDUCATION" -> Color(0xFF2196F3).copy(alpha = 0.28f)
+        "VACATION" -> Color(0xFF9C27B0).copy(alpha = 0.28f)
+        "GLOBAL_EXPOSURE" -> Color(0xFF00897B).copy(alpha = 0.28f)
+        "MARKET_EXPLORER" -> Color(0xFF0F6B5C).copy(alpha = 0.28f)
+        "ALL_IN_ONE" -> Color(0xFF3F51B5).copy(alpha = 0.28f)
+        "SAVINGS", "SAVINGS_PLUS" -> Color(0xFF009688).copy(alpha = 0.28f)
+
         else -> Color(0xFF27AE60).copy(alpha = 0.28f)
     }
 
@@ -3956,9 +3973,9 @@ fun SipPlanCardV2(
                     Spacer(modifier = Modifier.height(14.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         if (onResume != null) {
-                            val resumeTint = if (category == "SILVER") Color(0xFF1E3A8A) else goalColor
-                            val resumeBg = if (category == "SILVER") Color(0xFFEFF6FF) else Color(0xFFEFFDF5)
-                            val resumeBorder = BorderStroke(1.5.dp, resumeTint)
+                            val resumeTint = Color(0xFFFFFFFF)
+                            val resumeBg = Color(0xFF3F3F46)
+                            val resumeBorder = BorderStroke(1.5.dp, goalColor)
                             SipPlanActionPillV2(
                                 modifier = Modifier.weight(1f),
                                 icon = Icons.Default.PlayArrow,
