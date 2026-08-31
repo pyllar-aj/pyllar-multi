@@ -1662,7 +1662,7 @@ fun SchemeDetailsCardV2(
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     Text(
-                        text = if (isGold) stringResource(Res.string.estimated_gold) else if (isSilver) stringResource(Res.string.estimated_silver) else stringResource(Res.string.units_allotted),
+                        text = if (isGold) stringResource(Res.string.estimated_gold) else if (isSilver) stringResource(Res.string.estimated_silver) else stringResource(Res.string.your_savings),
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold),
                         color = goalColor
                     )
@@ -2278,7 +2278,7 @@ fun SchemeDetailsPopupContentV2(
                             }
                             if (hasAllotted) {
                                 val sub = if (isGoldOrSilver) stringResource(if (isEstimatedGold) Res.string.internal_units_gold else Res.string.internal_units_silver) else stringResource(Res.string.internal_units_generic)
-                                RecordRowV2(stringResource(Res.string.units_allotted), allottedValue, sub)
+                                RecordRowV2(stringResource(Res.string.your_savings), allottedValue, sub)
                                 HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                             }
                             if (hasInvestedAmount || hasCurrentValue) {

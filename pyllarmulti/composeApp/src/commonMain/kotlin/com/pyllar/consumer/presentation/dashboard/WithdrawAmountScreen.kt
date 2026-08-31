@@ -1087,6 +1087,11 @@ private fun getExitLoadText(schemeName: String?): String {
                 normalizedName.contains("GOLD FUND") ->
             "1% within 15 days; Nil thereafter"
 
+        // Invesco India Gold ETF Fund of Fund
+        normalizedName.contains("INVESCO INDIA") &&
+                normalizedName.contains("GOLD ETF") &&
+                (normalizedName.contains("FOF") || normalizedName.contains("FUND OF FUND")) ->
+            "1% within 15 days; Nil thereafter"
 
         // Invesco India Smallcap
         normalizedName.contains("INVESCO INDIA") &&
@@ -1098,8 +1103,18 @@ private fun getExitLoadText(schemeName: String?): String {
                 normalizedName.contains("MULTI ASSET") ->
             "1% if redeemed within 1 year"
 
+        // Invesco India Multi Asset Allocation Fund
+        normalizedName.contains("INVESCO INDIA") &&
+                normalizedName.contains("MULTI ASSET ALLOCATION") ->
+            "1% if redeemed within 1 year"
+
         // Aditya Birla Sun Life Multi Asset Allocation
         normalizedName.contains("ADITYA BIRLA") &&
+                normalizedName.contains("MULTI ASSET ALLOCATION") ->
+            "1% if redeemed within 1 year"
+
+        // Axis Multi Asset Allocation Fund
+        normalizedName.contains("AXIS") &&
                 normalizedName.contains("MULTI ASSET ALLOCATION") ->
             "1% if redeemed within 1 year"
 
@@ -1110,6 +1125,11 @@ private fun getExitLoadText(schemeName: String?): String {
 
         // Nippon India Liquid Fund
         normalizedName.contains("NIPPON INDIA") &&
+                normalizedName.contains("LIQUID FUND") ->
+            "Graded load (0.0070%–0.0045%) for days 1–6; Nil after 7 days"
+
+        // Axis Liquid Fund
+        normalizedName.contains("AXIS") &&
                 normalizedName.contains("LIQUID FUND") ->
             "Graded load (0.0070%–0.0045%) for days 1–6; Nil after 7 days"
 
@@ -1153,10 +1173,10 @@ private fun getExitLoadText(schemeName: String?): String {
                 normalizedName.contains("SILVER") ->
             "0.5% if redeemed within 30 days"
 
-        // Nippon India Silver ETF Fund of Fund – Regular Growth
+        // Nippon India Silver ETF Fund of Fund – Regular Growth (checking both full and short FOF)
         normalizedName.contains("NIPPON INDIA") &&
-                normalizedName.contains("SILVER ETF") &&
-                normalizedName.contains("FUND OF FUND") ->
+                normalizedName.contains("SILVER") &&
+                (normalizedName.contains("FOF") || normalizedName.contains("FUND OF FUND") || normalizedName.contains("SILVER ETF")) ->
             "1% if redeemed within 15 days"
 
         // Nippon India Growth Fund
@@ -1164,8 +1184,23 @@ private fun getExitLoadText(schemeName: String?): String {
                 normalizedName.contains("GROWTH FUND") ->
             "1% if redeemed within 30 days"
 
+        // Nippon India Innovation Fund
+        normalizedName.contains("NIPPON INDIA") &&
+                normalizedName.contains("INNOVATION FUND") ->
+            "1% if redeemed within 90 days"
+
+        // Axis Global Innovation Fund Of Fund
+        normalizedName.contains("AXIS") &&
+                normalizedName.contains("GLOBAL INNOVATION") ->
+            "1% if redeemed within 1 year"
+
         // Nippon India Ultra Short
         normalizedName.contains("NIPPON INDIA") &&
+                normalizedName.contains("ULTRA SHORT") ->
+            "NIL"
+
+        // Axis Ultra Short Term Fund
+        normalizedName.contains("AXIS") &&
                 normalizedName.contains("ULTRA SHORT") ->
             "NIL"
 
@@ -1214,7 +1249,7 @@ private fun getExitLoadDetails(schemeName: String?): ExitLoadDetails? {
     // Custom beautiful mapping for exit load display like the image
     return when {
         text.contains("Graded") && text.contains("Aditya Birla") -> ExitLoadDetails("0.007% to 0%", "Graded for the first 7 days")
-        text.contains("Graded") && text.contains("Nippon") -> ExitLoadDetails("0.0070% to 0.0045%", "Graded load for days 1–6; Nil after 7 days")
+        text.contains("Graded") && (text.contains("Nippon") || text.contains("Axis") || text.contains("AXIS")) -> ExitLoadDetails("0.0070% to 0.0045%", "Graded load for days 1–6; Nil after 7 days")
         text.contains("1%") && text.contains("15 days") -> ExitLoadDetails("1% within 15 days", "Nil thereafter")
         text.contains("1%") && text.contains("30 days") -> ExitLoadDetails("1% within 30 days", "Nil thereafter")
         text.contains("1%") && text.contains("90 days") -> ExitLoadDetails("1% within 90 days", "Nil thereafter")
