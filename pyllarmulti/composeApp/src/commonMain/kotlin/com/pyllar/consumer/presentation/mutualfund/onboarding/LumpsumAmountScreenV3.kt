@@ -790,6 +790,7 @@ fun LumpsumAmountScreenV3(
                         GoalType.ALL_IN_ONE -> "All-in-One One-time Investment"
                         GoalType.MARKET_EXPLORER -> "Market Explorer One-time Investment"
                         GoalType.INNOVATION -> "Innovation One-time Investment"
+                        GoalType.SENSEX -> "Sensex One-time Investment"
                         else -> "One-time Investment"
                     }
 

@@ -758,6 +758,30 @@ class InvestmentDashboardV2ViewModel(
                 createdDate = createdDate,
                 isin = isin
             )
+            "sensex" -> InvestmentGoal(
+                goalId = "sensex",
+                name = "Sensex",
+                description = "Tracks top 30 companies",
+                iconType = "📈",
+                targetAmount = progressiveTarget,
+                investedAmount = totalInvested,
+                cummulativeValue = cummulativeValue,
+                currentValue = totalValue,
+                returnsPercentage = returnsPercentage,
+                progressPercentage = progressPercentage,
+                timeRemainingMonths = timeRemaining,
+                recommendedMonthlyAmount = monthlySipAmount,
+                recommendedDailyAmount = monthlySipAmount / 30,
+                category = "SENSEX",
+                colorTheme = "blue",
+                actionButtonText = "Start Planning",
+                targetDate = calculateTargetDate(timeRemaining),
+                schemeName = schemeName,
+                folioNo = folioNo,
+                planNumber = planNumber,
+                createdDate = createdDate,
+                isin = isin
+            )
             else -> InvestmentGoal(
                 goalId = "saving",
                 name = "Saving",
@@ -1040,6 +1064,24 @@ class InvestmentDashboardV2ViewModel(
                 recommendedDailyAmount = 166.67,
                 category = "INNOVATION",
                 colorTheme = "innovation",
+                actionButtonText = "Start Planning",
+                targetDate = calculateTargetDate(180)
+            ),
+            InvestmentGoal(
+                goalId = "sensex",
+                name = "Sensex",
+                description = "Tracks top 30 companies",
+                iconType = "📈",
+                targetAmount = 1000000.0,
+                investedAmount = 0.0,
+                currentValue = 0.0,
+                returnsPercentage = 0.0,
+                progressPercentage = 0.0,
+                timeRemainingMonths = 180,
+                recommendedMonthlyAmount = 5000.0,
+                recommendedDailyAmount = 101.0,
+                category = "SENSEX",
+                colorTheme = "blue",
                 actionButtonText = "Start Planning",
                 targetDate = calculateTargetDate(180)
             )

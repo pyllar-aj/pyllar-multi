@@ -227,6 +227,24 @@ class InitialDashboardViewModel(
                 targetDate = "Jan 2030"
             ),
             InvestmentGoal(
+                goalId = "sensex",
+                name = "Sensex",
+                description = "Passively tracks the BSE Sensex index",
+                iconType = "📈",
+                targetAmount = 1000000.0,
+                investedAmount = 0.0,
+                currentValue = 0.0,
+                returnsPercentage = 0.0,
+                progressPercentage = 0.0,
+                timeRemainingMonths = 60,
+                recommendedMonthlyAmount = 5000.0,
+                recommendedDailyAmount = 101.0,
+                category = "SENSEX",
+                colorTheme = "sensex",
+                actionButtonText = "Start Investing",
+                targetDate = "Jan 2030"
+            ),
+            InvestmentGoal(
                 goalId = "vacation",
                 name = "Vacation",
                 description = "Save for your dream getaway",

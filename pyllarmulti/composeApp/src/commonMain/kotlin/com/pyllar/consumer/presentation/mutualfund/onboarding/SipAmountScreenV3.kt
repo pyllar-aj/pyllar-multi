@@ -1955,6 +1955,7 @@ private fun FundDetailsBottomSheet(
                 GoalType.ALL_IN_ONE -> "All-in-One $frequencyLabel SIP"
                 GoalType.MARKET_EXPLORER -> "Market Explorer $frequencyLabel SIP"
                 GoalType.INNOVATION -> "Innovation $frequencyLabel SIP"
+                GoalType.SENSEX -> "Sensex $frequencyLabel SIP"
                 else -> "$frequencyLabel SIP"
             }
 

@@ -317,6 +317,7 @@ private fun accentColorsForLumpsumGoal(goalType: GoalType): Pair<Color, Color> {
         GoalType.ALL_IN_ONE -> Color(0xFF1A237E) to Color(0xFFE8EAF6)
         GoalType.MARKET_EXPLORER -> Color(0xFF0F6B5C) to Color(0xFFE4F3EE)
         GoalType.INNOVATION -> Color(0xFF68499A) to Color(0xFFF1ECF8)
+        GoalType.SENSEX -> Color(0xFF2346B5) to Color(0xFFEFF6FF)
         else -> V2SuccessGreen to V2SubtleBorder
     }
 }

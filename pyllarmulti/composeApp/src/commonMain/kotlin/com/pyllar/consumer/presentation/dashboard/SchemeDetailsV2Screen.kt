@@ -139,7 +139,7 @@ fun SchemeDetailsV2Screen(
         categoryUpper == "GLOBAL_EXPOSURE" || categoryUpper == "GLOBAL" -> {
             listOf(Color.White, Color.White.copy(alpha = 0.9f), Color.White.copy(alpha = 0.25f), Color.White)
         }
-        categoryUpper == "INNOVATION" -> {
+        categoryUpper == "INNOVATION" || categoryUpper == "SENSEX" -> {
             listOf(Color.White, Color.White.copy(alpha = 0.9f), Color.White.copy(alpha = 0.25f), Color.White)
         }
         categoryUpper == "FESTIVAL_SPENDS" -> {
@@ -2952,6 +2952,7 @@ private fun getAnnualisedReturnPercent(goalType: GoalType, years: Int = 3): Doub
         goalType == GoalType.GLOBAL_EXPOSURE -> 0.23
         goalType == GoalType.ALL_IN_ONE -> 0.175
         goalType == GoalType.INNOVATION -> 0.15
+        goalType == GoalType.SENSEX -> 0.135
         else -> 0.10
     }
     return annualRateDecimal * 100.0
@@ -3745,6 +3746,7 @@ fun SipPlanCardV2(
         "GOLD" -> listOf(Color(0xFFFFFDF7), Color(0xFFFBF6E8), Color(0xFFF5EDD4))
         "SILVER" -> listOf(Color(0xFFF8FBFD), Color(0xFFEEF4F8), Color(0xFFE2EDF4))
         "INNOVATION" -> listOf(Color(0xFFF9F7FC), Color(0xFFF1ECF8), Color(0xFFE6DDF2))
+        "SENSEX" -> listOf(Color(0xFFEFF6FF), Color(0xFFDBEAFE), Color(0xFFBFDBFE))
         "FESTIVAL_SPENDS" -> listOf(Color(0xFFFFFDF8), Color(0xFFFFF5E6), Color(0xFFFFECC7))
         "CHILDRENS_EDUCATION" -> listOf(Color(0xFFF7FAFE), Color(0xFFEDF4FE), Color(0xFFDCEBFE))
         "VACATION" -> listOf(Color(0xFFFCF7FD), Color(0xFFF7EDFD), Color(0xFFEDDCFD))
@@ -3758,6 +3760,7 @@ fun SipPlanCardV2(
         "GOLD" -> Color(0xFFD4AF37).copy(alpha = 0.28f)
         "SILVER" -> Color(0xFF6A9AB0).copy(alpha = 0.28f)
         "INNOVATION" -> Color(0xFF876DAF).copy(alpha = 0.28f)
+        "SENSEX" -> Color(0xFF2346B5).copy(alpha = 0.28f)
         "FESTIVAL_SPENDS" -> Color(0xFFFF9800).copy(alpha = 0.28f)
         "CHILDRENS_EDUCATION" -> Color(0xFF2196F3).copy(alpha = 0.28f)
         "VACATION" -> Color(0xFF9C27B0).copy(alpha = 0.28f)
@@ -4167,6 +4170,7 @@ private fun getGradientForCategory(category: String?, colorTheme: String?): Brus
         "ALL_IN_ONE" -> listOf(Color(0xFF283593), Color(0xFF3F51B5), Color(0xFF9FA8DA))
         "MARKET_EXPLORER" -> listOf(Color(0xFF0F6B5C), Color(0xFF148B75), Color(0xFFE4F3EE))
         "INNOVATION" -> listOf(Color(0xFF7A5F9E), Color(0xFF876DAF), Color(0xFFF1ECF8))
+        "SENSEX" -> listOf(Color(0xFF0F172A), Color(0xFF2346B5), Color(0xFFEFF6FF))
         else -> listOf(baseColor.copy(alpha = 0.8f), baseColor)
     }
     return Brush.verticalGradient(colors)

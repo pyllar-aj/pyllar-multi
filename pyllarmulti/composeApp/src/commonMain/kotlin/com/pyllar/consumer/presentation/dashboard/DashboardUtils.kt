@@ -39,6 +39,7 @@ fun getCorrelationColorForCategory(category: String?, colorTheme: String?): Colo
         "ALL_IN_ONE" -> Color(0xFF2C4C9C) // Dark blue
         "MARKET_EXPLORER" -> Color(0xFF0F6B5C) // Emerald/Teal Accent
         "INNOVATION" -> Color(0xFF68499A) // Violet text color for Innovation
+        "SENSEX" -> Color(0xFF2346B5)
         else -> V2SuccessGreen // Default green
     }
 }
@@ -58,6 +59,7 @@ fun getBorderColorForCategory(category: String?): Color {
         cat == "ALL_IN_ONE" -> Color(0xFF2C4C9C) // Dark blue
         cat == "MARKET_EXPLORER" -> Color(0xFF0F6B5C) // Emerald/Teal Accent
         cat == "INNOVATION" -> Color(0xFF7656A8)
+        cat == "SENSEX" -> Color(0xFF2346B5)
         else -> V2SuccessGreen // --v2-success-green fallback
     }
 }
@@ -85,6 +87,7 @@ fun getDarkBorderColorForCategory(category: String?, colorTheme: String?): Color
         "ALL_IN_ONE" -> Color(0xFF2C4C9C) // Dark blue
         "MARKET_EXPLORER" -> Color(0xFF0F6B5C) // Emerald/Teal Accent
         "INNOVATION" -> Color(0xFF7656A8)
+        "SENSEX" -> Color(0xFF2346B5)
         else -> V2SuccessGreen // --v2-success-green fallback
     }
 }
@@ -149,6 +152,11 @@ fun getGoalGradientColors(category: String?, colorTheme: String?): List<Color> {
             Color(0xFFF1ECF8),
             Color(0xFFF1ECF8)
         )
+        "SENSEX" -> listOf(
+            Color(0xFFEFF6FF),
+            Color(0xFFDBEAFE),
+            Color(0xFFBFDBFE)
+        )
         else -> listOf(
             Color.White,
             Color.White
@@ -180,6 +188,7 @@ fun getIconBackgroundColorForCategory(category: String?, colorTheme: String?): C
         "ALL_IN_ONE" -> Color(0xFFD4DBEB) // Light blue-gray
         "MARKET_EXPLORER" -> Color(0xFFE3F1EC) // Icon circle background
         "INNOVATION" -> Color.White // White background for the icon
+        "SENSEX" -> Color(0xFF2346B5).copy(alpha = 0.12f)
         else -> Color(0xFFC8E6C9) // Default light green
     }
 }
@@ -219,6 +228,7 @@ fun getCorrelationText(category: String?): String {
         "ALL_IN_ONE" -> "Diversified growth across asset classes"
         "MARKET_EXPLORER" -> "Growth through diversified equity investing"
         "INNOVATION" -> "Grows with market performance"
+        "SENSEX" -> "Tracks the BSE Sensex index"
         else -> "Grows with market performance"
     }
 }
@@ -235,6 +245,7 @@ fun getInvestmentTypeText(category: String?): String {
         "ALL_IN_ONE" -> "Diversified Portfolio"
         "MARKET_EXPLORER" -> "Active Equity Funds"
         "INNOVATION" -> "Equity Funds"
+        "SENSEX" -> "Index Funds"
         else -> "Equity Funds"
     }
 }

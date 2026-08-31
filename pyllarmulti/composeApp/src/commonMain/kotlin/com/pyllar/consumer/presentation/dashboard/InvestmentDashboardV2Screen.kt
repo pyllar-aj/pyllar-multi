@@ -1914,7 +1914,7 @@ fun NextGoalCard(
                         Text(
                             text = when (goal.category.uppercase()) {
                                 "GOLD", "SAVINGS" -> "₹21 - ₹500"
-                                "MARKET_EXPLORER" -> "₹21 - ₹1000"
+                                "MARKET_EXPLORER", "SENSEX" -> "₹21 - ₹1000"
                                 "FESTIVAL_SPENDS" -> "₹11 - ₹500"
                                 "GLOBAL_EXPOSURE" -> "₹101 - ₹1000"
                                 "ALL_IN_ONE" -> "₹51 - ₹1000"
@@ -2058,6 +2058,10 @@ fun NextGoalCard(
                                         }
                                         append(".")
                                     }
+                                    "SENSEX" -> {
+                                        append("Get exposure to 30 leading Indian companies through a Sensex index fund")
+                                        append(".")
+                                    }
                                     else -> append(goal.description)
                                 }
                             }
@@ -2071,7 +2075,7 @@ fun NextGoalCard(
                     }
                 }
 
-                if (isAllInOne || category == "MARKET_EXPLORER" || category == "INNOVATION") {
+                if (isAllInOne || category == "MARKET_EXPLORER" || category == "INNOVATION" || category == "SENSEX") {
                     Spacer(modifier = Modifier.height(8.dp))
                     if (isAllInOne) {
                         val allInOneAccent = Color(0xFF2C4C9C)
@@ -2168,7 +2172,7 @@ fun NextGoalCard(
                         Icon(
                             imageVector = Icons.Filled.ExpandMore,
                             contentDescription = null,
-                            tint = if (isAllInOne) Color(0xFF2C4C9C) else if (category == "INNOVATION") Color(0xFF7656A8) else Color(0xFF8A4E1E),
+                            tint = if (isAllInOne) Color(0xFF2C4C9C) else if (category == "INNOVATION") Color(0xFF7656A8) else if (category == "SENSEX") Color(0xFF2346B5) else Color(0xFF8A4E1E),
                             modifier = Modifier
                                 .size(28.dp)
                                 .rotate(if (expanded) 180f else 0f)
@@ -2197,6 +2201,32 @@ fun NextGoalCard(
                                 text = "Focuses on breakthrough & innovative themes 🚀",
                                 style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
                                 color = Color(0xFF68499A)
+                            )
+                        }
+                    }
+                    if (category == "SENSEX") {
+                        Spacer(modifier = Modifier.height(1.dp))
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    color = Color(0xFFEFF6FF),
+                                    shape = RoundedCornerShape(20.dp)
+                                )
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Star,
+                                contentDescription = null,
+                                tint = Color(0xFF2346B5),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Tracks 30 leading companies 📈",
+                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                                color = Color(0xFF2346B5)
                             )
                         }
                     }
@@ -2361,6 +2391,20 @@ fun NextGoalCard(
                                 text = "Holdings are actively picked by the fund manager and change as new innovative companies emerge.",
                                 style = MaterialTheme.typography.labelSmall.copy(fontStyle = FontStyle.Italic),
                                 color = Color(0xFF68499A)
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                        } else if (category == "SENSEX") {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Suggested holding period: 3 Years+ ⏰",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFF424242)
+                            )
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Text(
+                                text = "Passively tracks the BSE Sensex, providing diversified exposure to 30 established, profitable, and industry-leading Indian companies across key sectors.",
+                                style = MaterialTheme.typography.labelSmall.copy(fontStyle = FontStyle.Italic),
+                                color = Color(0xFF2346B5)
                             )
                             Spacer(modifier = Modifier.height(12.dp))
                         } else {

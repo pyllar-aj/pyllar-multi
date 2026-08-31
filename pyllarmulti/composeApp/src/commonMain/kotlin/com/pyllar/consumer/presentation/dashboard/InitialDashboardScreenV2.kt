@@ -166,15 +166,16 @@ fun InitialDashboardScreenV2(
 
     val allGoals = remember(goalsState.primaryGoals, goalsState.recommendedGoals) {
         (goalsState.primaryGoals + goalsState.recommendedGoals)
-            .filter { it.category.uppercase() in listOf("GOLD", "SILVER", "SAVINGS_PLUS", "MARKET_EXPLORER", "INNOVATION") }
+            .filter { it.category.uppercase() in listOf("GOLD", "SILVER", "SAVINGS_PLUS", "MARKET_EXPLORER", "INNOVATION", "SENSEX") }
             .sortedBy {
                 when (it.category.uppercase()) {
                     "GOLD" -> 1
                     "SILVER" -> 2
                     "INNOVATION" -> 3
                     "MARKET_EXPLORER" -> 4
-                    "SAVINGS_PLUS" -> 5
-                    else -> 6
+                    "SENSEX" -> 5
+                    "SAVINGS_PLUS" -> 6
+                    else -> 7
                 }
             }
     }
@@ -724,6 +725,7 @@ fun InitialGoalCardV2(
     val isSavings = category == "SAVINGS_PLUS" || category == "SAVINGS"
     val isMarketExplorer = category == "MARKET_EXPLORER"
     val isInnovation = category == "INNOVATION"
+    val isSensex = category == "SENSEX"
     val cursiveFont = getCursiveFontFamily()
 
     val gradient = Brush.linearGradient(
@@ -733,6 +735,7 @@ fun InitialGoalCardV2(
             isSavings -> SavingsCardColorsV2
             isMarketExplorer -> MarketExplorerCardColorsV2
             isInnovation -> listOf(Color(0xFFFBF8FF), Color(0xFFF5EEFD), Color(0xFFECE0FA))
+            isSensex -> listOf(Color(0xFFEFF6FF), Color(0xFFDBEAFE), Color(0xFFBFDBFE))
             else -> SavingsCardColorsV2
         },
         start = Offset(0f, 0f),
@@ -774,6 +777,7 @@ fun InitialGoalCardV2(
             )
         isMarketExplorer -> cardModifier.border(1.dp, Color(0xFF0F6B5C).copy(alpha = 0.45f), RoundedCornerShape(20.dp))
         isInnovation -> cardModifier.border(1.dp, Color(0xFF7656A8).copy(alpha = 0.45f), RoundedCornerShape(20.dp))
+        isSensex -> cardModifier.border(1.dp, Color(0xFF2346B5).copy(alpha = 0.45f), RoundedCornerShape(20.dp))
         else -> cardModifier.border(1.dp, AccentGreen.copy(alpha = 0.4f), RoundedCornerShape(20.dp))
     }
 
@@ -849,6 +853,16 @@ fun InitialGoalCardV2(
                                 letterSpacing = (-0.5).sp
                             )
                         )
+                    } else if (isSensex) {
+                        Text(
+                            text = goal.name.ifBlank { "Sensex" },
+                            style = TextStyle(
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = PremiumDarkBrown,
+                                letterSpacing = (-0.5).sp
+                            )
+                        )
                     } else {
                         Text(
                             text = if (isGold) stringResource(Res.string.intro_goal_gold) else stringResource(Res.string.intro_goal_silver),
@@ -889,7 +903,7 @@ fun InitialGoalCardV2(
                         Text(
                             text = when {
                                 isGold || category == "SAVINGS" -> "₹21 - ₹500"
-                                isMarketExplorer               -> "₹21 - ₹1000"
+                                isMarketExplorer || isSensex    -> "₹21 - ₹1000"
                                 isInnovation                   -> "₹101 - ₹1000"
                                 else                            -> "₹101 - ₹500"
                             },
@@ -984,6 +998,8 @@ fun InitialGoalCardV2(
                                 isGold           -> AccentGoldDark
                                 isSilver         -> SecondaryBronze
                                 isMarketExplorer -> Color(0xFF0F6B5C)
+                                isInnovation     -> Color(0xFF68499A)
+                                isSensex         -> Color(0xFF2346B5)
                                 else             -> AccentGreen
                             }
 
@@ -1024,6 +1040,9 @@ fun InitialGoalCardV2(
                                                     val rawVal = bucketData?.currentValuation ?: (if (isMarketExplorer) 1.42 else 1.24)
                                                     withStyle(hl) { append("≃₹${rawVal} Lakhs") }
                                                 }
+                                                isSensex -> {
+                                                    append("India’s top 30 companies")
+                                                }
                                                 else -> ""
                                             }
                                         },
@@ -1063,6 +1082,7 @@ fun InitialGoalCardV2(
                     isSilver         -> SecondaryBronze
                     isMarketExplorer -> Color(0xFF0F6B5C)
                     isInnovation     -> Color(0xFF68499A)
+                    isSensex         -> Color(0xFF2346B5)
                     else             -> AccentGreen
                 }
                 Surface(
@@ -1088,6 +1108,7 @@ fun InitialGoalCardV2(
                                 isSavings        -> stringResource(Res.string.up_to_7_returns)
                                 isMarketExplorer -> "Growth through diversified equity investing"
                                 isInnovation     -> "Focuses on breakthrough & innovative themes"
+                                isSensex         -> "Tracks the BSE Sensex index"
                                 else             -> stringResource(Res.string.grows_market_performance)
                             },
                             style = TextStyle(fontSize = 11.sp, color = tagColor, fontWeight = FontWeight.SemiBold)
@@ -1146,6 +1167,14 @@ fun InitialGoalCardV2(
                         .align(Alignment.TopEnd)
                         .padding(top = 12.dp, end = 12.dp)
                 )
+            } else if (isSensex) {
+                Text(
+                    text = "📈",
+                    fontSize = 32.sp,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = 12.dp, end = 12.dp)
+                )
             } else {
                 val iconRes = if (isGold) Res.drawable.goldbar_icon else Res.drawable.silver_icon
                 Image(
@@ -1171,6 +1200,8 @@ fun InitialGoalCardV2(
                             isGold           -> AccentGoldDark.copy(alpha = 0.12f)
                             isSilver         -> SecondaryBronze.copy(alpha = 0.12f)
                             isMarketExplorer -> Color(0xFF0F6B5C).copy(alpha = 0.12f)
+                            isInnovation     -> Color(0xFF68499A).copy(alpha = 0.12f)
+                            isSensex         -> Color(0xFF2346B5).copy(alpha = 0.12f)
                             else             -> AccentGreen.copy(alpha = 0.12f)
                         },
                         shape = CircleShape
@@ -1184,6 +1215,8 @@ fun InitialGoalCardV2(
                         isGold           -> AccentGoldDark
                         isSilver         -> SecondaryBronze
                         isMarketExplorer -> Color(0xFF0F6B5C)
+                        isInnovation     -> Color(0xFF68499A)
+                        isSensex         -> Color(0xFF2346B5)
                         else             -> AccentGreen
                     },
                     modifier = Modifier.size(20.dp)
