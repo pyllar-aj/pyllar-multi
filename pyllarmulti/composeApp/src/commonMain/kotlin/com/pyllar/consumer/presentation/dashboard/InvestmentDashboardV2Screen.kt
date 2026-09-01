@@ -2076,7 +2076,7 @@ fun NextGoalCard(
                 }
 
                 if (isAllInOne || category == "MARKET_EXPLORER" || category == "INNOVATION" || category == "SENSEX") {
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
                     if (isAllInOne) {
                         val allInOneAccent = Color(0xFF2C4C9C)
                         DashedDivider(
@@ -2148,7 +2148,7 @@ fun NextGoalCard(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { expanded = !expanded }
-                            .padding(vertical = 8.dp),
+                            .padding(vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
@@ -2204,34 +2204,34 @@ fun NextGoalCard(
                             )
                         }
                     }
-                    if (category == "SENSEX") {
-                        Spacer(modifier = Modifier.height(1.dp))
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(
-                                    color = Color(0xFFEFF6FF),
-                                    shape = RoundedCornerShape(20.dp)
-                                )
-                                .padding(horizontal = 12.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.Star,
-                                contentDescription = null,
-                                tint = Color(0xFF2346B5),
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Tracks 30 leading companies 📈",
-                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
-                                color = Color(0xFF2346B5)
-                            )
-                        }
-                    }
                     if (expanded) {
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
+                        if (category == "SENSEX") {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(
+                                        color = Color(0xFFEFF6FF),
+                                        shape = RoundedCornerShape(20.dp)
+                                    )
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Star,
+                                    contentDescription = null,
+                                    tint = Color(0xFF2346B5),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Tracks 30 leading companies 📈",
+                                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                                    color = Color(0xFF2346B5)
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
                         if (isAllInOne) {
                             // Goals badge: Ideal for long-term goals
                             Row(
