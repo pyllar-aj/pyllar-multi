@@ -147,7 +147,7 @@ fun InvestmentDashboardV2Screen(
     val isKycPending = dashboardState.kycStatus.equals("PENDING", ignoreCase = true) ||
             dashboardState.kycStatus.equals("IN_PROGRESS", ignoreCase = true) ||
             dashboardState.kycStatus.equals("EXPIRED", ignoreCase = true) ||
-            // dashboardState.kycStatus.equals("UNLINKED", ignoreCase = true) ||
+            dashboardState.kycStatus.equals("UNLINKED", ignoreCase = true) ||
             dashboardState.kycStatus.equals("REJECTED", ignoreCase = true)
     val hasPendingMandates = dashboardState.fundDetails.any { 
         it.mandateStatus?.contains("PENDING", ignoreCase = true) == true ||
@@ -998,7 +998,7 @@ fun StatusInfoCard(
     val isKycPending = kycStatus.equals("PENDING", ignoreCase = true) ||
             kycStatus.equals("IN_PROGRESS", ignoreCase = true) ||
             kycStatus.equals("EXPIRED", ignoreCase = true) ||
-            // kycStatus.equals("UNLINKED", ignoreCase = true) ||
+            kycStatus.equals("UNLINKED", ignoreCase = true) ||
             kycStatus.equals("REJECTED", ignoreCase = true)
 
     // Filter only pending mandate statuses
