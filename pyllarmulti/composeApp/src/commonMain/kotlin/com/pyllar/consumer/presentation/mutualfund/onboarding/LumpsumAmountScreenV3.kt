@@ -484,12 +484,14 @@ fun LumpsumAmountScreenV3(
                                                 fontWeight = FontWeight.Bold,
                                                 color = theme.accentColor
                                             )
-                                            Text(
-                                                text = stringResource(Res.string.past_performance_actual_returns, navGainPct),
-                                                fontSize = 11.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = Color(0xFF6FCF97)
-                                            )
+                                            if (navGainPct > 7) {
+                                                Text(
+                                                    text = stringResource(Res.string.past_performance_actual_returns, navGainPct),
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Color(0xFF6FCF97)
+                                                )
+                                            }
                                             if (gramsValueLabel != null && gramsSuffixLabel != null) {
                                                 Row(modifier = Modifier.padding(top = 4.dp)) {
                                                     Text(
