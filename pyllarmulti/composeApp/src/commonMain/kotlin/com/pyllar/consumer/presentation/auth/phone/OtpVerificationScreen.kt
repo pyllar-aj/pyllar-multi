@@ -5,7 +5,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.ClickableText
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -108,12 +110,10 @@ fun OtpVerificationScreen(
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
 
-    // Show keyboard again when OTP verification fails
+    // Clear OTP on error without manual keyboard forcing
     LaunchedEffect(verificationResult) {
         if (verificationResult is Resource.Error) {
             viewModel.updateOtp("")
-            delay(100)
-            keyboardController?.show()
         }
     }
 
@@ -184,6 +184,7 @@ fun OtpVerificationScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
                     .padding(2.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(24.dp)
@@ -237,7 +238,8 @@ fun OtpVerificationScreen(
                     onOtpComplete = {
                         keyboardController?.hide()
                         focusManager.clearFocus()
-                    }
+                    },
+                    autoFocus = true
                 )
 
                 /*Row(

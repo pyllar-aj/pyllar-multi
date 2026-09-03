@@ -13,4 +13,5 @@ expect fun OtpField(
     otpFieldValue: TextFieldValue,
     onOtpFieldValueChange: (TextFieldValue) -> Unit,
     onOtpComplete: () -> Unit,
+    autoFocus: Boolean = false,
 )

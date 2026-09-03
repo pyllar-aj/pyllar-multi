@@ -24,6 +24,12 @@ import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ObjCAction
 import kotlinx.cinterop.useContents
 
+import platform.darwin.dispatch_async
+import platform.darwin.dispatch_get_main_queue
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+
 @OptIn(BetaInteropApi::class, ExperimentalForeignApi::class)
 private class TextFieldTarget(
     private val maxLength: Int,
@@ -57,7 +63,10 @@ actual fun OtpField(
     otpFieldValue: TextFieldValue,
     onOtpFieldValueChange: (TextFieldValue) -> Unit,
     onOtpComplete: () -> Unit,
+    autoFocus: Boolean,
 ) {
+    var hasAutoFocused by remember { mutableStateOf(false) }
+
     val target = remember(onOtpFieldValueChange) {
         TextFieldTarget(length) { text ->
             val cleanText = text.take(length).filter { it.isDigit() }
@@ -102,6 +111,12 @@ actual fun OtpField(
             textField.enabled = enabled
             if (textField.text != otpFieldValue.text) {
                 textField.text = otpFieldValue.text
+            }
+            if (autoFocus && enabled && !hasAutoFocused && !textField.isFirstResponder) {
+                hasAutoFocused = true
+                dispatch_async(dispatch_get_main_queue()) {
+                    textField.becomeFirstResponder()
+                }
             }
             if (isError) {
                 textField.layer.borderColor = UIColor.redColor.CGColor

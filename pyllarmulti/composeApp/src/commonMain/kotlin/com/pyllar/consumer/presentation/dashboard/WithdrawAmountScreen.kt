@@ -935,12 +935,13 @@ fun WithdrawAmountScreen(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
                             .fillMaxWidth()
-                            .run { if (isIos) this else imePadding() },
+                            .imePadding(),
                         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
                     ) {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .verticalScroll(rememberScrollState())
                                 .navigationBarsPadding()
                                 .padding(horizontal = 20.dp, vertical = 20.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
@@ -978,7 +979,8 @@ fun WithdrawAmountScreen(
                                  otpFieldValue = otpFieldValue,
                                  onOtpFieldValueChange = { otpFieldValue = it; otpValidationError = null },
                                  onOtpComplete = {},
-                                 isError = otpValidationError != null
+                                 isError = otpValidationError != null,
+                                 autoFocus = true
                              )
 
                             Text(

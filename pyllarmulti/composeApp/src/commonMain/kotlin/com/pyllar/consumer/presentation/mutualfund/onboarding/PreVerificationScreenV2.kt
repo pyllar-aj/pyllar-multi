@@ -14,8 +14,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -1021,8 +1023,9 @@ private fun PreVerificationV2OtpSheet(
         modifier = Modifier
             .fillMaxWidth()
             .background(V2Cream)
-            .padding(start = 22.dp, top = 8.dp, end = 22.dp, bottom = 16.dp)
-            .imePadding(),
+            .imePadding()
+            .verticalScroll(rememberScrollState())
+            .padding(start = 22.dp, top = 8.dp, end = 22.dp, bottom = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Header row
@@ -1066,7 +1069,8 @@ private fun PreVerificationV2OtpSheet(
             onOtpFieldValueChange = { newValue -> onOtpFieldValueChange(newValue) },
             onOtpComplete = {
                 // No auto-submit — user must tap verify button
-            }
+            },
+            autoFocus = true
         )
 
         // Error message

@@ -201,7 +201,6 @@ fun NomineeDetailsScreenV2(
             }
             is Resource.Error<*> -> {
                 otpFieldValue = TextFieldValue("")
-                keyboardController?.show()
             }
             is Resource.Loading<*> -> {}
             null -> {}
@@ -212,7 +211,6 @@ fun NomineeDetailsScreenV2(
     LaunchedEffect(showOtpScreen) {
         if (showOtpScreen) {
             focusManager.clearFocus()
-            keyboardController?.hide()
         }
     }
 
@@ -993,7 +991,6 @@ private fun NMV2OtpBottomSheet(
 
     LaunchedEffect(Unit) {
         PlatformAnalyticsLogger.logScreenView("OtpVerificationBottomSheetV4")
-        keyboardController?.show()
     }
 
     LaunchedEffect(canResend) {
@@ -1013,6 +1010,7 @@ private fun NMV2OtpBottomSheet(
             .background(NMV2Cream, RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
             .border(1.dp, NMV2CardBorder, RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
             .imePadding()
+            .verticalScroll(rememberScrollState())
             .padding(start = 24.dp, top = 5.dp, end = 24.dp, bottom = 15.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(18.dp)
@@ -1033,7 +1031,8 @@ private fun NMV2OtpBottomSheet(
             isError = otpVerificationResult is Resource.Error,
             otpFieldValue = otpFieldValue,
             onOtpFieldValueChange = { onOtpFieldValueChange(it) },
-            onOtpComplete = {}
+            onOtpComplete = {},
+            autoFocus = true
         )
 
         Text(
@@ -1050,7 +1049,6 @@ private fun NMV2OtpBottomSheet(
                     PlatformAnalyticsLogger.logEvent("otp_resend_clicked", mapOf("screen_version" to "v4"))
                     canResend = false
                     onOtpFieldValueChange(TextFieldValue(""))
-                    keyboardController?.show()
                     onResendOtp()
                 }
             },
