@@ -887,5 +887,6 @@
     <string name="mandate_status_rejected_monthly">Monthly Saving couldn\'t be enabled</string>
     <string name="mandate_status_cancelled">Daily Saving couldn\'t be enabled</string>
     <string name="mandate_status_cancelled_monthly">Monthly Saving couldn\'t be enabled</string>
+    <string name="explore_more_goals">EXPLORE MORE</string>
 </resources>
 

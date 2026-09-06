@@ -49,6 +49,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -88,6 +90,7 @@ import com.pyllar.consumer.presentation.ui.theme.V2SuccessGreen
 import com.pyllar.consumer.presentation.ui.theme.V2HelpText
 import com.pyllar.consumer.presentation.ui.theme.V2SubtleBorder
 import com.pyllar.consumer.domain.storage.SessionStore
+import com.pyllar.consumer.data.local.KeyValueConstants
 import pyllar.composeapp.generated.resources.*
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.animateFloat
@@ -273,6 +276,9 @@ fun InvestmentDashboardV2Screen(
     // Check and request notification permission once if never asked before
     LaunchedEffect(dashboardState.isLoading) {
         if (!dashboardState.isLoading) {
+            if (dashboardState.primaryGoals.isNotEmpty()) {
+                sessionStore.saveValue(KeyValueConstants.HAS_STARTED_SIP, "true")
+            }
             try {
                 val hasAsked = sessionStore.getValue("has_asked_notifications") != null
                 val isGranted = permissionManager.checkStatus().notificationsGranted
@@ -1710,34 +1716,117 @@ fun SavingsPlusInfoDialog(
 @Composable
 fun NextGoalsSection(
     goals: List<InvestmentGoal>,
-    onGoalClick: (String) -> Unit
+    onGoalClick: (String) -> Unit,
+    isLoading: Boolean = false
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally
+    var isOverDarkBackground by remember { mutableStateOf(false) }
+
+    val titleColor = if (isOverDarkBackground) Color(0xFFFBF9F4) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
+    val lineColor = if (isOverDarkBackground) Color(0xFFFBF9F4).copy(alpha = 0.5f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+    val iconColor = if (isOverDarkBackground) Color(0xFF81C784) else MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(20.dp),
+        modifier = Modifier.padding(horizontal = 5.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp)
+                .onGloballyPositioned { coordinates ->
+                    val yPos = coordinates.positionInRoot().y
+                    val screenHeight = coordinates.parentLayoutCoordinates?.size?.height ?: 0
+                    val halfHeight = if (screenHeight > 0) screenHeight / 2f else 800f
+                    isOverDarkBackground = yPos < halfHeight
+                },
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "Your Next Goals",
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center
+
+            // LEFT GRADIENT LINE
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(1.2.dp)
+                    .background(
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                lineColor
+                            )
+                        )
+                    )
             )
-            Spacer(modifier = Modifier.height(4.dp))
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            // LEFT ICON
+            Icon(
+                imageVector = Icons.Default.Star,
+                contentDescription = null,
+                tint = iconColor,
+                modifier = Modifier.size(14.dp)
+            )
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // TEXT
             Text(
-                text = "Choose a goal to start your wealth building journey",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                textAlign = TextAlign.Center
+                text = stringResource(Res.string.explore_more_goals),
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.5.sp
+                ),
+                color = titleColor
+            )
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // RIGHT ICON
+            Icon(
+                imageVector = Icons.Default.Star,
+                contentDescription = null,
+                tint = iconColor,
+                modifier = Modifier.size(14.dp)
+            )
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            // RIGHT GRADIENT LINE
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(1.2.dp)
+                    .background(
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(
+                                lineColor,
+                                Color.Transparent
+                            )
+                        )
+                    )
             )
         }
-
-        goals.forEach { goal ->
-            NextGoalCard(
-                goal = goal,
-                onClick = { onGoalClick(goal.goalId) },
-                modifier = Modifier.fillMaxWidth()
-            )
+        if (isLoading) {
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        } else {
+            // Display each goal card in its own row (full width)
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                goals.forEach { goal ->
+                    NextGoalCard(
+                        goal = goal,
+                        onClick = { onGoalClick(goal.goalId) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
         }
     }
 }

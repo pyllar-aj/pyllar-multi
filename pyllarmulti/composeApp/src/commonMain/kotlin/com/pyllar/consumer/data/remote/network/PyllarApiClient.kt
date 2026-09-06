@@ -171,7 +171,8 @@ class PyllarApiClient(
             parseStandardResponse<T>(parsed)
         } catch (e: Exception) {
             platformLog("PyllarApiClient: [Multipart] ❌ FATAL ERROR: ${e::class.simpleName}: ${e.message}")
-            Resource.Error(e.message ?: "Multipart upload failed")
+            val (friendlyMsg, errType) = formatNetworkException(e)
+            Resource.Error(friendlyMsg, errorType = errType)
         }
     }
 
@@ -315,11 +316,34 @@ class PyllarApiClient(
             if (e is SecureChannelException) {
                 platformLog("HTTPSecure(Pyllar) SecureChannelException details: ${e.message}")
             }
+            val (friendlyMsg, errType) = formatNetworkException(e)
             Resource.Error(
-                message = e.message ?: "Network error",
-                errorType = ErrorType.NETWORK_ERROR
+                message = friendlyMsg,
+                errorType = errType
             )
         }
+    }
+
+    @PublishedApi
+    internal fun formatNetworkException(e: Exception): Pair<String, ErrorType> {
+        val msg = e.message ?: ""
+        val isTimeout = msg.contains("timeout", ignoreCase = true) || e::class.simpleName?.contains("Timeout", ignoreCase = true) == true
+        if (isTimeout) {
+            return Pair("Connection timed out. Please check your internet connection and try again.", ErrorType.TIMEOUT_ERROR)
+        }
+        val isConnectionError = msg.contains("ConnectException", ignoreCase = true) ||
+                msg.contains("UnknownHostException", ignoreCase = true) ||
+                msg.contains("Unable to resolve host", ignoreCase = true) ||
+                msg.contains("Failed to connect", ignoreCase = true)
+        if (isConnectionError) {
+            return Pair("Unable to connect to server. Please check your internet connection.", ErrorType.NETWORK_ERROR)
+        }
+        val cleanMsg = if (msg.contains("[url=") || msg.contains("Exception") || msg.length > 120) {
+            "A network error occurred. Please try again."
+        } else {
+            msg.ifBlank { "A network error occurred. Please try again." }
+        }
+        return Pair(cleanMsg, ErrorType.NETWORK_ERROR)
     }
 
     @PublishedApi

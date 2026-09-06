@@ -39,7 +39,7 @@ fun getCorrelationColorForCategory(category: String?, colorTheme: String?): Colo
         "ALL_IN_ONE" -> Color(0xFF2C4C9C) // Dark blue
         "MARKET_EXPLORER" -> Color(0xFF0F6B5C) // Emerald/Teal Accent
         "INNOVATION" -> Color(0xFF68499A) // Violet text color for Innovation
-        "SENSEX" -> Color(0xFF2346B5)
+        "SENSEX" -> Color(0xFF2563EB)
         else -> V2SuccessGreen // Default green
     }
 }
@@ -200,6 +200,7 @@ fun getGoalIconDrawable(category: String?): DrawableResource? {
         "FESTIVAL_SPENDS" -> Res.drawable.festivals_icon
         "SAVINGS" -> Res.drawable.savings_icon
         "SAVINGS_PLUS" -> Res.drawable.savings_plus
+        "SENSEX" -> Res.drawable.sensex_icon
         else -> null
     }
 }

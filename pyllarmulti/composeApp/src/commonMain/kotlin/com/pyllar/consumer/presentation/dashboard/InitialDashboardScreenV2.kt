@@ -279,7 +279,7 @@ fun InitialDashboardScreenV2(
 
 // ─── MAIN CONTENT ─────────────────────────────────────────────────────────────
 @Composable
-private fun InitialDashboardContentV2(
+internal fun InitialDashboardContentV2(
     goals: List<InvestmentGoal>,
     growthData: Map<String, BucketGrowthData>,
     isLoading: Boolean,
@@ -1168,12 +1168,14 @@ fun InitialGoalCardV2(
                         .padding(top = 12.dp, end = 12.dp)
                 )
             } else if (isSensex) {
-                Text(
-                    text = "📈",
-                    fontSize = 32.sp,
+                Image(
+                    painter = painterResource(Res.drawable.sensex_icon),
+                    contentDescription = goal.name,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(top = 12.dp, end = 12.dp)
+                        .size(54.dp),
+                    contentScale = ContentScale.Fit
                 )
             } else {
                 val iconRes = if (isGold) Res.drawable.goldbar_icon else Res.drawable.silver_icon

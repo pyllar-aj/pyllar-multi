@@ -420,7 +420,6 @@ private fun MandateApprovedWaitingContent(
     val lightBackground = V2SubtleBorder
     
     val goalName = getGoalDisplayName(goalType)
-    val sipStartDay = remember { getInvestmentStatus() }
     val isMonthly = sipFrequency.lowercase() == "monthly"
     val amountVal = if (amount % 1.0 == 0.0) amount.toLong().toString() else amount.toString()
 
@@ -472,9 +471,9 @@ private fun MandateApprovedWaitingContent(
         }
     } else {
         if (isPlanReady) {
-            if (sipStartDay == "Tomorrow") "First ₹$amountVal deducted tomorrow" else "First ₹$amountVal deducted on $sipStartDay"
+            "First ₹$amountVal deducted tomorrow"
         } else {
-            if (sipStartDay == "Tomorrow") "First ₹$amountVal deduction pending — first debit tomorrow" else "First ₹$amountVal deduction pending — first debit on $sipStartDay"
+            "First ₹$amountVal deduction pending — first debit tomorrow"
         }
     }
 

@@ -2171,7 +2171,7 @@ fun SchemeDetailsPopupContentV2(
                     (s.contains("APPROVED") || s.contains("ACTIVE")) && !s.contains("PAUSED")
                 }
 
-                if (activeMandates.isNotEmpty() || investmentInProgress > 0 || redemptionInProgress > 0) {
+                if (investmentInProgress > 0 || redemptionInProgress > 0) {
                     Text(
                         text = stringResource(Res.string.whats_happening_section),
                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
@@ -4170,7 +4170,7 @@ private fun getGradientForCategory(category: String?, colorTheme: String?): Brus
         "ALL_IN_ONE" -> listOf(Color(0xFF283593), Color(0xFF3F51B5), Color(0xFF9FA8DA))
         "MARKET_EXPLORER" -> listOf(Color(0xFF0F6B5C), Color(0xFF148B75), Color(0xFFE4F3EE))
         "INNOVATION" -> listOf(Color(0xFF7A5F9E), Color(0xFF876DAF), Color(0xFFF1ECF8))
-        "SENSEX" -> listOf(Color(0xFF0F172A), Color(0xFF2346B5), Color(0xFFEFF6FF))
+        "SENSEX" -> listOf(Color(0xFF1E40AF), Color(0xFF2346B5), Color(0xFFEFF6FF))
         else -> listOf(baseColor.copy(alpha = 0.8f), baseColor)
     }
     return Brush.verticalGradient(colors)

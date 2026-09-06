@@ -222,6 +222,7 @@ fun SipAmountScreenV3(
 ) {
     val limitsState by viewModel.limitsState.collectAsState()
     val fundDetailsState by fundDetailsViewModel.uiState.collectAsState()
+    val dashboardState by dashboardViewModel.dashboardState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -489,13 +490,18 @@ fun SipAmountScreenV3(
     }
 
     // Exit-intent doubts survey eligibility: shown once, on the first back-press after the
-    // 5th visit to this screen, as long as the user hasn't already started a SIP here and has no active goals.
+    // 5th visit to this screen, as long as the user hasn't already started a SIP and has no active goals.
     LaunchedEffect(Unit) {
         val newVisitCount = (sessionStore.getValue(KeyValueConstants.SIP_AMOUNT_V3_VISIT_COUNT)?.toIntOrNull() ?: 0) + 1
         sessionStore.saveValue(KeyValueConstants.SIP_AMOUNT_V3_VISIT_COUNT, newVisitCount.toString())
+        val hasActiveGoals = dashboardState.primaryGoals.isNotEmpty() ||
+            sessionStore.getValue(KeyValueConstants.HAS_STARTED_SIP) == "true"
+        if (hasActiveGoals) {
+            sessionStore.saveValue(KeyValueConstants.HAS_STARTED_SIP, "true")
+        }
         eligibleForDoubtsSurvey = newVisitCount > 4 &&
             sessionStore.getValue(KeyValueConstants.DOUBTS_SURVEY_SHOWN) != "true" &&
-            sessionStore.getValue(KeyValueConstants.HAS_STARTED_SIP) != "true"
+            !hasActiveGoals
     }
 
     Scaffold(
@@ -1129,7 +1135,14 @@ fun SipAmountScreenV3(
                         }
                     } catch (e: Exception) {
                         isSheetLoading = false
-                        sheetError = "An unexpected error occurred: ${e.message}"
+                        val msg = e.message ?: ""
+                        sheetError = if (msg.contains("timeout", ignoreCase = true)) {
+                            "Connection timed out. Please try again."
+                        } else if (msg.contains("[url=") || msg.length > 100) {
+                            "An unexpected network error occurred. Please try again."
+                        } else {
+                            msg.ifBlank { "An unexpected error occurred. Please try again." }
+                        }
                     }
                 }
             },
