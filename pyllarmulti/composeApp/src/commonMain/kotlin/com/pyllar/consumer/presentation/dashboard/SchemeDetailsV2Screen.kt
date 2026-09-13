@@ -220,7 +220,7 @@ fun SchemeDetailsV2Screen(
     val isFirstPlanEverForGoal = remember(state.mandates, activeMandate) {
         val approvedMandates = state.mandates.filter { m ->
             val s = m.status?.uppercase().orEmpty()
-            s.contains("APPROVED") || s.contains("ACTIVE") || s.contains("COMPLETED") || s.contains("CLOSED") || s.contains("CANCELLED")
+            s.contains("APPROVED") || s.contains("ACTIVE") || s.contains("COMPLETED") || s.contains("CLOSED") || s.contains("CANCELLED") || s.contains("PAUSED")
         }.sortedBy { m ->
             m.mandateCreatedDate ?: m.mandateApprovedDate ?: "9999-99-99"
         }
