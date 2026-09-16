@@ -181,8 +181,8 @@ private fun getMonthlySipStartInfo(sipDate: Int): Pair<String, String> {
     return title to subtitle
 }
 
-private fun calculateYearsDifference(startYearMonth: String?, endYearMonth: String?): Int {
-    if (startYearMonth.isNullOrBlank() || endYearMonth.isNullOrBlank()) return 5
+private fun formatPastPerformanceDurationLabel(startYearMonth: String?, endYearMonth: String?): String {
+    if (startYearMonth.isNullOrBlank() || endYearMonth.isNullOrBlank()) return "5 YR PAST PERFORMANCE"
     return try {
         val startParts = startYearMonth.split("-")
         val endParts = endYearMonth.split("-")
@@ -191,10 +191,16 @@ private fun calculateYearsDifference(startYearMonth: String?, endYearMonth: Stri
         val endYear = endParts[0].toInt()
         val endMonth = endParts[1].toInt()
         val diffMonths = (endYear - startYear) * 12 + (endMonth - startMonth)
-        val yrs = (diffMonths / 12.0).roundToInt()
-        if (yrs > 0) yrs else 1
+        if (diffMonths < 12) {
+            val months = if (diffMonths > 0) diffMonths else 1
+            "$months MO PAST PERFORMANCE"
+        } else {
+            val yrs = (diffMonths / 12.0).roundToInt()
+            val safeYrs = if (yrs > 0) yrs else 1
+            "$safeYrs YR PAST PERFORMANCE"
+        }
     } catch (e: Exception) {
-        5
+        "5 YR PAST PERFORMANCE"
     }
 }
 
@@ -660,8 +666,7 @@ fun SipAmountScreenV3(
                                     ) {
                                         Column {
                                             val yrsLabel = if (!pastPerformanceLoading && pastPerformance != null) {
-                                                val yrs = calculateYearsDifference(pastPerformance.startYearMonth, pastPerformance.asOfYearMonth)
-                                                "$yrs YR PAST PERFORMANCE"
+                                                formatPastPerformanceDurationLabel(pastPerformance.startYearMonth, pastPerformance.asOfYearMonth)
                                             } else {
                                                 stringResource(Res.string.past_performance_label)
                                             }
