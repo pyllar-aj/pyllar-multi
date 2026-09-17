@@ -115,6 +115,8 @@ fun SchemeDetailsV2Screen(
 
     var schemeParams by remember { mutableStateOf<SchemeDetailsParams?>(SchemeDetailsParamsManager.get()) }
     
+    val lazyListState = androidx.compose.foundation.lazy.rememberLazyListState()
+    
     val displaySchemeName = schemeParams?.schemeName?.takeIf { it.isNotBlank() } ?: state.schemeName.orEmpty()
     val displayGoalName = schemeParams?.goalName?.takeIf { it.isNotBlank() } ?: state.goalName.orEmpty()
     val displayCategory = schemeParams?.category ?: state.category
@@ -230,27 +232,49 @@ fun SchemeDetailsV2Screen(
     val isFirstInvestmentInProgress = isDailySip && hasApprovedPlan && isRecentPlanSetup && isFirstPlanEverForGoal
     val showFirstSaveDate = false
 
+    var resolvedUserId by remember { mutableStateOf(userId) }
+    var resolvedPurpose by remember { mutableStateOf(purpose) }
+    var loadMoreToastMessage by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(state.loadMoreErrorMessage) {
+        state.loadMoreErrorMessage?.let { message ->
+            loadMoreToastMessage = message
+            viewModel.clearLoadMoreErrorMessage()
+        }
+    }
+
+    LaunchedEffect(loadMoreToastMessage) {
+        if (loadMoreToastMessage != null) {
+            kotlinx.coroutines.delay(3000)
+            loadMoreToastMessage = null
+        }
+    }
+
     LaunchedEffect(Unit) {
         PlatformAnalyticsLogger.logScreenView("SchemeDetailsV2")
     }
 
-    LaunchedEffect(userId, purpose) {
-        platformLog("SchemeDetailsV2: LaunchedEffect initial load - userId: $userId, purpose: $purpose")
-        if (userId.isNotBlank() && purpose.isNotBlank()) {
+    LaunchedEffect(userId, purpose, schemeParams) {
+        val effectiveUserId = userId.ifBlank { sessionStore.getValue(KeyValueConstants.USER_ID) ?: "" }
+        val effectivePurpose = purpose.ifBlank { sessionStore.getValue(KeyValueConstants.SELECTED_GOAL_ID) ?: "" }
+        resolvedUserId = effectiveUserId
+        resolvedPurpose = effectivePurpose
+        platformLog("SchemeDetailsV2: LaunchedEffect initial load - userId: '$effectiveUserId', purpose: '$effectivePurpose'")
+        if (effectiveUserId.isNotBlank() && effectivePurpose.isNotBlank()) {
             if (SchemeDetailsParamsManager.get() == null) {
-                val stored = sessionStore.getValue("scheme_details_params_$purpose")
-                val restored = SchemeDetailsParamsManager.fromJson(stored)
-                if (restored != null) {
-                    SchemeDetailsParamsManager.set(restored)
-                    schemeParams = restored
+                val stored = sessionStore.getValue("scheme_details_params_$effectivePurpose")
+                val restoredParams = SchemeDetailsParamsManager.fromJson(stored)
+                if (restoredParams != null) {
+                    SchemeDetailsParamsManager.set(restoredParams)
+                    schemeParams = restoredParams
                 }
             } else if (schemeParams == null) {
                 schemeParams = SchemeDetailsParamsManager.get()
             }
 
             val currentParams = schemeParams ?: SchemeDetailsParamsManager.get()
-            val uipid = currentParams?.userPurposeId ?: purpose
-            viewModel.loadTransactions(userId, uipid, currentParams)
+            platformLog("SchemeDetailsV2: Loading transactions with effectivePurpose='$effectivePurpose' for effectiveUserId='$effectiveUserId'")
+            viewModel.loadTransactions(effectiveUserId, effectivePurpose, currentParams)
         }
     }
 
@@ -294,10 +318,9 @@ fun SchemeDetailsV2Screen(
     }
 
     val reloadData = {
-        if (userId.isNotBlank() && purpose.isNotBlank()) {
+        if (resolvedUserId.isNotBlank() && resolvedPurpose.isNotBlank()) {
             val currentParams = schemeParams ?: SchemeDetailsParamsManager.get()
-            val uipid = currentParams?.userPurposeId ?: purpose
-            viewModel.loadTransactions(userId, uipid, currentParams)
+            viewModel.loadTransactions(resolvedUserId, resolvedPurpose, currentParams)
         }
     }
 
@@ -363,6 +386,39 @@ fun SchemeDetailsV2Screen(
 
     Scaffold(
         containerColor = scaffoldBgColor,
+        snackbarHost = {
+            AnimatedVisibility(
+                visible = loadMoreToastMessage != null,
+                enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
+                exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 }),
+                modifier = Modifier.padding(bottom = 16.dp)
+            ) {
+                Card(
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF323232)),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                    modifier = Modifier.padding(horizontal = 24.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text(
+                            text = loadMoreToastMessage ?: "",
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                            color = Color.White
+                        )
+                    }
+                }
+            }
+        },
         bottomBar = {
             val inOverlayFlow = showCancelReasonScreen ||
                     showCancelSipScreen ||
@@ -734,10 +790,9 @@ fun SchemeDetailsV2Screen(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(onClick = {
-                        if (userId.isNotBlank() && purpose.isNotBlank()) {
+                        if (resolvedUserId.isNotBlank() && resolvedPurpose.isNotBlank()) {
                             val latestParams = schemeParams ?: SchemeDetailsParamsManager.get()
-                            val uipid = latestParams?.userPurposeId ?: purpose
-                            viewModel.loadTransactions(userId, uipid, latestParams)
+                            viewModel.loadTransactions(resolvedUserId, resolvedPurpose, latestParams)
                         }
                     }) {
                         Text(stringResource(Res.string.retry))
@@ -751,6 +806,7 @@ fun SchemeDetailsV2Screen(
                         .padding(paddingValues)
                 ) {
                     LazyColumn(
+                        state = lazyListState,
                         modifier = Modifier.weight(1f),
                         contentPadding = PaddingValues(top = 24.dp, bottom = 24.dp, start = 10.dp, end = 10.dp),
                         verticalArrangement = Arrangement.spacedBy(20.dp)
@@ -836,6 +892,37 @@ fun SchemeDetailsV2Screen(
                                 } else {
                                     items(state.transactions) { transaction ->
                                         TransactionItemV2(transaction = transaction)
+                                    }
+                                    if (state.hasMore) {
+                                        item {
+                                            Box(
+                                                modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                OutlinedButton(
+                                                    onClick = {
+                                                        if (resolvedUserId.isNotBlank() && resolvedPurpose.isNotBlank()) {
+                                                            viewModel.loadMoreTransactions(resolvedUserId, resolvedPurpose)
+                                                        }
+                                                    },
+                                                    enabled = !state.isLoadingMore,
+                                                    modifier = Modifier.fillMaxWidth(0.6f)
+                                                ) {
+                                                    if (state.isLoadingMore) {
+                                                        CircularProgressIndicator(
+                                                            modifier = Modifier.size(20.dp),
+                                                            color = goalColor,
+                                                            strokeWidth = 2.dp
+                                                        )
+                                                    } else {
+                                                        Text(
+                                                            text = stringResource(Res.string.load_more_transactions),
+                                                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -1539,10 +1626,9 @@ fun SchemeDetailsV2Screen(
                         TextButton(onClick = {
                             val isNetwork = errorMsg.contains("connect", true) || errorMsg.contains("Internet", true)
                             viewModel.clearErrorMessage()
-                            if (isNetwork && userId.isNotBlank() && purpose.isNotBlank()) {
+                            if (isNetwork && resolvedUserId.isNotBlank() && resolvedPurpose.isNotBlank()) {
                                 val latestParams = schemeParams ?: SchemeDetailsParamsManager.get()
-                                val uipid = latestParams?.userPurposeId ?: purpose
-                                viewModel.loadTransactions(userId, uipid, latestParams)
+                                viewModel.loadTransactions(resolvedUserId, resolvedPurpose, latestParams)
                             }
                         }) {
                             Text(if (errorMsg.contains("connect", true) || errorMsg.contains("Internet", true)) "Retry" else "OK")

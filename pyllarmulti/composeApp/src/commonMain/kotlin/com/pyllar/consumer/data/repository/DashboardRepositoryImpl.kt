@@ -90,6 +90,70 @@ class DashboardRepositoryImpl(
         }
     }
 
+    override fun getTransactionsPaged(
+        userId: String,
+        purpose: String,
+        beforeDate: String?,
+        days: Int?
+    ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.PagedTransactionDetailsResponseDto>> = flow {
+        emit(Resource.Loading())
+        when (val result = apiClient.get<com.pyllar.consumer.data.remote.model.dto.PagedTransactionDetailsResponseDto>(
+            path = "api/invDashboard/transactions/paged"
+        ) {
+            url {
+                parameters.append("userId", userId)
+                parameters.append("userInvestmentPurposeId", purpose)
+                if (beforeDate != null) {
+                    parameters.append("beforeDate", beforeDate)
+                }
+                if (days != null) {
+                    parameters.append("days", days.toString())
+                }
+            }
+        }) {
+            is Resource.Success -> emit(Resource.Success(
+                data = result.data,
+                navigation = result.navigation,
+                fieldErrors = result.fieldErrors
+            ))
+            is Resource.Error -> emit(Resource.Error(
+                message = result.message ?: "",
+                navigation = result.navigation,
+                fieldErrors = result.fieldErrors,
+                errorType = result.errorType
+            ))
+            is Resource.Loading -> emit(Resource.Loading())
+        }
+    }
+
+    override fun getPlanSummaries(
+        userId: String,
+        purpose: String
+    ): Flow<Resource<List<com.pyllar.consumer.data.remote.model.dto.PlanSummaryDto>>> = flow {
+        emit(Resource.Loading())
+        when (val result = apiClient.get<List<com.pyllar.consumer.data.remote.model.dto.PlanSummaryDto>>(
+            path = "api/invDashboard/plans"
+        ) {
+            url {
+                parameters.append("userId", userId)
+                parameters.append("userInvestmentPurposeId", purpose)
+            }
+        }) {
+            is Resource.Success -> emit(Resource.Success(
+                data = result.data,
+                navigation = result.navigation,
+                fieldErrors = result.fieldErrors
+            ))
+            is Resource.Error -> emit(Resource.Error(
+                message = result.message ?: "",
+                navigation = result.navigation,
+                fieldErrors = result.fieldErrors,
+                errorType = result.errorType
+            ))
+            is Resource.Loading -> emit(Resource.Loading())
+        }
+    }
+
     override fun initGoalTxn(request: com.pyllar.consumer.data.remote.requests.GoalSelectionRequest): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.GoalSelectionResponseDto>> = flow {
         emit(Resource.Loading())
         when (val result = apiClient.post<com.pyllar.consumer.data.remote.model.dto.GoalSelectionResponseDto, com.pyllar.consumer.data.remote.requests.GoalSelectionRequest>(

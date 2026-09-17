@@ -15,6 +15,18 @@ interface DashboardRepository {
     
     fun getTransactions(request: TransactionDetailsRequest): Flow<Resource<TransactionDetailsResponseDto>>
 
+    fun getTransactionsPaged(
+        userId: String,
+        purpose: String,
+        beforeDate: String? = null,
+        days: Int? = 30
+    ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.PagedTransactionDetailsResponseDto>>
+
+    fun getPlanSummaries(
+        userId: String,
+        purpose: String
+    ): Flow<Resource<List<com.pyllar.consumer.data.remote.model.dto.PlanSummaryDto>>>
+
     fun initGoalTxn(request: com.pyllar.consumer.data.remote.requests.GoalSelectionRequest): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.GoalSelectionResponseDto>>
 
     fun sipAction(request: com.pyllar.consumer.data.remote.requests.SipActionRequest): Flow<Resource<String>>

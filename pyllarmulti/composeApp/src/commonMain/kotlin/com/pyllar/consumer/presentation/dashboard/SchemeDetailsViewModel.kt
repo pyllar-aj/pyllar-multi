@@ -7,10 +7,13 @@ import com.pyllar.consumer.data.remote.requests.TransactionDetailsRequest
 import com.pyllar.consumer.domain.repository.DashboardRepository
 import com.pyllar.consumer.util.Resource
 import com.pyllar.consumer.util.platformLog
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDate
@@ -130,7 +133,11 @@ data class SchemeDetailsState(
     val transactions: List<TransactionDisplayItem> = emptyList(),
     val mandates: List<MandateDisplayItem> = emptyList(),
     val isLoading: Boolean = true,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val nextBeforeDate: String? = null,
+    val hasMore: Boolean = false,
+    val isLoadingMore: Boolean = false,
+    val loadMoreErrorMessage: String? = null
 )
 
 sealed class CancelSipResult {
@@ -187,6 +194,8 @@ class SchemeDetailsViewModel(
     private val _resumeSipLoading = MutableStateFlow(false)
     val resumeSipLoading: StateFlow<Boolean> = _resumeSipLoading.asStateFlow()
 
+    private var loadJob: Job? = null
+
     fun clearState() {
         platformLog("🧹 Clearing SchemeDetailsViewModel state")
         _uiState.value = SchemeDetailsState()
@@ -196,52 +205,89 @@ class SchemeDetailsViewModel(
         _uiState.value = _uiState.value.copy(errorMessage = null)
     }
 
+    private fun mapPlanSummariesToDisplayMandates(planSummaries: List<com.pyllar.consumer.data.remote.model.dto.PlanSummaryDto>?): List<MandateDisplayItem> {
+        return planSummaries?.map { planSummary ->
+            val createdDate = planSummary.mandateCreatedDate ?: planSummary.mandateApprovedDate
+            val calculatedAllocationDate = calculateFirstUnitAllocationDate(createdDate)
+            val calculatedDebitDate = calculateFirstDebitDate(createdDate)
+            MandateDisplayItem(
+                mandateId = planSummary.mandateId,
+                amount = planSummary.amount?.toDouble() ?: 0.0,
+                nextSipDate = planSummary.nextSipDate,
+                status = planSummary.status,
+                frequency = planSummary.frequency,
+                planId = planSummary.planId,
+                mandateApprovedDate = planSummary.mandateApprovedDate,
+                mandateCancelledDate = planSummary.mandateCancelledDate,
+                mandateCreatedDate = planSummary.mandateCreatedDate,
+                firstUnitAllocationDate = planSummary.firstUnitAllocationDate,
+                calculatedFirstUnitAllocationDate = calculatedAllocationDate,
+                firstDebitDate = calculatedDebitDate
+            )
+        }?.sortedByDescending { it.mandateCreatedDate ?: "" } ?: emptyList()
+    }
+
     fun loadTransactions(userId: String, purpose: String, schemeParams: SchemeDetailsParams? = null) {
-        viewModelScope.launch {
-            platformLog("🔄 Loading transactions for userId: $userId, purpose: $purpose")
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
+            platformLog("🔄 Loading transactions & plans for userId: $userId, purpose: $purpose")
             _uiState.value = mergeParamsOnError(_uiState.value, schemeParams).copy(isLoading = true, errorMessage = null)
 
             try {
-                val request = TransactionDetailsRequest(
-                    userId = userId,
-                    userInvestmentPurposeId = purpose
-                )
+                val transactionsDeferred = async {
+                    dashboardRepository.getTransactionsPaged(
+                        userId = userId,
+                        purpose = purpose,
+                        beforeDate = null,
+                        days = 30
+                    ).first { it !is Resource.Loading }
+                }
 
-                dashboardRepository.getTransactions(request).collectLatest { result ->
-                    when (result) {
-                        is Resource.Success -> {
-                            val response = result.data
-                            if (response != null) {
-                                val state = mapResponseToState(response, schemeParams)
-                                _uiState.value = state.copy(isLoading = false)
-                                platformLog("✅ Transactions loaded successfully")
-                            } else {
-                                platformLog("⚠️ Response data is null")
-                                _uiState.value = mergeParamsOnError(_uiState.value, schemeParams).copy(
-                                    isLoading = false,
-                                    errorMessage = "No transaction data available"
-                                )
-                            }
-                        }
-                        is Resource.Error -> {
-                            platformLog("Error loading transactions: ${result.message}")
-                            val errorMsg = result.message ?: ""
-                            val isNetworkError = result.isNetworkError ||
-                                errorMsg.contains("Failed to connect", ignoreCase = true) ||
-                                errorMsg.contains("connection", ignoreCase = true) ||
-                                errorMsg.contains("Internet", ignoreCase = true) ||
-                                errorMsg.contains("timeout", ignoreCase = true)
+                val plansDeferred = async {
+                    dashboardRepository.getPlanSummaries(
+                        userId = userId,
+                        purpose = purpose
+                    ).first { it !is Resource.Loading }
+                }
+
+                val result = transactionsDeferred.await()
+                val plansResult = plansDeferred.await()
+
+                val planSummaries = if (plansResult is Resource.Success) plansResult.data else null
+
+                when (result) {
+                    is Resource.Success -> {
+                        val response = result.data
+                        if (response != null) {
+                            val state = mapPagedResponseToState(response, schemeParams, planSummaries)
+                            _uiState.value = state.copy(isLoading = false)
+                            platformLog("✅ Transactions & plans loaded successfully: ${state.transactions.size} tx, ${state.mandates.size} mandates")
+                        } else {
+                            platformLog("⚠️ Response data is null")
                             _uiState.value = mergeParamsOnError(_uiState.value, schemeParams).copy(
                                 isLoading = false,
-                                errorMessage = if (isNetworkError) {
-                                    "Unable to connect to server. Please check your internet connection and try again."
-                                } else {
-                                    errorMsg.ifBlank { "Failed to load transactions" }
-                                }
+                                errorMessage = "No transaction data available"
                             )
                         }
-                        is Resource.Loading -> { }
                     }
+                    is Resource.Error -> {
+                        platformLog("Error loading transactions: ${result.message}")
+                        val errorMsg = result.message ?: ""
+                        val isNetworkError = result.isNetworkError ||
+                            errorMsg.contains("Failed to connect", ignoreCase = true) ||
+                            errorMsg.contains("connection", ignoreCase = true) ||
+                            errorMsg.contains("Internet", ignoreCase = true) ||
+                            errorMsg.contains("timeout", ignoreCase = true)
+                        _uiState.value = mergeParamsOnError(_uiState.value, schemeParams).copy(
+                            isLoading = false,
+                            errorMessage = if (isNetworkError) {
+                                "Unable to connect to server. Please check your internet connection and try again."
+                            } else {
+                                errorMsg.ifBlank { "Failed to load transactions" }
+                            }
+                        )
+                    }
+                    else -> { }
                 }
             } catch (e: Exception) {
                 platformLog("Exception loading transactions: ${e.message}")
@@ -260,6 +306,223 @@ class SchemeDetailsViewModel(
                 )
             }
         }
+    }
+
+    fun loadMoreTransactions(userId: String, purpose: String) {
+        val currentState = _uiState.value
+        if (currentState.isLoading || currentState.isLoadingMore || !currentState.hasMore || currentState.nextBeforeDate.isNullOrBlank()) {
+            return
+        }
+
+        viewModelScope.launch {
+            platformLog("🔄 Loading more transactions with beforeDate: ${currentState.nextBeforeDate}")
+            _uiState.value = currentState.copy(isLoadingMore = true)
+
+            try {
+                dashboardRepository.getTransactionsPaged(
+                    userId = userId,
+                    purpose = purpose,
+                    beforeDate = currentState.nextBeforeDate,
+                    days = 30
+                ).collectLatest { result ->
+                    when (result) {
+                        is Resource.Success -> {
+                            val response = result.data
+                            if (response != null) {
+                                val newItems = response.transactions.orEmpty().map { tx ->
+                                    val amount = tx.amount?.toDouble() ?: 0.0
+                                    val transactionTypeUpper = tx.transactionType?.uppercase() ?: ""
+                                    val isCredit = when {
+                                        transactionTypeUpper == "PURCHASE" -> true
+                                        transactionTypeUpper == "REDEMPTION" -> false
+                                        else -> true
+                                    }
+
+                                    val mappedState = when {
+                                        tx.state != null -> {
+                                            when (tx.state.uppercase()) {
+                                                "SUCCESSFUL", "COMPLETED", "SUCCESS" -> "SUCCESS"
+                                                "SUBMITTED", "CONFIRMED", "PENDING", "IN_PROGRESS" -> "SUBMITTED"
+                                                "FAILED", "CANCELLED", "REVERSED" -> "FAILED"
+                                                else -> tx.state.uppercase()
+                                            }
+                                        }
+                                        !isCredit -> "FAILED"
+                                        else -> "UNKNOWN"
+                                    }
+
+                                    val originalDateString = tx.scheduledOn ?: tx.tradedOn
+                                    val finalDate = if (!isCredit && originalDateString == null) {
+                                        null
+                                    } else {
+                                        formatDate(originalDateString)
+                                    }
+
+                                    val units = tx.units?.toDouble() ?: tx.allottedUnits?.toDouble() ?: 0.0
+
+                                    TransactionDisplayItem(
+                                        transactionId = tx.transactionId,
+                                        transactionType = tx.transactionType,
+                                        amount = kotlin.math.abs(amount),
+                                        date = finalDate,
+                                        state = mappedState,
+                                        isCredit = isCredit,
+                                        allottedUnits = units,
+                                        sortDate = originalDateString
+                                    )
+                                }
+
+                                val existingIds = _uiState.value.transactions.mapNotNull { it.transactionId }.toSet()
+                                val filteredNew = newItems.filter { it.transactionId == null || !existingIds.contains(it.transactionId) }
+                                val combinedTransactions = (_uiState.value.transactions + filteredNew).sortedByDescending { it.sortDate ?: "" }
+
+                                _uiState.value = _uiState.value.copy(
+                                    transactions = combinedTransactions,
+                                    nextBeforeDate = response.nextBeforeDate,
+                                    hasMore = response.hasMore,
+                                    isLoadingMore = false
+                                )
+                                platformLog("✅ Loaded ${filteredNew.size} more transactions. HasMore=${response.hasMore}")
+                            } else {
+                                _uiState.value = _uiState.value.copy(isLoadingMore = false)
+                            }
+                        }
+                        is Resource.Error -> {
+                            platformLog("Error loading more transactions: ${result.message}")
+                            val errorMsg = result.message ?: ""
+                            val isNetworkError = result.isNetworkError ||
+                                errorMsg.contains("connect", ignoreCase = true) ||
+                                errorMsg.contains("network", ignoreCase = true) ||
+                                errorMsg.contains("timeout", ignoreCase = true) ||
+                                errorMsg.contains("IOException", ignoreCase = true)
+                            val toastMsg = if (isNetworkError) {
+                                "Unable to load older transactions. Please check your internet connection."
+                            } else {
+                                "Failed to load older transactions. Tap Load More to retry."
+                            }
+                            _uiState.value = currentState.copy(isLoadingMore = false, loadMoreErrorMessage = toastMsg)
+                        }
+                        is Resource.Loading -> { }
+                    }
+                }
+            } catch (e: Exception) {
+                platformLog("Exception loading more transactions: ${e.message}")
+                val toastMsg = "Failed to load older transactions. Tap Load More to retry."
+                _uiState.value = currentState.copy(isLoadingMore = false, loadMoreErrorMessage = toastMsg)
+            }
+        }
+    }
+
+    fun clearLoadMoreErrorMessage() {
+        _uiState.value = _uiState.value.copy(loadMoreErrorMessage = null)
+    }
+
+    private fun mapPagedResponseToState(
+        response: com.pyllar.consumer.data.remote.model.dto.PagedTransactionDetailsResponseDto,
+        schemeParams: SchemeDetailsParams? = null,
+        planSummaries: List<com.pyllar.consumer.data.remote.model.dto.PlanSummaryDto>? = null
+    ): SchemeDetailsState {
+        val currentState = _uiState.value
+        val folioNumber = schemeParams?.folioNumber ?: response.folioList?.firstOrNull() ?: currentState.folioNumber
+        val isin = schemeParams?.isin ?: currentState.isin
+        val schemeName = schemeParams?.schemeName?.takeIf { it.isNotBlank() }
+            ?: currentState.schemeName
+            ?: "Unknown Scheme"
+
+        val investedAmount = schemeParams?.investedAmount
+            ?: response.investedAmount
+            ?: currentState.investedAmount
+        val totalValue = schemeParams?.currentValue
+            ?: response.totalValue
+            ?: currentState.totalValue
+        val currentValue = schemeParams?.currentValue
+            ?: response.totalValue
+            ?: currentState.currentValue
+        val investmentInProgress = schemeParams?.investmentInProgress
+            ?: response.inProgress
+            ?: currentState.investmentInProgress
+        val unitsAllotted = response.unitsAllotted
+            ?: currentState.totalUnitsAllotted
+        val withdrawableAmount = schemeParams?.redeemableAmount
+            ?: response.withdrawableAmount
+            ?: currentState.redeemableAmount
+
+        val displayTransactions = response.transactions.orEmpty().map { tx ->
+            val amount = tx.amount?.toDouble() ?: 0.0
+            val transactionTypeUpper = tx.transactionType?.uppercase() ?: ""
+            val isCredit = when {
+                transactionTypeUpper == "PURCHASE" -> true
+                transactionTypeUpper == "REDEMPTION" -> false
+                else -> true
+            }
+
+            val mappedState = when {
+                tx.state != null -> {
+                    when (tx.state.uppercase()) {
+                        "SUCCESSFUL", "COMPLETED", "SUCCESS" -> "SUCCESS"
+                        "SUBMITTED", "CONFIRMED", "PENDING", "IN_PROGRESS" -> "SUBMITTED"
+                        "FAILED", "CANCELLED", "REVERSED" -> "FAILED"
+                        else -> tx.state.uppercase()
+                    }
+                }
+                !isCredit -> "FAILED"
+                else -> "UNKNOWN"
+            }
+
+            val originalDateString = tx.scheduledOn ?: tx.tradedOn
+            val finalDate = if (!isCredit && originalDateString == null) {
+                null
+            } else {
+                formatDate(originalDateString)
+            }
+
+            val units = tx.units?.toDouble() ?: tx.allottedUnits?.toDouble() ?: 0.0
+
+            TransactionDisplayItem(
+                transactionId = tx.transactionId,
+                transactionType = tx.transactionType,
+                amount = kotlin.math.abs(amount),
+                date = finalDate,
+                state = mappedState,
+                isCredit = isCredit,
+                allottedUnits = units,
+                sortDate = originalDateString
+            )
+        }.sortedByDescending { transaction ->
+            transaction.sortDate ?: ""
+        }
+
+        val displayMandates = mapPlanSummariesToDisplayMandates(planSummaries)
+
+        return SchemeDetailsState(
+            schemeName = schemeName,
+            goalName = schemeParams?.goalName ?: currentState.goalName,
+            unitsInGm = schemeParams?.unitsInGm ?: currentState.unitsInGm,
+            category = schemeParams?.category ?: currentState.category,
+            colorTheme = schemeParams?.colorTheme ?: currentState.colorTheme,
+            folioNumber = folioNumber,
+            isin = isin,
+            currentValue = currentValue,
+            investmentInProgress = investmentInProgress,
+            investedAmount = investedAmount,
+            totalUnitsAllotted = unitsAllotted,
+            totalValue = totalValue,
+            cummulativeValue = currentValue + investmentInProgress,
+            totalGain = schemeParams?.profit ?: currentState.totalGain,
+            withdrawnGain = schemeParams?.realizedProfit ?: currentState.withdrawnGain,
+            availableGain = schemeParams?.unrealizedProfit ?: currentState.availableGain,
+            canWithdraw = schemeParams?.canWithdraw ?: currentState.canWithdraw,
+            redemptionInProgress = schemeParams?.redemptionInProgress ?: currentState.redemptionInProgress,
+            redeemableAmount = withdrawableAmount,
+            instantRedemptionValue = schemeParams?.instantRedemptionValue ?: currentState.instantRedemptionValue,
+            transactions = displayTransactions,
+            mandates = if (displayMandates.isNotEmpty()) displayMandates else currentState.mandates,
+            isLoading = false,
+            errorMessage = null,
+            nextBeforeDate = response.nextBeforeDate,
+            hasMore = response.hasMore,
+            isLoadingMore = false
+        )
     }
 
     private fun mergeParamsOnError(state: SchemeDetailsState, schemeParams: SchemeDetailsParams?): SchemeDetailsState {

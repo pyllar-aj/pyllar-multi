@@ -690,6 +690,7 @@
     <string name="investment_in_progress_main">₹%1$s from last 2 days in progress</string>
     <string name="your_plans">Your Plans</string>
     <string name="no_transactions_found">No transactions found</string>
+    <string name="load_more_transactions">Load More</string>
 
     <string name="amount_per_day_years">₹%1$d/Day for 7 years</string>
     <string name="amount_per_month_years">₹%1$d/Month for 7 years</string>
