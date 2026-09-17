@@ -138,6 +138,7 @@ fun LumpsumAmountScreenV3(
     investorId: String,
     goalId: String = "",
     isExistingInvestment: Boolean = false,
+    kycStatus: String = "VERIFIED",
     onLumpsumCreated: (Double, String?, MandateWrapper?) -> Unit = { _, _, _ -> },
     onForceLogout: () -> Unit = {},
     onNavigateToHelp: () -> Unit = {},
@@ -214,21 +215,11 @@ fun LumpsumAmountScreenV3(
 
     val fundDetailsState by fundDetailsViewModel.uiState.collectAsState()
     var showDetailsBottomSheet by remember { mutableStateOf(false) }
-
-    val dashboardState by dashboardViewModel.dashboardState.collectAsState()
-
     val areDetailsLoaded = !fundDetailsState.isLoading &&
             fundDetailsState.fundDetails != null &&
             !fundDetailsState.pastPerformanceLoading &&
             fundDetailsState.pastPerformance != null &&
-            !isInitTxnLoading &&
-            !dashboardState.isLoading
-
-    LaunchedEffect(effectiveUserId) {
-        if (effectiveUserId.isNotBlank()) {
-            dashboardViewModel.loadDashboardData(effectiveUserId)
-        }
-    }
+            !isInitTxnLoading
 
     LaunchedEffect(effectiveUserId, effectiveGoalId) {
         if (effectiveUserId.isNotBlank() && effectiveGoalId.isNotBlank()) {
@@ -686,9 +677,9 @@ fun LumpsumAmountScreenV3(
                                 return@TimeoutButton
                             }
 
-                            val isKycPending = dashboardState.kycStatus.equals("PENDING", ignoreCase = true) ||
-                                    dashboardState.kycStatus.equals("IN_PROGRESS", ignoreCase = true) ||
-                                    dashboardState.kycStatus.equals("EXPIRED", ignoreCase = true)
+                            val isKycPending = kycStatus.equals("PENDING", ignoreCase = true) ||
+                                    kycStatus.equals("IN_PROGRESS", ignoreCase = true) ||
+                                    kycStatus.equals("EXPIRED", ignoreCase = true)
 
                             if (isKycPending) {
                                 showKycPendingBottomSheet = true
@@ -855,11 +846,10 @@ fun LumpsumAmountScreenV3(
 
                         TimeoutButton(
                             onClick = {
-                                val isKycPending = !dashboardState.isLoading &&
-                                        (dashboardState.kycStatus.equals("PENDING", ignoreCase = true) ||
-                                                dashboardState.kycStatus.equals("IN_PROGRESS", ignoreCase = true) ||
-                                                dashboardState.kycStatus.equals("EXPIRED", ignoreCase = true) ||
-                                                dashboardState.kycStatus.equals("UNLINKED", ignoreCase = true))
+                                val isKycPending = kycStatus.equals("PENDING", ignoreCase = true) ||
+                                        kycStatus.equals("IN_PROGRESS", ignoreCase = true) ||
+                                        kycStatus.equals("EXPIRED", ignoreCase = true) ||
+                                        kycStatus.equals("UNLINKED", ignoreCase = true)
                                 if (isKycPending) {
                                     showDetailsBottomSheet = false
                                     showKycPendingBottomSheet = true
@@ -922,10 +912,6 @@ fun LumpsumAmountScreenV3(
                                 CircularProgressIndicator(modifier = Modifier.size(20.dp), color = MaterialTheme.colorScheme.onPrimary)
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text("Submitting...")
-                            } else if (dashboardState.isLoading) {
-                                CircularProgressIndicator(modifier = Modifier.size(20.dp), color = MaterialTheme.colorScheme.onPrimary)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Checking...")
                             } else if (!areDetailsLoaded) {
                                 CircularProgressIndicator(modifier = Modifier.size(20.dp), color = MaterialTheme.colorScheme.onPrimary)
                                 Spacer(modifier = Modifier.width(8.dp))
@@ -994,7 +980,7 @@ fun LumpsumAmountScreenV3(
             KycPendingBottomSheet(
                 onDismiss = { showKycPendingBottomSheet = false },
                 onRetryKyc = { showKycPendingBottomSheet = false },
-                kycStatus = dashboardState.kycStatus
+                kycStatus = kycStatus
             )
         }
     }

@@ -104,7 +104,7 @@ sealed class Screen {
     data class FundDetailsViewOnly(val isin: String, val userId: String, val goalId: String) : Screen()
     data class LumpsumFundDetails(val isin: String, val userId: String, val goalId: String, val lumpsumAmount: Double, val kycAttemptId: String = "", val investorId: String = "") : Screen()
     data class SipAmountV2(val userId: String, val kycAttemptId: String, val investorId: String, val goalId: String, val fromDashboard: Boolean = false, val isExistingInvestment: Boolean = false, val kycStatus: String = "") : Screen()
-    data class LumpsumAmountV2(val userId: String, val kycAttemptId: String, val investorId: String, val goalId: String, val isExistingInvestment: Boolean = false) : Screen()
+    data class LumpsumAmountV2(val userId: String, val kycAttemptId: String, val investorId: String, val goalId: String, val isExistingInvestment: Boolean = false, val kycStatus: String = "VERIFIED") : Screen()
     data class LumpsumPurchaseAuth(
         val userId: String,
         val kycAttemptId: String,
@@ -1078,6 +1078,7 @@ fun App() {
                     investorId = screen.investorId,
                     goalId = screen.goalId,
                     isExistingInvestment = screen.isExistingInvestment,
+                    kycStatus = screen.kycStatus.ifBlank { "VERIFIED" },
                     onLumpsumCreated = { amount, nextScreen, mandate ->
                         if (mandate != null) {
                             navigateTo(Screen.LumpsumPurchaseAuth(
