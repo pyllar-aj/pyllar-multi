@@ -155,6 +155,7 @@ class WithdrawAmountViewModel(
             lowerMsg.contains("instant redemption range") || lowerMsg.contains("min_instant_redemption_amount") -> "The withdrawal amount is outside the allowed instant redemption range."
             lowerMsg.contains("greater than the min withdrawal amount") -> "Amount should be greater than the minimum withdrawal amount."
             lowerMsg.contains("less than the max redeemable amount") -> "Amount should be less than the maximum redeemable amount."
+            lowerMsg.contains("failed to create mf redemption") || lowerMsg.contains("fintech api") || lowerMsg.contains("failed to create redemption") -> "Failed to create redemption"
             else -> fallback
         }
     }

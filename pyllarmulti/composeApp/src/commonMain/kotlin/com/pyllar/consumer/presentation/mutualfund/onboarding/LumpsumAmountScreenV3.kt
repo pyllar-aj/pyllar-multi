@@ -419,7 +419,7 @@ fun LumpsumAmountScreenV3(
                                     letterSpacing = 1.4.sp,
                                     color = theme.eyebrowColor
                                 )
-                                Spacer(modifier = Modifier.height(12.dp))
+                                Spacer(modifier = Modifier.height(1.dp))
                                 if (pastPerformanceLoading || pastPerformance == null) {
                                     Box(
                                         modifier = Modifier

@@ -55,6 +55,7 @@ data class WithdrawState(
     val isLoading: Boolean = true
 )
 
+@Serializable
 data class WithdrawScheme(
     val id: String,
     val schemeName: String,
@@ -96,13 +97,55 @@ object WithdrawParamsManager {
 object WithdrawSchemeManager {
     private var scheme: WithdrawScheme? = null
     private var mode: String? = null
-    fun set(s: WithdrawScheme) { scheme = s }
-    fun get(): WithdrawScheme? = scheme
+    private var storedJson: String? = null
+
+    fun set(s: WithdrawScheme) { 
+        scheme = s 
+        try {
+            storedJson = Json.encodeToString(s)
+        } catch (e: Exception) {
+            platformLog("WithdrawSchemeManager: ⚠️ Error encoding scheme: ${e.message}")
+        }
+    }
+
+    fun get(): WithdrawScheme? {
+        if (scheme != null) return scheme
+        val json = storedJson
+        if (!json.isNullOrBlank()) {
+            try {
+                scheme = Json.decodeFromString<WithdrawScheme>(json)
+                return scheme
+            } catch (e: Exception) {
+                platformLog("WithdrawSchemeManager: ⚠️ Error decoding scheme: ${e.message}")
+            }
+        }
+        return null
+    }
+
     fun setMode(m: String?) { mode = m }
     fun getMode(): String? = mode
+
+    fun toJson(s: WithdrawScheme): String {
+        return try {
+            Json.encodeToString(s)
+        } catch (e: Exception) {
+            ""
+        }
+    }
+
+    fun fromJson(json: String?): WithdrawScheme? {
+        if (json.isNullOrBlank()) return null
+        return try {
+            Json.decodeFromString<WithdrawScheme>(json)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     fun clear() { 
         scheme = null 
         mode = null
+        storedJson = null
     }
 }
 

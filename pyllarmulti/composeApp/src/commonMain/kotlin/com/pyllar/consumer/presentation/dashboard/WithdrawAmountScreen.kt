@@ -95,7 +95,31 @@ fun WithdrawAmountScreen(
     var bankName by remember { mutableStateOf("") }
     var bankAccountLast4 by remember { mutableStateOf("") }
     
-    val selectedScheme = remember { WithdrawSchemeManager.get() }
+    val selectedScheme = remember { 
+        val scheme = WithdrawSchemeManager.get()
+        if (scheme != null && scheme.isin.isNotBlank()) {
+            scheme
+        } else {
+            val params = WithdrawParamsManager.get()
+            if (params != null && !params.isin.isNullOrBlank()) {
+                WithdrawScheme(
+                    id = "default",
+                    schemeName = params.schemeName ?: "Investment",
+                    folioNo = params.folio,
+                    isin = params.isin,
+                    investedAmount = params.amount,
+                    currentValue = params.amount,
+                    canWithdraw = params.canWithdraw ?: true,
+                    redemptionInProgress = params.redemptionInProgress,
+                    redeemableAmount = params.redeemableAmount,
+                    instantRedemptionValue = params.instantRedemptionValue,
+                    unitsInGm = params.unitsInGm
+                )
+            } else {
+                scheme
+            }
+        }
+    }
     val withdrawMode = remember { WithdrawSchemeManager.getMode() }
     val isGold = remember(selectedScheme) { selectedScheme?.schemeName?.contains("Gold", ignoreCase = true) == true }
     val isSilver = remember(selectedScheme) { selectedScheme?.schemeName?.contains("Silver", ignoreCase = true) == true }
@@ -109,6 +133,15 @@ fun WithdrawAmountScreen(
                 scheme.redeemableAmount
             }
         } ?: 0.0
+    }
+
+    LaunchedEffect(selectedScheme) {
+        val isin = selectedScheme?.isin?.ifBlank { null }
+            ?: WithdrawParamsManager.get()?.isin?.ifBlank { null }
+        if (isin.isNullOrBlank()) {
+            platformLog("WithdrawAmountScreen: ⚠️ ISIN is null or empty - automatically popping back to dashboard")
+            onNavigateBack()
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -147,10 +180,19 @@ fun WithdrawAmountScreen(
     LaunchedEffect(otpVerificationResult) {
         if (otpVerificationResult is Resource.Success) {
             otpValidationError = null
+            val isin = selectedScheme?.isin?.ifBlank { null }
+                ?: WithdrawParamsManager.get()?.isin?.ifBlank { null }
+                ?: ""
+            if (isin.isBlank()) {
+                isVerifyingOtp = false
+                platformLog("WithdrawAmountScreen: ❌ ISIN is empty - automatically popping back to dashboard")
+                onNavigateBack()
+                return@LaunchedEffect
+            }
             val request = RedemptionRequest(
                 userId = userId.ifBlank { sessionStore.getCurrentUserId() },
-                isin = selectedScheme?.isin ?: "",
-                folioNumber = selectedScheme?.folioNo ?: "",
+                isin = isin,
+                folioNumber = selectedScheme?.folioNo ?: WithdrawParamsManager.get()?.folio ?: "",
                 amount = effectiveRedemptionAmount,
                 mode = if (withdrawMode?.uppercase() == "INSTANT") "instant" else "normal",
                 redeemAll = withdrawAll
@@ -192,7 +234,9 @@ fun WithdrawAmountScreen(
             onSubmit(selectedSchemeId ?: "", effectiveRedemptionAmount)
         } else if (redemptionResult is Resource.Error) {
             isVerifyingOtp = false
-            otpValidationError = (redemptionResult?.message ?: "").toUserFriendlyErrorMessage()
+            val rawMsg = (redemptionResult as Resource.Error).message ?: ""
+            val friendlyMsg = rawMsg.toUserFriendlyErrorMessage()
+            otpValidationError = if (friendlyMsg.isNotBlank()) friendlyMsg else "Failed to create redemption"
         }
     }
 

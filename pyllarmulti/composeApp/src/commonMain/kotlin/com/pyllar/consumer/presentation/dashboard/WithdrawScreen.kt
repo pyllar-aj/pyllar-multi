@@ -20,7 +20,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.pyllar.consumer.analytics.PlatformAnalyticsLogger
 import com.pyllar.consumer.util.platformLog
 import kotlinx.coroutines.delay
@@ -106,7 +110,7 @@ fun WithdrawScreen(
         containerColor = V2Cream,
         topBar = {
             TopAppBar(
-                modifier = Modifier.padding(top = 32.dp),
+                modifier = Modifier.padding(top = 16.dp),
                 title = { Text("Withdraw Funds", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
@@ -155,7 +159,20 @@ fun WithdrawScreen(
                         .padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    item { Spacer(modifier = Modifier.height(32.dp)) }
+                    item { Spacer(modifier = Modifier.height(2.dp)) }
+
+                    // Withdrawal In Progress Card (at top when redemption/withdrawal in progress > 0)
+                    if (state.withdrawalInProgress > 0) {
+                        item {
+                            val sourceName = state.schemes.firstOrNull { it.redemptionInProgress > 0 }?.schemeName
+                                ?: selectedGoal?.schemeName
+                                ?: selectedGoal?.name
+                            WithdrawalInProgressCard(
+                                amount = state.withdrawalInProgress,
+                                sourceName = sourceName
+                            )
+                        }
+                    }
 
                     // Selected Goal Info Card
                     if (selectedGoal != null) {
@@ -564,3 +581,141 @@ fun SchemeSelectionItem(scheme: WithdrawScheme, isSelected: Boolean, selectedWit
         }
     }
 }
+
+@Composable
+fun WithdrawalInProgressCard(
+    amount: Double,
+    sourceName: String? = null
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = V2Obsidian),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Header row with title and clock icon
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = stringResource(Res.string.withdrawal_in_progress_title_uppercase),
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = TextUnit(1.2f, TextUnitType.Sp)
+                    ),
+                    color = Color.White.copy(alpha = 0.8f)
+                )
+
+                Surface(
+                    shape = CircleShape,
+                    color = Color.White.copy(alpha = 0.15f),
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.Schedule,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+            }
+
+            // Amount and source (scheme name or goal name)
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = "\u20B9${formatIndianWithDecimals(amount)}",
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = Color.White
+                )
+
+                if (!sourceName.isNullOrBlank()) {
+                    Text(
+                        text = "from $sourceName",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White.copy(alpha = 0.8f)
+                    )
+                }
+            }
+
+            // Progress Bar & Step Labels Section
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                // 3 segment progress lines
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    // Line 1: Requested (Light Green)
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(4.dp)
+                            .background(Color(0xFF81C784), shape = RoundedCornerShape(2.dp))
+                    )
+                    // Line 2: Processing (Light Green)
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(4.dp)
+                            .background(Color(0xFF81C784), shape = RoundedCornerShape(2.dp))
+                    )
+                    // Line 3: Credit within T+2 days (Inactive line)
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(4.dp)
+                            .background(Color.White.copy(alpha = 0.25f), shape = RoundedCornerShape(2.dp))
+                    )
+                }
+
+                // Labels under progress lines
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "Requested",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White.copy(alpha = 0.8f),
+                        modifier = Modifier.weight(1f),
+                        textAlign = TextAlign.Start
+                    )
+                    Text(
+                        text = "Processing",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White.copy(alpha = 0.8f),
+                        modifier = Modifier.weight(1f),
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        text = stringResource(Res.string.credit_within_t_plus_2_days),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White.copy(alpha = 0.8f),
+                        modifier = Modifier.weight(1f),
+                        textAlign = TextAlign.End
+                    )
+                }
+            }
+
+            // Info Footer Text
+            Text(
+                text = "This amount is already on its way to your bank. " + stringResource(Res.string.withdrawal_in_progress_card_caption),
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.White.copy(alpha = 0.85f),
+                lineHeight = TextUnit(18f, TextUnitType.Sp)
+            )
+        }
+    }
+}
+
