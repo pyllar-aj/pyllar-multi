@@ -568,10 +568,11 @@ fun WithdrawAmountScreen(
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = if (isGold) Color(0xFF6D4C41) else if (isSilver) Color(0xFF616161) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                             )
+                            val hasWithdrawalInProgress = (selectedScheme?.redemptionInProgress ?: 0.0) > 0.0
                             Text(
                                 "₹${formatIndianWithDecimals(withdrawableAmount)}", 
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                color = V2SuccessGreen
+                                color = if (hasWithdrawalInProgress) MaterialTheme.colorScheme.onSurface else V2SuccessGreen
                             )
                         }
 

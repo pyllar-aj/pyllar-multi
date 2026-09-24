@@ -4,6 +4,45 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.627050529362-24kq1su5cfl4bbt8mbu3afhd315m4vdj</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.pyllar.consumer</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>pyllar</string>
+			</array>
+		</dict>
+	</array>
+	<key>GIDClientID</key>
+	<string>627050529362-24kq1su5cfl4bbt8mbu3afhd315m4vdj.apps.googleusercontent.com</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>phonepe</string>
+		<string>gpay</string>
+		<string>paytmmp</string>
+		<string>bhim</string>
+		<string>amazonpay</string>
+		<string>mobikwik</string>
+		<string>payzapp</string>
+		<string>sbiyono</string>
+		<string>imobile</string>
+		<string>axispay</string>
+		<string>kotakmobile</string>
+		<string>idbibank</string>
+		<string>bobworld</string>
+		<string>indusmobile</string>
+		<string>credpay</string>
+	</array>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>
@@ -26,56 +65,9 @@
 	</dict>
 	<key>NSUserNotificationUsageDescription</key>
 	<string>Pyllar sends notifications to keep you updated on your investments.</string>
-	<key>ITSAppUsesNonExemptEncryption</key>
-	<false/>
-	<key>LSApplicationQueriesSchemes</key>
-	<array>
-		<string>phonepe</string>
-		<string>gpay</string>
-		<string>paytmmp</string>
-		<string>bhim</string>
-		<string>amazonpay</string>
-		<string>mobikwik</string>
-		<string>payzapp</string>
-		<string>sbiyono</string>
-		<string>imobile</string>
-		<string>axispay</string>
-		<string>kotakmobile</string>
-		<string>idbibank</string>
-		<string>bobworld</string>
-		<string>indusmobile</string>
-		<string>credpay</string>
-	</array>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
 	</array>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Pyllar needs your location to comply with financial regulations and provide local support.</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Pyllar needs your location to comply with financial regulations and provide local support.</string>
-	<key>CFBundleURLTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>com.googleusercontent.apps.627050529362-24kq1su5cfl4bbt8mbu3afhd315m4vdj</string>
-			</array>
-		</dict>
-		<dict>
-			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
-			<key>CFBundleURLName</key>
-			<string>com.pyllar.consumer</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>pyllar</string>
-			</array>
-		</dict>
-	</array>
-	<key>CFBundleName</key>
-	<string>Pyllar Money</string>
-	<key>GIDClientID</key>
-	<string>627050529362-24kq1su5cfl4bbt8mbu3afhd315m4vdj.apps.googleusercontent.com</string>
 </dict>
 </plist>

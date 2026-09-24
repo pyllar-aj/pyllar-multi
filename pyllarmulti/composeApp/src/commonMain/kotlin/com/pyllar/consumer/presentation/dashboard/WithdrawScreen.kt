@@ -361,7 +361,7 @@ fun BalanceSummaryCard(
             BalanceRow(
                 label = "Available to withdraw",
                 amount = availableToWithdraw,
-                isHighlighted = true,
+                isHighlighted = withdrawalInProgress <= 0,
                 showDecimals = true
             )
         }
@@ -575,7 +575,12 @@ fun SchemeSelectionItem(scheme: WithdrawScheme, isSelected: Boolean, selectedWit
                 } else {
                     scheme.redeemableAmount
                 }
-                Text("\u20B9${formatIndianWithDecimals(available)}", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), color = V2SuccessGreen)
+                val hasWithdrawalInProgress = scheme.redemptionInProgress > 0
+                Text(
+                    "\u20B9${formatIndianWithDecimals(available)}",
+                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                    color = if (hasWithdrawalInProgress) MaterialTheme.colorScheme.onSurface else V2SuccessGreen
+                )
                 Text("Available", style = MaterialTheme.typography.bodySmall, modifier = Modifier.alpha(0.6f))
             }
         }
@@ -710,7 +715,7 @@ fun WithdrawalInProgressCard(
 
             // Info Footer Text
             Text(
-                text = "This amount is already on its way to your bank. " + stringResource(Res.string.withdrawal_in_progress_card_caption),
+                text = "This amount is already on its way to your bank. Your available balance may take some time to reflect this. " + stringResource(Res.string.withdrawal_in_progress_card_caption),
                 style = MaterialTheme.typography.bodySmall,
                 color = Color.White.copy(alpha = 0.85f),
                 lineHeight = TextUnit(18f, TextUnitType.Sp)
