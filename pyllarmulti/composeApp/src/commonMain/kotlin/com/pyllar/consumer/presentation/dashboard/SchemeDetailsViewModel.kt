@@ -91,7 +91,8 @@ data class TransactionDisplayItem(
     val state: String,
     val isCredit: Boolean,
     val allottedUnits: Double,
-    val sortDate: String?
+    val sortDate: String?,
+    val redemptionMode: String? = null
 )
 
 data class MandateDisplayItem(
@@ -368,7 +369,8 @@ class SchemeDetailsViewModel(
                                         state = mappedState,
                                         isCredit = isCredit,
                                         allottedUnits = units,
-                                        sortDate = originalDateString
+                                        sortDate = originalDateString,
+                                        redemptionMode = tx.mode
                                     )
                                 }
 
@@ -486,7 +488,8 @@ class SchemeDetailsViewModel(
                 state = mappedState,
                 isCredit = isCredit,
                 allottedUnits = units,
-                sortDate = originalDateString
+                sortDate = originalDateString,
+                redemptionMode = tx.mode
             )
         }.sortedByDescending { transaction ->
             transaction.sortDate ?: ""
@@ -646,7 +649,8 @@ class SchemeDetailsViewModel(
                     state = mappedState,
                     isCredit = isCredit,
                     allottedUnits = units,
-                    sortDate = originalDateString
+                    sortDate = originalDateString,
+                    redemptionMode = tx.mode
                 )
             }
         }.sortedByDescending { transaction ->

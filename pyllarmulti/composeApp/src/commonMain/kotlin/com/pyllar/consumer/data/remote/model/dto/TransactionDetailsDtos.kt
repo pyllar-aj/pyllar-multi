@@ -57,5 +57,6 @@ data class PurchaseTransactionDto(
     val daysSincePurchase: Long?,
     val navAtPurchase: Double?,
     val units: Double?,
-    val profitLoss: Double?
+    val profitLoss: Double?,
+    val mode: String? = null
 )

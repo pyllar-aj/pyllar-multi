@@ -1040,7 +1040,7 @@ fun SchemeDetailsV2Screen(
                                                         val isRedemption = typeUpper == "REDEMPTION" || typeUpper == "SELL" || txn.isCredit == false
                                                         val s = txn.state?.uppercase().orEmpty()
                                                         val isPendingOrActive = s !in listOf("SUCCESS", "SUCCESSFUL", "COMPLETED", "FAILED", "REJECTED", "CANCELLED")
-                                                        isRedemption && isPendingOrActive
+                                                        isRedemption && isPendingOrActive && txn.amount > 0
                                                     }.sortedByDescending { txn ->
                                                         (txn.sortDate ?: txn.date)?.trim() ?: ""
                                                     }
@@ -3571,7 +3571,8 @@ private fun ActiveRedemptionTimelineCard(
     val stateUpper = transaction.state?.uppercase().orEmpty()
     val rIsFailed = stateUpper in listOf("FAILED", "REJECTED", "CANCELLED")
     val rIsSuccess = stateUpper in listOf("SUCCESS", "SUCCESSFUL", "COMPLETED")
-    val isInstant = transaction.transactionType?.uppercase()?.contains("INSTANT") == true || stateUpper.contains("INSTANT")
+    val modeUpper = transaction.redemptionMode?.uppercase().orEmpty()
+    val isInstant = modeUpper == "INSTANT" || transaction.transactionType?.uppercase()?.contains("INSTANT") == true || stateUpper.contains("INSTANT")
 
     Column(
         modifier = Modifier
@@ -3816,12 +3817,15 @@ private fun RedemptionStepRowItem(
                 Text(
                     text = title,
                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                    color = if (isDone || isInProgress) Color(0xFF1E293B) else Color.Gray
+                    color = if (isDone || isInProgress) Color(0xFF1E293B) else Color.Gray,
+                    modifier = Modifier.weight(1f, fill = false).padding(end = 8.dp)
                 )
                 Text(
                     text = statusText,
                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                    color = statusColor
+                    color = statusColor,
+                    maxLines = 1,
+                    softWrap = false
                 )
             }
             Spacer(modifier = Modifier.height(2.dp))
