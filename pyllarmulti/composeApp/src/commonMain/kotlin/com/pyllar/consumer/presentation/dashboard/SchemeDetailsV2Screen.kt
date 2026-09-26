@@ -891,7 +891,9 @@ fun SchemeDetailsV2Screen(
                                     }
                                 } else {
                                     items(state.transactions) { transaction ->
-                                        TransactionItemV2(transaction = transaction)
+                                        TransactionItemV2(
+                                            transaction = transaction
+                                        )
                                     }
                                     if (state.hasMore) {
                                         item {
@@ -1032,39 +1034,63 @@ fun SchemeDetailsV2Screen(
                                             Spacer(modifier = Modifier.height(12.dp))
 
                                             if (state.redemptionInProgress > 0) {
-                                                Row(
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                                ) {
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .size(40.dp)
-                                                            .background(goalColor.copy(alpha = 0.1f), CircleShape),
-                                                        contentAlignment = Alignment.Center
-                                                    ) {
-                                                        Icon(
-                                                            imageVector = Icons.Default.Schedule,
-                                                            contentDescription = null,
-                                                            tint = goalColor,
-                                                            modifier = Modifier.size(20.dp)
-                                                        )
+                                                val activeRedemptions = remember(state.transactions) {
+                                                    state.transactions.filter { txn ->
+                                                        val typeUpper = txn.transactionType?.uppercase().orEmpty()
+                                                        val isRedemption = typeUpper == "REDEMPTION" || typeUpper == "SELL" || txn.isCredit == false
+                                                        val s = txn.state?.uppercase().orEmpty()
+                                                        val isPendingOrActive = s !in listOf("SUCCESS", "SUCCESSFUL", "COMPLETED", "FAILED", "REJECTED", "CANCELLED")
+                                                        isRedemption && isPendingOrActive
+                                                    }.sortedByDescending { txn ->
+                                                        (txn.sortDate ?: txn.date)?.trim() ?: ""
                                                     }
-                                                    Column(modifier = Modifier.weight(1f)) {
-                                                        Text(
-                                                            text = stringResource(Res.string.withdrawal_in_progress_title),
-                                                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium)
-                                                        )
-                                                        Text(
-                                                            text = stringResource(Res.string.will_be_credited_in_days_approx),
-                                                            style = MaterialTheme.typography.labelSmall,
-                                                            color = Color.Gray
-                                                        )
+                                                }
+
+                                                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                                    if (activeRedemptions.isEmpty()) {
+                                                        Row(
+                                                            verticalAlignment = Alignment.CenterVertically,
+                                                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                                        ) {
+                                                            Box(
+                                                                modifier = Modifier
+                                                                    .size(40.dp)
+                                                                    .background(goalColor.copy(alpha = 0.1f), CircleShape),
+                                                                contentAlignment = Alignment.Center
+                                                            ) {
+                                                                Icon(
+                                                                    imageVector = Icons.Default.Schedule,
+                                                                    contentDescription = null,
+                                                                    tint = goalColor,
+                                                                    modifier = Modifier.size(20.dp)
+                                                                )
+                                                            }
+                                                            Column(modifier = Modifier.weight(1f)) {
+                                                                Text(
+                                                                    text = stringResource(Res.string.withdrawal_in_progress_title),
+                                                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium)
+                                                                )
+                                                                Text(
+                                                                    text = stringResource(Res.string.will_be_credited_in_days_approx),
+                                                                    style = MaterialTheme.typography.labelSmall,
+                                                                    color = Color.Gray
+                                                                )
+                                                            }
+                                                            RupeeAmountBlock(
+                                                                value = state.redemptionInProgress,
+                                                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                                                color = Color.Black
+                                                            )
+                                                        }
+                                                    } else {
+                                                        activeRedemptions.forEachIndexed { rIndex, transaction ->
+                                                            ActiveRedemptionTimelineCard(
+                                                                transaction = transaction,
+                                                                rIndex = rIndex,
+                                                                goalColor = goalColor
+                                                            )
+                                                        }
                                                     }
-                                                    RupeeAmountBlock(
-                                                        value = state.redemptionInProgress,
-                                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                                        color = Color.Black
-                                                    )
                                                 }
                                             }
 
@@ -3531,6 +3557,279 @@ fun ResumeSipErrorBottomSheetV2(
                     style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun ActiveRedemptionTimelineCard(
+    transaction: TransactionDisplayItem,
+    rIndex: Int,
+    goalColor: Color
+) {
+    var isExpanded by remember { mutableStateOf(rIndex == 0) }
+    val stateUpper = transaction.state?.uppercase().orEmpty()
+    val rIsFailed = stateUpper in listOf("FAILED", "REJECTED", "CANCELLED")
+    val rIsSuccess = stateUpper in listOf("SUCCESS", "SUCCESSFUL", "COMPLETED")
+    val isInstant = transaction.transactionType?.uppercase()?.contains("INSTANT") == true || stateUpper.contains("INSTANT")
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { isExpanded = !isExpanded },
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .background(if (rIsFailed) Color(0xFFFFEBEE) else goalColor.copy(alpha = 0.1f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (rIsFailed) Icons.Default.Warning else Icons.Default.Schedule,
+                        contentDescription = null,
+                        tint = if (rIsFailed) Color(0xFFC62828) else goalColor,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = if (rIsFailed) stringResource(Res.string.redemption_failed) else stringResource(Res.string.withdrawal_progress_title),
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                        color = if (rIsFailed) Color(0xFFC62828) else MaterialTheme.colorScheme.onSurface
+                    )
+                    if (transaction.date != null) {
+                        Text(
+                            text = transaction.date,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.Gray
+                        )
+                    }
+                }
+                RupeeAmountBlock(
+                    value = transaction.amount,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = Color.Black
+                )
+                Icon(
+                    imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    contentDescription = if (isExpanded) "Collapse" else "Expand",
+                    tint = Color.Gray,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
+            ) {
+                val txnDate = remember(transaction.date, transaction.sortDate) {
+                    val raw = (transaction.sortDate ?: transaction.date)?.trim()
+                    raw?.let { cleanVal ->
+                        try {
+                            val isoPart = cleanVal.substringBefore("T").substringBefore(" ")
+                            if (isoPart.contains("-")) {
+                                val parts = isoPart.split("-")
+                                if (parts.size == 3) {
+                                    if (parts[0].length == 4) {
+                                        // YYYY-MM-DD
+                                        return@let LocalDate(parts[0].toInt(), parts[1].toInt(), parts[2].toInt())
+                                    } else if (parts[2].length == 4) {
+                                        // DD-MM-YYYY
+                                        return@let LocalDate(parts[2].toInt(), parts[1].toInt(), parts[0].toInt())
+                                    }
+                                }
+                            }
+                            LocalDate.parse(isoPart)
+                        } catch (e: Exception) { null }
+                    } ?: Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+                }
+
+                val day1Date = txnDate
+                val day2Date = remember(day1Date) { getNextBusinessDay(day1Date, 1) }
+                val day3Date = remember(day2Date) { getNextBusinessDay(day2Date, 1) }
+
+                fun formatDateNice(date: LocalDate): String {
+                    val monthName = date.month.name.lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }.take(3)
+                    return "${date.dayOfMonth} $monthName ${date.year}"
+                }
+
+                Column(
+                    modifier = Modifier.padding(top = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    HorizontalDivider(color = Color.LightGray.copy(alpha = 0.3f))
+                    if (rIsFailed) {
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE)),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = stringResource(Res.string.redemption_failed_msg),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color(0xFFC62828),
+                                modifier = Modifier.padding(12.dp)
+                            )
+                        }
+                    } else {
+                        if (isInstant) {
+                            // 3-Step Instant Redemption Timeline
+                            RedemptionStepRowItem(
+                                title = stringResource(Res.string.step_redemption_submitted_title),
+                                subtitle = stringResource(Res.string.step_redemption_submitted_desc, formatDateNice(day1Date)),
+                                isDone = true,
+                                isInProgress = false,
+                                showConnector = true
+                            )
+                            RedemptionStepRowItem(
+                                title = stringResource(Res.string.step_instant_imps_title),
+                                subtitle = stringResource(Res.string.step_instant_imps_desc),
+                                isDone = true,
+                                isInProgress = false,
+                                showConnector = true
+                            )
+                            RedemptionStepRowItem(
+                                title = stringResource(Res.string.step_instant_credited_title),
+                                subtitle = if (rIsSuccess) stringResource(Res.string.step_credited_to_bank_desc, formatDateNice(day1Date)) else stringResource(Res.string.step_instant_credited_desc),
+                                isDone = rIsSuccess,
+                                isInProgress = !rIsSuccess,
+                                showConnector = false
+                            )
+                        } else {
+                            // 4-Step Standard Redemption Timeline
+                            val isStep3Done = rIsSuccess || stateUpper in listOf("PROCESSING", "UNITS_REDEEMED")
+                            val isStep2InProgress = false
+                            val isStep3InProgress = !isStep3Done
+                            val isStep4Done = rIsSuccess
+                            val isStep4InProgress = isStep3Done && !rIsSuccess
+
+                            RedemptionStepRowItem(
+                                title = stringResource(Res.string.step_redemption_submitted_title),
+                                subtitle = stringResource(Res.string.step_redemption_submitted_desc, formatDateNice(day1Date)),
+                                isDone = true,
+                                isInProgress = false,
+                                showConnector = true
+                            )
+                            RedemptionStepRowItem(
+                                title = stringResource(Res.string.step_sent_to_amc_title),
+                                subtitle = stringResource(Res.string.step_sent_to_amc_desc),
+                                isDone = true,
+                                isInProgress = isStep2InProgress,
+                                showConnector = true
+                            )
+                            RedemptionStepRowItem(
+                                title = stringResource(Res.string.step_units_redeemed_title),
+                                subtitle = stringResource(Res.string.step_units_redeemed_desc, formatDateNice(day2Date)),
+                                isDone = isStep3Done,
+                                isInProgress = isStep3InProgress,
+                                showConnector = true
+                            )
+                            RedemptionStepRowItem(
+                                title = stringResource(Res.string.step_credited_to_bank_title),
+                                subtitle = stringResource(Res.string.step_credited_to_bank_desc, formatDateNice(day3Date)),
+                                isDone = isStep4Done,
+                                isInProgress = isStep4InProgress,
+                                showConnector = false
+                            )
+                        }
+                    }
+                }
+            }
+        }
+}
+
+@Composable
+private fun RedemptionStepRowItem(
+    title: String,
+    subtitle: String,
+    isDone: Boolean,
+    isInProgress: Boolean = false,
+    showConnector: Boolean
+) {
+    val statusText = when {
+        isDone -> stringResource(Res.string.status_done)
+        isInProgress -> stringResource(Res.string.status_in_progress)
+        else -> stringResource(Res.string.status_upcoming)
+    }
+    val statusColor = when {
+        isDone -> Color(0xFF2E7D32)
+        isInProgress -> Color(0xFFE65100)
+        else -> Color(0xFF8D6E63)
+    }
+    val circleBgColor = when {
+        isDone -> Color(0xFF2E7D32)
+        isInProgress -> Color(0xFFFF9800)
+        else -> Color.LightGray.copy(alpha = 0.6f)
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Box(
+                modifier = Modifier
+                    .size(20.dp)
+                    .background(
+                        color = circleBgColor,
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                if (isDone) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(12.dp)
+                    )
+                } else if (isInProgress) {
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .background(Color.White, CircleShape)
+                    )
+                }
+            }
+            if (showConnector) {
+                Box(
+                    modifier = Modifier
+                        .width(2.dp)
+                        .height(28.dp)
+                        .background(if (isDone) Color(0xFF2E7D32).copy(alpha = 0.5f) else Color.LightGray.copy(alpha = 0.4f))
+                )
+            }
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                    color = if (isDone || isInProgress) Color(0xFF1E293B) else Color.Gray
+                )
+                Text(
+                    text = statusText,
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                    color = statusColor
+                )
+            }
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.Gray.copy(alpha = 0.8f)
+            )
         }
     }
 }
