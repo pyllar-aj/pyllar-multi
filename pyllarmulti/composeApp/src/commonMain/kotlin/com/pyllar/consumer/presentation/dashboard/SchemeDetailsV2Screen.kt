@@ -3653,8 +3653,16 @@ private fun ActiveRedemptionTimelineCard(
                 }
 
                 val day1Date = txnDate
-                val day2Date = remember(day1Date) { getNextBusinessDay(day1Date, 1) }
-                val day3Date = remember(day2Date) { getNextBusinessDay(day2Date, 1) }
+                // If placed on Saturday or Sunday, T (tDayDate) is Monday. If weekday, T is txnDate.
+                val tDayDate = remember(day1Date) {
+                    if (day1Date.dayOfWeek == kotlinx.datetime.DayOfWeek.SATURDAY || day1Date.dayOfWeek == kotlinx.datetime.DayOfWeek.SUNDAY) {
+                        getNextBusinessDay(day1Date, 1)
+                    } else {
+                        day1Date
+                    }
+                }
+                val tPlus1Date = remember(tDayDate) { getNextBusinessDay(tDayDate, 1) }
+                val tPlus2Date = remember(tDayDate) { getNextBusinessDay(tDayDate, 2) }
 
                 fun formatDateNice(date: LocalDate): String {
                     val monthName = date.month.name.lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }.take(3)
@@ -3705,36 +3713,41 @@ private fun ActiveRedemptionTimelineCard(
                             )
                         } else {
                             // 4-Step Standard Redemption Timeline
-                            val isStep3Done = rIsSuccess || stateUpper in listOf("PROCESSING", "UNITS_REDEEMED")
-                            val isStep2InProgress = false
-                            val isStep3InProgress = !isStep3Done
+                            val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+                            val isStep2Done = today >= tDayDate
+                            val isStep3Done = rIsSuccess || stateUpper in listOf("PROCESSING", "UNITS_REDEEMED") || today >= tPlus1Date
                             val isStep4Done = rIsSuccess
-                            val isStep4InProgress = isStep3Done && !rIsSuccess
+                            
+                            val isStep1Done = true
+                            val isStep1InProgress = false
+                            val isStep2InProgress = !isStep2Done
+                            val isStep3InProgress = isStep2Done && !isStep3Done
+                            val isStep4InProgress = isStep3Done && !isStep4Done
 
                             RedemptionStepRowItem(
                                 title = stringResource(Res.string.step_redemption_submitted_title),
                                 subtitle = stringResource(Res.string.step_redemption_submitted_desc, formatDateNice(day1Date)),
-                                isDone = true,
-                                isInProgress = false,
+                                isDone = isStep1Done,
+                                isInProgress = isStep1InProgress,
                                 showConnector = true
                             )
                             RedemptionStepRowItem(
                                 title = stringResource(Res.string.step_sent_to_amc_title),
                                 subtitle = stringResource(Res.string.step_sent_to_amc_desc),
-                                isDone = true,
+                                isDone = isStep2Done,
                                 isInProgress = isStep2InProgress,
                                 showConnector = true
                             )
                             RedemptionStepRowItem(
                                 title = stringResource(Res.string.step_units_redeemed_title),
-                                subtitle = stringResource(Res.string.step_units_redeemed_desc, formatDateNice(day2Date)),
+                                subtitle = stringResource(Res.string.step_units_redeemed_desc, formatDateNice(tPlus1Date)),
                                 isDone = isStep3Done,
                                 isInProgress = isStep3InProgress,
                                 showConnector = true
                             )
                             RedemptionStepRowItem(
                                 title = stringResource(Res.string.step_credited_to_bank_title),
-                                subtitle = stringResource(Res.string.step_credited_to_bank_desc, formatDateNice(day3Date)),
+                                subtitle = stringResource(Res.string.step_credited_to_bank_desc, formatDateNice(tPlus2Date)),
                                 isDone = isStep4Done,
                                 isInProgress = isStep4InProgress,
                                 showConnector = false
