@@ -325,9 +325,10 @@ fun SchemeDetailsV2Screen(
     }
 
     val handleLumpsumClick: () -> Unit = {
-        if (state.currentValue > 0 || !isDailySip) {
-            val hasActualInvestment = state.investedAmount > 0 || !state.folioNumber.isNullOrBlank()
-            if (hasActualInvestment && state.folioNumber.isNullOrBlank()) {
+        val hasFolio = !state.folioNumber.isNullOrBlank() && state.folioNumber != "null"
+        if (hasFolio || state.currentValue > 0 || !isDailySip) {
+            val hasActualInvestment = state.investedAmount > 0 || hasFolio
+            if (hasActualInvestment && !hasFolio) {
                 showFolioPendingDialog = true
             } else {
                 scope.launch {
@@ -1930,7 +1931,7 @@ fun SchemeDetailsCardV2(
                         )
                     }
                 }
-            } else if (hasApprovedPlan && investedAmount == 0.0 && totalValue == 0.0 && !nextSipDate.isNullOrBlank()) {
+            } else if (hasApprovedPlan && investedAmount == 0.0 && totalValue == 0.0 && !nextSipDate.isNullOrBlank() && !hasFolio) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -3674,20 +3675,7 @@ private fun ActiveRedemptionTimelineCard(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     HorizontalDivider(color = Color.LightGray.copy(alpha = 0.3f))
-                    if (rIsFailed) {
-                        Card(
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE)),
-                            shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                text = stringResource(Res.string.redemption_failed_msg),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = Color(0xFFC62828),
-                                modifier = Modifier.padding(12.dp)
-                            )
-                        }
-                    } else {
+                    if (!rIsFailed) {
                         if (isInstant) {
                             // 3-Step Instant Redemption Timeline
                             RedemptionStepRowItem(
