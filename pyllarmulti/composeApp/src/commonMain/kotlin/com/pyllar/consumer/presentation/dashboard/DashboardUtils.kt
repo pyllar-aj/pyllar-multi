@@ -40,6 +40,7 @@ fun getCorrelationColorForCategory(category: String?, colorTheme: String?): Colo
         "MARKET_EXPLORER" -> Color(0xFF0F6B5C) // Emerald/Teal Accent
         "INNOVATION" -> Color(0xFF68499A) // Violet text color for Innovation
         "SENSEX" -> Color(0xFF2563EB)
+        "DEFENCE" -> Color(0xFFC75B12)
         else -> V2SuccessGreen // Default green
     }
 }
@@ -60,6 +61,7 @@ fun getBorderColorForCategory(category: String?): Color {
         cat == "MARKET_EXPLORER" -> Color(0xFF0F6B5C) // Emerald/Teal Accent
         cat == "INNOVATION" -> Color(0xFF7656A8)
         cat == "SENSEX" -> Color(0xFF2346B5)
+        cat == "DEFENCE" -> Color(0xFFC75B12)
         else -> V2SuccessGreen // --v2-success-green fallback
     }
 }
@@ -88,6 +90,7 @@ fun getDarkBorderColorForCategory(category: String?, colorTheme: String?): Color
         "MARKET_EXPLORER" -> Color(0xFF0F6B5C) // Emerald/Teal Accent
         "INNOVATION" -> Color(0xFF7656A8)
         "SENSEX" -> Color(0xFF2346B5)
+        "DEFENCE" -> Color(0xFFC75B12)
         else -> V2SuccessGreen // --v2-success-green fallback
     }
 }
@@ -157,6 +160,11 @@ fun getGoalGradientColors(category: String?, colorTheme: String?): List<Color> {
             Color(0xFFDBEAFE),
             Color(0xFFBFDBFE)
         )
+        "DEFENCE" -> listOf(
+            Color(0xFFFAF3EC),
+            Color(0xFFFAF3EC),
+            Color(0xFFFAF3EC)
+        )
         else -> listOf(
             Color.White,
             Color.White
@@ -189,6 +197,7 @@ fun getIconBackgroundColorForCategory(category: String?, colorTheme: String?): C
         "MARKET_EXPLORER" -> Color(0xFFE3F1EC) // Icon circle background
         "INNOVATION" -> Color.White // White background for the icon
         "SENSEX" -> Color(0xFF2346B5).copy(alpha = 0.12f)
+        "DEFENCE" -> Color.White
         else -> Color(0xFFC8E6C9) // Default light green
     }
 }
@@ -230,6 +239,7 @@ fun getCorrelationText(category: String?): String {
         "MARKET_EXPLORER" -> "Growth through diversified equity investing"
         "INNOVATION" -> "Grows with market performance"
         "SENSEX" -> "Tracks the BSE Sensex index"
+        "DEFENCE" -> "Tracks the Nifty India Defence Index"
         else -> "Grows with market performance"
     }
 }
@@ -247,6 +257,7 @@ fun getInvestmentTypeText(category: String?): String {
         "MARKET_EXPLORER" -> "Active Equity Funds"
         "INNOVATION" -> "Equity Funds"
         "SENSEX" -> "Index Funds"
+        "DEFENCE" -> "Index Funds"
         else -> "Equity Funds"
     }
 }
@@ -275,6 +286,7 @@ fun String.toColor(): Color {
         "jade", "emerald" -> Color(0xFF0F6B5C)
         "bronze", "copper" -> Color(0xFF8A4E1E)
         "innovation" -> Color(0xFF68499A)
+        "defence" -> Color(0xFFC75B12)
         else -> V2SuccessGreen
     }
 }

@@ -2008,6 +2008,7 @@ fun NextGoalCard(
                                 "GLOBAL_EXPOSURE" -> "₹101 - ₹1000"
                                 "ALL_IN_ONE" -> "₹51 - ₹1000"
                                 "INNOVATION" -> "₹101 - ₹1000"
+                                "DEFENCE" -> "₹101 - ₹500"
                                 else -> "₹101 - ₹500"
                             },
                             style = MaterialTheme.typography.titleSmall.copy(
@@ -2038,133 +2039,155 @@ fun NextGoalCard(
                         modifier = Modifier.weight(0.9f),
                         horizontalAlignment = Alignment.Start
                     ) {
-                        if (category == "INNOVATION") {
-                            Text(
-                                text = "Key Themes Focus",
-                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                                color = Color(0xFF424242)
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Column(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(8.dp)
-                                            .background(Color(0xFF9C27B0), CircleShape)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = "Tech & Internet • Fintech",
-                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium),
-                                        color = Color(0xFF424242)
-                                    )
+                    if (category == "GOLD" || category == "SILVER" || category == "SAVINGS" || category == "SAVINGS_PLUS" || category == "FESTIVAL_SPENDS" || category == "GLOBAL_EXPOSURE" || category == "ALL_IN_ONE" || category == "MARKET_EXPLORER" || category == "INNOVATION" || category == "SENSEX" || category == "DEFENCE") {
+                        Column(
+                            modifier = Modifier.weight(0.9f),
+                            horizontalAlignment = Alignment.Start
+                        ) {
+                            if (category == "DEFENCE") {
+                                Text(
+                                    text = "Get focused exposure to ",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color(0xFF424242)
+                                )
+                                Text(
+                                    text = "India’s defence sector",
+                                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                    color = Color(0xFF424242)
+                                )
+                                Text(
+                                    text = " through an index fund.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color(0xFF424242)
+                                )
+                            } else if (category == "INNOVATION") {
+                                Text(
+                                    text = "Key Themes Focus",
+                                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                    color = Color(0xFF424242)
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Column(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(8.dp)
+                                                .background(Color(0xFF9C27B0), CircleShape)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = "Tech & Internet • Fintech",
+                                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium),
+                                            color = Color(0xFF424242)
+                                        )
+                                    }
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(8.dp)
+                                                .background(Color(0xFF4CAF50), CircleShape)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = "Auto & Mobility • Industrials",
+                                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium),
+                                            color = Color(0xFF424242)
+                                        )
+                                    }
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(8.dp)
+                                                .background(Color(0xFF2196F3), CircleShape)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = "Healthcare • Services & Retail",
+                                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium),
+                                            color = Color(0xFF424242)
+                                        )
+                                    }
                                 }
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(8.dp)
-                                            .background(Color(0xFF4CAF50), CircleShape)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = "Auto & Mobility • Industrials",
-                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium),
-                                        color = Color(0xFF424242)
-                                    )
+                            } else {
+                                val annotatedText = buildAnnotatedString {
+                                    when (category) {
+                                        "GOLD" -> {
+                                            append("Investing ₹101 daily since Jan 2023 gives you purchasing power of ")
+                                            withStyle(SpanStyle(color = Color(0xFFB8860B), fontWeight = FontWeight.Bold)) {
+                                                append("~15.8g Gold")
+                                            }
+                                            append(".")
+                                        }
+                                        "SILVER" -> {
+                                            append("Investing ₹101 daily since Jan 2023 yields ")
+                                            withStyle(SpanStyle(color = Color(0xFF616161), fontWeight = FontWeight.Bold)) {
+                                                append("~1.24kg Silver")
+                                            }
+                                            append(" worth.")
+                                        }
+                                        "SAVINGS", "SAVINGS_PLUS" -> {
+                                            append("Investing ₹101 daily since Jan 2023 in this fund built a corpus of ~")
+                                            withStyle(SpanStyle(color = Color(0xFF004D40), fontWeight = FontWeight.Bold)) {
+                                                append("₹1.24 Lakhs")
+                                            }
+                                            append(".")
+                                        }
+                                        "FESTIVAL_SPENDS" -> {
+                                            append("Investing ₹51 daily since Jan 2023 in this fund grew to ~")
+                                            withStyle(SpanStyle(color = Color(0xFFFF6F00), fontWeight = FontWeight.Bold)) {
+                                                append("₹62,408")
+                                            }
+                                            append(".")
+                                        }
+                                        "GLOBAL_EXPOSURE" -> {
+                                            append("Investing ₹101 daily since Jan 2023 in international equity fund grew into ~")
+                                            withStyle(SpanStyle(color = Color(0xFF00897B), fontWeight = FontWeight.Bold)) {
+                                                append("₹1.54 Lakhs")
+                                            }
+                                            append(".")
+                                        }
+                                        "ALL_IN_ONE" -> {
+                                            append("Investing ₹101 daily since Jan 2023 in a diversified multi-asset fund helped build a corpus of ~")
+                                            withStyle(SpanStyle(color = Color(0xFF2C4C9C), fontWeight = FontWeight.Bold)) {
+                                                append("₹1.41 Lakhs")
+                                            }
+                                            append(".")
+                                        }
+                                        "MARKET_EXPLORER" -> {
+                                            val marketExplorerAccent = Color(0xFF0F6B5C)
+                                            append("Investing ₹101 daily since Jan 2023 in a flexi-cap fund could have built a corpus of ~")
+                                            withStyle(
+                                                SpanStyle(
+                                                    color = marketExplorerAccent,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            ) {
+                                                append("₹1.42 Lakhs")
+                                            }
+                                            append(".")
+                                        }
+                                        "SENSEX" -> {
+                                            append("Get exposure to 30 leading Indian companies through a Sensex index fund")
+                                            append(".")
+                                        }
+                                        else -> append(goal.description)
+                                    }
                                 }
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(8.dp)
-                                            .background(Color(0xFF2196F3), CircleShape)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = "Healthcare • Services & Retail",
-                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium),
-                                        color = Color(0xFF424242)
-                                    )
-                                }
+                                Text(
+                                    text = annotatedText,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color(0xFF424242),
+                                    lineHeight = MaterialTheme.typography.bodySmall.lineHeight
+                                )
                             }
-                        } else {
-                            val annotatedText = buildAnnotatedString {
-                                when (category) {
-                                    "GOLD" -> {
-                                        append("Investing ₹101 daily since Jan 2023 gives you purchasing power of ")
-                                        withStyle(SpanStyle(color = Color(0xFFB8860B), fontWeight = FontWeight.Bold)) {
-                                            append("~15.8g Gold")
-                                        }
-                                        append(".")
-                                    }
-                                    "SILVER" -> {
-                                        append("Investing ₹101 daily since Jan 2023 yields ")
-                                        withStyle(SpanStyle(color = Color(0xFF616161), fontWeight = FontWeight.Bold)) {
-                                            append("~1.24kg Silver")
-                                        }
-                                        append(" worth.")
-                                    }
-                                    "SAVINGS", "SAVINGS_PLUS" -> {
-                                        append("Investing ₹101 daily since Jan 2023 in this fund built a corpus of ~")
-                                        withStyle(SpanStyle(color = Color(0xFF004D40), fontWeight = FontWeight.Bold)) {
-                                            append("₹1.24 Lakhs")
-                                        }
-                                        append(".")
-                                    }
-                                    "FESTIVAL_SPENDS" -> {
-                                        append("Investing ₹51 daily since Jan 2023 in this fund grew to ~")
-                                        withStyle(SpanStyle(color = Color(0xFFFF6F00), fontWeight = FontWeight.Bold)) {
-                                            append("₹62,408")
-                                        }
-                                        append(".")
-                                    }
-                                    "GLOBAL_EXPOSURE" -> {
-                                        append("Investing ₹101 daily since Jan 2023 in international equity fund grew into ~")
-                                        withStyle(SpanStyle(color = Color(0xFF00897B), fontWeight = FontWeight.Bold)) {
-                                            append("₹1.54 Lakhs")
-                                        }
-                                        append(".")
-                                    }
-                                    "ALL_IN_ONE" -> {
-                                        append("Investing ₹101 daily since Jan 2023 in a diversified multi-asset fund helped build a corpus of ~")
-                                        withStyle(SpanStyle(color = Color(0xFF2C4C9C), fontWeight = FontWeight.Bold)) {
-                                            append("₹1.41 Lakhs")
-                                        }
-                                        append(".")
-                                    }
-                                    "MARKET_EXPLORER" -> {
-                                        val marketExplorerAccent = Color(0xFF0F6B5C)
-                                        append("Investing ₹101 daily since Jan 2023 in a flexi-cap fund could have built a corpus of ~")
-                                        withStyle(
-                                            SpanStyle(
-                                                color = marketExplorerAccent,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        ) {
-                                            append("₹1.42 Lakhs")
-                                        }
-                                        append(".")
-                                    }
-                                    "SENSEX" -> {
-                                        append("Get exposure to 30 leading Indian companies through a Sensex index fund")
-                                        append(".")
-                                    }
-                                    else -> append(goal.description)
-                                }
-                            }
-                            Text(
-                                text = annotatedText,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color(0xFF424242),
-                                lineHeight = MaterialTheme.typography.bodySmall.lineHeight
-                            )
                         }
                     }
                 }
 
-                if (isAllInOne || category == "MARKET_EXPLORER" || category == "INNOVATION" || category == "SENSEX") {
+                if (isAllInOne || category == "MARKET_EXPLORER" || category == "INNOVATION" || category == "SENSEX" || category == "DEFENCE") {
                     Spacer(modifier = Modifier.height(4.dp))
                     if (isAllInOne) {
                         val allInOneAccent = Color(0xFF2C4C9C)
@@ -2174,6 +2197,34 @@ fun NextGoalCard(
                             dashLength = 4.dp,
                             gapLength = 4.dp
                         )
+                    } else if (category == "DEFENCE") {
+                        val defenceAccent = Color(0xFFE5A66F)
+                        Row(
+                            modifier = Modifier.fillMaxWidth().height(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            DashedDivider(
+                                modifier = Modifier.weight(1f),
+                                thickness = 1.dp,
+                                color = defenceAccent,
+                                dashLength = 2.dp,
+                                gapLength = 4.dp
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "✈️",
+                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                color = defenceAccent.copy(alpha = 0.7f)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            DashedDivider(
+                                modifier = Modifier.weight(1f),
+                                thickness = 1.dp,
+                                color = defenceAccent,
+                                dashLength = 2.dp,
+                                gapLength = 4.dp
+                            )
+                        }
                     } else if (category == "INNOVATION") {
                         val innovationAccent = Color(0xFF68499A).copy(alpha = 0.85f)
                         Row(
@@ -2261,11 +2312,42 @@ fun NextGoalCard(
                         Icon(
                             imageVector = Icons.Filled.ExpandMore,
                             contentDescription = null,
-                            tint = if (isAllInOne) Color(0xFF2C4C9C) else if (category == "INNOVATION") Color(0xFF7656A8) else if (category == "SENSEX") Color(0xFF2346B5) else Color(0xFF8A4E1E),
+                            tint = if (isAllInOne) Color(0xFF2C4C9C) else if (category == "INNOVATION") Color(0xFF7656A8) else if (category == "SENSEX") Color(0xFF2346B5) else if (category == "DEFENCE") Color(0xFFC75B12) else Color(0xFF8A4E1E),
                             modifier = Modifier
                                 .size(28.dp)
                                 .rotate(if (expanded) 180f else 0f)
                         )
+                    }
+                    if (category == "DEFENCE") {
+                        Spacer(modifier = Modifier.height(1.dp))
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    color = Color(0xFFF2FAF4),
+                                    shape = RoundedCornerShape(20.dp)
+                                )
+                                .border(
+                                    width = 1.dp,
+                                    color = Color(0xFF2D7D46).copy(alpha = 0.4f),
+                                    shape = RoundedCornerShape(20.dp)
+                                )
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Star,
+                                contentDescription = null,
+                                tint = Color(0xFF2D7D46),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Focused on India’s defence theme 🛡️",
+                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                                color = Color(0xFF2D7D46)
+                            )
+                        }
                     }
                     if (category == "INNOVATION") {
                         Spacer(modifier = Modifier.height(1.dp))
@@ -2295,7 +2377,72 @@ fun NextGoalCard(
                     }
                     if (expanded) {
                         Spacer(modifier = Modifier.height(8.dp))
-                        if (category == "SENSEX") {
+                        if (category == "DEFENCE") {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Suggested holding period: 5 Years+ ⏰",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFF424242)
+                            )
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Text(
+                                text = "Defence Theme Focus",
+                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                color = Color(0xFF424242)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .background(Color(0xFF2D7D46), CircleShape)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "Defence & Aerospace • Companies connected to India’s defence ecosystem",
+                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium),
+                                        color = Color(0xFF424242)
+                                    )
+                                }
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .background(Color(0xFF2D7D46), CircleShape)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "Capital Goods • Companies involved in defence-related capital goods",
+                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium),
+                                        color = Color(0xFF424242)
+                                    )
+                                }
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .background(Color(0xFF2D7D46), CircleShape)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "Diversified Defence Exposure • Exposure across eligible defence-related industries",
+                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium),
+                                        color = Color(0xFF424242)
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Text(
+                                text = "Provides focused exposure to companies representing India’s defence theme.",
+                                style = MaterialTheme.typography.labelSmall.copy(fontStyle = FontStyle.Italic),
+                                color = Color(0xFFC75B12)
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                        } else if (category == "SENSEX") {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -2602,13 +2749,13 @@ fun NextGoalCard(
                                 style = MaterialTheme.typography.labelSmall.copy(fontStyle = FontStyle.Italic),
                                 color = Color(0xFF8A4E1E).copy(alpha = 0.8f)
                             )
-                            Spacer(modifier = Modifier.height(12.dp))
                         }
                     }
                 }
             }
         }
     }
+}
 }
 
 @Composable
