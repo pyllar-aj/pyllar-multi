@@ -1246,6 +1246,16 @@ private fun getExitLoadText(schemeName: String?): String {
                 normalizedName.contains("ULTRA SHORT") ->
             "NIL"
 
+        // Axis Nifty India Defence Index Fund
+        normalizedName.contains("AXIS") &&
+                normalizedName.contains("DEFENCE") ->
+            "0.25% if redeemed within 15 days"
+
+        // Aditya Birla Sun Life Nifty India Defence Index Fund
+        normalizedName.contains("ADITYA BIRLA") &&
+                normalizedName.contains("DEFENCE") ->
+            "0.05% if redeemed within 30 days"
+
         // Axis Ultra Short Term Fund
         normalizedName.contains("AXIS") &&
                 normalizedName.contains("ULTRA SHORT") ->

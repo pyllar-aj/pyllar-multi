@@ -2749,13 +2749,13 @@ fun NextGoalCard(
                                 style = MaterialTheme.typography.labelSmall.copy(fontStyle = FontStyle.Italic),
                                 color = Color(0xFF8A4E1E).copy(alpha = 0.8f)
                             )
-                            Spacer(modifier = Modifier.height(12.dp))
                         }
                     }
                 }
             }
         }
     }
+}
 }
 
 @Composable

@@ -20,6 +20,7 @@ enum class GoalType {
     MARKET_EXPLORER,
     INNOVATION,
     SENSEX,
+    DEFENCE,
     OTHER
 }
 
@@ -38,6 +39,7 @@ fun identifyGoalType(goalId: String): GoalType {
         lowerGoalId == "market_explorer" || lowerGoalId.contains("market_explorer") || lowerGoalId.contains("market-explorer") -> GoalType.MARKET_EXPLORER
         lowerGoalId == "innovation" || lowerGoalId.contains("innovation") -> GoalType.INNOVATION
         lowerGoalId == "sensex" || lowerGoalId.contains("sensex") -> GoalType.SENSEX
+        lowerGoalId == "defence" || lowerGoalId.contains("defence") -> GoalType.DEFENCE
         else -> GoalType.OTHER
     }
 }
@@ -59,6 +61,7 @@ fun identifyGoalType(category: String?, schemeName: String?): GoalType {
         cat == "MARKET_EXPLORER" -> GoalType.MARKET_EXPLORER
         cat == "INNOVATION" -> GoalType.INNOVATION
         cat == "SENSEX" -> GoalType.SENSEX
+        cat == "DEFENCE" -> GoalType.DEFENCE
         else -> GoalType.OTHER
     }
 }
@@ -75,6 +78,7 @@ fun getGoalDisplayName(goalType: GoalType): String {
         GoalType.MARKET_EXPLORER -> "Market Explorer"
         GoalType.INNOVATION -> "Innovation"
         GoalType.SENSEX -> "Sensex"
+        GoalType.DEFENCE -> "Defence"
         else -> "Savings"
     }
 }
