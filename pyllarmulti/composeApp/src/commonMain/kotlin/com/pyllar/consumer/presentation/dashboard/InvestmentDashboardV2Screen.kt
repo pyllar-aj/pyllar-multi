@@ -2039,11 +2039,6 @@ fun NextGoalCard(
                         modifier = Modifier.weight(0.9f),
                         horizontalAlignment = Alignment.Start
                     ) {
-                    if (category == "GOLD" || category == "SILVER" || category == "SAVINGS" || category == "SAVINGS_PLUS" || category == "FESTIVAL_SPENDS" || category == "GLOBAL_EXPOSURE" || category == "ALL_IN_ONE" || category == "MARKET_EXPLORER" || category == "INNOVATION" || category == "SENSEX" || category == "DEFENCE") {
-                        Column(
-                            modifier = Modifier.weight(0.9f),
-                            horizontalAlignment = Alignment.Start
-                        ) {
                             if (category == "DEFENCE") {
                                 Text(
                                     text = "Get focused exposure to ",
@@ -2185,7 +2180,6 @@ fun NextGoalCard(
                             }
                         }
                     }
-                }
 
                 if (isAllInOne || category == "MARKET_EXPLORER" || category == "INNOVATION" || category == "SENSEX" || category == "DEFENCE") {
                     Spacer(modifier = Modifier.height(4.dp))
@@ -2755,7 +2749,6 @@ fun NextGoalCard(
             }
         }
     }
-}
 }
 
 @Composable
