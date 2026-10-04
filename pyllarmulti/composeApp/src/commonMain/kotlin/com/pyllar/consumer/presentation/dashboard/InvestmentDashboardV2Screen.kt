@@ -29,7 +29,11 @@ import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.RocketLaunch
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -170,10 +174,6 @@ fun InvestmentDashboardV2Screen(
         scrollIndex += dashboardState.primaryGoals.size
     } else if (!dashboardState.isLoading && dashboardState.primaryGoals.isEmpty() && dashboardState.kycStatus.equals("SUCCESS", ignoreCase = true)) {
         scrollIndex += 1 // KycApprovedReadyToInvestCard
-    }
-    
-    if (hasMilestone) {
-        scrollIndex++
     }
     val nextGoalsIndex = scrollIndex
 
@@ -345,9 +345,7 @@ fun InvestmentDashboardV2Screen(
         ) {
             LazyColumn(
                 state = listState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp),
+                modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 item {
@@ -355,188 +353,770 @@ fun InvestmentDashboardV2Screen(
                 }
                 
                 item {
-                Spacer(modifier = Modifier.height(16.dp))
-                UserHeader(
-                    userName = dashboardState.userName,
-                    isLoading = dashboardState.isLoading,
-                    onClick = onNavigateToProfile,
-                    onNavigateToHelp = onNavigateToHelp,
-                    showMenu = showMenu,
-                    onMenuClick = { showMenu = true },
-                    onDismissMenu = { showMenu = false },
-                    onShareClick = { platformActions.shareText("Start your investment journey with Pyllar! Download now: https://pyllar.in", "Share Pyllar") },
-                    onRateUsClick = { platformActions.requestInAppReview() }
-                )
-            }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                        UserHeader(
+                            userName = dashboardState.userName,
+                            isLoading = dashboardState.isLoading,
+                            onClick = onNavigateToProfile,
+                            onNavigateToHelp = onNavigateToHelp,
+                            showMenu = showMenu,
+                            onMenuClick = { showMenu = true },
+                            onDismissMenu = { showMenu = false },
+                            onShareClick = { platformActions.shareText("Start your investment journey with Pyllar! Download now: https://pyllar.in", "Share Pyllar") },
+                            onRateUsClick = { platformActions.requestInAppReview() }
+                        )
+                    }
+                }
 
-            item {
-                val goldGoal = dashboardState.primaryGoals.firstOrNull { 
-                    it.category.equals("GOLD", ignoreCase = true) 
-                }
-                val silverGoal = dashboardState.primaryGoals.firstOrNull { 
-                    it.category.equals("SILVER", ignoreCase = true) 
-                }
-                
-                CombinedDashboardCard(
-                    totalValue = dashboardState.totalValue,
-                    profitLoss = dashboardState.profitLoss,
-                    profitLossPercentage = dashboardState.profitLossPercentage,
-                    goldUnitsInGm = goldGoal?.unitsInGm,
-                    silverUnitsInGm = silverGoal?.unitsInGm,
-                    isLoading = dashboardState.isLoading,
-                    onTotalClick = {
-                        coroutineScope.launch {
-                            val target = if (nextGoals.isNotEmpty()) nextGoalsIndex else if (dashboardState.primaryGoals.isNotEmpty()) activeGoalsIndex else 0
-                            if (target > 0) listState.animateScrollToItem(target, scrollOffset = scrollOffsetPx)
+                if (dashboardState.primaryGoals.isEmpty()) {
+                    item {
+                        Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                            val goldGoal = dashboardState.primaryGoals.firstOrNull { 
+                                it.category.equals("GOLD", ignoreCase = true) 
+                            }
+                            val silverGoal = dashboardState.primaryGoals.firstOrNull { 
+                                it.category.equals("SILVER", ignoreCase = true) 
+                            }
+                            
+                            CombinedDashboardCard(
+                                totalValue = dashboardState.totalValue,
+                                profitLoss = dashboardState.profitLoss,
+                                profitLossPercentage = dashboardState.profitLossPercentage,
+                                goldUnitsInGm = goldGoal?.unitsInGm,
+                                silverUnitsInGm = silverGoal?.unitsInGm,
+                                isLoading = dashboardState.isLoading,
+                                onTotalClick = {
+                                    coroutineScope.launch {
+                                        val target = if (nextGoals.isNotEmpty()) nextGoalsIndex else if (dashboardState.primaryGoals.isNotEmpty()) activeGoalsIndex else 0
+                                        if (target > 0) listState.animateScrollToItem(target, scrollOffset = scrollOffsetPx)
+                                    }
+                                },
+                                onGoldClick = {
+                                    if (goldGoal != null) handleActiveGoalClick(goldGoal, 0)
+                                    else handleGoalSelection("gold")
+                                },
+                                onSilverClick = {
+                                    if (silverGoal != null) handleActiveGoalClick(silverGoal, 0)
+                                    else handleGoalSelection("silver")
+                                }
+                            )
                         }
-                    },
-                    onGoldClick = {
-                        if (goldGoal != null) handleActiveGoalClick(goldGoal, 0)
-                        else handleGoalSelection("gold")
-                    },
-                    onSilverClick = {
-                        if (silverGoal != null) handleActiveGoalClick(silverGoal, 0)
-                        else handleGoalSelection("silver")
-                    }
-                )
-            }
-
-            if (hasStatusCard) {
-                if (showSurvey) {
-                    item {
-                        DashboardSurveyCard(
-                            onSurveyCompleted = {
-                                coroutineScope.launch { sessionStore.saveValue("survey_done_or_skipped", "true") }
-                                isSurveyDoneOrSkipped = true
-                            },
-                            onSurveySkipped = {
-                                doubtsSurveyViewModel.submit(
-                                    screenName = "InvestmentDashboardSurvey",
-                                    goalId = dashboardState.primaryGoals.firstOrNull()?.goalId,
-                                    selectedOption = "Skipped Survey"
-                                )
-                                coroutineScope.launch { sessionStore.saveValue("survey_done_or_skipped", "true") }
-                                isSurveyDoneOrSkipped = true
-                            },
-                            onSubmitAnswer = { option, freeText, callback ->
-                                doubtsSurveyViewModel.submit(
-                                    screenName = "InvestmentDashboardSurvey",
-                                    goalId = dashboardState.primaryGoals.firstOrNull()?.goalId,
-                                    selectedOption = option,
-                                    freeText = freeText,
-                                    requestCallback = callback
-                                )
-                            },
-                            platformActions = platformActions
-                        )
-                    }
-                } else if (dashboardState.kycStatus.equals("UNLINKED", ignoreCase = true)) {
-                    item {
-                        KycAadhaarLinkingRequiredCard(
-                            panNumber = panNumber,
-                            onLearnMoreClick = {
-                                platformActions.openUrl("https://www.incometax.gov.in/iec/foportal/help/all-topics/e-filing-services/%20Link%20Aadhaar-faq")
-                            }
-                        )
-                    }
-                } else if (dashboardState.kycStatus.equals("IN_PROGRESS", ignoreCase = true)) {
-                    item {
-                        KycSubmittedAwaitingApprovalCard(
-                            onContactSupport = {
-                                platformActions.openWhatsApp("917676596301", "Hello, my KYC has been submitted and is currently awaiting approval.")
-                            }
-                        )
-                    }
-                } else if (dashboardState.kycStatus.equals("INITIATE", ignoreCase = true)) {
-                    item {
-                        InitiateKycCard(
-                            onStartKyc = onStartKyc
-                        )
                     }
                 } else {
                     item {
-                        StatusInfoCard(
-                            kycStatus = dashboardState.kycStatus,
-                            mandateStatuses = dashboardState.fundDetails.mapNotNull { it.mandateStatus }.distinct(),
-                            onRetryKyc = onRetryKyc
-                        )
-                    }
-                }
-            }
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            val goldGoal = dashboardState.primaryGoals.firstOrNull { it.category.equals("GOLD", ignoreCase = true) }
+                            val silverGoal = dashboardState.primaryGoals.firstOrNull { it.category.equals("SILVER", ignoreCase = true) }
+                            val allGoalsZeroValue = dashboardState.primaryGoals.all { it.currentValue <= 0.0 }
+                            val hasNoFolioAllocated = dashboardState.primaryGoals.all { it.folioNo.isNullOrBlank() } &&
+                                    dashboardState.fundDetails.all { it.folioNo.isNullOrBlank() } &&
+                                    dashboardState.holdingsDetails.all { it.folioNumber.isNullOrBlank() }
+                            val isFirstTimeSipPending = dashboardState.primaryGoals.isNotEmpty() &&
+                                    allGoalsZeroValue &&
+                                    hasNoFolioAllocated
 
-            if (!dashboardState.isLoading && dashboardState.primaryGoals.isNotEmpty()) {
-                item {
-                    Text(
-                        text = "Your Active Goals",
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-                }
-                items(dashboardState.primaryGoals) { goal ->
-                    PrimaryGoalCard(
-                        goal = goal,
-                        isLoading = false,
-                        onTopCardClick = { handleActiveGoalClick(goal, 0) },
-                        onBottomCardClick = { handleActiveGoalClick(goal, 1) }
-                    )
-                }
-                
-//                // Promotion Card if there are investments
-//                item {
-//                    PromotionShareCard(onShareClick = { platformActions.shareText("Join Pyllar and build your wealth! https://pyllar.in", "Share Pyllar") })
-//                }
-            } else if (!dashboardState.isLoading && dashboardState.primaryGoals.isEmpty()) {
-                if (dashboardState.kycStatus.equals("SUCCESS", ignoreCase = true)) {
-                    item {
-                        KycApprovedReadyToInvestCard(
-                            onChooseGoalClick = {
-                                coroutineScope.launch {
-                                    listState.animateScrollToItem(nextGoalsIndex, scrollOffset = scrollOffsetPx)
+                            val banners = buildList {
+                                add("GOLD_CARD")
+                                add("SILVER_CARD")
+//                                add("TOTAL_VALUE")
+                                if (isFirstTimeSipPending) {
+                                    add("SIP_SUCCESS")
+                                }
+//                                if (showReferralCard) {
+//                                    add("REFER_A_FRIEND")
+//                                }
+                                if (dashboardState.hasFirstMilestone && dashboardState.milestoneMessage.isNotBlank()) {
+                                    add("MILESTONE")
                                 }
                             }
-                        )
-                    }
-                }
-            }
+                            val pageCount = banners.size.coerceAtMost(6)
+                            val pagerState = key(pageCount) { rememberPagerState(initialPage = 0) { pageCount } }
 
-            if (!dashboardState.isLoading && dashboardState.milestoneMessage.isNotBlank() && dashboardState.hasFirstMilestone) {
-                item {
-                    MilestoneBanner(message = dashboardState.milestoneMessage)
-                }
-            }
+                            // Auto-scroll logic: scroll every 5 seconds
+                            LaunchedEffect(pagerState, pageCount) {
+                                if (pageCount > 1) {
+                                    while (true) {
+                                        delay(5000)
+                                        val nextPage = (pagerState.currentPage + 1) % pageCount
+                                        pagerState.animateScrollToPage(nextPage)
+                                    }
+                                }
+                            }
 
-            if (!dashboardState.isLoading && dashboardState.recommendedGoals.isNotEmpty()) {
-                val nextGoals = dashboardState.recommendedGoals
-                if (nextGoals.isNotEmpty()) {
-                    item {
-                        NextGoalsSection(
-                            goals = nextGoals,
-                            onGoalClick = { goalId -> handleGoalSelection(goalId) }
-                        )
-                    }
-                }
-            }
+                            val onGoldClick = {
+                                if (goldGoal != null) handleActiveGoalClick(goldGoal, 0)
+                                else handleGoalSelection("gold")
+                            }
+                            val onSilverClick = {
+                                if (silverGoal != null) handleActiveGoalClick(silverGoal, 0)
+                                else handleGoalSelection("silver")
+                            }
 
-            if (!dashboardState.isLoading && dashboardState.referralEnabled) {
-                item {
-                    ReferAndEarnCard(
-                        coinsBalance = 100,
-                        onClick = {
-                            PlatformAnalyticsLogger.logEvent("referral_card_tapped")
-                            onNavigateToReferral()
+                            HorizontalPager(
+                                state = pagerState,
+                                contentPadding = PaddingValues(horizontal = 24.dp),
+                                pageSpacing = 12.dp,
+                                modifier = Modifier.fillMaxWidth()
+                            ) { page ->
+                                val bannerType = banners.getOrNull(page)
+                                if (bannerType == "TOTAL_VALUE") {
+                                    val ceiledTotalValue = ceil(dashboardState.totalValue)
+                                    val formattedTotalValue = formatIndian(ceiledTotalValue)
+                                    val goldUnits = goldGoal?.unitsInGm
+                                    val goldUnitsText = if (goldUnits != null && goldUnits > 0) {
+                                        formatWeight(
+                                            value = goldUnits,
+                                            mgSuffix = stringResource(Res.string.mg_label),
+                                            gSuffix = stringResource(Res.string.g_label)
+                                        )
+                                    } else {
+                                        "0 g"
+                                    }
+                                    val silverUnits = silverGoal?.unitsInGm
+                                    val silverUnitsText = if (silverUnits != null && silverUnits > 0) {
+                                        formatWeight(
+                                            value = silverUnits,
+                                            mgSuffix = stringResource(Res.string.mg_label),
+                                            gSuffix = stringResource(Res.string.g_label)
+                                        )
+                                    } else {
+                                        "0 g"
+                                    }
+
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(210.dp)
+                                            .clickable {
+                                                coroutineScope.launch {
+                                                    val target = if (nextGoals.isNotEmpty()) nextGoalsIndex else if (dashboardState.primaryGoals.isNotEmpty()) activeGoalsIndex else 0
+                                                    if (target > 0) listState.animateScrollToItem(target, scrollOffset = scrollOffsetPx)
+                                                }
+                                            },
+                                        shape = RoundedCornerShape(16.dp),
+                                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .padding(20.dp)
+                                        ) {
+                                            Column(
+                                                modifier = Modifier.fillMaxSize(),
+                                                verticalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                // Top section: Total value on left, illustration on right
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Column(
+                                                        modifier = Modifier.weight(1f),
+                                                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                                                    ) {
+                                                        Text(
+                                                            text = "TOTAL VALUE",
+                                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                                fontWeight = FontWeight.Bold,
+                                                                letterSpacing = 1.sp
+                                                            ),
+                                                            color = Color(0xFF8D6E3F)
+                                                        )
+
+                                                        Row(
+                                                            verticalAlignment = Alignment.CenterVertically,
+                                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                                        ) {
+                                                            Text(
+                                                                text = "₹$formattedTotalValue",
+                                                                style = MaterialTheme.typography.headlineMedium.copy(
+                                                                    fontWeight = FontWeight.Bold,
+                                                                    fontSize = 28.sp
+                                                                ),
+                                                                color = Color(0xFF0A2415)
+                                                            )
+                                                        }
+                                                    }
+
+                                                    // Right illustration: gold and silver bars
+                                                    Image(
+                                                        painter = painterResource(Res.drawable.gold_silver),
+                                                        contentDescription = "Gold and silver holdings",
+                                                        modifier = Modifier
+                                                            .size(120.dp)
+                                                            .padding(start = 8.dp),
+                                                        contentScale = ContentScale.Fit
+                                                    )
+                                                }
+
+                                                // Full-width chips row at the bottom
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    // Gold chip
+                                                    Surface(
+                                                        shape = RoundedCornerShape(50),
+                                                        color = Color(0xFFFFF9E6),
+                                                        border = BorderStroke(1.dp, Color(0xFFE8D49E)),
+                                                        modifier = Modifier.clickable { onGoldClick() }
+                                                    ) {
+                                                        Row(
+                                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                                                            verticalAlignment = Alignment.CenterVertically,
+                                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                        ) {
+                                                            Image(
+                                                                painter = painterResource(Res.drawable.goldbar_icon),
+                                                                contentDescription = null,
+                                                                modifier = Modifier.size(18.dp),
+                                                                contentScale = ContentScale.Fit
+                                                            )
+                                                            Text(
+                                                                text = "$goldUnitsText gold",
+                                                                style = MaterialTheme.typography.bodySmall.copy(
+                                                                    fontWeight = FontWeight.Bold
+                                                                ),
+                                                                color = Color(0xFF6A4C00)
+                                                            )
+                                                        }
+                                                    }
+
+                                                    // Silver chip
+                                                    Surface(
+                                                        shape = RoundedCornerShape(50),
+                                                        color = Color(0xFFF7F8F9),
+                                                        border = BorderStroke(1.dp, Color(0xFFD6DBDE)),
+                                                        modifier = Modifier.clickable { onSilverClick() }
+                                                    ) {
+                                                        Row(
+                                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                                                            verticalAlignment = Alignment.CenterVertically,
+                                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                        ) {
+                                                            Image(
+                                                                painter = painterResource(Res.drawable.silver_icon),
+                                                                contentDescription = null,
+                                                                modifier = Modifier.size(18.dp),
+                                                                contentScale = ContentScale.Fit
+                                                            )
+                                                            Text(
+                                                                text = "$silverUnitsText silver",
+                                                                style = MaterialTheme.typography.bodySmall.copy(
+                                                                    fontWeight = FontWeight.Bold
+                                                                ),
+                                                                color = Color(0xFF4A5568)
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                } else if (bannerType == "GOLD_CARD") {
+                                    val goldUnits = goldGoal?.unitsInGm
+                                    val goldValue = goldGoal?.currentValue ?: 0.0
+                                    val unitsText = if (goldUnits != null && goldUnits > 0) {
+                                        formatWeight(
+                                            value = goldUnits,
+                                            mgSuffix = stringResource(Res.string.mg_label),
+                                            gSuffix = stringResource(Res.string.g_label)
+                                        )
+                                    } else {
+                                        "0 g"
+                                    }
+                                    val formattedPrice = "₹${formatIndian(goldValue)}"
+
+                                    val goldBannerShape = RoundedCornerShape(16.dp)
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(210.dp)
+                                            .clickable { onGoldClick() }
+                                            .shadow(4.dp, goldBannerShape, spotColor = goldShadowColor, ambientColor = goldShadowColor)
+                                            .clip(goldBannerShape)
+                                            .drawBehind {
+                                                val w = size.width
+                                                val h = size.height
+                                                drawRect(
+                                                    brush = Brush.linearGradient(
+                                                        colors = goldMetalColors,
+                                                        start = Offset(0f, h),
+                                                        end = Offset(w, 0f)
+                                                    )
+                                                )
+                                                drawRect(
+                                                    brush = Brush.verticalGradient(
+                                                        colors = listOf(Color.White.copy(alpha = 0.3f), Color.Transparent),
+                                                        startY = 0f, endY = h
+                                                    )
+                                                )
+                                                var y = 0f
+                                                while (y < h) {
+                                                    drawLine(
+                                                        color = Color.White.copy(alpha = GOLD_BRUSH_ALPHA),
+                                                        start = Offset(0f, y),
+                                                        end = Offset(w, y),
+                                                        strokeWidth = 1f
+                                                    )
+                                                    y += 3f
+                                                }
+                                            }
+                                            .border(1.dp, goldStrokeColor, goldBannerShape)
+                                            .padding(horizontal = 20.dp, vertical = 16.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxSize(),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                        ) {
+                                            Surface(
+                                                color = Color.White.copy(alpha = 0.35f),
+                                                shape = CircleShape,
+                                                modifier = Modifier.size(72.dp)
+                                            ) {
+                                                Box(
+                                                    contentAlignment = Alignment.Center,
+                                                    modifier = Modifier.fillMaxSize()
+                                                ) {
+                                                    Image(
+                                                        painter = painterResource(Res.drawable.goldbar_icon),
+                                                        contentDescription = "Gold",
+                                                        modifier = Modifier.size(50.dp),
+                                                        contentScale = ContentScale.Fit
+                                                    )
+                                                }
+                                            }
+
+                                            Column(
+                                                verticalArrangement = Arrangement.Center,
+                                                modifier = Modifier.weight(1f).fillMaxHeight()
+                                            ) {
+                                                Text(
+                                                    text = "GOLD HOLDINGS",
+                                                    style = MaterialTheme.typography.labelSmall.copy(
+                                                        fontWeight = FontWeight.Bold,
+                                                        letterSpacing = 1.sp
+                                                    ),
+                                                    color = Color(0xFF6A4C00)
+                                                )
+                                                Spacer(modifier = Modifier.height(4.dp))
+                                                Text(
+                                                    text = unitsText,
+                                                    style = MaterialTheme.typography.titleLarge.copy(
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = Color(0xFF4A3600),
+                                                        fontSize = 24.sp
+                                                    )
+                                                )
+                                                Spacer(modifier = Modifier.height(6.dp))
+                                                Text(
+                                                    text = "Today's Value: $formattedPrice",
+                                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        color = Color(0xFF5A4000),
+                                                        fontSize = 14.sp
+                                                    )
+                                                )
+                                                Spacer(modifier = Modifier.height(10.dp))
+                                                Surface(
+                                                    shape = RoundedCornerShape(50),
+                                                    color = Color(0xFF4A3600),
+                                                    shadowElevation = 2.dp,
+                                                    modifier = Modifier.clickable { onGoldClick() }
+                                                ) {
+                                                    Row(
+                                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                                    ) {
+                                                        Text(
+                                                            text = "+ Add Gold",
+                                                            style = MaterialTheme.typography.bodySmall.copy(
+                                                                fontWeight = FontWeight.Bold,
+                                                                fontSize = 12.sp
+                                                            ),
+                                                            color = Color(0xFFFFF9E6)
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                } else if (bannerType == "SILVER_CARD") {
+                                    val silverUnits = silverGoal?.unitsInGm
+                                    val silverValue = silverGoal?.currentValue ?: 0.0
+                                    val unitsText = if (silverUnits != null && silverUnits > 0) {
+                                        formatWeight(
+                                            value = silverUnits,
+                                            mgSuffix = stringResource(Res.string.mg_label),
+                                            gSuffix = stringResource(Res.string.g_label)
+                                        )
+                                    } else {
+                                        "0 g"
+                                    }
+                                    val formattedPrice = "₹${formatIndian(silverValue)}"
+
+                                    val silverBannerShape = RoundedCornerShape(16.dp)
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(210.dp)
+                                            .clickable { onSilverClick() }
+                                            .shadow(4.dp, silverBannerShape, spotColor = silverShadowColor, ambientColor = silverShadowColor)
+                                            .clip(silverBannerShape)
+                                            .drawBehind {
+                                                val w = size.width
+                                                val h = size.height
+                                                drawRect(
+                                                    brush = Brush.linearGradient(
+                                                        colors = silverMetalColors,
+                                                        start = Offset(0f, h),
+                                                        end = Offset(w, 0f)
+                                                    )
+                                                )
+                                                drawRect(
+                                                    brush = Brush.verticalGradient(
+                                                        colors = listOf(Color.White.copy(alpha = 0.35f), Color.Transparent),
+                                                        startY = 0f, endY = h
+                                                    )
+                                                )
+                                                var y = 0f
+                                                while (y < h) {
+                                                    drawLine(
+                                                        color = Color.White.copy(alpha = SILVER_BRUSH_ALPHA),
+                                                        start = Offset(0f, y),
+                                                        end = Offset(w, y),
+                                                        strokeWidth = 1f
+                                                    )
+                                                    y += 3f
+                                                }
+                                            }
+                                            .border(1.dp, silverStrokeColor, silverBannerShape)
+                                            .padding(horizontal = 20.dp, vertical = 16.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxSize(),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                        ) {
+                                            Surface(
+                                                color = Color.White.copy(alpha = 0.4f),
+                                                shape = CircleShape,
+                                                modifier = Modifier.size(72.dp)
+                                            ) {
+                                                Box(
+                                                    contentAlignment = Alignment.Center,
+                                                    modifier = Modifier.fillMaxSize()
+                                                ) {
+                                                    Image(
+                                                        painter = painterResource(Res.drawable.silver_icon),
+                                                        contentDescription = "Silver",
+                                                        modifier = Modifier.size(50.dp),
+                                                        contentScale = ContentScale.Fit
+                                                    )
+                                                }
+                                            }
+
+                                            Column(
+                                                verticalArrangement = Arrangement.Center,
+                                                modifier = Modifier.weight(1f).fillMaxHeight()
+                                            ) {
+                                                Text(
+                                                    text = "SILVER HOLDINGS",
+                                                    style = MaterialTheme.typography.labelSmall.copy(
+                                                        fontWeight = FontWeight.Bold,
+                                                        letterSpacing = 1.sp
+                                                    ),
+                                                    color = Color(0xFF505A61)
+                                                )
+                                                Spacer(modifier = Modifier.height(4.dp))
+                                                Text(
+                                                    text = unitsText,
+                                                    style = MaterialTheme.typography.titleLarge.copy(
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = Color(0xFF2E383E),
+                                                        fontSize = 24.sp
+                                                    )
+                                                )
+                                                Spacer(modifier = Modifier.height(6.dp))
+                                                Text(
+                                                    text = "Today's Value: $formattedPrice",
+                                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        color = Color(0xFF3E484E),
+                                                        fontSize = 14.sp
+                                                    )
+                                                )
+                                                Spacer(modifier = Modifier.height(10.dp))
+                                                Surface(
+                                                    shape = RoundedCornerShape(50),
+                                                    color = Color(0xFF2E383E),
+                                                    shadowElevation = 2.dp,
+                                                    modifier = Modifier.clickable { onSilverClick() }
+                                                ) {
+                                                    Row(
+                                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                                    ) {
+                                                        Text(
+                                                            text = "+ Add Silver",
+                                                            style = MaterialTheme.typography.bodySmall.copy(
+                                                                fontWeight = FontWeight.Bold,
+                                                                fontSize = 12.sp
+                                                            ),
+                                                            color = Color.White
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                } else if (bannerType == "SIP_SUCCESS") {
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(210.dp),
+                                        shape = RoundedCornerShape(16.dp),
+                                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .padding(horizontal = 20.dp, vertical = 16.dp)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.fillMaxSize(),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                            ) {
+                                                // Check success badge
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(80.dp)
+                                                        .background(Color(0xFFE8F5E9), shape = CircleShape),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(54.dp)
+                                                            .background(Color(0xFF2E7D32), shape = CircleShape),
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        Icon(
+                                                            imageVector = Icons.Filled.Check,
+                                                            contentDescription = "Success",
+                                                            tint = Color.White,
+                                                            modifier = Modifier.size(32.dp)
+                                                        )
+                                                    }
+                                                }
+
+                                                Column(
+                                                    verticalArrangement = Arrangement.Center,
+                                                    modifier = Modifier.weight(1f).fillMaxHeight()
+                                                ) {
+                                                    Text(
+                                                        text = "SIP CREATED",
+                                                        style = MaterialTheme.typography.labelSmall.copy(
+                                                            fontWeight = FontWeight.Bold,
+                                                            letterSpacing = 1.sp
+                                                        ),
+                                                        color = Color(0xFF2E7D32)
+                                                    )
+                                                    Spacer(modifier = Modifier.height(4.dp))
+                                                    Text(
+                                                        text = "🎉 Your first SIP is live",
+                                                        style = MaterialTheme.typography.titleMedium.copy(
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = Color(0xFF3E2723),
+                                                            fontSize = 18.sp,
+                                                            lineHeight = 22.sp
+                                                        )
+                                                    )
+                                                    Spacer(modifier = Modifier.height(4.dp))
+                                                    Text(
+                                                        text = "Units are allocated within 3 working days.",
+                                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                                            color = Color(0xFF757575),
+                                                            fontSize = 12.sp,
+                                                            lineHeight = 16.sp
+                                                        )
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                } else if (bannerType == "MILESTONE") {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(210.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        MilestoneBanner(message = dashboardState.milestoneMessage, isLoading = false)
+                                    }
+                                }
+                            }
+                            RewardBannerPagerIndicator(pagerState = pagerState, pageCount = pageCount)
                         }
-                    )
+                    }
+                }
+
+                if (hasStatusCard) {
+                    if (showSurvey) {
+                        item {
+                            Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                                DashboardSurveyCard(
+                                    onSurveyCompleted = {
+                                        coroutineScope.launch { sessionStore.saveValue("survey_done_or_skipped", "true") }
+                                        isSurveyDoneOrSkipped = true
+                                    },
+                                    onSurveySkipped = {
+                                        doubtsSurveyViewModel.submit(
+                                            screenName = "InvestmentDashboardSurvey",
+                                            goalId = dashboardState.primaryGoals.firstOrNull()?.goalId,
+                                            selectedOption = "Skipped Survey"
+                                        )
+                                        coroutineScope.launch { sessionStore.saveValue("survey_done_or_skipped", "true") }
+                                        isSurveyDoneOrSkipped = true
+                                    },
+                                    onSubmitAnswer = { option, freeText, callback ->
+                                        doubtsSurveyViewModel.submit(
+                                            screenName = "InvestmentDashboardSurvey",
+                                            goalId = dashboardState.primaryGoals.firstOrNull()?.goalId,
+                                            selectedOption = option,
+                                            freeText = freeText,
+                                            requestCallback = callback
+                                        )
+                                    },
+                                    platformActions = platformActions
+                                )
+                            }
+                        }
+                    } else if (dashboardState.kycStatus.equals("UNLINKED", ignoreCase = true)) {
+                        item {
+                            Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                                KycAadhaarLinkingRequiredCard(
+                                    panNumber = panNumber,
+                                    onLearnMoreClick = {
+                                        platformActions.openUrl("https://www.incometax.gov.in/iec/foportal/help/all-topics/e-filing-services/%20Link%20Aadhaar-faq")
+                                    }
+                                )
+                            }
+                        }
+                    } else if (dashboardState.kycStatus.equals("IN_PROGRESS", ignoreCase = true)) {
+                        item {
+                            Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                                KycSubmittedAwaitingApprovalCard(
+                                    onContactSupport = {
+                                        platformActions.openWhatsApp("917676596301", "Hello, my KYC has been submitted and is currently awaiting approval.")
+                                    }
+                                )
+                            }
+                        }
+                    } else if (dashboardState.kycStatus.equals("INITIATE", ignoreCase = true)) {
+                        item {
+                            Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                                InitiateKycCard(
+                                    onStartKyc = onStartKyc
+                                )
+                            }
+                        }
+                    } else {
+                        item {
+                            Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                                StatusInfoCard(
+                                    kycStatus = dashboardState.kycStatus,
+                                    mandateStatuses = dashboardState.fundDetails.mapNotNull { it.mandateStatus }.distinct(),
+                                    onRetryKyc = onRetryKyc
+                                )
+                            }
+                        }
+                    }
+                }
+
+                if (!dashboardState.isLoading && dashboardState.primaryGoals.isNotEmpty()) {
+//                    item {
+//                        Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+//                            Text(
+//                                text = "Your Active Goals",
+//                                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+//                                color = MaterialTheme.colorScheme.onSurface,
+//                                modifier = Modifier.padding(bottom = 8.dp)
+//                            )
+//                        }
+//                    }
+                    items(dashboardState.primaryGoals) { goal ->
+                        Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                            PrimaryGoalCard(
+                                goal = goal,
+                                isLoading = false,
+                                onTopCardClick = { handleActiveGoalClick(goal, 0) },
+                                onBottomCardClick = { handleActiveGoalClick(goal, 1) }
+                            )
+                        }
+                    }
+                } else if (!dashboardState.isLoading && dashboardState.primaryGoals.isEmpty()) {
+                    if (dashboardState.kycStatus.equals("SUCCESS", ignoreCase = true)) {
+                        item {
+                            Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                                KycApprovedReadyToInvestCard(
+                                    onChooseGoalClick = {
+                                        coroutineScope.launch {
+                                            listState.animateScrollToItem(nextGoalsIndex, scrollOffset = scrollOffsetPx)
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                if (!dashboardState.isLoading && dashboardState.recommendedGoals.isNotEmpty()) {
+                    val nextGoals = dashboardState.recommendedGoals
+                    if (nextGoals.isNotEmpty()) {
+                        item {
+                            Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                                NextGoalsSection(
+                                    goals = nextGoals,
+                                    onGoalClick = { goalId -> handleGoalSelection(goalId) }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                if (!dashboardState.isLoading && dashboardState.referralEnabled) {
+                    item {
+                        Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                            ReferAndEarnCard(
+                                coinsBalance = 100,
+                                onClick = {
+                                    PlatformAnalyticsLogger.logEvent("referral_card_tapped")
+                                    onNavigateToReferral()
+                                }
+                            )
+                        }
+                    }
+                }
+
+                item {
+                    Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                        DashboardTrustFooter()
+                    }
                 }
             }
-
-
-
-            item {
-                DashboardTrustFooter()
-            }
-
-        }
         }
 
         if (showKycPendingBottomSheet) {
@@ -1642,17 +2222,177 @@ fun PrimaryGoalCard(
 }
 
 @Composable
-fun MilestoneBanner(message: String) {
+fun MilestoneBanner(
+    message: String,
+    isLoading: Boolean = false
+) {
+    if (isLoading) return
+
     Card(
-        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9)),
-        shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.dp, Color(0xFFA5D6A7))
+        modifier = Modifier.fillMaxWidth().height(210.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF0A2415)), // obsidian green
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("🎉", fontSize = 20.sp)
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(message, style = MaterialTheme.typography.bodyMedium, color = Color(0xFF2E7D32), fontWeight = FontWeight.SemiBold)
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Background gold decorative dots/shapes (shifted right)
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                // Gold dot 1 (top right)
+                drawCircle(
+                    color = Color(0xFFD4AF37).copy(alpha = 0.4f),
+                    radius = 4.dp.toPx(),
+                    center = Offset(size.width * 0.9f, size.height * 0.15f)
+                )
+                // Gold dot 2 (bottom right)
+                drawCircle(
+                    color = Color(0xFF8B6B25).copy(alpha = 0.3f),
+                    radius = 3.dp.toPx(),
+                    center = Offset(size.width * 0.95f, size.height * 0.78f)
+                )
+                // Rotating square/diamond shape in background
+                val path = Path().apply {
+                    val cx = size.width * 0.92f
+                    val cy = size.height * 0.4f
+                    val r = 6.dp.toPx()
+                    moveTo(cx, cy - r)
+                    lineTo(cx + r, cy)
+                    lineTo(cx, cy + r)
+                    lineTo(cx - r, cy)
+                    close()
+                }
+                drawPath(path = path, color = Color(0xFFD4AF37).copy(alpha = 0.35f))
+            }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 20.dp, vertical = 24.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // BIG CONFETTI ICON ON LEFT
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .background(Color(0xFF143B22), shape = CircleShape), // slightly lighter green accent circle
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "🎉",
+                        fontSize = 44.sp
+                    )
+                }
+
+                // TEXT COLUMN ON RIGHT
+                Column(
+                    verticalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.weight(1f).fillMaxHeight()
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = "MILESTONE",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.sp
+                            ),
+                            color = Color(0xFFD4AF37) // Luxury Gold
+                        )
+                        
+                        val parts = message.split("! ")
+                        val titleText = parts.getOrNull(0)?.let { if (it.endsWith("!")) it else "$it!" } ?: message
+                        val subtitleText = parts.getOrNull(1) ?: "Keep going!"
+                        
+                        Text(
+                            text = titleText,
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp,
+                                lineHeight = 20.sp
+                            ),
+                            color = Color.White,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = subtitleText,
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 14.sp,
+                                lineHeight = 18.sp
+                            ),
+                            color = Color.White.copy(alpha = 0.9f),
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = "Your daily discipline is paying off.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.7f),
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        val nextMilestone = when {
+                            message.contains("5L", ignoreCase = true) -> "₹10L"
+                            message.contains("3L", ignoreCase = true) -> "₹5L"
+                            message.contains("2L", ignoreCase = true) -> "₹3L"
+                            message.contains("1L", ignoreCase = true) -> "₹2L"
+                            message.contains("50K", ignoreCase = true) -> "₹1L"
+                            message.contains("30K", ignoreCase = true) -> "₹50K"
+                            message.contains("20K", ignoreCase = true) -> "₹30K"
+                            message.contains("10K", ignoreCase = true) -> "₹20K"
+                            else -> "₹25L"
+                        }
+                        Text(
+                            text = "Next milestone: $nextMilestone",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = Color(0xFFD4AF37), // Luxury Gold
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun RewardBannerPagerIndicator(
+    pagerState: PagerState,
+    pageCount: Int,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        repeat(pageCount) { index ->
+            val isSelected = index == pagerState.currentPage
+            if (isSelected) {
+                // Capsule/Pill shape for selected dot
+                Box(
+                    modifier = Modifier
+                        .size(width = 24.dp, height = 8.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Color(0xFFBD9A3C)) // Mustard/gold color from mockup
+                )
+            } else {
+                // Circle shape for unselected dot
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFD7D3CB)) // Light grey/beige from picture
+                )
+            }
+            if (index < pageCount - 1) {
+                Spacer(modifier = Modifier.width(6.dp))
+            }
         }
     }
 }
