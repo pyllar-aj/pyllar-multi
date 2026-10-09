@@ -378,7 +378,7 @@
     <string name="gold_purchasing_power_explanation">Purchasing power equivalent based on historical gold prices.</string>
     <string name="silver_purchasing_power_explanation">Purchasing power equivalent based on historical silver prices.</string>
     <string name="share_pyllar">Share Pyllar</string>
-    <string name="share_message">Gold, Silver &amp; much more starting at ₹21! ✨\n\nSmall daily steps ➡️ Big rewards. Join me and build a consistent saving habit for your goals with Pyllar.\n\nStart today: https://pyllar.in/download.html</string>
+    <string name="share_message">Gold, Silver &amp; much more starting at ₹101! ✨\n\nSmall daily steps ➡️ Big rewards. Join me and build a consistent saving habit for your goals with Pyllar.\n\nStart today: https://pyllar.in/download.html</string>
     <string name="content_description_share">Share</string>
     <string name="unable_to_select_goal">Unable to select goal. Please try again.</string>
     <string name="something_went_wrong">Something went wrong. Please try again.</string>
@@ -790,13 +790,13 @@
     <string name="doubts_safety_detail_1">Your investments are held with the mutual fund, not by Pyllar</string>
     <string name="doubts_safety_detail_2">You can view your investment holdings anytime in the app</string>
     <string name="doubts_howworks_label">Don't understand how daily saving works</string>
-    <string name="doubts_howworks_ans_1">Every day, ₹21 (or whatever you choose) is invested automatically according to your selected goal. Once it's set up, there's nothing you need to do each day—it all happens automatically after a successful payment.</string>
+    <string name="doubts_howworks_ans_1">Every day, ₹101 (or whatever you choose) is invested automatically according to your selected goal. Once it's set up, there's nothing you need to do each day—it all happens automatically after a successful payment.</string>
     <string name="doubts_howworks_detail_1">Investments happen only after a successful payment</string>
     <string name="doubts_howworks_detail_2">You'll receive confirmation with the details of each successful investment</string>
     <string name="doubts_howmuch_label">Not sure how much I should start with</string>
-    <string name="doubts_howmuch_ans_1">Start with an amount you're comfortable with. Even ₹21/day can help you build the habit of investing, and you can increase it anytime.</string>
+    <string name="doubts_howmuch_ans_1">Start with an amount you're comfortable with. Even ₹101/day can help you build the habit of investing, and you can increase it anytime.</string>
     <string name="doubts_howmuch_detail_1">You can change your daily amount anytime</string>
-    <string name="doubts_howmuch_detail_2">Most first-time users start between ₹21–₹50/day</string>
+    <string name="doubts_howmuch_detail_2">Most first-time users start between ₹54–₹101/day</string>
     <string name="doubts_withdraw_label">Worried I can't take my money out when I need it</string>
     <string name="doubts_withdraw_ans_1">Your investments can be redeemed whenever you choose, subject to the mutual fund's redemption process. You can also pause or stop future daily investments anytime.</string>
     <string name="doubts_withdraw_detail_1">Withdrawals typically reach your bank in 1–3 working days</string>

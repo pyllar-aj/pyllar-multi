@@ -902,8 +902,8 @@ fun InitialGoalCardV2(
                         )
                         Text(
                             text = when {
-                                isGold || category == "SAVINGS" -> "₹21 - ₹500"
-                                isMarketExplorer || isSensex    -> "₹21 - ₹1000"
+                                isGold || category == "SAVINGS" -> "₹101 - ₹500"
+                                isMarketExplorer || isSensex    -> "₹101 - ₹1000"
                                 isInnovation                   -> "₹101 - ₹1000"
                                 else                            -> "₹101 - ₹500"
                             },

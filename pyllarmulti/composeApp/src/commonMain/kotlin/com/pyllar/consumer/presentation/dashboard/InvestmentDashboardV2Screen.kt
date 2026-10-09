@@ -2742,11 +2742,11 @@ fun NextGoalCard(
                         var fontSize by remember { mutableStateOf(12.sp) }
                         Text(
                             text = when (goal.category.uppercase()) {
-                                "GOLD", "SAVINGS" -> "₹21 - ₹500"
-                                "MARKET_EXPLORER", "SENSEX" -> "₹21 - ₹1000"
-                                "FESTIVAL_SPENDS" -> "₹11 - ₹500"
+                                "GOLD", "SAVINGS" -> "₹101 - ₹500"
+                                "MARKET_EXPLORER", "SENSEX" -> "₹101 - ₹1000"
+                                "FESTIVAL_SPENDS" -> "₹101 - ₹500"
                                 "GLOBAL_EXPOSURE" -> "₹101 - ₹1000"
-                                "ALL_IN_ONE" -> "₹51 - ₹1000"
+                                "ALL_IN_ONE" -> "₹101 - ₹1000"
                                 "INNOVATION" -> "₹101 - ₹1000"
                                 "DEFENCE" -> "₹101 - ₹500"
                                 else -> "₹101 - ₹500"
@@ -4646,7 +4646,7 @@ fun KycApprovedReadyToInvestCard(
 
             // Micro-step hint in gold
             Text(
-                text = "⚡ Start with ₹21/day",
+                text = "⚡ Start with ₹101/day",
                 style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
                 color = goldMicro,
                 textAlign = TextAlign.Center

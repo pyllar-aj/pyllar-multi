@@ -527,7 +527,7 @@ fun SipAmountScreenV3(
                 },
                 actions = {
                     IconButton(onClick = {
-                        val shareText = "Gold, Silver & much more starting at ₹21! ✨\n\nSmall daily steps ➡️ Big rewards. Join me and build a consistent saving habit for your goals with Pyllar.\n\nStart today: https://pyllar.in/download.html"
+                        val shareText = "Gold, Silver & much more starting at ₹101! ✨\n\nSmall daily steps ➡️ Big rewards. Join me and build a consistent saving habit for your goals with Pyllar.\n\nStart today: https://pyllar.in/download.html"
                         platformActions.shareText(shareText)
                     }) {
                         Icon(Icons.Default.Share, contentDescription = stringResource(Res.string.content_description_share_icon), tint = MaterialTheme.colorScheme.primary)
