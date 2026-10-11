@@ -21,7 +21,9 @@ data class InvestmentDashboardV2State(
     val referralEnabled: Boolean = false,
     val showSurvey: Boolean = false,
     val isLoading: Boolean = true,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val goldPrice: Double? = null,
+    val silverPrice: Double? = null
 )
 
 data class InvestmentGoal(

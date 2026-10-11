@@ -22,7 +22,11 @@ data class InvestorDashboardResponseV2Dto(
     @SerialName("uiFlags")
     val uiFlags: Map<String, kotlinx.serialization.json.JsonElement>? = null,
     @SerialName("show_survey")
-    val showSurvey: Boolean? = false
+    val showSurvey: Boolean? = false,
+    @SerialName("goldPrice")
+    val goldPrice: Double? = null,
+    @SerialName("silverPrice")
+    val silverPrice: Double? = null
 )
 
 @Serializable

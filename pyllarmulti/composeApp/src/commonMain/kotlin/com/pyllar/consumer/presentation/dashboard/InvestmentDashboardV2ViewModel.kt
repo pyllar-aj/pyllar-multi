@@ -274,7 +274,9 @@ class InvestmentDashboardV2ViewModel(
             userName = response.userName ?: "",
             referralEnabled = response.referralEnabled ?: false,
             showSurvey = response.showSurvey ?: false,
-            isLoading = false
+            isLoading = false,
+            goldPrice = response.goldPrice,
+            silverPrice = response.silverPrice
         )
     }
 

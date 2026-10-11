@@ -146,6 +146,8 @@ fun InvestmentDashboardV2Screen(
     var isSelectingGoal by remember { mutableStateOf(false) }
     var showMenu by remember { mutableStateOf(false) }
     var showKycPendingBottomSheet by remember { mutableStateOf(false) }
+    var showGoldPriceInfoDialog by remember { mutableStateOf(false) }
+    var showSilverPriceInfoDialog by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     val scrollOffsetPx = with(androidx.compose.ui.platform.LocalDensity.current) { 100.dp.roundToPx() }
@@ -423,7 +425,6 @@ fun InvestmentDashboardV2Screen(
                             val banners = buildList {
                                 add("GOLD_CARD")
                                 add("SILVER_CARD")
-//                                add("TOTAL_VALUE")
                                 if (isFirstTimeSipPending) {
                                     add("SIP_SUCCESS")
                                 }
@@ -505,6 +506,7 @@ fun InvestmentDashboardV2Screen(
                                         Box(
                                             modifier = Modifier
                                                 .fillMaxSize()
+                                                .border(1.dp, Color(0xFFF0EEE9), RoundedCornerShape(16.dp))
                                                 .padding(20.dp)
                                         ) {
                                             Column(
@@ -623,17 +625,33 @@ fun InvestmentDashboardV2Screen(
                                     }
                                 } else if (bannerType == "GOLD_CARD") {
                                     val goldUnits = goldGoal?.unitsInGm
-                                    val goldValue = goldGoal?.currentValue ?: 0.0
-                                    val unitsText = if (goldUnits != null && goldUnits > 0) {
-                                        formatWeight(
-                                            value = goldUnits,
-                                            mgSuffix = stringResource(Res.string.mg_label),
-                                            gSuffix = stringResource(Res.string.g_label)
-                                        )
+                                    val formattedGoldUnits = if (goldUnits != null && goldUnits > 0) {
+                                        val formattedGm = if (goldUnits % 1.0 == 0.0) {
+                                            goldUnits.toLong().toString()
+                                        } else {
+                                            val factor = 100.0
+                                            val rounded = (kotlin.math.round(goldUnits * factor) / factor)
+                                            rounded.toString().trimEnd('0').trimEnd('.')
+                                        }
+                                        "$formattedGm g"
                                     } else {
                                         "0 g"
                                     }
-                                    val formattedPrice = "₹${formatIndian(goldValue)}"
+                                    val goldPriceText = if (dashboardState.goldPrice != null && dashboardState.goldPrice!! > 0) {
+                                        val price = dashboardState.goldPrice!!
+                                        val rounded = (kotlin.math.round(price * 100.0) / 100.0)
+                                        val integerPart = rounded.toLong()
+                                        val fracPart = kotlin.math.round((rounded - integerPart) * 100.0).toLong()
+                                        val formattedInteger = formatIndian(integerPart.toDouble())
+                                        val formatted = when {
+                                            fracPart == 0L -> formattedInteger
+                                            fracPart % 10L == 0L -> "$formattedInteger.${fracPart / 10}"
+                                            else -> "$formattedInteger.${fracPart.toString().padStart(2, '0')}"
+                                        }
+                                        "₹$formatted"
+                                    } else {
+                                        "₹--"
+                                    }
 
                                     val goldBannerShape = RoundedCornerShape(16.dp)
                                     Box(
@@ -671,99 +689,149 @@ fun InvestmentDashboardV2Screen(
                                                 }
                                             }
                                             .border(1.dp, goldStrokeColor, goldBannerShape)
-                                            .padding(horizontal = 20.dp, vertical = 16.dp)
+                                            .padding(horizontal = 20.dp, vertical = 20.dp)
                                     ) {
-                                        Row(
+                                        Column(
                                             modifier = Modifier.fillMaxSize(),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                            verticalArrangement = Arrangement.Center
                                         ) {
-                                            Surface(
-                                                color = Color.White.copy(alpha = 0.35f),
-                                                shape = CircleShape,
-                                                modifier = Modifier.size(72.dp)
+                                            // Top header row: gold bar icon + "GOLD PRICE TODAY" + info icon
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                                             ) {
+                                                Image(
+                                                    painter = painterResource(Res.drawable.goldbar_icon),
+                                                    contentDescription = "Gold",
+                                                    modifier = Modifier.size(20.dp),
+                                                    contentScale = ContentScale.Fit
+                                                )
+                                                Text(
+                                                    text = "GOLD PRICE TODAY",
+                                                    style = MaterialTheme.typography.labelSmall.copy(
+                                                        fontWeight = FontWeight.Bold,
+                                                        letterSpacing = 1.2.sp
+                                                    ),
+                                                    color = Color(0xFF6A4C00)
+                                                )
                                                 Box(
-                                                    contentAlignment = Alignment.Center,
-                                                    modifier = Modifier.fillMaxSize()
+                                                    modifier = Modifier
+                                                        .size(20.dp)
+                                                        .clickable { showGoldPriceInfoDialog = true },
+                                                    contentAlignment = Alignment.Center
                                                 ) {
-                                                    Image(
-                                                        painter = painterResource(Res.drawable.goldbar_icon),
-                                                        contentDescription = "Gold",
-                                                        modifier = Modifier.size(50.dp),
-                                                        contentScale = ContentScale.Fit
+                                                    Icon(
+                                                        imageVector = Icons.Filled.Info,
+                                                        contentDescription = "Gold Price Info",
+                                                        modifier = Modifier.size(14.dp),
+                                                        tint = Color(0xFF6A4C00).copy(alpha = 0.85f)
                                                     )
                                                 }
                                             }
 
-                                            Column(
-                                                verticalArrangement = Arrangement.Center,
-                                                modifier = Modifier.weight(1f).fillMaxHeight()
+                                            Spacer(modifier = Modifier.height(22.dp))
+
+                                            // Two-column layout: 22K PRICE on left, YOUR GOLD on right
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                verticalAlignment = Alignment.Top
                                             ) {
-                                                Text(
-                                                    text = "GOLD HOLDINGS",
-                                                    style = MaterialTheme.typography.labelSmall.copy(
-                                                        fontWeight = FontWeight.Bold,
-                                                        letterSpacing = 1.sp
-                                                    ),
-                                                    color = Color(0xFF6A4C00)
-                                                )
-                                                Spacer(modifier = Modifier.height(4.dp))
-                                                Text(
-                                                    text = unitsText,
-                                                    style = MaterialTheme.typography.titleLarge.copy(
-                                                        fontWeight = FontWeight.Bold,
-                                                        color = Color(0xFF4A3600),
-                                                        fontSize = 24.sp
-                                                    )
-                                                )
-                                                Spacer(modifier = Modifier.height(6.dp))
-                                                Text(
-                                                    text = "Today's Value: $formattedPrice",
-                                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                                        fontWeight = FontWeight.SemiBold,
-                                                        color = Color(0xFF5A4000),
-                                                        fontSize = 14.sp
-                                                    )
-                                                )
-                                                Spacer(modifier = Modifier.height(10.dp))
-                                                Surface(
-                                                    shape = RoundedCornerShape(50),
-                                                    color = Color(0xFF4A3600),
-                                                    shadowElevation = 2.dp,
-                                                    modifier = Modifier.clickable { onGoldClick() }
+                                                // Left column: 22K Price, amount, per gram
+                                                Column(
+                                                    modifier = Modifier.weight(1.2f),
+                                                    verticalArrangement = Arrangement.spacedBy(5.dp)
                                                 ) {
-                                                    Row(
-                                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
-                                                        verticalAlignment = Alignment.CenterVertically,
-                                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                                    ) {
-                                                        Text(
-                                                            text = "+ Add Gold",
-                                                            style = MaterialTheme.typography.bodySmall.copy(
-                                                                fontWeight = FontWeight.Bold,
-                                                                fontSize = 12.sp
-                                                            ),
-                                                            color = Color(0xFFFFF9E6)
-                                                        )
-                                                    }
+                                                    Text(
+                                                        text = "22K PRICE",
+                                                        style = MaterialTheme.typography.labelSmall.copy(
+                                                            fontWeight = FontWeight.Bold,
+                                                            letterSpacing = 1.sp
+                                                        ),
+                                                        color = Color(0xFF6A4C00)
+                                                    )
+                                                    Spacer(modifier = Modifier.height(5.dp))
+                                                    Text(
+                                                        text = goldPriceText,
+                                                        style = MaterialTheme.typography.headlineMedium.copy(
+                                                            fontWeight = FontWeight.Bold,
+                                                            fontSize = 24.sp
+                                                        ),
+                                                        color = Color(0xFF261C02)
+                                                    )
+                                                    Text(
+                                                        text = "per gram",
+                                                        style = MaterialTheme.typography.bodySmall.copy(
+                                                            fontWeight = FontWeight.Medium,
+                                                            fontSize = 13.sp
+                                                        ),
+                                                        color = Color(0xFF6A4C00)
+                                                    )
+                                                }
+
+                                                // Vertical divider
+                                                Box(
+                                                    modifier = Modifier
+                                                        .padding(horizontal = 16.dp, vertical = 2.dp)
+                                                        .width(1.dp)
+                                                        .height(64.dp)
+                                                        .background(Color(0xFF6A4C00).copy(alpha = 0.25f))
+                                                )
+
+                                                // Right column: YOUR GOLD, gold units (no worth/amount)
+                                                Column(
+                                                    modifier = Modifier.weight(1f),
+                                                    verticalArrangement = Arrangement.spacedBy(5.dp)
+                                                ) {
+                                                    Text(
+                                                        text = "YOUR GOLD",
+                                                        style = MaterialTheme.typography.labelSmall.copy(
+                                                            fontWeight = FontWeight.Bold,
+                                                            letterSpacing = 1.sp
+                                                        ),
+                                                        color = Color(0xFF6A4C00)
+                                                    )
+                                                    Spacer(modifier = Modifier.height(5.dp))
+                                                    Text(
+                                                        text = formattedGoldUnits,
+                                                        style = MaterialTheme.typography.headlineMedium.copy(
+                                                            fontWeight = FontWeight.Bold,
+                                                            fontSize = 24.sp
+                                                        ),
+                                                        color = Color(0xFF261C02)
+                                                    )
                                                 }
                                             }
                                         }
                                     }
                                 } else if (bannerType == "SILVER_CARD") {
                                     val silverUnits = silverGoal?.unitsInGm
-                                    val silverValue = silverGoal?.currentValue ?: 0.0
-                                    val unitsText = if (silverUnits != null && silverUnits > 0) {
-                                        formatWeight(
-                                            value = silverUnits,
-                                            mgSuffix = stringResource(Res.string.mg_label),
-                                            gSuffix = stringResource(Res.string.g_label)
-                                        )
+                                    val formattedSilverUnits = if (silverUnits != null && silverUnits > 0) {
+                                        val formattedGm = if (silverUnits % 1.0 == 0.0) {
+                                            silverUnits.toLong().toString()
+                                        } else {
+                                            val factor = 100.0
+                                            val rounded = (kotlin.math.round(silverUnits * factor) / factor)
+                                            rounded.toString().trimEnd('0').trimEnd('.')
+                                        }
+                                        "$formattedGm g"
                                     } else {
                                         "0 g"
                                     }
-                                    val formattedPrice = "₹${formatIndian(silverValue)}"
+                                    val silverPriceText = if (dashboardState.silverPrice != null && dashboardState.silverPrice!! > 0) {
+                                        val price = dashboardState.silverPrice!!
+                                        val rounded = (kotlin.math.round(price * 100.0) / 100.0)
+                                        val integerPart = rounded.toLong()
+                                        val fracPart = kotlin.math.round((rounded - integerPart) * 100.0).toLong()
+                                        val formattedInteger = formatIndian(integerPart.toDouble())
+                                        val formatted = when {
+                                            fracPart == 0L -> formattedInteger
+                                            fracPart % 10L == 0L -> "$formattedInteger.${fracPart / 10}"
+                                            else -> "$formattedInteger.${fracPart.toString().padStart(2, '0')}"
+                                        }
+                                        "₹$formatted"
+                                    } else {
+                                        "₹--"
+                                    }
 
                                     val silverBannerShape = RoundedCornerShape(16.dp)
                                     Box(
@@ -801,82 +869,116 @@ fun InvestmentDashboardV2Screen(
                                                 }
                                             }
                                             .border(1.dp, silverStrokeColor, silverBannerShape)
-                                            .padding(horizontal = 20.dp, vertical = 16.dp)
+                                            .padding(horizontal = 20.dp, vertical = 20.dp)
                                     ) {
-                                        Row(
+                                        Column(
                                             modifier = Modifier.fillMaxSize(),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                            verticalArrangement = Arrangement.Center
                                         ) {
-                                            Surface(
-                                                color = Color.White.copy(alpha = 0.4f),
-                                                shape = CircleShape,
-                                                modifier = Modifier.size(72.dp)
+                                            // Top header row: silver icon + "SILVER PRICE TODAY" + info icon
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                                             ) {
+                                                Image(
+                                                    painter = painterResource(Res.drawable.silver_icon),
+                                                    contentDescription = "Silver",
+                                                    modifier = Modifier.size(20.dp),
+                                                    contentScale = ContentScale.Fit
+                                                )
+                                                Text(
+                                                    text = "SILVER PRICE TODAY",
+                                                    style = MaterialTheme.typography.labelSmall.copy(
+                                                        fontWeight = FontWeight.Bold,
+                                                        letterSpacing = 1.2.sp
+                                                    ),
+                                                    color = Color(0xFF505A61)
+                                                )
                                                 Box(
-                                                    contentAlignment = Alignment.Center,
-                                                    modifier = Modifier.fillMaxSize()
+                                                    modifier = Modifier
+                                                        .size(20.dp)
+                                                        .clickable { showSilverPriceInfoDialog = true },
+                                                    contentAlignment = Alignment.Center
                                                 ) {
-                                                    Image(
-                                                        painter = painterResource(Res.drawable.silver_icon),
-                                                        contentDescription = "Silver",
-                                                        modifier = Modifier.size(50.dp),
-                                                        contentScale = ContentScale.Fit
+                                                    Icon(
+                                                        imageVector = Icons.Filled.Info,
+                                                        contentDescription = "Silver Price Info",
+                                                        modifier = Modifier.size(14.dp),
+                                                        tint = Color(0xFF505A61).copy(alpha = 0.85f)
                                                     )
                                                 }
                                             }
 
-                                            Column(
-                                                verticalArrangement = Arrangement.Center,
-                                                modifier = Modifier.weight(1f).fillMaxHeight()
+                                            Spacer(modifier = Modifier.height(22.dp))
+
+                                            // Two-column layout: 999 PRICE on left, YOUR SILVER on right
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                verticalAlignment = Alignment.Top
                                             ) {
-                                                Text(
-                                                    text = "SILVER HOLDINGS",
-                                                    style = MaterialTheme.typography.labelSmall.copy(
-                                                        fontWeight = FontWeight.Bold,
-                                                        letterSpacing = 1.sp
-                                                    ),
-                                                    color = Color(0xFF505A61)
-                                                )
-                                                Spacer(modifier = Modifier.height(4.dp))
-                                                Text(
-                                                    text = unitsText,
-                                                    style = MaterialTheme.typography.titleLarge.copy(
-                                                        fontWeight = FontWeight.Bold,
-                                                        color = Color(0xFF2E383E),
-                                                        fontSize = 24.sp
-                                                    )
-                                                )
-                                                Spacer(modifier = Modifier.height(6.dp))
-                                                Text(
-                                                    text = "Today's Value: $formattedPrice",
-                                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                                        fontWeight = FontWeight.SemiBold,
-                                                        color = Color(0xFF3E484E),
-                                                        fontSize = 14.sp
-                                                    )
-                                                )
-                                                Spacer(modifier = Modifier.height(10.dp))
-                                                Surface(
-                                                    shape = RoundedCornerShape(50),
-                                                    color = Color(0xFF2E383E),
-                                                    shadowElevation = 2.dp,
-                                                    modifier = Modifier.clickable { onSilverClick() }
+                                                // Left column: 999 Price, amount, per gram
+                                                Column(
+                                                    modifier = Modifier.weight(1.2f),
+                                                    verticalArrangement = Arrangement.spacedBy(5.dp)
                                                 ) {
-                                                    Row(
-                                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
-                                                        verticalAlignment = Alignment.CenterVertically,
-                                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                                    ) {
-                                                        Text(
-                                                            text = "+ Add Silver",
-                                                            style = MaterialTheme.typography.bodySmall.copy(
-                                                                fontWeight = FontWeight.Bold,
-                                                                fontSize = 12.sp
-                                                            ),
-                                                            color = Color.White
-                                                        )
-                                                    }
+                                                    Text(
+                                                        text = "999 PRICE",
+                                                        style = MaterialTheme.typography.labelSmall.copy(
+                                                            fontWeight = FontWeight.Bold,
+                                                            letterSpacing = 1.sp
+                                                        ),
+                                                        color = Color(0xFF505A61)
+                                                    )
+                                                    Spacer(modifier = Modifier.height(5.dp))
+                                                    Text(
+                                                        text = silverPriceText,
+                                                        style = MaterialTheme.typography.headlineMedium.copy(
+                                                            fontWeight = FontWeight.Bold,
+                                                            fontSize = 24.sp
+                                                        ),
+                                                        color = Color(0xFF2E383E)
+                                                    )
+                                                    Text(
+                                                        text = "per gram",
+                                                        style = MaterialTheme.typography.bodySmall.copy(
+                                                            fontWeight = FontWeight.Medium,
+                                                            fontSize = 13.sp
+                                                        ),
+                                                        color = Color(0xFF505A61)
+                                                    )
+                                                }
+
+                                                // Vertical divider
+                                                Box(
+                                                    modifier = Modifier
+                                                        .padding(horizontal = 16.dp, vertical = 2.dp)
+                                                        .width(1.dp)
+                                                        .height(64.dp)
+                                                        .background(Color(0xFF505A61).copy(alpha = 0.25f))
+                                                )
+
+                                                // Right column: YOUR SILVER, silver units (no worth/amount)
+                                                Column(
+                                                    modifier = Modifier.weight(1f),
+                                                    verticalArrangement = Arrangement.spacedBy(5.dp)
+                                                ) {
+                                                    Text(
+                                                        text = "YOUR SILVER",
+                                                        style = MaterialTheme.typography.labelSmall.copy(
+                                                            fontWeight = FontWeight.Bold,
+                                                            letterSpacing = 1.sp
+                                                        ),
+                                                        color = Color(0xFF505A61)
+                                                    )
+                                                    Spacer(modifier = Modifier.height(5.dp))
+                                                    Text(
+                                                        text = formattedSilverUnits,
+                                                        style = MaterialTheme.typography.headlineMedium.copy(
+                                                            fontWeight = FontWeight.Bold,
+                                                            fontSize = 24.sp
+                                                        ),
+                                                        color = Color(0xFF2E383E)
+                                                    )
                                                 }
                                             }
                                         }
@@ -1174,6 +1276,60 @@ fun InvestmentDashboardV2Screen(
                         }
                     }
                 } else null
+            )
+        }
+
+        // Gold Price Info Dialog
+        if (showGoldPriceInfoDialog) {
+            AlertDialog(
+                onDismissRequest = { showGoldPriceInfoDialog = false },
+                title = {
+                    Text(
+                        text = "Gold Price Today",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                text = {
+                    Text(
+                        text = "Indicative 22K gold price for reference only. Actual rates may vary by location and time and may not reflect the current market price.",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = { showGoldPriceInfoDialog = false }
+                    ) {
+                        Text("OK")
+                    }
+                }
+            )
+        }
+
+        // Silver Price Info Dialog
+        if (showSilverPriceInfoDialog) {
+            AlertDialog(
+                onDismissRequest = { showSilverPriceInfoDialog = false },
+                title = {
+                    Text(
+                        text = "Silver Price Today",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                text = {
+                    Text(
+                        text = "Indicative 999 silver price for reference only. Actual rates may vary by location and time and may not reflect the current market price.",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = { showSilverPriceInfoDialog = false }
+                    ) {
+                        Text("OK")
+                    }
+                }
             )
         }
     }
