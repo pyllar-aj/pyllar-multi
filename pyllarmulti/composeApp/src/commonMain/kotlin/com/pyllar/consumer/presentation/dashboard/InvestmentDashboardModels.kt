@@ -1,5 +1,7 @@
 package com.pyllar.consumer.presentation.dashboard
 
+val DEFAULT_DASHBOARD_BANNERS = listOf("gold", "silver", "referral", "milestone")
+
 data class InvestmentDashboardV2State(
     val totalValue: Double = 0.0,
     val profitLoss: Double = 0.0,
@@ -23,7 +25,8 @@ data class InvestmentDashboardV2State(
     val isLoading: Boolean = true,
     val errorMessage: String? = null,
     val goldPrice: Double? = null,
-    val silverPrice: Double? = null
+    val silverPrice: Double? = null,
+    val banners: List<String> = DEFAULT_DASHBOARD_BANNERS
 )
 
 data class InvestmentGoal(

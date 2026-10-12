@@ -15,7 +15,27 @@ import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
 import kotlin.math.roundToLong
 
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
+
+fun parseBannerIds(uiFlags: Map<String, JsonElement>?): List<String> {
+    val raw = uiFlags?.get("banner")?.let {
+        if (it is JsonPrimitive) {
+            it.content
+        } else {
+            it.toString().removeSurrounding("\"")
+        }
+    }?.trim()
+
+    if (raw.isNullOrBlank()) return DEFAULT_DASHBOARD_BANNERS
+
+    val parsed = raw.split(",")
+        .map { it.trim().lowercase() }
+        .filter { it.isNotBlank() }
+        .distinct()
+
+    return if (parsed.isEmpty()) DEFAULT_DASHBOARD_BANNERS else parsed
+}
 
 class InvestmentDashboardV2ViewModel(
     private val dashboardRepository: DashboardRepository
@@ -24,6 +44,9 @@ class InvestmentDashboardV2ViewModel(
     companion object {
         private const val TAG = "InvestmentDashboardV2ViewModel"
         private const val MILLIS_IN_DAY: Long = 24L * 60L * 60L * 1000L
+
+        fun parseBannerIds(uiFlags: Map<String, JsonElement>?): List<String> =
+            com.pyllar.consumer.presentation.dashboard.parseBannerIds(uiFlags)
     }
 
     private val _dashboardState = MutableStateFlow(InvestmentDashboardV2State())
@@ -276,7 +299,8 @@ class InvestmentDashboardV2ViewModel(
             showSurvey = response.showSurvey ?: false,
             isLoading = false,
             goldPrice = response.goldPrice,
-            silverPrice = response.silverPrice
+            silverPrice = response.silverPrice,
+            banners = parseBannerIds(response.uiFlags)
         )
     }
 

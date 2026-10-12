@@ -102,7 +102,11 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.ui.graphics.graphicsLayer
+import kotlin.math.roundToInt
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.material.icons.filled.CheckCircle
@@ -422,19 +426,13 @@ fun InvestmentDashboardV2Screen(
                                     allGoalsZeroValue &&
                                     hasNoFolioAllocated
 
-                            val banners = buildList {
-                                add("GOLD_CARD")
-                                add("SILVER_CARD")
-                                if (isFirstTimeSipPending) {
-                                    add("SIP_SUCCESS")
-                                }
-//                                if (showReferralCard) {
-//                                    add("REFER_A_FRIEND")
-//                                }
-                                if (dashboardState.hasFirstMilestone && dashboardState.milestoneMessage.isNotBlank()) {
-                                    add("MILESTONE")
-                                }
-                            }
+                            val banners = resolveDashboardBanners(
+                                serverBanners = dashboardState.banners,
+                                referralEnabled = dashboardState.referralEnabled,
+                                hasMilestone = dashboardState.hasFirstMilestone,
+                                milestoneMessage = dashboardState.milestoneMessage,
+                                isFirstTimeSipPending = isFirstTimeSipPending
+                            )
                             val pageCount = banners.size.coerceAtMost(6)
                             val pagerState = key(pageCount) { rememberPagerState(initialPage = 0) { pageCount } }
 
@@ -1068,6 +1066,13 @@ fun InvestmentDashboardV2Screen(
                                     ) {
                                         MilestoneBanner(message = dashboardState.milestoneMessage, isLoading = false)
                                     }
+                                } else if (bannerType == "REFER_A_FRIEND") {
+                                    ReferralBanner(
+                                        onReferralClick = {
+                                            PlatformAnalyticsLogger.logEvent("referral_card_tapped")
+                                            onNavigateToReferral()
+                                        }
+                                    )
                                 }
                             }
                             RewardBannerPagerIndicator(pagerState = pagerState, pageCount = pageCount)
@@ -1199,19 +1204,19 @@ fun InvestmentDashboardV2Screen(
                     }
                 }
 
-                if (!dashboardState.isLoading && dashboardState.referralEnabled) {
-                    item {
-                        Box(modifier = Modifier.padding(horizontal = 16.dp)) {
-                            ReferAndEarnCard(
-                                coinsBalance = 100,
-                                onClick = {
-                                    PlatformAnalyticsLogger.logEvent("referral_card_tapped")
-                                    onNavigateToReferral()
-                                }
-                            )
-                        }
-                    }
-                }
+//                if (!dashboardState.isLoading && dashboardState.referralEnabled) {
+//                    item {
+//                        Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+//                            ReferAndEarnCard(
+//                                coinsBalance = 100,
+//                                onClick = {
+//                                    PlatformAnalyticsLogger.logEvent("referral_card_tapped")
+//                                    onNavigateToReferral()
+//                                }
+//                            )
+//                        }
+//                    }
+//                }
 
                 item {
                     Box(modifier = Modifier.padding(horizontal = 16.dp)) {
@@ -5547,5 +5552,282 @@ fun SurveyOptionItem(
     }
 }
 
+fun resolveDashboardBanners(
+    serverBanners: List<String>,
+    referralEnabled: Boolean,
+    hasMilestone: Boolean,
+    milestoneMessage: String,
+    isFirstTimeSipPending: Boolean
+): List<String> = buildList {
+    if (isFirstTimeSipPending) {
+        add("SIP_SUCCESS")
+    }
+    serverBanners.forEach { bannerId ->
+        when (bannerId) {
+            "gold" -> add("GOLD_CARD")
+            "silver" -> add("SILVER_CARD")
+            "referral" -> {
+                if (referralEnabled) {
+                    add("REFER_A_FRIEND")
+                }
+            }
+            "milestone" -> {
+                if (hasMilestone && milestoneMessage.isNotBlank()) {
+                    add("MILESTONE")
+                }
+            }
+//            "total" -> add("TOTAL_VALUE")
+        }
+    }
+//    if (!contains("TOTAL_VALUE")) {
+//        add("TOTAL_VALUE")
+//    }
+}
 
+@Composable
+fun ReferralBanner(
+    onReferralClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "referralBannerAnimation")
 
+    // rbFloat: floating animation for gold coins (translateY 0 -> -8dp -> 0, rotate -4deg -> 2deg -> -4deg)
+    val floatTranslationY by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = -8f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 2000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "floatTranslationY"
+    )
+    val floatRotation by infiniteTransition.animateFloat(
+        initialValue = -4f,
+        targetValue = 2f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 2000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "floatRotation"
+    )
+
+    // Live counter animation: counts up from 0 to 10,000, holds, then restarts
+    val counterProgress by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = keyframes {
+                durationMillis = 3500
+                0f at 0 with FastOutSlowInEasing
+                1f at 1600 with LinearEasing
+                1f at 3500
+            },
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "counterProgress"
+    )
+    val currentAmount = (counterProgress * 100).roundToInt() * 100
+    val formattedCount = "₹" + formatIndian(currentAmount.toDouble())
+
+    // rbFill: progress bar fill animation (0% -> 100% over 70% of 3.5s, then hold)
+    val fillProgress by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = keyframes {
+                durationMillis = 3500
+                0f at 0 with FastOutSlowInEasing
+                1f at 2450 with LinearEasing
+                1f at 3500
+            },
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "fillProgress"
+    )
+
+    // rbShine: shimmer sweep across CTA pill button
+    val shineProgress by infiniteTransition.animateFloat(
+        initialValue = -1.4f,
+        targetValue = 3.2f,
+        animationSpec = infiniteRepeatable(
+            animation = keyframes {
+                durationMillis = 2800
+                -1.4f at 0 with LinearEasing
+                3.2f at 1540 with LinearEasing
+                3.2f at 2800
+            },
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "shineProgress"
+    )
+
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(210.dp)
+            .clickable { onReferralClick() },
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(1.dp, Color(0x738B6B25)), // rgba(139,107,37,.45)
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFDF6)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(RoundedCornerShape(15.dp))
+                .background(
+                    Brush.linearGradient(
+                        colorStops = arrayOf(
+                            0.0f to Color(0xFFFFFDF6),
+                            0.6f to Color(0xFFF6EDD3),
+                            1.0f to Color(0xFFEFDFAE)
+                        ),
+                        start = Offset.Zero,
+                        end = Offset.Infinite
+                    )
+                )
+        ) {
+            // Floating Gold Coins in top-right
+            Image(
+                painter = painterResource(Res.drawable.gold_icon),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(96.dp)
+                    .align(Alignment.TopEnd)
+                    .offset(x = 8.dp, y = 8.dp)
+                    .graphicsLayer {
+                        translationY = floatTranslationY.dp.toPx()
+                        rotationZ = floatRotation
+                    },
+                contentScale = ContentScale.Fit
+            )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 20.dp, vertical = 18.dp),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                // Top Tag: REFER & EARN
+                Text(
+                    text = stringResource(Res.string.referral_banner_tag),
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp,
+                        color = Color(0xFF8B6B25)
+                    )
+                )
+
+                // Middle Content: Earn up to / ₹10,000 / Subtitle
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(0.dp)
+                ) {
+                    Text(
+                        text = stringResource(Res.string.referral_banner_earn_up_to),
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF3E2723)
+                        )
+                    )
+                    Text(
+                        text = formattedCount,
+                        fontFamily = getCursiveFontFamily(),
+                        fontSize = 58.sp,
+                        lineHeight = 60.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF8B6B25),
+                        letterSpacing = (-1).sp
+                    )
+                    Text(
+                        text = stringResource(Res.string.referral_banner_subtitle),
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF11381E)
+                        ),
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
+
+                // Bottom Content: Progress Bar + Limit & CTA
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    // Meter Track & Fill
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(6.dp)
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(Color(0xFF8B6B25).copy(alpha = 0.2f))
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .fillMaxWidth(fraction = fillProgress.coerceIn(0f, 1f))
+                                .clip(RoundedCornerShape(3.dp))
+                                .background(
+                                    Brush.horizontalGradient(
+                                        colors = listOf(Color(0xFF8B6B25), Color(0xFFFFD700))
+                                    )
+                                )
+                        )
+                    }
+
+                    // Bottom Row: No limit on invites & Invite friends CTA
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = stringResource(Res.string.referral_banner_no_limit),
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontSize = 12.sp,
+                                color = Color(0xFF3E2723)
+                            )
+                        )
+
+                        // Invite friends CTA pill with shimmer shine
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(9999.dp))
+                                .background(Color(0xFF0A2415))
+                                .border(1.dp, Color(0xFFD4AF37), RoundedCornerShape(9999.dp))
+                                .padding(horizontal = 14.dp, vertical = 9.dp)
+                        ) {
+                            Text(
+                                text = stringResource(Res.string.referral_banner_cta),
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFFFFD700)
+                                )
+                            )
+
+                            // Animated shine bar
+                            Box(
+                                modifier = Modifier
+                                    .matchParentSize()
+                                    .graphicsLayer {
+                                        translationX = size.width * shineProgress
+                                    }
+                                    .background(
+                                        Brush.horizontalGradient(
+                                            colors = listOf(
+                                                Color.Transparent,
+                                                Color(0xFFFFD700).copy(alpha = 0.35f),
+                                                Color.Transparent
+                                            )
+                                        )
+                                    )
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

@@ -903,5 +903,14 @@
     <string name="mandate_status_cancelled">Daily Saving couldn\'t be enabled</string>
     <string name="mandate_status_cancelled_monthly">Monthly Saving couldn\'t be enabled</string>
     <string name="explore_more_goals">EXPLORE MORE</string>
+
+    <!-- Referral Banner Strings -->
+    <string name="referral_banner_title">Refer a friend, both\nget ₹100</string>
+    <string name="referral_banner_desc">They invest, you both earn.\nCredited once their first SIP\ngoes through.</string>
+    <string name="referral_banner_tag">REFER &amp; EARN</string>
+    <string name="referral_banner_earn_up_to">Earn up to</string>
+    <string name="referral_banner_subtitle">every month, when friends start a daily SIP</string>
+    <string name="referral_banner_no_limit">No limit on invites</string>
+    <string name="referral_banner_cta">Invite friends →</string>
 </resources>
 
