@@ -707,7 +707,7 @@ fun InvestmentDashboardV2Screen(
                                                     contentScale = ContentScale.Fit
                                                 )
                                                 Text(
-                                                    text = "GOLD PRICE TODAY",
+                                                    text = "GOLD PRICE",
                                                     style = MaterialTheme.typography.labelSmall.copy(
                                                         fontWeight = FontWeight.Bold,
                                                         letterSpacing = 1.2.sp
@@ -742,7 +742,7 @@ fun InvestmentDashboardV2Screen(
                                                     verticalArrangement = Arrangement.spacedBy(5.dp)
                                                 ) {
                                                     Text(
-                                                        text = "22K PRICE",
+                                                        text = "22K GOLD",
                                                         style = MaterialTheme.typography.labelSmall.copy(
                                                             fontWeight = FontWeight.Bold,
                                                             letterSpacing = 1.sp
@@ -887,7 +887,7 @@ fun InvestmentDashboardV2Screen(
                                                     contentScale = ContentScale.Fit
                                                 )
                                                 Text(
-                                                    text = "SILVER PRICE TODAY",
+                                                    text = "SILVER PRICE",
                                                     style = MaterialTheme.typography.labelSmall.copy(
                                                         fontWeight = FontWeight.Bold,
                                                         letterSpacing = 1.2.sp
@@ -922,7 +922,7 @@ fun InvestmentDashboardV2Screen(
                                                     verticalArrangement = Arrangement.spacedBy(5.dp)
                                                 ) {
                                                     Text(
-                                                        text = "999 PRICE",
+                                                        text = "999 SILVER",
                                                         style = MaterialTheme.typography.labelSmall.copy(
                                                             fontWeight = FontWeight.Bold,
                                                             letterSpacing = 1.sp
