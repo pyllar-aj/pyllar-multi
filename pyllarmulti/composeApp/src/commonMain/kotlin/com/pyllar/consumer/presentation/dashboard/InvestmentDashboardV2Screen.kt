@@ -5566,11 +5566,7 @@ fun resolveDashboardBanners(
         when (bannerId) {
             "gold" -> add("GOLD_CARD")
             "silver" -> add("SILVER_CARD")
-            "referral" -> {
-                if (referralEnabled) {
-                    add("REFER_A_FRIEND")
-                }
-            }
+            "referral" -> add("REFER_A_FRIEND")
             "milestone" -> {
                 if (hasMilestone && milestoneMessage.isNotBlank()) {
                     add("MILESTONE")
