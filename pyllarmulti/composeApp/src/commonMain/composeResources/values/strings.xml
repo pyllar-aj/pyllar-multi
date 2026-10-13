@@ -177,8 +177,8 @@
     <string name="referral_step2_detailed_desc">They install Pyllar using your link, complete setup, and start any daily SIP.</string>
     <string name="referral_step3_detailed_title">They earn the 7-day streak badge</string>
     <string name="referral_step3_detailed_desc">Your friend needs to maintain a 7-day investment streak to earn the badge. If they pause, cancel, or miss an investment, the streak resets and starts over.</string>
-    <string name="referral_step4_detailed_title">You both earn rewards</string>
-    <string name="referral_step4_detailed_desc">Once your friend earns the 7-day streak badge, both of you receive ₹100 worth of coins. 100 coins = ₹100. Coins never expire.</string>
+    <string name="referral_step4_detailed_title">You earn rewards</string>
+    <string name="referral_step4_detailed_desc">Once your friend earns the 7-day streak badge, you receive ₹100 worth of coins. 100 coins = ₹100. Coins never expire.</string>
 
     <string name="referral_key_terms_title">Key terms</string>
     <string name="referral_term_reward">Reward</string>
@@ -239,13 +239,13 @@
     <string name="referral_faq_collapse_desc">Collapse</string>
     <string name="referral_faq_expand_desc">Expand</string>
     <string name="referral_faq_q1">How do referrals work?</string>
-    <string name="referral_faq_a1">Share your referral link with friends. When they install Pyllar, complete setup, start a daily SIP, and earn the 7-day streak badge, both of you receive 100 coins.</string>
+    <string name="referral_faq_a1">Share your referral link with friends. When they install Pyllar, complete setup, start a daily SIP, and earn the 7-day streak badge, you receive 100 coins.</string>
     <string name="referral_faq_q2">Does my friend need to enter a referral code?</string>
     <string name="referral_faq_a2">No. Your referral code is automatically attached to the shared link, so your friend just needs to install the app using your link.</string>
     <string name="referral_faq_q3">What is the 7-day streak badge?</string>
     <string name="referral_faq_a3">Your friend earns the 7-day streak badge after completing investments for 7 days in a row. If they pause, cancel, or miss an investment, the streak resets and starts over.</string>
-    <string name="referral_faq_q4">When do we receive our referral rewards?</string>
-    <string name="referral_faq_a4">Both you and your friend receive 100 coins once your friend earns the 7-day streak badge.</string>
+    <string name="referral_faq_q4">When do I receive my referral reward?</string>
+    <string name="referral_faq_a4">You receive 100 coins once your friend earns the 7-day streak badge.</string>
     <string name="referral_faq_q5">How do I use or withdraw my coins?</string>
     <string name="referral_faq_a5">Coins are added to your Pyllar wallet. 100 coins = ₹100, and they can be redeemed according to wallet redemption rules.</string>
     <string name="referral_faq_q6">Is there a limit to how many friends I can invite?</string>
@@ -392,18 +392,16 @@
     <string name="referral_step3_detailed_title_multi_day">They earn the %1$d-day streak badge</string>
     <string name="referral_step3_detailed_desc_one_day">Your friend needs to complete their first successful investment in any daily SIP.</string>
     <string name="referral_step3_detailed_desc_multi_day">Your friend needs to maintain a %1$d-day investment streak to earn the badge. If they pause, cancel, or miss an investment, the streak resets and starts over.</string>
-    <string name="referral_step4_detailed_desc_one_day">Once your friend completes their first save, both of you receive ₹100 worth of coins. 100 coins = ₹100. Coins never expire.</string>
-    <string name="referral_step4_detailed_desc_multi_day">Once your friend earns the %1$d-day streak badge, both of you receive ₹100 worth of coins. 100 coins = ₹100. Coins never expire.</string>
+    <string name="referral_step4_detailed_desc_one_day">Once your friend completes their first save, you receive ₹100 worth of coins. 100 coins = ₹100. Coins never expire.</string>
+    <string name="referral_step4_detailed_desc_multi_day">Once your friend earns the %1$d-day streak badge, you receive ₹100 worth of coins. 100 coins = ₹100. Coins never expire.</string>
     <string name="referral_qualifying_action_one_day">First save</string>
     <string name="referral_qualifying_action_multi_day">%1$d-day streak</string>
-    <string name="referral_faq_a1_one_day">Share your referral link with friends. When they install Pyllar, complete setup, and start their first daily SIP, both of you receive 100 coins.</string>
-    <string name="referral_faq_a1_multi_day">Share your referral link with friends. When they install Pyllar, complete setup, start a daily SIP, and earn the %1$d-day streak badge, both of you receive 100 coins.</string>
-    <string name="referral_faq_q3_one_day">When is the referral reward credited?</string>
+    <string name="referral_faq_a1_one_day">Share your referral link with friends. When they install Pyllar, complete setup, and start their first daily SIP, you receive 100 coins.</string>
+    <string name="referral_faq_a1_multi_day">Share your referral link with friends. When they install Pyllar, complete setup, start a daily SIP, and earn the %1$d-day streak badge, you receive 100 coins.</string>
     <string name="referral_faq_q3_multi_day">What is the %1$d-day streak badge?</string>
-    <string name="referral_faq_a3_one_day">Both you and your friend receive 100 coins once your friend completes their first successful investment.</string>
     <string name="referral_faq_a3_multi_day">Your friend earns the streak badge after completing investments for %1$d days in a row. If they pause, cancel, or miss an investment, the streak resets and starts over.</string>
-    <string name="referral_faq_a4_one_day">Both you and your friend receive 100 coins once your friend completes their first successful investment.</string>
-    <string name="referral_faq_a4_multi_day">Both you and your friend receive 100 coins once your friend earns the %1$d-day streak badge.</string>
+    <string name="referral_faq_a4_one_day">You receive 100 coins once your friend completes their first successful investment.</string>
+    <string name="referral_faq_a4_multi_day">You receive 100 coins once your friend earns the %1$d-day streak badge.</string>
     <string name="start_nav">Start NAV</string>
     <string name="current_nav">Current NAV</string>
     <string name="monthly_income">Monthly Income (₹)</string>
@@ -905,8 +903,8 @@
     <string name="explore_more_goals">EXPLORE MORE</string>
 
     <!-- Referral Banner Strings -->
-    <string name="referral_banner_title">Refer a friend, both\nget ₹100</string>
-    <string name="referral_banner_desc">They invest, you both earn.\nCredited once their first SIP\ngoes through.</string>
+    <string name="referral_banner_title">Refer a friend,\nearn ₹100</string>
+    <string name="referral_banner_desc">They invest, you earn.\nCredited once their first SIP\ngoes through.</string>
     <string name="referral_banner_tag">REFER &amp; EARN</string>
     <string name="referral_banner_earn_up_to">Earn up to</string>
     <string name="referral_banner_subtitle">per month, when friends start a saving habit</string>

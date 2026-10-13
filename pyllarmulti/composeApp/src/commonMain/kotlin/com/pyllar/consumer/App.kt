@@ -1167,13 +1167,13 @@ fun App() {
                     onBackClick = { navigateBack() },
                     onShareClick = {
                         val text = uiState.shareMessage.ifBlank {
-                            "Join me on Pyllar! Use code ${uiState.referralCode} and we both earn rewards on your first investment. ${uiState.shareUrl}"
+                            "Join me on Pyllar! Use code ${uiState.referralCode} to start your daily savings. ${uiState.shareUrl}"
                         }
                         platformActions.shareText(text, "Invite a friend")
                     },
                     onWhatsAppShareClick = {
                         val text = uiState.shareMessage.ifBlank {
-                            "Join me on Pyllar! Use code ${uiState.referralCode} and we both earn rewards on your first investment. ${uiState.shareUrl}"
+                            "Join me on Pyllar! Use code ${uiState.referralCode} to start your daily savings. ${uiState.shareUrl}"
                         }
                         platformActions.openWhatsApp("", text)
                     },

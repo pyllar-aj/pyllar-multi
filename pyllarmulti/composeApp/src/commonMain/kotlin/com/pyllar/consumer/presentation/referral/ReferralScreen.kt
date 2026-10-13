@@ -2027,48 +2027,54 @@ fun ReferralFaqsSection(
     val platformActions: PlatformActions = koinInject()
     var expandedIndex by remember { mutableStateOf<Int?>(null) }
 
-    val faqs = listOf(
-        FaqItem(
-            question = stringResource(Res.string.referral_faq_q1),
-            answer = if (qualifyingDays == 1) {
-                stringResource(Res.string.referral_faq_a1_one_day)
-            } else {
-                stringResource(Res.string.referral_faq_a1_multi_day).replace("%1\$d", qualifyingDays.toString())
-            }
-        ),
-        FaqItem(
-            question = stringResource(Res.string.referral_faq_q2),
-            answer = stringResource(Res.string.referral_faq_a2)
-        ),
-        FaqItem(
-            question = if (qualifyingDays == 1) {
-                stringResource(Res.string.referral_faq_q3_one_day)
-            } else {
-                stringResource(Res.string.referral_faq_q3_multi_day).replace("%1\$d", qualifyingDays.toString())
-            },
-            answer = if (qualifyingDays == 1) {
-                stringResource(Res.string.referral_faq_a3_one_day)
-            } else {
-                stringResource(Res.string.referral_faq_a3_multi_day).replace("%1\$d", qualifyingDays.toString())
-            }
-        ),
-        FaqItem(
-            question = stringResource(Res.string.referral_faq_q4),
-            answer = if (qualifyingDays == 1) {
-                stringResource(Res.string.referral_faq_a4_one_day)
-            } else {
-                stringResource(Res.string.referral_faq_a4_multi_day).replace("%1\$d", qualifyingDays.toString())
-            }
-        ),
-        FaqItem(
-            question = stringResource(Res.string.referral_faq_q5),
-            answer = stringResource(Res.string.referral_faq_a5)
-        ),
-        FaqItem(
-            question = stringResource(Res.string.referral_faq_q6),
-            answer = stringResource(Res.string.referral_faq_a6)
+    val faqs = buildList {
+        add(
+            FaqItem(
+                question = stringResource(Res.string.referral_faq_q1),
+                answer = if (qualifyingDays == 1) {
+                    stringResource(Res.string.referral_faq_a1_one_day)
+                } else {
+                    stringResource(Res.string.referral_faq_a1_multi_day).replace("%1\$d", qualifyingDays.toString())
+                }
+            )
         )
-    )
+        add(
+            FaqItem(
+                question = stringResource(Res.string.referral_faq_q2),
+                answer = stringResource(Res.string.referral_faq_a2)
+            )
+        )
+        if (qualifyingDays > 1) {
+            add(
+                FaqItem(
+                    question = stringResource(Res.string.referral_faq_q3_multi_day).replace("%1\$d", qualifyingDays.toString()),
+                    answer = stringResource(Res.string.referral_faq_a3_multi_day).replace("%1\$d", qualifyingDays.toString())
+                )
+            )
+        }
+        add(
+            FaqItem(
+                question = stringResource(Res.string.referral_faq_q4),
+                answer = if (qualifyingDays == 1) {
+                    stringResource(Res.string.referral_faq_a4_one_day)
+                } else {
+                    stringResource(Res.string.referral_faq_a4_multi_day).replace("%1\$d", qualifyingDays.toString())
+                }
+            )
+        )
+        add(
+            FaqItem(
+                question = stringResource(Res.string.referral_faq_q5),
+                answer = stringResource(Res.string.referral_faq_a5)
+            )
+        )
+        add(
+            FaqItem(
+                question = stringResource(Res.string.referral_faq_q6),
+                answer = stringResource(Res.string.referral_faq_a6)
+            )
+        )
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
