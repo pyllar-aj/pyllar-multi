@@ -698,12 +698,12 @@ fun InvestmentDashboardV2Screen(
                                                 verticalAlignment = Alignment.CenterVertically,
                                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                                             ) {
-                                                Image(
-                                                    painter = painterResource(Res.drawable.goldbar_icon),
-                                                    contentDescription = "Gold",
-                                                    modifier = Modifier.size(20.dp),
-                                                    contentScale = ContentScale.Fit
-                                                )
+//                                                Image(
+//                                                    painter = painterResource(Res.drawable.goldbar_icon),
+//                                                    contentDescription = "Gold",
+//                                                    modifier = Modifier.size(20.dp),
+//                                                    contentScale = ContentScale.Fit
+//                                                )
                                                 Text(
                                                     text = "GOLD PRICE",
                                                     style = MaterialTheme.typography.labelSmall.copy(
@@ -737,6 +737,7 @@ fun InvestmentDashboardV2Screen(
                                                 // Left column: 22K Price, amount, per gram
                                                 Column(
                                                     modifier = Modifier.weight(1.2f),
+                                                    horizontalAlignment = Alignment.CenterHorizontally,
                                                     verticalArrangement = Arrangement.spacedBy(5.dp)
                                                 ) {
                                                     Text(
@@ -745,7 +746,8 @@ fun InvestmentDashboardV2Screen(
                                                             fontWeight = FontWeight.Bold,
                                                             letterSpacing = 1.sp
                                                         ),
-                                                        color = Color(0xFF6A4C00)
+                                                        color = Color(0xFF6A4C00),
+                                                        textAlign = TextAlign.Center
                                                     )
                                                     Spacer(modifier = Modifier.height(5.dp))
                                                     Text(
@@ -754,7 +756,8 @@ fun InvestmentDashboardV2Screen(
                                                             fontWeight = FontWeight.Bold,
                                                             fontSize = 24.sp
                                                         ),
-                                                        color = Color(0xFF261C02)
+                                                        color = Color(0xFF261C02),
+                                                        textAlign = TextAlign.Center
                                                     )
                                                     Text(
                                                         text = "per gram",
@@ -762,7 +765,8 @@ fun InvestmentDashboardV2Screen(
                                                             fontWeight = FontWeight.Medium,
                                                             fontSize = 13.sp
                                                         ),
-                                                        color = Color(0xFF6A4C00)
+                                                        color = Color(0xFF6A4C00),
+                                                        textAlign = TextAlign.Center
                                                     )
                                                 }
 
@@ -778,6 +782,7 @@ fun InvestmentDashboardV2Screen(
                                                 // Right column: YOUR GOLD, gold units (no worth/amount)
                                                 Column(
                                                     modifier = Modifier.weight(1f),
+                                                    horizontalAlignment = Alignment.CenterHorizontally,
                                                     verticalArrangement = Arrangement.spacedBy(5.dp)
                                                 ) {
                                                     Text(
@@ -786,7 +791,8 @@ fun InvestmentDashboardV2Screen(
                                                             fontWeight = FontWeight.Bold,
                                                             letterSpacing = 1.sp
                                                         ),
-                                                        color = Color(0xFF6A4C00)
+                                                        color = Color(0xFF6A4C00),
+                                                        textAlign = TextAlign.Center
                                                     )
                                                     Spacer(modifier = Modifier.height(5.dp))
                                                     Text(
@@ -795,7 +801,8 @@ fun InvestmentDashboardV2Screen(
                                                             fontWeight = FontWeight.Bold,
                                                             fontSize = 24.sp
                                                         ),
-                                                        color = Color(0xFF261C02)
+                                                        color = Color(0xFF261C02),
+                                                        textAlign = TextAlign.Center
                                                     )
                                                 }
                                             }
@@ -878,12 +885,12 @@ fun InvestmentDashboardV2Screen(
                                                 verticalAlignment = Alignment.CenterVertically,
                                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                                             ) {
-                                                Image(
-                                                    painter = painterResource(Res.drawable.silver_icon),
-                                                    contentDescription = "Silver",
-                                                    modifier = Modifier.size(20.dp),
-                                                    contentScale = ContentScale.Fit
-                                                )
+//                                                Image(
+//                                                    painter = painterResource(Res.drawable.silver_icon),
+//                                                    contentDescription = "Silver",
+//                                                    modifier = Modifier.size(20.dp),
+//                                                    contentScale = ContentScale.Fit
+//                                                )
                                                 Text(
                                                     text = "SILVER PRICE",
                                                     style = MaterialTheme.typography.labelSmall.copy(
@@ -917,6 +924,7 @@ fun InvestmentDashboardV2Screen(
                                                 // Left column: 999 Price, amount, per gram
                                                 Column(
                                                     modifier = Modifier.weight(1.2f),
+                                                    horizontalAlignment = Alignment.CenterHorizontally,
                                                     verticalArrangement = Arrangement.spacedBy(5.dp)
                                                 ) {
                                                     Text(
@@ -925,7 +933,8 @@ fun InvestmentDashboardV2Screen(
                                                             fontWeight = FontWeight.Bold,
                                                             letterSpacing = 1.sp
                                                         ),
-                                                        color = Color(0xFF505A61)
+                                                        color = Color(0xFF505A61),
+                                                        textAlign = TextAlign.Center
                                                     )
                                                     Spacer(modifier = Modifier.height(5.dp))
                                                     Text(
@@ -934,7 +943,8 @@ fun InvestmentDashboardV2Screen(
                                                             fontWeight = FontWeight.Bold,
                                                             fontSize = 24.sp
                                                         ),
-                                                        color = Color(0xFF2E383E)
+                                                        color = Color(0xFF2E383E),
+                                                        textAlign = TextAlign.Center
                                                     )
                                                     Text(
                                                         text = "per gram",
@@ -942,7 +952,8 @@ fun InvestmentDashboardV2Screen(
                                                             fontWeight = FontWeight.Medium,
                                                             fontSize = 13.sp
                                                         ),
-                                                        color = Color(0xFF505A61)
+                                                        color = Color(0xFF505A61),
+                                                        textAlign = TextAlign.Center
                                                     )
                                                 }
 
@@ -958,6 +969,7 @@ fun InvestmentDashboardV2Screen(
                                                 // Right column: YOUR SILVER, silver units (no worth/amount)
                                                 Column(
                                                     modifier = Modifier.weight(1f),
+                                                    horizontalAlignment = Alignment.CenterHorizontally,
                                                     verticalArrangement = Arrangement.spacedBy(5.dp)
                                                 ) {
                                                     Text(
@@ -966,7 +978,8 @@ fun InvestmentDashboardV2Screen(
                                                             fontWeight = FontWeight.Bold,
                                                             letterSpacing = 1.sp
                                                         ),
-                                                        color = Color(0xFF505A61)
+                                                        color = Color(0xFF505A61),
+                                                        textAlign = TextAlign.Center
                                                     )
                                                     Spacer(modifier = Modifier.height(5.dp))
                                                     Text(
@@ -975,7 +988,8 @@ fun InvestmentDashboardV2Screen(
                                                             fontWeight = FontWeight.Bold,
                                                             fontSize = 24.sp
                                                         ),
-                                                        color = Color(0xFF2E383E)
+                                                        color = Color(0xFF2E383E),
+                                                        textAlign = TextAlign.Center
                                                     )
                                                 }
                                             }
@@ -5701,7 +5715,7 @@ fun ReferralBanner(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 20.dp, vertical = 18.dp),
+                    .padding(horizontal = 18.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
                 // Top Tag: REFER & EARN
@@ -5722,7 +5736,7 @@ fun ReferralBanner(
                     Text(
                         text = stringResource(Res.string.referral_banner_earn_up_to),
                         style = MaterialTheme.typography.bodyMedium.copy(
-                            fontSize = 14.sp,
+                            fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = Color(0xFF3E2723)
                         )
@@ -5730,8 +5744,8 @@ fun ReferralBanner(
                     Text(
                         text = formattedCount,
                         fontFamily = getCursiveFontFamily(),
-                        fontSize = 58.sp,
-                        lineHeight = 60.sp,
+                        fontSize = 44.sp,
+                        lineHeight = 46.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF8B6B25),
                         letterSpacing = (-1).sp
@@ -5739,17 +5753,19 @@ fun ReferralBanner(
                     Text(
                         text = stringResource(Res.string.referral_banner_subtitle),
                         style = MaterialTheme.typography.bodySmall.copy(
-                            fontSize = 12.sp,
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = Color(0xFF11381E)
                         ),
-                        modifier = Modifier.padding(top = 2.dp)
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = 1.dp)
                     )
                 }
 
                 // Bottom Content: Progress Bar + Limit & CTA
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     // Meter Track & Fill
                     Box(
@@ -5781,10 +5797,15 @@ fun ReferralBanner(
                         Text(
                             text = stringResource(Res.string.referral_banner_no_limit),
                             style = MaterialTheme.typography.bodySmall.copy(
-                                fontSize = 12.sp,
+                                fontSize = 11.sp,
                                 color = Color(0xFF3E2723)
-                            )
+                            ),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false)
                         )
+
+                        Spacer(modifier = Modifier.width(8.dp))
 
                         // Invite friends CTA pill with shimmer shine
                         Box(
@@ -5792,15 +5813,18 @@ fun ReferralBanner(
                                 .clip(RoundedCornerShape(9999.dp))
                                 .background(Color(0xFF0A2415))
                                 .border(1.dp, Color(0xFFD4AF37), RoundedCornerShape(9999.dp))
-                                .padding(horizontal = 14.dp, vertical = 9.dp)
+                                .padding(horizontal = 12.dp, vertical = 6.dp),
+                            contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = stringResource(Res.string.referral_banner_cta),
                                 style = MaterialTheme.typography.labelMedium.copy(
-                                    fontSize = 13.sp,
+                                    fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Color(0xFFFFD700)
-                                )
+                                ),
+                                maxLines = 1,
+                                softWrap = false
                             )
 
                             // Animated shine bar

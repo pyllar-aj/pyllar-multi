@@ -188,7 +188,7 @@
     <string name="referral_term_qualifying_action">Qualifying action</string>
     <string name="referral_term_qualifying_action_val">7-day streak</string>
     <string name="referral_term_withdrawals">Withdrawals</string>
-    <string name="referral_term_withdrawals_val">Multiples of ₹1000</string>
+    <string name="referral_term_withdrawals_val">Multiples of ₹%1$d</string>
     <string name="referral_term_coin_expiry">Coin expiry</string>
     <string name="referral_term_coin_expiry_val">Never</string>
     <string name="referral_term_cap">Cap</string>
@@ -909,7 +909,7 @@
     <string name="referral_banner_desc">They invest, you both earn.\nCredited once their first SIP\ngoes through.</string>
     <string name="referral_banner_tag">REFER &amp; EARN</string>
     <string name="referral_banner_earn_up_to">Earn up to</string>
-    <string name="referral_banner_subtitle">every month, when friends start a daily SIP</string>
+    <string name="referral_banner_subtitle">per month, when friends start a saving habit</string>
     <string name="referral_banner_no_limit">No limit on invites</string>
     <string name="referral_banner_cta">Invite friends →</string>
 </resources>

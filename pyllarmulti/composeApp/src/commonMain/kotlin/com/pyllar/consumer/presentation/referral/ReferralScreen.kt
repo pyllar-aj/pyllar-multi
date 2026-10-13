@@ -253,29 +253,29 @@ fun ReferralScreen(
                             }
                         }
                     }
-                } else if (!uiState.referralEnabled) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.padding(32.dp)
-                        ) {
-                            Text(
-                                text = "Referrals coming soon",
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                color = textDark
-                            )
-                            Text(
-                                text = "The referral programme isn't available for your account yet. Check back soon!",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = textGray,
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                    }
+//                } else if (!uiState.referralEnabled) {
+//                    Box(
+//                        modifier = Modifier.fillMaxSize(),
+//                        contentAlignment = Alignment.Center
+//                    ) {
+//                        Column(
+//                            horizontalAlignment = Alignment.CenterHorizontally,
+//                            verticalArrangement = Arrangement.spacedBy(8.dp),
+//                            modifier = Modifier.padding(32.dp)
+//                        ) {
+//                            Text(
+//                                text = "Referrals coming soon",
+//                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+//                                color = textDark
+//                            )
+//                            Text(
+//                                text = "The referral programme isn't available for your account yet. Check back soon!",
+//                                style = MaterialTheme.typography.bodyMedium,
+//                                color = textGray,
+//                                textAlign = TextAlign.Center
+//                            )
+//                        }
+//                    }
                 } else {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
@@ -1488,7 +1488,10 @@ fun KeyTermsCard(
             }
             KeyTermRow(label = stringResource(Res.string.referral_term_qualifying_action), value = actionVal, textDark = textDark, textGray = textGray)
             HorizontalDivider(color = Color.LightGray.copy(alpha = 0.2f), thickness = 0.5.dp)
-            KeyTermRow(label = stringResource(Res.string.referral_term_withdrawals), value = stringResource(Res.string.referral_term_withdrawals_val).replace("%d", minimumCashoutAmount.toString()), textDark = textDark, textGray = textGray)
+            val withdrawalsVal = stringResource(Res.string.referral_term_withdrawals_val)
+                .replace("%1\$d", minimumCashoutAmount.toString())
+                .replace("%d", minimumCashoutAmount.toString())
+            KeyTermRow(label = stringResource(Res.string.referral_term_withdrawals), value = withdrawalsVal, textDark = textDark, textGray = textGray)
             HorizontalDivider(color = Color.LightGray.copy(alpha = 0.2f), thickness = 0.5.dp)
             KeyTermRow(label = stringResource(Res.string.referral_term_coin_expiry), value = stringResource(Res.string.referral_term_coin_expiry_val), textDark = textDark, textGray = textGray)
             HorizontalDivider(color = Color.LightGray.copy(alpha = 0.2f), thickness = 0.5.dp)
