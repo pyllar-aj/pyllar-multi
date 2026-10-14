@@ -427,7 +427,8 @@ fun InvestmentDashboardV2Screen(
                                     hasNoFolioAllocated
 
                             val banners = resolveDashboardBanners(
-                                serverBanners = dashboardState.banners,
+//                                serverBanners = dashboardState.banners,
+                                serverBanners = DEFAULT_DASHBOARD_BANNERS,
                                 referralEnabled = dashboardState.referralEnabled,
                                 hasMilestone = dashboardState.hasFirstMilestone,
                                 milestoneMessage = dashboardState.milestoneMessage,
