@@ -63,6 +63,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pyllar.consumer.analytics.PlatformAnalyticsLogger
@@ -523,7 +524,7 @@ fun InvestmentDashboardV2Screen(
                                                         verticalArrangement = Arrangement.spacedBy(4.dp)
                                                     ) {
                                                         Text(
-                                                            text = "TOTAL VALUE",
+                                                            text = stringResource(Res.string.banner_total_value),
                                                             style = MaterialTheme.typography.labelSmall.copy(
                                                                 fontWeight = FontWeight.Bold,
                                                                 letterSpacing = 1.sp
@@ -549,7 +550,7 @@ fun InvestmentDashboardV2Screen(
                                                     // Right illustration: gold and silver bars
                                                     Image(
                                                         painter = painterResource(Res.drawable.gold_silver),
-                                                        contentDescription = "Gold and silver holdings",
+                                                        contentDescription = stringResource(Res.string.banner_gold_silver_holdings),
                                                         modifier = Modifier
                                                             .size(120.dp)
                                                             .padding(start = 8.dp),
@@ -582,7 +583,7 @@ fun InvestmentDashboardV2Screen(
                                                                 contentScale = ContentScale.Fit
                                                             )
                                                             Text(
-                                                                text = "$goldUnitsText gold",
+                                                                text = stringResource(Res.string.banner_gold_units, goldUnitsText),
                                                                 style = MaterialTheme.typography.bodySmall.copy(
                                                                     fontWeight = FontWeight.Bold
                                                                 ),
@@ -610,7 +611,7 @@ fun InvestmentDashboardV2Screen(
                                                                 contentScale = ContentScale.Fit
                                                             )
                                                             Text(
-                                                                text = "$silverUnitsText silver",
+                                                                text = stringResource(Res.string.banner_silver_units, silverUnitsText),
                                                                 style = MaterialTheme.typography.bodySmall.copy(
                                                                     fontWeight = FontWeight.Bold
                                                                 ),
@@ -625,14 +626,11 @@ fun InvestmentDashboardV2Screen(
                                 } else if (bannerType == "GOLD_CARD") {
                                     val goldUnits = goldGoal?.unitsInGm
                                     val formattedGoldUnits = if (goldUnits != null && goldUnits > 0) {
-                                        val formattedGm = if (goldUnits % 1.0 == 0.0) {
-                                            goldUnits.toLong().toString()
-                                        } else {
-                                            val factor = 100.0
-                                            val rounded = (kotlin.math.round(goldUnits * factor) / factor)
-                                            rounded.toString().trimEnd('0').trimEnd('.')
-                                        }
-                                        "$formattedGm g"
+                                        formatWeight(
+                                            value = goldUnits,
+                                            mgSuffix = stringResource(Res.string.mg_label),
+                                            gSuffix = stringResource(Res.string.g_label)
+                                        ).trim()
                                     } else {
                                         "0 g"
                                     }
@@ -690,120 +688,122 @@ fun InvestmentDashboardV2Screen(
                                             .border(1.dp, goldStrokeColor, goldBannerShape)
                                             .padding(horizontal = 20.dp, vertical = 20.dp)
                                     ) {
-                                        Column(
+                                        Row(
                                             modifier = Modifier.fillMaxSize(),
-                                            verticalArrangement = Arrangement.Center
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(18.dp)
                                         ) {
-                                            // Top header row: gold bar icon + "GOLD PRICE TODAY" + info icon
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            // Circular icon container
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(76.dp)
+                                                    .background(Color.White.copy(alpha = 0.35f), CircleShape),
+                                                contentAlignment = Alignment.Center
                                             ) {
-//                                                Image(
-//                                                    painter = painterResource(Res.drawable.goldbar_icon),
-//                                                    contentDescription = "Gold",
-//                                                    modifier = Modifier.size(20.dp),
-//                                                    contentScale = ContentScale.Fit
-//                                                )
-                                                Text(
-                                                    text = "GOLD PRICE",
-                                                    style = MaterialTheme.typography.labelSmall.copy(
-                                                        fontWeight = FontWeight.Bold,
-                                                        letterSpacing = 1.2.sp
-                                                    ),
-                                                    color = Color(0xFF6A4C00)
+                                                Image(
+                                                    painter = painterResource(Res.drawable.goldbar_icon),
+                                                    contentDescription = stringResource(Res.string.gold_label),
+                                                    modifier = Modifier.size(50.dp),
+                                                    contentScale = ContentScale.Fit
                                                 )
-                                                Box(
-                                                    modifier = Modifier
-                                                        .size(20.dp)
-                                                        .clickable { showGoldPriceInfoDialog = true },
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    Icon(
-                                                        imageVector = Icons.Filled.Info,
-                                                        contentDescription = "Gold Price Info",
-                                                        modifier = Modifier.size(14.dp),
-                                                        tint = Color(0xFF6A4C00).copy(alpha = 0.85f)
-                                                    )
-                                                }
                                             }
 
-                                            Spacer(modifier = Modifier.height(22.dp))
-
-                                            // Two-column layout: 22K PRICE on left, YOUR GOLD on right
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                verticalAlignment = Alignment.Top
+                                            // Content Column
+                                            Column(
+                                                verticalArrangement = Arrangement.Center
                                             ) {
-                                                // Left column: 22K Price, amount, per gram
-                                                Column(
-                                                    modifier = Modifier.weight(1.2f),
-                                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                                    verticalArrangement = Arrangement.spacedBy(5.dp)
+                                                // Header row: "GOLD PRICE TODAY" + info icon
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                                                 ) {
                                                     Text(
-                                                        text = "22K GOLD",
-                                                        style = MaterialTheme.typography.labelSmall.copy(
-                                                            fontWeight = FontWeight.Bold,
-                                                            letterSpacing = 1.sp
+                                                        text = stringResource(Res.string.banner_gold_price),
+                                                        style = MaterialTheme.typography.labelMedium.copy(
+                                                            fontWeight = FontWeight.ExtraBold,
+                                                            letterSpacing = 1.1.sp,
+                                                            fontSize = 12.sp
                                                         ),
-                                                        color = Color(0xFF6A4C00),
-                                                        textAlign = TextAlign.Center
+                                                        color = Color(0xFF5A4106)
                                                     )
-                                                    Spacer(modifier = Modifier.height(5.dp))
-                                                    Text(
-                                                        text = goldPriceText,
-                                                        style = MaterialTheme.typography.headlineMedium.copy(
-                                                            fontWeight = FontWeight.Bold,
-                                                            fontSize = 24.sp
-                                                        ),
-                                                        color = Color(0xFF261C02),
-                                                        textAlign = TextAlign.Center
-                                                    )
-                                                    Text(
-                                                        text = "per gram",
-                                                        style = MaterialTheme.typography.bodySmall.copy(
-                                                            fontWeight = FontWeight.Medium,
-                                                            fontSize = 13.sp
-                                                        ),
-                                                        color = Color(0xFF6A4C00),
-                                                        textAlign = TextAlign.Center
-                                                    )
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(20.dp)
+                                                            .clickable { showGoldPriceInfoDialog = true },
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        Icon(
+                                                            imageVector = Icons.Filled.Info,
+                                                            contentDescription = stringResource(Res.string.gold_price_info),
+                                                            modifier = Modifier.size(15.dp),
+                                                            tint = Color(0xFF5A4106)
+                                                        )
+                                                    }
                                                 }
 
-                                                // Vertical divider
-                                                Box(
-                                                    modifier = Modifier
-                                                        .padding(horizontal = 16.dp, vertical = 2.dp)
-                                                        .width(1.dp)
-                                                        .height(64.dp)
-                                                        .background(Color(0xFF6A4C00).copy(alpha = 0.25f))
+                                                Spacer(modifier = Modifier.height(6.dp))
+
+                                                // Price with /gram
+                                                Text(
+                                                    text = buildAnnotatedString {
+                                                        withStyle(
+                                                            SpanStyle(
+                                                                fontSize = 26.sp,
+                                                                fontWeight = FontWeight.ExtraBold,
+                                                                color = Color(0xFF261C02)
+                                                            )
+                                                        ) {
+                                                            append(goldPriceText)
+                                                        }
+                                                        withStyle(
+                                                            SpanStyle(
+                                                                fontSize = 15.sp,
+                                                                fontWeight = FontWeight.Bold,
+                                                                color = Color(0xFF261C02)
+                                                            )
+                                                        ) {
+                                                            append(" ")
+                                                            append(stringResource(Res.string.banner_per_gram))
+                                                        }
+                                                    }
                                                 )
 
-                                                // Right column: YOUR GOLD, gold units (no worth/amount)
-                                                Column(
-                                                    modifier = Modifier.weight(1f),
-                                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                                    verticalArrangement = Arrangement.spacedBy(5.dp)
+                                                Spacer(modifier = Modifier.height(10.dp))
+
+                                                // Pill chip: "Your Gold · 21.5 g"
+                                                Surface(
+                                                    shape = RoundedCornerShape(50),
+                                                    color = Color(0xFF38290A)
                                                 ) {
                                                     Text(
-                                                        text = "YOUR GOLD",
-                                                        style = MaterialTheme.typography.labelSmall.copy(
-                                                            fontWeight = FontWeight.Bold,
-                                                            letterSpacing = 1.sp
+                                                        text = buildAnnotatedString {
+                                                            withStyle(
+                                                                SpanStyle(
+                                                                    fontSize = 11.sp,
+                                                                    fontWeight = FontWeight.SemiBold,
+                                                                    color = Color(0xFFFFF6DF).copy(alpha = 0.82f)
+                                                                )
+                                                            ) {
+                                                                append("${stringResource(Res.string.banner_your_gold)}  ·  ")
+                                                            }
+                                                            withStyle(
+                                                                SpanStyle(
+                                                                    fontSize = 14.sp,
+                                                                    fontWeight = FontWeight.Bold,
+                                                                    color = Color(0xFFFFF6DF)
+                                                                )
+                                                            ) {
+                                                                append(formattedGoldUnits)
+                                                            }
+                                                        },
+                                                        style = TextStyle(
+                                                            lineHeight = 14.sp,
+                                                            lineHeightStyle = LineHeightStyle(
+                                                                alignment = LineHeightStyle.Alignment.Center,
+                                                                trim = LineHeightStyle.Trim.Both
+                                                            )
                                                         ),
-                                                        color = Color(0xFF6A4C00),
-                                                        textAlign = TextAlign.Center
-                                                    )
-                                                    Spacer(modifier = Modifier.height(5.dp))
-                                                    Text(
-                                                        text = formattedGoldUnits,
-                                                        style = MaterialTheme.typography.headlineMedium.copy(
-                                                            fontWeight = FontWeight.Bold,
-                                                            fontSize = 24.sp
-                                                        ),
-                                                        color = Color(0xFF261C02),
-                                                        textAlign = TextAlign.Center
+                                                        modifier = Modifier.padding(start = 14.dp, end = 14.dp, top = 5.dp, bottom = 8.dp)
                                                     )
                                                 }
                                             }
@@ -812,14 +812,11 @@ fun InvestmentDashboardV2Screen(
                                 } else if (bannerType == "SILVER_CARD") {
                                     val silverUnits = silverGoal?.unitsInGm
                                     val formattedSilverUnits = if (silverUnits != null && silverUnits > 0) {
-                                        val formattedGm = if (silverUnits % 1.0 == 0.0) {
-                                            silverUnits.toLong().toString()
-                                        } else {
-                                            val factor = 100.0
-                                            val rounded = (kotlin.math.round(silverUnits * factor) / factor)
-                                            rounded.toString().trimEnd('0').trimEnd('.')
-                                        }
-                                        "$formattedGm g"
+                                        formatWeight(
+                                            value = silverUnits,
+                                            mgSuffix = stringResource(Res.string.mg_label),
+                                            gSuffix = stringResource(Res.string.g_label)
+                                        ).trim()
                                     } else {
                                         "0 g"
                                     }
@@ -877,120 +874,122 @@ fun InvestmentDashboardV2Screen(
                                             .border(1.dp, silverStrokeColor, silverBannerShape)
                                             .padding(horizontal = 20.dp, vertical = 20.dp)
                                     ) {
-                                        Column(
+                                        Row(
                                             modifier = Modifier.fillMaxSize(),
-                                            verticalArrangement = Arrangement.Center
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(18.dp)
                                         ) {
-                                            // Top header row: silver icon + "SILVER PRICE TODAY" + info icon
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            // Circular icon container
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(76.dp)
+                                                    .background(Color.White.copy(alpha = 0.45f), CircleShape),
+                                                contentAlignment = Alignment.Center
                                             ) {
-//                                                Image(
-//                                                    painter = painterResource(Res.drawable.silver_icon),
-//                                                    contentDescription = "Silver",
-//                                                    modifier = Modifier.size(20.dp),
-//                                                    contentScale = ContentScale.Fit
-//                                                )
-                                                Text(
-                                                    text = "SILVER PRICE",
-                                                    style = MaterialTheme.typography.labelSmall.copy(
-                                                        fontWeight = FontWeight.Bold,
-                                                        letterSpacing = 1.2.sp
-                                                    ),
-                                                    color = Color(0xFF505A61)
+                                                Image(
+                                                    painter = painterResource(Res.drawable.silver_icon),
+                                                    contentDescription = stringResource(Res.string.silver_label),
+                                                    modifier = Modifier.size(50.dp),
+                                                    contentScale = ContentScale.Fit
                                                 )
-                                                Box(
-                                                    modifier = Modifier
-                                                        .size(20.dp)
-                                                        .clickable { showSilverPriceInfoDialog = true },
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    Icon(
-                                                        imageVector = Icons.Filled.Info,
-                                                        contentDescription = "Silver Price Info",
-                                                        modifier = Modifier.size(14.dp),
-                                                        tint = Color(0xFF505A61).copy(alpha = 0.85f)
-                                                    )
-                                                }
                                             }
 
-                                            Spacer(modifier = Modifier.height(22.dp))
-
-                                            // Two-column layout: 999 PRICE on left, YOUR SILVER on right
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                verticalAlignment = Alignment.Top
+                                            // Content Column
+                                            Column(
+                                                verticalArrangement = Arrangement.Center
                                             ) {
-                                                // Left column: 999 Price, amount, per gram
-                                                Column(
-                                                    modifier = Modifier.weight(1.2f),
-                                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                                    verticalArrangement = Arrangement.spacedBy(5.dp)
+                                                // Header row: "SILVER PRICE TODAY" + info icon
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                                                 ) {
                                                     Text(
-                                                        text = "999 SILVER",
-                                                        style = MaterialTheme.typography.labelSmall.copy(
-                                                            fontWeight = FontWeight.Bold,
-                                                            letterSpacing = 1.sp
+                                                        text = stringResource(Res.string.banner_silver_price),
+                                                        style = MaterialTheme.typography.labelMedium.copy(
+                                                            fontWeight = FontWeight.ExtraBold,
+                                                            letterSpacing = 1.1.sp,
+                                                            fontSize = 12.sp
                                                         ),
-                                                        color = Color(0xFF505A61),
-                                                        textAlign = TextAlign.Center
+                                                        color = Color(0xFF4A5560)
                                                     )
-                                                    Spacer(modifier = Modifier.height(5.dp))
-                                                    Text(
-                                                        text = silverPriceText,
-                                                        style = MaterialTheme.typography.headlineMedium.copy(
-                                                            fontWeight = FontWeight.Bold,
-                                                            fontSize = 24.sp
-                                                        ),
-                                                        color = Color(0xFF2E383E),
-                                                        textAlign = TextAlign.Center
-                                                    )
-                                                    Text(
-                                                        text = "per gram",
-                                                        style = MaterialTheme.typography.bodySmall.copy(
-                                                            fontWeight = FontWeight.Medium,
-                                                            fontSize = 13.sp
-                                                        ),
-                                                        color = Color(0xFF505A61),
-                                                        textAlign = TextAlign.Center
-                                                    )
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(20.dp)
+                                                            .clickable { showSilverPriceInfoDialog = true },
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        Icon(
+                                                            imageVector = Icons.Filled.Info,
+                                                            contentDescription = stringResource(Res.string.silver_price_info),
+                                                            modifier = Modifier.size(15.dp),
+                                                            tint = Color(0xFF4A5560)
+                                                        )
+                                                    }
                                                 }
 
-                                                // Vertical divider
-                                                Box(
-                                                    modifier = Modifier
-                                                        .padding(horizontal = 16.dp, vertical = 2.dp)
-                                                        .width(1.dp)
-                                                        .height(64.dp)
-                                                        .background(Color(0xFF505A61).copy(alpha = 0.25f))
+                                                Spacer(modifier = Modifier.height(6.dp))
+
+                                                // Price with /gram
+                                                Text(
+                                                    text = buildAnnotatedString {
+                                                        withStyle(
+                                                            SpanStyle(
+                                                                fontSize = 26.sp,
+                                                                fontWeight = FontWeight.ExtraBold,
+                                                                color = Color(0xFF1E262B)
+                                                            )
+                                                        ) {
+                                                            append(silverPriceText)
+                                                        }
+                                                        withStyle(
+                                                            SpanStyle(
+                                                                fontSize = 15.sp,
+                                                                fontWeight = FontWeight.Bold,
+                                                                color = Color(0xFF1E262B)
+                                                            )
+                                                        ) {
+                                                            append(" ")
+                                                            append(stringResource(Res.string.banner_per_gram))
+                                                        }
+                                                    }
                                                 )
 
-                                                // Right column: YOUR SILVER, silver units (no worth/amount)
-                                                Column(
-                                                    modifier = Modifier.weight(1f),
-                                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                                    verticalArrangement = Arrangement.spacedBy(5.dp)
+                                                Spacer(modifier = Modifier.height(10.dp))
+
+                                                // Pill chip: "Your Silver · 21.5 g"
+                                                Surface(
+                                                    shape = RoundedCornerShape(50),
+                                                    color = Color(0xFF242C32)
                                                 ) {
                                                     Text(
-                                                        text = "YOUR SILVER",
-                                                        style = MaterialTheme.typography.labelSmall.copy(
-                                                            fontWeight = FontWeight.Bold,
-                                                            letterSpacing = 1.sp
+                                                        text = buildAnnotatedString {
+                                                            withStyle(
+                                                                SpanStyle(
+                                                                    fontSize = 11.sp,
+                                                                    fontWeight = FontWeight.SemiBold,
+                                                                    color = Color(0xFFF0F4F8).copy(alpha = 0.82f)
+                                                                )
+                                                            ) {
+                                                                append("${stringResource(Res.string.banner_your_silver)}  ·  ")
+                                                            }
+                                                            withStyle(
+                                                                SpanStyle(
+                                                                    fontSize = 14.sp,
+                                                                    fontWeight = FontWeight.Bold,
+                                                                    color = Color(0xFFF0F4F8)
+                                                                )
+                                                            ) {
+                                                                append(formattedSilverUnits)
+                                                            }
+                                                        },
+                                                        style = TextStyle(
+                                                            lineHeight = 14.sp,
+                                                            lineHeightStyle = LineHeightStyle(
+                                                                alignment = LineHeightStyle.Alignment.Center,
+                                                                trim = LineHeightStyle.Trim.Both
+                                                            )
                                                         ),
-                                                        color = Color(0xFF505A61),
-                                                        textAlign = TextAlign.Center
-                                                    )
-                                                    Spacer(modifier = Modifier.height(5.dp))
-                                                    Text(
-                                                        text = formattedSilverUnits,
-                                                        style = MaterialTheme.typography.headlineMedium.copy(
-                                                            fontWeight = FontWeight.Bold,
-                                                            fontSize = 24.sp
-                                                        ),
-                                                        color = Color(0xFF2E383E),
-                                                        textAlign = TextAlign.Center
+                                                        modifier = Modifier.padding(start = 14.dp, end = 14.dp, top = 5.dp, bottom = 8.dp)
                                                     )
                                                 }
                                             }

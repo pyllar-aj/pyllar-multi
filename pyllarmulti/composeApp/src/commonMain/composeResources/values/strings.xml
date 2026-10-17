@@ -910,5 +910,23 @@
     <string name="referral_banner_subtitle">per month, when friends start a saving habit</string>
     <string name="referral_banner_no_limit">No limit on invites</string>
     <string name="referral_banner_cta">Invite friends →</string>
+
+    <!-- Dashboard Banners Strings -->
+    <string name="banner_total_value">TOTAL VALUE</string>
+    <string name="banner_gold_silver_holdings">Gold and silver holdings</string>
+    <string name="banner_gold_units">%1$s gold</string>
+    <string name="banner_silver_units">%1$s silver</string>
+    <string name="banner_gold_price">GOLD PRICE</string>
+    <string name="banner_silver_price">SILVER PRICE</string>
+    <string name="banner_per_gram">/gram</string>
+    <string name="banner_your_gold">YOUR GOLD</string>
+    <string name="banner_your_silver">YOUR SILVER</string>
+    <string name="gold_label">GOLD</string>
+    <string name="silver_label">SILVER</string>
+    <string name="gold_price_info">Gold Price Info</string>
+    <string name="silver_price_info">Silver Price Info</string>
+    <string name="banner_gold_unavailable_notice">New investments in Gold Mutual Funds are temporarily unavailable.</string>
+    <string name="gold_goal_unavailable_notice">New investments are temporarily unavailable due to regulatory restrictions.</string>
+    <string name="scheme_details_gold_unavailable_notice">New investments (New Plan &amp; Add Money) are temporarily unavailable due to regulatory restrictions.</string>
 </resources>
 
