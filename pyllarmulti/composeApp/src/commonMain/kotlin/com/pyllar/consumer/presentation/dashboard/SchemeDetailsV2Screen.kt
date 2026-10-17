@@ -324,7 +324,12 @@ fun SchemeDetailsV2Screen(
         }
     }
 
-    val handleLumpsumClick: () -> Unit = {
+    val isGoldScheme = displayCategory.equals("GOLD", ignoreCase = true) ||
+            displaySchemeName.contains("Gold", ignoreCase = true) ||
+            displayGoalName.contains("Gold", ignoreCase = true)
+
+    val handleLumpsumClick: () -> Unit = handleLumpsumClick@ {
+        if (isGoldScheme) return@handleLumpsumClick
         val hasFolio = !state.folioNumber.isNullOrBlank() && state.folioNumber != "null"
         if (hasFolio || state.currentValue > 0 || !isDailySip) {
             val hasActualInvestment = state.investedAmount > 0 || hasFolio
@@ -356,7 +361,8 @@ fun SchemeDetailsV2Screen(
         }
     }
 
-    val handleSipClick: () -> Unit = {
+    val handleSipClick: () -> Unit = handleSipClick@ {
+        if (isGoldScheme) return@handleSipClick
         val hasFolio = !state.folioNumber.isNullOrBlank() && state.folioNumber != "null"
         val hasPendingInvestmentOrSip = state.investmentInProgress > 0 || hasApprovedPlan
         if (!hasFolio && hasPendingInvestmentOrSip && isDailySip) {
@@ -443,10 +449,42 @@ fun SchemeDetailsV2Screen(
                         modifier = Modifier.navigationBarsPadding()
                     ) {
                         HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                        if (isGoldScheme) {
+                            Surface(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(start = 12.dp, end = 12.dp, top = 10.dp),
+                                shape = RoundedCornerShape(10.dp),
+                                color = Color(0xFFFFF7E8),
+                                border = BorderStroke(1.dp, Color(0xFFB47814).copy(alpha = 0.45f))
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Info,
+                                        contentDescription = null,
+                                        tint = Color(0xFF9E6200),
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        text = stringResource(Res.string.scheme_details_gold_unavailable_notice),
+                                        style = MaterialTheme.typography.bodySmall.copy(
+                                            fontSize = 11.5.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            lineHeight = 15.sp
+                                        ),
+                                        color = Color(0xFF4A3200)
+                                    )
+                                }
+                            }
+                        }
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(start = 12.dp, end = 12.dp, top = 20.dp, bottom = 16.dp),
+                                .padding(start = 12.dp, end = 12.dp, top = if (isGoldScheme) 10.dp else 20.dp, bottom = 16.dp),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             ActionButtonModuleV2(
@@ -454,6 +492,7 @@ fun SchemeDetailsV2Screen(
                                 text = stringResource(Res.string.add_money),
                                 icon = Icons.Default.Add,
                                 containerColor = goalColor,
+                                enabled = !isGoldScheme,
                                 onClick = handleLumpsumClick
                             )
                             ActionButtonModuleV2(
@@ -461,6 +500,7 @@ fun SchemeDetailsV2Screen(
                                 text = stringResource(Res.string.new_plan),
                                 icon = Icons.Default.FlashOn,
                                 containerColor = goalColor,
+                                enabled = !isGoldScheme,
                                 onClick = handleSipClick
                             )
                             ActionButtonModuleV2(
@@ -468,6 +508,7 @@ fun SchemeDetailsV2Screen(
                                 text = stringResource(Res.string.withdraw),
                                 icon = Icons.Default.CallReceived,
                                 containerColor = goalColor,
+                                enabled = true,
                                 onClick = {
                                     if (state.currentValue > 0) {
                                         if (state.redeemableAmount <= 0.0 && state.redemptionInProgress == 0.0) {
@@ -2504,6 +2545,9 @@ fun SchemeDetailsPopupContentV2(
             }
 
             val goalColor = getCorrelationColorForCategory(category, colorTheme)
+            val isGoldGoal = category?.equals("GOLD", ignoreCase = true) == true ||
+                    schemeName?.contains("Gold", ignoreCase = true) == true ||
+                    goalName?.contains("Gold", ignoreCase = true) == true
             Surface(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -2513,10 +2557,42 @@ fun SchemeDetailsPopupContentV2(
             ) {
                 Column {
                     HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                    if (isGoldGoal) {
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 12.dp, end = 12.dp, top = 10.dp),
+                            shape = RoundedCornerShape(10.dp),
+                            color = Color(0xFFFFF7E8),
+                            border = BorderStroke(1.dp, Color(0xFFB47814).copy(alpha = 0.45f))
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Info,
+                                    contentDescription = null,
+                                    tint = Color(0xFF9E6200),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    text = stringResource(Res.string.scheme_details_gold_unavailable_notice),
+                                    style = MaterialTheme.typography.bodySmall.copy(
+                                        fontSize = 11.5.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        lineHeight = 15.sp
+                                    ),
+                                    color = Color(0xFF4A3200)
+                                )
+                            }
+                        }
+                    }
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(start = 12.dp, end = 12.dp, top = 20.dp, bottom = 20.dp),
+                            .padding(start = 12.dp, end = 12.dp, top = if (isGoldGoal) 10.dp else 20.dp, bottom = 20.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         ActionButtonModuleV2(
@@ -2524,6 +2600,7 @@ fun SchemeDetailsPopupContentV2(
                             text = stringResource(Res.string.add_money),
                             icon = Icons.Default.Add,
                             containerColor = goalColor,
+                            enabled = !isGoldGoal,
                             onClick = onAddMoneyClick
                         )
 
@@ -2532,6 +2609,7 @@ fun SchemeDetailsPopupContentV2(
                             text = stringResource(Res.string.new_plan),
                             icon = Icons.Default.FlashOn,
                             containerColor = goalColor,
+                            enabled = !isGoldGoal,
                             onClick = onNewPlanClick
                         )
 
@@ -2540,6 +2618,7 @@ fun SchemeDetailsPopupContentV2(
                             text = stringResource(Res.string.withdraw),
                             icon = Icons.Default.CallReceived,
                             containerColor = goalColor,
+                            enabled = true,
                             onClick = onWithdrawClick
                         )
                     }
@@ -4669,16 +4748,19 @@ fun ActionButtonModuleV2(
     text: String,
     icon: ImageVector,
     containerColor: Color,
+    enabled: Boolean = true,
     onClick: () -> Unit
 ) {
     val debouncedClick = rememberDebouncedClick(onClick = onClick)
+    val finalContainerColor = if (enabled) containerColor else Color(0xFFEBEBEB)
+    val contentColor = if (enabled) Color.White else Color(0xFFA0A0A0)
     Surface(
         modifier = modifier
             .height(72.dp)
-            .clickable(onClick = debouncedClick),
+            .then(if (enabled) Modifier.clickable(onClick = debouncedClick) else Modifier),
         shape = RoundedCornerShape(16.dp),
-        color = containerColor,
-        shadowElevation = 4.dp
+        color = finalContainerColor,
+        shadowElevation = if (enabled) 4.dp else 0.dp
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -4688,7 +4770,7 @@ fun ActionButtonModuleV2(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = Color.White,
+                tint = contentColor,
                 modifier = Modifier.size(22.dp)
             )
             Spacer(modifier = Modifier.height(6.dp))
@@ -4698,7 +4780,7 @@ fun ActionButtonModuleV2(
                     fontWeight = FontWeight.Black,
                     letterSpacing = 1.sp
                 ),
-                color = Color.White,
+                color = contentColor,
                 textAlign = TextAlign.Center,
                 fontSize = 10.sp,
                 lineHeight = 12.sp
