@@ -460,14 +460,14 @@ fun SchemeDetailsV2Screen(
                             ) {
                                 Row(
                                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
+                                    verticalAlignment = Alignment.Top,
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     Icon(
                                         imageVector = Icons.Filled.Info,
                                         contentDescription = null,
                                         tint = Color(0xFF9E6200),
-                                        modifier = Modifier.size(16.dp)
+                                        modifier = Modifier.size(16.dp).padding(top = 1.dp)
                                     )
                                     Text(
                                         text = stringResource(Res.string.scheme_details_gold_unavailable_notice),
@@ -2568,14 +2568,14 @@ fun SchemeDetailsPopupContentV2(
                         ) {
                             Row(
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
-                                verticalAlignment = Alignment.CenterVertically,
+                                verticalAlignment = Alignment.Top,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Filled.Info,
                                     contentDescription = null,
                                     tint = Color(0xFF9E6200),
-                                    modifier = Modifier.size(16.dp)
+                                    modifier = Modifier.size(16.dp).padding(top = 1.dp)
                                 )
                                 Text(
                                     text = stringResource(Res.string.scheme_details_gold_unavailable_notice),

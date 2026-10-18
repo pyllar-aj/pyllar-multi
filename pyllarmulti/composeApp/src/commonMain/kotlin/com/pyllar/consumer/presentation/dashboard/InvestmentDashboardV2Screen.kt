@@ -795,7 +795,7 @@ fun InvestmentDashboardV2Screen(
                                                                 }
                                                                 withStyle(
                                                                     SpanStyle(
-                                                                        fontSize = 13.sp,
+                                                                        fontSize = 14.sp,
                                                                         fontWeight = FontWeight.Bold,
                                                                         color = Color(0xFFFFF6DF)
                                                                     )
@@ -803,7 +803,14 @@ fun InvestmentDashboardV2Screen(
                                                                     append(formattedGoldUnits)
                                                                 }
                                                             },
-                                                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 5.dp)
+                                                            style = TextStyle(
+                                                                lineHeight = 14.sp,
+                                                                lineHeightStyle = LineHeightStyle(
+                                                                    alignment = LineHeightStyle.Alignment.Center,
+                                                                    trim = LineHeightStyle.Trim.Both
+                                                                )
+                                                            ),
+                                                            modifier = Modifier.padding(start = 14.dp, end = 14.dp, top = 5.dp, bottom = 8.dp)
                                                         )
                                                     }
                                                 }
