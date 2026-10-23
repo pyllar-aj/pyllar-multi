@@ -35,7 +35,6 @@ import com.pyllar.consumer.presentation.ui.theme.V2Cream
 import com.pyllar.consumer.presentation.ui.theme.V2Obsidian
 import com.pyllar.consumer.presentation.ui.theme.V2Ink
 import com.pyllar.consumer.presentation.ui.theme.V2HelpText
-import com.pyllar.consumer.getPlatform
 import kotlinx.coroutines.delay
 
 /**
@@ -53,7 +52,6 @@ fun OtpVerificationScreen(
     onShareApp: () -> Unit = {},
     onOpenUrl: (String) -> Unit = {}
 ) {
-    val isIos = remember { getPlatform().name.contains("iOS", ignoreCase = true) }
     val verificationResult: Resource<AuthUserDTO>? =
         viewModel.verificationResult.collectAsStateWithLifecycle().value
     val otp: String = viewModel.otp.collectAsStateWithLifecycle().value
@@ -173,8 +171,8 @@ fun OtpVerificationScreen(
 
         Card(
             modifier = Modifier
-                .align(if (isIos) Alignment.BottomCenter else Alignment.Center)
-                .padding(bottom = if (isIos) 120.dp else 0.dp)
+                .align(Alignment.Center)
+                .imePadding()
                 .fillMaxWidth(0.95f)
                 .padding(horizontal = 4.dp),
             shape = RoundedCornerShape(24.dp),
@@ -187,38 +185,42 @@ fun OtpVerificationScreen(
                     .verticalScroll(rememberScrollState())
                     .padding(2.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(24.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Text(
-                    text = "Enter the OTP",
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 22.sp
-                    ),
-                    color = primaryColor,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Text(
-                    text = "We have sent an OTP to $phoneNumber",
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        fontSize = 16.sp
-                    ),
-                    color = Color(0xFF2D2D2D),
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
                 Spacer(modifier = Modifier.height(8.dp))
+
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+                ) {
+                    Text(
+                        text = "Enter the OTP",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 22.sp
+                        ),
+                        color = primaryColor,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Text(
+                        text = "We have sent an OTP to $phoneNumber",
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            fontSize = 16.sp
+                        ),
+                        color = Color(0xFF2D2D2D),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
 
                 OtpField(
                     length = 6,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                        .padding(horizontal = 16.dp),
                     enabled = verificationResult !is Resource.Loading,
                     isError = verificationResult is Resource.Error,
                     otpFieldValue = otpFieldValue,
