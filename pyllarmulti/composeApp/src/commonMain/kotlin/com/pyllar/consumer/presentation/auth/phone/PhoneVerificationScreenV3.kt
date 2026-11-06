@@ -110,14 +110,6 @@ private val REVIEWS = listOf(
         "Jenul Abedin"
     ),
     ReviewData(
-        "A great app for SIP and daily investments! Clean and easy to use. Tracking returns, goals, and performance is smooth. Perfect for disciplined daily investing.",
-        "anubhav choudhary"
-    ),
-    ReviewData(
-        "Simple and easy to use. Great for building a consistent savings habit, with helpful reminders. Highly recommended!",
-        "Ramyasai Sumala"
-    ),
-    ReviewData(
         "Finally an investment app that doesn't confuse me. Small daily savings, that grows. Really happy with Pyllar.",
         "jawahar .c.s"
     ),
