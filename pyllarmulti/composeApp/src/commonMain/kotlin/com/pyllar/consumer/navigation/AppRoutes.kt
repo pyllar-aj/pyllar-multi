@@ -249,5 +249,37 @@ sealed class AppRoutes(val route: String) {
             return "upi_mandate_setup/$safeSipAmount/$safeFundName"
         }
     }
+
+    object LoanApplication : AppRoutes("loan_application")
+
+    object LoanOffers : AppRoutes("loan_offers/{applicationId}") {
+        fun createRoute(applicationId: String): String = "loan_offers/$applicationId"
+    }
+    object LoanCooldown : AppRoutes("loan_cooldown")
+    object LoanDetails : AppRoutes("loan_details/{applicationId}") {
+        fun createRoute(applicationId: String): String = "loan_details/$applicationId"
+    }
+    /** The lender's hosted journey; the url is URL-encoded into the route like GenericWebView. */
+    object LoanWebView : AppRoutes("loan_webview/{url}") {
+        fun createRoute(url: String): String = "loan_webview/" + encodeUrl(url)
+    }
+}
+
+/**
+ * Route for a server loan_entry decision. The offers screen needs the applicationId from the rule's params;
+ * without one the only safe place is the form.
+ */
+internal fun loanRouteFor(
+    nextScreen: String?,
+    params: Map<String, kotlinx.serialization.json.JsonElement>?
+): String {
+    val applicationId = (params?.get("applicationId") as? kotlinx.serialization.json.JsonPrimitive)
+        ?.content?.takeIf { it.isNotBlank() && it != "null" }
+    return when {
+        nextScreen == ScreenNames.LOAN_OFFERS && applicationId != null -> AppRoutes.LoanOffers.createRoute(applicationId)
+        nextScreen == ScreenNames.LOAN_DETAILS && applicationId != null -> AppRoutes.LoanDetails.createRoute(applicationId)
+        nextScreen == ScreenNames.LOAN_COOLDOWN -> AppRoutes.LoanCooldown.route
+        else -> AppRoutes.LoanApplication.route
+    }
 }
 

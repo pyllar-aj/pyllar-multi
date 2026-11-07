@@ -7,6 +7,9 @@ import com.pyllar.consumer.data.remote.model.dto.InvestorDashboardResponseV2Dto
 import com.pyllar.consumer.data.remote.model.dto.RecentTransactionDto
 import com.pyllar.consumer.data.remote.model.dto.RecommendationDto
 import com.pyllar.consumer.domain.repository.DashboardRepository
+import com.pyllar.consumer.domain.repository.LoanRepository
+import com.pyllar.consumer.navigation.AppRoutes
+import com.pyllar.consumer.navigation.loanRouteFor
 import com.pyllar.consumer.util.Log
 import com.pyllar.consumer.util.Resource
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -38,7 +41,8 @@ fun parseBannerIds(uiFlags: Map<String, JsonElement>?): List<String> {
 }
 
 class InvestmentDashboardV2ViewModel(
-    private val dashboardRepository: DashboardRepository
+    private val dashboardRepository: DashboardRepository,
+    private val loanRepository: LoanRepository
 ) : ViewModel() {
 
     companion object {
@@ -51,6 +55,21 @@ class InvestmentDashboardV2ViewModel(
 
     private val _dashboardState = MutableStateFlow(InvestmentDashboardV2State())
     val dashboardState: StateFlow<InvestmentDashboardV2State> = _dashboardState
+
+    /**
+     * Asks the server where the loans card should lead (form, or offers for an application already in flight)
+     * and hands back a route. Any failure falls back to the form so the card never dead-ends.
+     */
+    fun resolveLoanRoute(onRoute: (String) -> Unit) {
+        viewModelScope.launch {
+            val result = loanRepository.getLoanEntrySync()
+            val navigation = (result as? Resource.Success)?.navigation
+            onRoute(
+                if (navigation != null) loanRouteFor(navigation.nextScreen, navigation.params)
+                else AppRoutes.LoanApplication.route
+            )
+        }
+    }
 
     fun loadDashboardData(userId: String) {
         com.pyllar.consumer.util.Log.d(TAG, "loadDashboardData: START for userId: $userId")
@@ -300,7 +319,10 @@ class InvestmentDashboardV2ViewModel(
             isLoading = false,
             goldPrice = response.goldPrice,
             silverPrice = response.silverPrice,
-            banners = parseBannerIds(response.uiFlags)
+            banners = parseBannerIds(response.uiFlags),
+            loanCard = LoanCardInfo.from(response.loan).also {
+                Log.d(TAG, "Loan card: server loan=${response.loan?.status}/${response.loan?.bestOffer?.lenderName}, card=${it?.kind}")
+            }
         )
     }
 
@@ -1010,6 +1032,24 @@ class InvestmentDashboardV2ViewModel(
                 colorTheme = "orange",
                 actionButtonText = "Start Planning",
                 targetDate = calculateTargetDate(18)
+            ),
+            InvestmentGoal(
+                goalId = "loans_new",
+                name = "Loans",
+                description = "See loan offers from lending partners",
+                iconType = "⚡",
+                targetAmount = 0.0,
+                investedAmount = 0.0,
+                currentValue = 0.0,
+                returnsPercentage = 0.0,
+                progressPercentage = 0.0,
+                timeRemainingMonths = 0,
+                recommendedMonthlyAmount = 0.0,
+                recommendedDailyAmount = 0.0,
+                category = "LOANS",
+                colorTheme = "blue",
+                actionButtonText = "Check offers",
+                targetDate = ""
             ),
             InvestmentGoal(
                 goalId = "childrens_education",

@@ -26,7 +26,28 @@ data class InvestorDashboardResponseV2Dto(
     @SerialName("goldPrice")
     val goldPrice: Double? = null,
     @SerialName("silverPrice")
-    val silverPrice: Double? = null
+    val silverPrice: Double? = null,
+    /** Present on the home-dashboard response only; null when the user has no open loan application. */
+    @SerialName("loan")
+    val loan: HomeLoanDto? = null
+)
+
+@Serializable
+data class HomeLoanDto(
+    @SerialName("status") val status: String? = null,
+    @SerialName("applicationId") val applicationId: String? = null,
+    @SerialName("offerCount") val offerCount: Int = 0,
+    @SerialName("bestOffer") val bestOffer: HomeLoanBestOfferDto? = null
+)
+
+@Serializable
+data class HomeLoanBestOfferDto(
+    @SerialName("lenderName") val lenderName: String? = null,
+    @SerialName("apr") val apr: Double? = null,
+    @SerialName("principal") val principal: Double? = null,
+    @SerialName("installment") val installment: Double? = null,
+    @SerialName("term") val term: String? = null,
+    @SerialName("installments") val installments: Int? = null
 )
 
 @Serializable

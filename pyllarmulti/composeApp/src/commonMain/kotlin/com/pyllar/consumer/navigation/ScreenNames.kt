@@ -35,4 +35,8 @@ object ScreenNames {
     const val LUMPSUM_PURCHASE_AUTH = "lumpsum_purchase_auth"
     const val PENNY_DROP_LOADING = "penny_drop_loading"
     const val HOME = "home"
+    const val LOAN_APPLICATION = "loan_application"
+    const val LOAN_OFFERS = "loan_offers"
+    const val LOAN_COOLDOWN = "loan_cooldown"
+    const val LOAN_DETAILS = "loan_details"
 }

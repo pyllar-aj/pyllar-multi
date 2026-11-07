@@ -128,6 +128,7 @@ fun InvestmentDashboardV2Screen(
     onNavigateToProfile: () -> Unit = {},
     onNavigateToHelp: () -> Unit = {},
     onNavigateToReferral: () -> Unit = {},
+    onNavigateToLoans: (route: String) -> Unit = {},
     onRetryKyc: () -> Unit = {},
     onStartKyc: () -> Unit = {},
     panNumber: String? = null,
@@ -229,6 +230,24 @@ fun InvestmentDashboardV2Screen(
                     Log.e("InvestmentDashboardV2", "❌ initGoalTxn failed: ${result.message}")
                 }
                 isSelectingGoal = false
+            }
+        }
+    }
+
+    val onLoansClick = {
+        PlatformAnalyticsLogger.logEvent("loans_card_tapped")
+        viewModel.resolveLoanRoute(onNavigateToLoans)
+    }
+
+    val onNextGoalClick: (String) -> Unit = { goalId ->
+        if (goalId.equals("loans_new", ignoreCase = true)) {
+            PlatformAnalyticsLogger.logEvent("loans_card_tapped", mapOf("placement" to "goal_list"))
+            viewModel.resolveLoanRoute(onNavigateToLoans)
+        } else {
+            val isGold = goalId.equals("gold", ignoreCase = true) ||
+                    dashboardState.recommendedGoals.firstOrNull { it.goalId.equals(goalId, ignoreCase = true) }?.category.equals("GOLD", ignoreCase = true)
+            if (!isGold) {
+                handleGoalSelection(goalId)
             }
         }
     }
@@ -433,7 +452,8 @@ fun InvestmentDashboardV2Screen(
 
                             val banners = resolveDashboardBanners(
 //                                serverBanners = dashboardState.banners,
-                                serverBanners = DEFAULT_DASHBOARD_BANNERS,
+                                serverBanners = DEFAULT_DASHBOARD_BANNERS +
+                                    listOfNotNull("loans_new".takeIf { it in dashboardState.banners }),
                                 referralEnabled = dashboardState.referralEnabled,
                                 hasMilestone = dashboardState.hasFirstMilestone,
                                 milestoneMessage = dashboardState.milestoneMessage,
@@ -1111,6 +1131,8 @@ fun InvestmentDashboardV2Screen(
                                             }
                                         }
                                     }
+                                } else if (bannerType == "LOANS_CARD") {
+                                    LoansBanner(onClick = onLoansClick, offers = dashboardState.loanCard)
                                 } else if (bannerType == "MILESTONE") {
                                     Box(
                                         modifier = Modifier
@@ -1251,13 +1273,9 @@ fun InvestmentDashboardV2Screen(
                             Box(modifier = Modifier.padding(horizontal = 16.dp)) {
                                 NextGoalsSection(
                                     goals = nextGoals,
-                                    onGoalClick = { goalId ->
-                                        val isGold = goalId.equals("gold", ignoreCase = true) ||
-                                                dashboardState.recommendedGoals.firstOrNull { it.goalId.equals(goalId, ignoreCase = true) }?.category.equals("GOLD", ignoreCase = true)
-                                        if (!isGold) {
-                                            handleGoalSelection(goalId)
-                                        }
-                                    }
+                                    onGoalClick = onNextGoalClick,
+                                    isLoading = dashboardState.isLoading,
+                                    loanCard = dashboardState.loanCard
                                 )
                             }
                         }
@@ -2678,7 +2696,8 @@ fun SavingsPlusInfoDialog(
 fun NextGoalsSection(
     goals: List<InvestmentGoal>,
     onGoalClick: (String) -> Unit,
-    isLoading: Boolean = false
+    isLoading: Boolean = false,
+    loanCard: LoanCardInfo? = null
 ) {
     var isOverDarkBackground by remember { mutableStateOf(false) }
 
@@ -2781,11 +2800,19 @@ fun NextGoalsSection(
             // Display each goal card in its own row (full width)
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 goals.forEach { goal ->
-                    NextGoalCard(
-                        goal = goal,
-                        onClick = { onGoalClick(goal.goalId) },
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    if (goal.category.equals("LOANS", ignoreCase = true)) {
+                        LoansGoalCard(
+                            onClick = { onGoalClick(goal.goalId) },
+                            offers = loanCard,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    } else {
+                        NextGoalCard(
+                            goal = goal,
+                            onClick = { onGoalClick(goal.goalId) },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
             }
         }
@@ -5647,6 +5674,234 @@ fun SurveyOptionItem(
     }
 }
 
+private val loansBannerShadowColor = Color(0x268B6B25)
+
+/**
+ * Shared Personal Loan card design used both in the top carousel banner and in the "Explore more" goal list.
+ * [isBanner] determines whether sizing and layout adapt to the fixed 210.dp carousel pager or the goal card list.
+ */
+@Composable
+fun LoansCard(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    isBanner: Boolean = false,
+    offers: LoanCardInfo? = null
+) {
+    val shape = RoundedCornerShape(if (isBanner) 18.dp else 16.dp)
+    val shadowElevation = if (isBanner) 4.dp else 2.dp
+    val horizontalPadding = if (isBanner) 20.dp else 16.dp
+    val topPadding = if (isBanner) 18.dp else 14.dp
+    val bottomPadding = if (isBanner) 16.dp else 14.dp
+
+    Box(
+        modifier = modifier
+            .shadow(shadowElevation, shape, spotColor = loansBannerShadowColor, ambientColor = loansBannerShadowColor)
+            .clip(shape)
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(Color(0xFFFFFBF0), Color(0xFFFFF8E7))
+                )
+            )
+            .border(1.dp, Color(0xFFE2D6BC), shape)
+            .clickable(onClick = onClick)
+            .padding(start = horizontalPadding, end = horizontalPadding, top = topPadding, bottom = bottomPadding)
+    ) {
+        Column(
+            modifier = if (isBanner) Modifier.fillMaxSize() else Modifier.fillMaxWidth(),
+            verticalArrangement = if (isBanner) Arrangement.SpaceBetween else Arrangement.spacedBy(12.dp)
+        ) {
+            Column {
+                // Header: Personal Loan
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Personal ",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = if (isBanner) 25.sp else 22.sp
+                        ),
+                        color = Color(0xFF3E2723)
+                    )
+                    Text(
+                        text = "Loan",
+                        fontFamily = getCursiveFontFamily(),
+                        fontSize = if (isBanner) 32.sp else 28.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFD4AF37)
+                    )
+                    if (offers != null) {
+                        Spacer(modifier = Modifier.weight(1f))
+                        Text(
+                            text = offers.pillText,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.6.sp,
+                            color = Color(0xFFFFECB3),
+                            modifier = Modifier
+                                .background(Color(0xFF0A2415), RoundedCornerShape(50))
+                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(if (isBanner) 10.dp else 8.dp))
+
+                // Full-width horizontal hairline divider
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(Color(0xFFF3EACF))
+                )
+
+                Spacer(modifier = Modifier.height(if (isBanner) 14.dp else 10.dp))
+
+                // Two columns: [Up to ₹30 Lakhs] | [Compare offers / Funds in your bank in minutes]
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Left Column
+                    Column(
+                        modifier = Modifier.weight(0.36f),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = offers?.leftLabel ?: "Up to",
+                            fontSize = if (isBanner) 12.sp else 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color(0xFF6D4C41)
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = offers?.leftValue ?: "₹30 Lakhs",
+                            fontSize = if (isBanner) 20.sp else 18.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = if (offers != null) Color(0xFF2E7D32) else Color(0xFF3E2723)
+                        )
+                    }
+
+                    // Vertical divider line
+                    Box(
+                        modifier = Modifier
+                            .width(1.dp)
+                            .height(if (isBanner) 46.dp else 40.dp)
+                            .background(Color(0xFFEADBBE))
+                    )
+
+                    // Right Column
+                    Column(
+                        modifier = Modifier
+                            .weight(0.64f)
+                            .padding(start = if (isBanner) 14.dp else 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(if (isBanner) 3.dp else 2.dp)
+                    ) {
+                        Text(
+                            text = offers?.lenderName ?: "Compare offers from lenders",
+                            fontSize = if (isBanner) 13.sp else 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF3E2723),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        if (offers != null) {
+                            Text(
+                                text = offers.detailText,
+                                fontSize = if (isBanner) 14.sp else 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF8B6B25),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        } else Text(
+                            text = buildAnnotatedString {
+                                withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = Color(0xFF3E2723))) {
+                                    append("Funds in your bank in ")
+                                }
+                                withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = Color(0xFF8B6B25))) {
+                                    append("minutes")
+                                }
+                            },
+                            fontSize = if (isBanner) 14.sp else 13.sp,
+                            lineHeight = if (isBanner) 18.sp else 16.sp
+                        )
+                    }
+                }
+            }
+
+            // Bottom CTA button aligned to bottom-end
+            if (offers != null) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = offers.footerHint,
+                        fontSize = 12.sp,
+                        color = Color(0xFF6D4C41)
+                    )
+                    offers.footerAction?.let { action ->
+                        Text(
+                            text = action,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF1A7A42)
+                        )
+                    }
+                }
+            } else Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    onClick = onClick,
+                    shape = RoundedCornerShape(if (isBanner) 14.dp else 12.dp),
+                    color = Color(0xFF0A2415),
+                    border = BorderStroke(1.5.dp, Color(0xFFD4AF37))
+                ) {
+                    Text(
+                        text = "Check eligibility",
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = if (isBanner) 14.sp else 13.sp
+                        ),
+                        color = Color.White,
+                        modifier = Modifier.padding(
+                            horizontal = if (isBanner) 20.dp else 16.dp,
+                            vertical = if (isBanner) 9.dp else 7.dp
+                        )
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** Carousel banner shown when the server lists "loans_new" in the dashboard banner flag. */
+@Composable
+fun LoansBanner(onClick: () -> Unit, offers: LoanCardInfo? = null) {
+    LoansCard(
+        onClick = onClick,
+        offers = offers,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(210.dp),
+        isBanner = true
+    )
+}
+
+/** "Explore more" list entry for loans (goal id "loans_new"); not an investment goal, so no SIP or returns text. */
+@Composable
+fun LoansGoalCard(onClick: () -> Unit, modifier: Modifier = Modifier, offers: LoanCardInfo? = null) {
+    LoansCard(
+        onClick = onClick,
+        offers = offers,
+        modifier = modifier.fillMaxWidth(),
+        isBanner = false
+    )
+}
+
 fun resolveDashboardBanners(
     serverBanners: List<String>,
     referralEnabled: Boolean,
@@ -5661,6 +5916,7 @@ fun resolveDashboardBanners(
         when (bannerId) {
             "gold" -> add("GOLD_CARD")
             "silver" -> add("SILVER_CARD")
+            "loans_new" -> add("LOANS_CARD")
             "referral" -> add("REFER_A_FRIEND")
             "milestone" -> {
                 if (hasMilestone && milestoneMessage.isNotBlank()) {

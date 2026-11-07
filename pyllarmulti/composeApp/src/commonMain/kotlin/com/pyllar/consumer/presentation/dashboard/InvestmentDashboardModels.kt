@@ -26,7 +26,8 @@ data class InvestmentDashboardV2State(
     val errorMessage: String? = null,
     val goldPrice: Double? = null,
     val silverPrice: Double? = null,
-    val banners: List<String> = DEFAULT_DASHBOARD_BANNERS
+    val banners: List<String> = DEFAULT_DASHBOARD_BANNERS,
+    val loanCard: LoanCardInfo? = null
 )
 
 data class InvestmentGoal(

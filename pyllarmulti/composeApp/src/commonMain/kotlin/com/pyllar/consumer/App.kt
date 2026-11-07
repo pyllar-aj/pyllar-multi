@@ -139,6 +139,11 @@ sealed class Screen {
     data class EsignWebView(val userId: String, val url: String, val kycAttemptId: String? = null) : Screen()
     data class PennyDropLoading(val userId: String) : Screen()
     object Home : Screen()
+    data class LoanApplication(val userId: String = "") : Screen()
+    data class LoanOffers(val applicationId: String) : Screen()
+    object LoanCooldown : Screen()
+    data class LoanDetails(val applicationId: String) : Screen()
+    data class LoanWebView(val url: String) : Screen()
 }
 
 @Composable
@@ -177,6 +182,8 @@ fun App() {
                     is Screen.CheckPanPopulatedDetails -> ScreenNames.CHECK_PAN_POPULATED_DETAILS
                     is Screen.UpiAccountLinking -> ScreenNames.MANDATE_AUTH // Fallback
                     is Screen.PennyDropLoading -> ScreenNames.PENNY_DROP_LOADING
+                    is Screen.LoanApplication -> ScreenNames.LOAN_APPLICATION
+                    is Screen.LoanCooldown -> ScreenNames.LOAN_COOLDOWN
                     else -> null
                 }
                 if (action != null) {
@@ -886,6 +893,9 @@ fun App() {
                     onNavigateToProfile = { navigateTo(Screen.Profile(screen.userId)) },
                     onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId)) },
                     onNavigateToReferral = { navigateTo(Screen.Referral(screen.userId)) },
+                    onNavigateToLoans = { route ->
+                        navigateTo(parseLoanRoute(route))
+                    },
                     onStartKyc = { navigateTo(Screen.KycInformation(screen.userId)) },
                     onRetryKyc = { navigateTo(Screen.PreVerification(screen.userId)) }
                 )
@@ -1232,6 +1242,45 @@ fun App() {
                     onNavigateToMutualFund = { navigateTo(Screen.InitialDashboard(""), clearStack = true) }
                 )
             }
+            is Screen.LoanApplication -> {
+                com.pyllar.consumer.presentation.loan.LoanApplicationScreen(
+                    onBackClick = { navigateBack() },
+                    onHelpClick = { scope.launch { navigateTo(Screen.HelpSupport(sessionStore.getCurrentUserId())) } },
+                    onSubmitted = { applicationId ->
+                        if (screenStack.isNotEmpty() && screenStack.last() is Screen.LoanApplication) {
+                            screenStack.removeAt(screenStack.size - 1)
+                        }
+                        navigateTo(Screen.LoanOffers(applicationId), clearStack = false)
+                    }
+                )
+            }
+            is Screen.LoanOffers -> {
+                com.pyllar.consumer.presentation.loan.LoanOffersScreen(
+                    applicationId = screen.applicationId,
+                    onBackClick = { navigateBack() },
+                    onHelpClick = { scope.launch { navigateTo(Screen.HelpSupport(sessionStore.getCurrentUserId())) } },
+                    onOpenHosted = { url -> navigateTo(Screen.LoanWebView(url)) }
+                )
+            }
+            is Screen.LoanCooldown -> {
+                com.pyllar.consumer.presentation.loan.LoanCooldownScreen(
+                    onBackClick = { navigateBack() },
+                    onHelpClick = { scope.launch { navigateTo(Screen.HelpSupport(sessionStore.getCurrentUserId())) } }
+                )
+            }
+            is Screen.LoanDetails -> {
+                com.pyllar.consumer.presentation.loan.LoanDetailsScreen(
+                    applicationId = screen.applicationId,
+                    onBackClick = { navigateBack() },
+                    onHelpClick = { scope.launch { navigateTo(Screen.HelpSupport(sessionStore.getCurrentUserId())) } }
+                )
+            }
+            is Screen.LoanWebView -> {
+                com.pyllar.consumer.presentation.loan.LoanWebViewScreen(
+                    url = screen.url,
+                    onClose = { navigateBack() }
+                )
+            }
         }
                 }
             }
@@ -1258,6 +1307,12 @@ private suspend fun handleNavigation(
     val effectiveInvestorId = investorId ?: sessionStore.getValue(KeyValueConstants.INVESTOR_ID)
     val effectiveReUrl = reUrl ?: sessionStore.getValue(KeyValueConstants.RE_URL)
     val effectivePreVerificationId = preVerificationId ?: sessionStore.getValue("pre_verification_id")
+
+    if (action != null && action.startsWith("loan_")) {
+        platformLog("AppNav: Matched loan route '$action'")
+        onNavigate(parseLoanRoute(action))
+        return
+    }
 
     when (action) {
         ScreenNames.PRE_VERIFICATION -> {
@@ -1342,9 +1397,78 @@ private suspend fun handleNavigation(
             platformLog("AppNav: Matched DASHBOARD/INVESTMENT_DASHBOARD")
             onNavigate(Screen.InvestmentDashboard(userId))
         }
+        ScreenNames.LOAN_APPLICATION -> {
+            platformLog("AppNav: Matched LOAN_APPLICATION")
+            onNavigate(Screen.LoanApplication(userId))
+        }
+        ScreenNames.LOAN_COOLDOWN -> {
+            platformLog("AppNav: Matched LOAN_COOLDOWN")
+            onNavigate(Screen.LoanCooldown)
+        }
+        ScreenNames.LOAN_OFFERS -> {
+            platformLog("AppNav: Matched LOAN_OFFERS")
+            onNavigate(Screen.LoanApplication(userId))
+        }
+        ScreenNames.LOAN_DETAILS -> {
+            platformLog("AppNav: Matched LOAN_DETAILS")
+            onNavigate(Screen.LoanApplication(userId))
+        }
         else -> {
             platformLog("AppNav: Unrecognized action '$action', staying on current screen.")
             com.pyllar.consumer.util.Log.d("AppNav", "Unrecognized notification action '$action'. Staying on current screen.")
         }
+    }
+}
+
+private fun decodeUrl(url: String): String {
+    return try {
+        val bytes = mutableListOf<Byte>()
+        var i = 0
+        while (i < url.length) {
+            val c = url[i]
+            if (c == '%' && i + 2 < url.length) {
+                val hex = url.substring(i + 1, i + 3)
+                val byteVal = hex.toIntOrNull(16)
+                if (byteVal != null) {
+                    bytes.add(byteVal.toByte())
+                    i += 3
+                    continue
+                }
+            } else if (c == '+') {
+                bytes.add(' '.code.toByte())
+                i++
+                continue
+            }
+            val charBytes = c.toString().encodeToByteArray()
+            for (b in charBytes) {
+                bytes.add(b)
+            }
+            i++
+        }
+        bytes.toByteArray().decodeToString()
+    } catch (_: Exception) {
+        url
+    }
+}
+
+private fun parseLoanRoute(route: String): Screen {
+    val cleanRoute = route.trim()
+    return when {
+        cleanRoute.startsWith("loan_offers/") -> {
+            val appId = cleanRoute.removePrefix("loan_offers/").trim()
+            if (appId.isNotEmpty()) Screen.LoanOffers(appId) else Screen.LoanApplication()
+        }
+        cleanRoute.startsWith("loan_details/") -> {
+            val appId = cleanRoute.removePrefix("loan_details/").trim()
+            if (appId.isNotEmpty()) Screen.LoanDetails(appId) else Screen.LoanApplication()
+        }
+        cleanRoute.startsWith("loan_webview/") -> {
+            val encodedUrl = cleanRoute.removePrefix("loan_webview/").trim()
+            Screen.LoanWebView(decodeUrl(encodedUrl))
+        }
+        cleanRoute == ScreenNames.LOAN_COOLDOWN || cleanRoute == "loan_cooldown" -> {
+            Screen.LoanCooldown
+        }
+        else -> Screen.LoanApplication()
     }
 }

@@ -7,6 +7,7 @@ import com.pyllar.consumer.data.remote.network.PyllarApiClient
 import com.pyllar.consumer.data.repository.AuthRepositoryImpl
 import com.pyllar.consumer.data.repository.DashboardRepositoryImpl
 import com.pyllar.consumer.data.repository.FundDetailsRepositoryImpl
+import com.pyllar.consumer.data.repository.LoanRepositoryImpl
 import com.pyllar.consumer.data.repository.MutualFundRepositoryImpl
 import com.pyllar.consumer.data.repository.OnboardingRepositoryImpl
 import com.pyllar.consumer.data.repository.RedemptionRepositoryImpl
@@ -14,6 +15,7 @@ import com.pyllar.consumer.data.repository.ReferralRepositoryImpl
 import com.pyllar.consumer.domain.repository.AuthRepository
 import com.pyllar.consumer.domain.repository.DashboardRepository
 import com.pyllar.consumer.domain.repository.FundDetailsRepository
+import com.pyllar.consumer.domain.repository.LoanRepository
 import com.pyllar.consumer.domain.repository.MutualFundRepository
 import com.pyllar.consumer.domain.repository.OnboardingRepository
 import com.pyllar.consumer.domain.repository.RedemptionRepository
@@ -24,6 +26,10 @@ import com.pyllar.consumer.presentation.auth.login.AuthViewModel
 import com.pyllar.consumer.presentation.auth.permission.PermissionViewModel
 import com.pyllar.consumer.presentation.auth.phone.OtpVerificationViewModel
 import com.pyllar.consumer.presentation.auth.phone.PhoneVerificationViewModel
+import com.pyllar.consumer.presentation.loan.LoanApplicationViewModel
+import com.pyllar.consumer.presentation.loan.LoanCooldownViewModel
+import com.pyllar.consumer.presentation.loan.LoanDetailsViewModel
+import com.pyllar.consumer.presentation.loan.LoanOffersViewModel
 import com.pyllar.consumer.presentation.dashboard.DashboardViewModel
 import com.pyllar.consumer.presentation.dashboard.InitialDashboardViewModel
 import com.pyllar.consumer.presentation.dashboard.InvestmentDashboardV2ViewModel
@@ -83,6 +89,7 @@ val sharedModule: Module = module {
     single<RedemptionRepository> { RedemptionRepositoryImpl(get()) }
     single<DashboardRepository> { DashboardRepositoryImpl(get()) }
     single<ReferralRepository> { ReferralRepositoryImpl(get()) }
+    single<LoanRepository> { LoanRepositoryImpl(get()) }
     single<com.pyllar.consumer.domain.repository.CommonRepository> { com.pyllar.consumer.data.repository.CommonRepositoryImpl(get()) }
     single<PreVerificationRepository> { PreVerificationRepositoryImpl(get()) }
     single<com.pyllar.consumer.domain.repository.UpiRepository> { com.pyllar.consumer.data.repository.UpiRepositoryImpl(get()) }
@@ -128,4 +135,12 @@ val sharedModule: Module = module {
     factoryOf(::ProfileViewModel)
     factoryOf(::ReferralViewModel)
     factoryOf(::WithdrawSuccessViewModelV2)
+
+    // Loan ViewModels
+    factoryOf(::LoanApplicationViewModel)
+    factoryOf(::LoanCooldownViewModel)
+    factory { (applicationId: String) -> LoanOffersViewModel(get(), applicationId) }
+    factory { LoanOffersViewModel(get()) }
+    factory { (applicationId: String) -> LoanDetailsViewModel(get(), applicationId) }
+    factory { LoanDetailsViewModel(get()) }
 }
