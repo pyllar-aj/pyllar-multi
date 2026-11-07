@@ -130,7 +130,18 @@ data class InvestmentLimitsResponseDto(
     @SerialName("max")
     val max: Long? = null,
     @SerialName("defaultAmount")
-    val defaultAmount: Long? = null
+    val defaultAmount: Long? = null,
+    // Basket goals only: the schemes the SIP goes into, with each one's share. Absent for the older limits.
+    @SerialName("schemes")
+    val schemes: List<LimitsSchemeDto>? = null
+)
+
+@Serializable
+data class LimitsSchemeDto(
+    @SerialName("isin") val isin: String? = null,
+    @SerialName("fundName") val fundName: String? = null,
+    @SerialName("category") val category: String? = null,
+    @SerialName("weightPct") val weightPct: Double? = null
 )
 
 // ========== MUTUAL FUND RESPONSE DTOS ==========

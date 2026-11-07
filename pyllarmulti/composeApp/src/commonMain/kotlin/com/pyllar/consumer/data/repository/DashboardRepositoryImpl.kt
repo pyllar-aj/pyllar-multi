@@ -72,7 +72,7 @@ class DashboardRepositoryImpl(
     override fun getTransactions(request: com.pyllar.consumer.data.remote.requests.TransactionDetailsRequest): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.TransactionDetailsResponseDto>> = flow {
         emit(Resource.Loading())
         when (val result = apiClient.post<com.pyllar.consumer.data.remote.model.dto.TransactionDetailsResponseDto, com.pyllar.consumer.data.remote.requests.TransactionDetailsRequest>(
-            path = "api/invDashboard/transactions_uipid",
+            path = "api/goal-basket/transactions",
             body = request
         )) {
             is Resource.Success -> emit(Resource.Success(
@@ -98,7 +98,7 @@ class DashboardRepositoryImpl(
     ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.PagedTransactionDetailsResponseDto>> = flow {
         emit(Resource.Loading())
         when (val result = apiClient.get<com.pyllar.consumer.data.remote.model.dto.PagedTransactionDetailsResponseDto>(
-            path = "api/invDashboard/transactions/paged"
+            path = "api/goal-basket/transactions/paged"
         ) {
             url {
                 parameters.append("userId", userId)
@@ -178,7 +178,7 @@ class DashboardRepositoryImpl(
     override fun sipAction(request: com.pyllar.consumer.data.remote.requests.SipActionRequest): Flow<Resource<String>> = flow {
         emit(Resource.Loading())
         val result = apiClient.post<String, com.pyllar.consumer.data.remote.requests.SipActionRequest>(
-            path = "api/invDashboard/sipActV2",
+            path = "api/sip/action",
             body = request
         )
         emit(result)
@@ -187,7 +187,7 @@ class DashboardRepositoryImpl(
     override fun pollActionStatus(request: com.pyllar.consumer.data.remote.requests.ActionPollRequest): Flow<Resource<Boolean>> = flow {
         emit(Resource.Loading())
         val result = apiClient.post<Boolean, com.pyllar.consumer.data.remote.requests.ActionPollRequest>(
-            path = "api/invDashboard/poll-as",
+            path = "api/sip/poll-action",
             body = request
         ) {
             header("X-Current-Screen", "planpoll")
@@ -205,7 +205,7 @@ class DashboardRepositoryImpl(
             reason = "pause"
         )
         apiClient.post<String, com.pyllar.consumer.data.remote.requests.SipActionRequest>(
-            path = "api/invDashboard/sipActV2",
+            path = "api/sip/action",
             body = request
         ).let { emit(if (it is Resource.Success) Resource.Success(Unit) else Resource.Error(it.message ?: "Failed")) }
     }
@@ -220,7 +220,7 @@ class DashboardRepositoryImpl(
             reason = "resume"
         )
         apiClient.post<String, com.pyllar.consumer.data.remote.requests.SipActionRequest>(
-            path = "api/invDashboard/sipActV2",
+            path = "api/sip/action",
             body = request
         ).let { emit(if (it is Resource.Success) Resource.Success(Unit) else Resource.Error(it.message ?: "Failed")) }
     }
@@ -235,7 +235,7 @@ class DashboardRepositoryImpl(
             reason = reason ?: "User Request"
         )
         apiClient.post<String, com.pyllar.consumer.data.remote.requests.SipActionRequest>(
-            path = "api/invDashboard/sipActV2",
+            path = "api/sip/action",
             body = request
         ).let { emit(if (it is Resource.Success) Resource.Success(Unit) else Resource.Error(it.message ?: "Failed")) }
     }

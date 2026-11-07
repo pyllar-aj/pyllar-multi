@@ -119,7 +119,7 @@ val sharedModule: Module = module {
     factoryOf(::PreVerificationViewModel)
     factoryOf(::CheckPanPopulatedDetailsViewModel)
     factoryOf(::PennyDropLoadingModel)
-    factory { MandateAuthModel(get(), CoroutineScope(Dispatchers.Main)) }
+    factory { MandateAuthModel(get(), get(), CoroutineScope(Dispatchers.Main)) }
     factoryOf(::LumpsumPurchaseAuthViewModel)
     factoryOf(::DoubtsSurveyViewModel)
     factory { WithdrawAmountViewModel(get(), get()) }

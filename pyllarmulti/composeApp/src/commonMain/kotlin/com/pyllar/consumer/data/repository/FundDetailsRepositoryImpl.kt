@@ -49,7 +49,7 @@ class FundDetailsRepositoryImpl(
         emit(Resource.Loading())
         when (val result =
             apiClient.get<FundDetailsResponseDto>(
-                path = "api/funds/details?userId=$userId&goalType=$goalType"
+                path = "api/goal-basket/fund-details?userId=$userId&goalType=$goalType"
             )
         ) {
             is Resource.Success -> emit(
@@ -116,6 +116,27 @@ class FundDetailsRepositoryImpl(
         emit(result)
     }
 
+    override fun getBasketInvestmentLimits(
+        userInvestmentPurposeId: String
+    ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.InvestmentLimitsResponseDto>> = flow {
+        emit(Resource.Loading())
+        val result = apiClient.get<com.pyllar.consumer.data.remote.model.dto.InvestmentLimitsResponseDto>(
+            path = "api/goal-basket/limits/$userInvestmentPurposeId"
+        )
+        emit(result)
+    }
+
+    override fun createBasketSip(
+        request: com.pyllar.consumer.data.remote.model.dto.CreateBasketSipRequestDto
+    ): Flow<Resource<MandateWrapper>> = flow {
+        emit(Resource.Loading())
+        val result = apiClient.post<MandateWrapper, com.pyllar.consumer.data.remote.model.dto.CreateBasketSipRequestDto>(
+            path = "api/goal-basket/sip",
+            body = request
+        )
+        emit(result)
+    }
+
     override fun syncMandate(
         request: com.pyllar.consumer.data.remote.requests.PollMandateRequest
     ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.MandateStatus>> = flow {
@@ -127,12 +148,23 @@ class FundDetailsRepositoryImpl(
         emit(result)
     }
 
+    override fun syncSipMandate(
+        request: com.pyllar.consumer.data.remote.requests.PollMandateRequest
+    ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.MandateStatus>> = flow {
+        emit(Resource.Loading())
+        val result = apiClient.post<com.pyllar.consumer.data.remote.model.dto.MandateStatus, com.pyllar.consumer.data.remote.requests.PollMandateRequest>(
+            path = "api/sip/sync-mandate",
+            body = request
+        )
+        emit(result)
+    }
+
     override fun pollPurchasePlanStatus(
         request: com.pyllar.consumer.data.remote.requests.PlanPollRequest
     ): Flow<Resource<Boolean>> = flow {
         emit(Resource.Loading())
         val result = apiClient.post<Boolean, com.pyllar.consumer.data.remote.requests.PlanPollRequest>(
-            path = "api/mf-purchase-plans/poll-ps",
+            path = "api/sip/poll-plans",
             body = request
         ) {
             header("X-Current-Screen", "planpoll")
@@ -146,7 +178,30 @@ class FundDetailsRepositoryImpl(
     ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.PastPerformanceResponseDto>> = flow {
         emit(Resource.Loading())
         val result = apiClient.get<com.pyllar.consumer.data.remote.model.dto.PastPerformanceResponseDto>(
-            path = "api/funds/past-performance?userId=$userId&goalType=$goalType"
+            path = "api/goal-basket/past-performance?userId=$userId&goalType=$goalType"
+        )
+        emit(result)
+    }
+
+    override fun getGoalPastPerformance(
+        userId: String,
+        goalType: String
+    ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.PastPerformanceResponseDto>> = flow {
+        emit(Resource.Loading())
+        val result = apiClient.get<com.pyllar.consumer.data.remote.model.dto.PastPerformanceResponseDto>(
+            path = "api/goal-basket/goal-past-performance?userId=$userId&goalType=$goalType"
+        )
+        emit(result)
+    }
+
+    override fun getSchemeDetails(
+        userId: String,
+        goalId: String,
+        isin: String
+    ): Flow<Resource<FundDetailsResponseDto>> = flow {
+        emit(Resource.Loading())
+        val result = apiClient.get<FundDetailsResponseDto>(
+            path = "api/goal-basket/scheme-details?userId=$userId&goalId=$goalId&isin=$isin"
         )
         emit(result)
     }

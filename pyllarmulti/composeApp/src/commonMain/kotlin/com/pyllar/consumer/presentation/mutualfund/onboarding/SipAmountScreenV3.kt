@@ -217,7 +217,7 @@ fun SipAmountScreenV3(
     onNavigateBack: () -> Unit = {},
     onForceLogout: () -> Unit = {},
     onNavigateToHelp: () -> Unit = {},
-    onNavigateToFundDetails: (userId: String, goalId: String, amount: Double, kycAttemptId: String, investorId: String, frequency: String, installmentDay: Int?) -> Unit = { _, _, _, _, _, _, _ -> },
+    onNavigateToFundDetails: (userId: String, goalId: String, amount: Double, kycAttemptId: String, investorId: String, frequency: String, installmentDay: Int?, schemeIsin: String?) -> Unit = { _, _, _, _, _, _, _, _ -> },
     onStartKyc: () -> Unit = {},
     viewModel: SipAmountScreenV2ViewModel = koinInject(),
     fundDetailsViewModel: FundDetailsViewModel = koinInject(),
@@ -375,7 +375,7 @@ fun SipAmountScreenV3(
     LaunchedEffect(effectiveUserId, effectiveGoalId) {
         if (effectiveUserId.isNotBlank() && effectiveGoalId.isNotBlank()) {
             fundDetailsViewModel.loadFundDetailsByGoal(effectiveUserId, effectiveGoalId)
-            fundDetailsViewModel.loadPastPerformance(effectiveUserId, effectiveGoalId)
+            fundDetailsViewModel.loadGoalPastPerformance(effectiveUserId, effectiveGoalId)
         }
     }
 
@@ -971,13 +971,14 @@ fun SipAmountScreenV3(
                             )
                         }
 
-                        // ── SCHEME CARD ──────────────────────────────────────────
+                        // ── SCHEME CARD ("Allocates to") ─────────────────────────
                         SipSchemeCard(
                             fundName = fundDetailsState.fundDetails?.fundName,
                             category = fundDetailsState.fundDetails?.category,
                             isLoading = fundDetailsState.isLoading,
                             enabled = areDetailsLoaded,
-                            onClick = {
+                            schemes = limitsState.schemes,
+                            onClick = { tappedSchemeIsin: String? ->
                                 val currentFreq = if (isMonthly) "monthly" else "daily"
                                 val currentInstalmentDay = if (isMonthly) sipDate else null
                                 onNavigateToFundDetails(
@@ -987,7 +988,8 @@ fun SipAmountScreenV3(
                                     effectiveKycAttemptId,
                                     effectiveInvestorId,
                                     currentFreq,
-                                    currentInstalmentDay
+                                    currentInstalmentDay,
+                                    tappedSchemeIsin
                                 )
                             }
                         )
@@ -1825,10 +1827,16 @@ private fun SipSchemeCard(
     category: String?,
     isLoading: Boolean,
     enabled: Boolean,
-    onClick: () -> Unit
+    schemes: List<com.pyllar.consumer.data.remote.model.dto.LimitsSchemeDto> = emptyList(),
+    onClick: (schemeIsin: String?) -> Unit
 ) {
+    // A goal whose SIP goes into several schemes lists every one of them, each with its share.
+    val multiple = schemes.size > 1
     Card(
-        modifier = Modifier.fillMaxWidth().clickable(enabled = enabled, onClick = onClick),
+        // several schemes: each row is its own tap target (below); one scheme: the whole card, as before
+        modifier = Modifier.fillMaxWidth().then(
+            if (multiple) Modifier else Modifier.clickable(enabled = enabled, onClick = { onClick(null) })
+        ),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         border = BorderStroke(1.dp, SipSubtleBorder),
@@ -1843,6 +1851,19 @@ private fun SipSchemeCard(
                 color = SipInk.copy(alpha = 0.38f)
             )
             Spacer(modifier = Modifier.height(10.dp))
+            if (multiple) {
+                schemes.forEachIndexed { index, scheme ->
+                    if (index > 0) Spacer(modifier = Modifier.height(12.dp))
+                    SipSchemeRow(
+                        fundName = scheme.fundName,
+                        category = scheme.category,
+                        weightPct = scheme.weightPct,
+                        enabled = enabled,
+                        onClick = { onClick(scheme.isin) }
+                    )
+                }
+                return@Column
+            }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
@@ -1887,6 +1908,68 @@ private fun SipSchemeCard(
                 )
             }
         }
+    }
+}
+
+/** One scheme of a multi-scheme goal: logo, name, category and the share of the SIP it receives. */
+@Composable
+private fun SipSchemeRow(
+    fundName: String?,
+    category: String?,
+    weightPct: Double?,
+    enabled: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().clickable(enabled = enabled, onClick = onClick),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(Color(0xFFF5F5F5))
+                .border(1.dp, SipSubtleBorder, RoundedCornerShape(12.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            val logo = getFundLogo(fundName)
+            if (logo != null) {
+                Image(
+                    painter = painterResource(logo),
+                    contentDescription = stringResource(Res.string.content_description_fund_logo),
+                    modifier = Modifier.size(36.dp)
+                )
+            }
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = fundName ?: "",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                color = SipInk,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            if (!category.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(3.dp))
+                Text(text = category, fontSize = 11.sp, color = SipInk.copy(alpha = 0.5f))
+            }
+        }
+        if (weightPct != null) {
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "${weightPct.toInt()}%",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                color = SipInk.copy(alpha = 0.7f)
+            )
+        }
+        Icon(
+            imageVector = Icons.Default.KeyboardArrowRight,
+            contentDescription = null,
+            tint = SipInk.copy(alpha = 0.3f)
+        )
     }
 }
 

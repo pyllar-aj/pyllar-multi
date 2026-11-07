@@ -67,6 +67,8 @@ fun FundDetailsScreen(
     fromSipAmount: Boolean = false,
     frequency: String = "daily",
     installmentDay: Int? = null,
+    /** A multi-scheme goal: the scheme the user tapped in the "Allocates to" list. Blank = the goal's first scheme. */
+    schemeIsin: String = "",
     onBackClick: () -> Unit = {},
     onStartKyc: () -> Unit = {},
     onSipCreated: (Double, String?, com.pyllar.consumer.data.remote.model.dto.MandateWrapper?) -> Unit = { _, _, _ -> },
@@ -84,13 +86,15 @@ fun FundDetailsScreen(
         PlatformAnalyticsLogger.logScreenView("FundDetails")
     }
 
-    LaunchedEffect(isin, userId, goalId) {
+    LaunchedEffect(isin, userId, goalId, schemeIsin) {
         if (userId.isNotBlank()) {
             dashboardViewModel.loadDashboardData(userId)
         }
         
         if (isin.isNotBlank()) {
             viewModel.loadFundDetails(isin)
+        } else if (userId.isNotBlank() && goalId.isNotBlank() && schemeIsin.isNotBlank()) {
+            viewModel.loadSchemeDetails(userId, goalId, schemeIsin)
         } else if (userId.isNotBlank() && goalId.isNotBlank()) {
             viewModel.loadFundDetailsByGoal(userId, goalId)
         }

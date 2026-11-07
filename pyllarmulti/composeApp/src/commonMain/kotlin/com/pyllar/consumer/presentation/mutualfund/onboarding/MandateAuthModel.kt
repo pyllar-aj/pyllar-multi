@@ -37,6 +37,7 @@ data class MandateAuthUiState(
  */
 class MandateAuthModel(
     private val repository: com.pyllar.consumer.domain.repository.FundDetailsRepository,
+    private val sessionStore: com.pyllar.consumer.domain.storage.SessionStore,
     private val viewModelScope: CoroutineScope
 ) {
 
@@ -92,17 +93,25 @@ class MandateAuthModel(
         pollingJob = viewModelScope.launch {
             var secondsElapsed = 0
             val maxSeconds = 180 // 3 minutes
+
+            // A SIP started through the basket API is polled on the basket endpoint (same request and response).
+            val isBasketSip = try {
+                sessionStore.getValue(com.pyllar.consumer.data.local.KeyValueConstants.BASKET_SIP_MANDATE_ID) == mandateId.toString()
+            } catch (e: Exception) {
+                false
+            }
             
             while (secondsElapsed < maxSeconds) {
                 try {
-                    platformLog("MandateAuthModel: \uD83D\uDCE1 Making sync-mandate API call... (${secondsElapsed}s elapsed)")
+                    platformLog("MandateAuthModel: \uD83D\uDCE1 Making sync-mandate API call... (${secondsElapsed}s elapsed, isBasketSip=$isBasketSip)")
                     val request = PollMandateRequest(
                         userId = userId,
                         mandateId = mandateId,
                         mandateRef = mandateRef
                     )
 
-                    repository.syncMandate(request).collect { result ->
+                    val flow = if (isBasketSip) repository.syncSipMandate(request) else repository.syncMandate(request)
+                    flow.collect { result ->
                         when (result) {
                             is Resource.Success -> {
                                 val status = result.data

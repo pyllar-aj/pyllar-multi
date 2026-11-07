@@ -99,7 +99,8 @@ sealed class Screen {
         val investorId: String = "",
         val fromSipAmount: Boolean = false,
         val frequency: String = "daily",
-        val installmentDay: Int? = null
+        val installmentDay: Int? = null,
+        val schemeIsin: String = ""
     ) : Screen()
     data class FundDetailsViewOnly(val isin: String, val userId: String, val goalId: String) : Screen()
     data class LumpsumFundDetails(val isin: String, val userId: String, val goalId: String, val lumpsumAmount: Double, val kycAttemptId: String = "", val investorId: String = "") : Screen()
@@ -989,6 +990,7 @@ fun App() {
                     fromSipAmount = screen.fromSipAmount,
                     frequency = screen.frequency,
                     installmentDay = screen.installmentDay,
+                    schemeIsin = screen.schemeIsin,
                     onBackClick = { navigateBack() },
                     onStartKyc = { navigateTo(Screen.KycInformation(screen.userId)) },
                     onSipCreated = { amount, nextScreen, mandate ->
@@ -1076,8 +1078,8 @@ fun App() {
                     },
                     onNavigateBack = { navigateBack() },
                     onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId)) },
-                    onNavigateToFundDetails = { userId, goalId, amt, kycId, invId, freq, day ->
-                        navigateTo(Screen.FundDetails("", userId, goalId, amt, kycAttemptId = kycId, investorId = invId, fromSipAmount = true, frequency = freq, installmentDay = day))
+                    onNavigateToFundDetails = { userId, goalId, amt, kycId, invId, freq, day, schemeIsin ->
+                        navigateTo(Screen.FundDetails("", userId, goalId, amt, kycAttemptId = kycId, investorId = invId, fromSipAmount = true, frequency = freq, installmentDay = day, schemeIsin = schemeIsin ?: ""))
                     }
                 )
             }

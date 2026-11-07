@@ -30,7 +30,19 @@ interface FundDetailsRepository {
         userInvestmentPurposeId: String
     ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.InvestmentLimitsResponseDto>>
 
+    fun getBasketInvestmentLimits(
+        userInvestmentPurposeId: String
+    ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.InvestmentLimitsResponseDto>>
+
+    fun createBasketSip(
+        request: com.pyllar.consumer.data.remote.model.dto.CreateBasketSipRequestDto
+    ): Flow<Resource<MandateWrapper>>
+
     fun syncMandate(
+        request: com.pyllar.consumer.data.remote.requests.PollMandateRequest
+    ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.MandateStatus>>
+
+    fun syncSipMandate(
         request: com.pyllar.consumer.data.remote.requests.PollMandateRequest
     ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.MandateStatus>>
 
@@ -42,6 +54,17 @@ interface FundDetailsRepository {
         userId: String,
         goalType: String
     ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.PastPerformanceResponseDto>>
+
+    fun getGoalPastPerformance(
+        userId: String,
+        goalType: String
+    ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.PastPerformanceResponseDto>>
+
+    fun getSchemeDetails(
+        userId: String,
+        goalId: String,
+        isin: String
+    ): Flow<Resource<FundDetailsResponseDto>>
 
     fun createPurchasePlan(
         request: com.pyllar.consumer.data.remote.model.dto.CreatePurchasePlanRequestDto

@@ -19,6 +19,10 @@ object KeyValueConstants {
     const val RE_URL = "re_url"
     const val ESIGN_URL = "esign_url"
     const val USER_PURPOSE_ID = "user_purpose_id"
+    /** The goal id whose SIP range came from its basket (set when the amount screen loads the limits). */
+    const val BASKET_GOAL_ID = "basket_goal_id"
+    /** Local mandate id of a SIP started through the basket API; its mandate is polled with api/sip/sync-mandate. */
+    const val BASKET_SIP_MANDATE_ID = "basket_sip_mandate_id"
 
     // Onboarding
     const val ONBOARDING_STEP = "onboarding_step"

@@ -58,5 +58,18 @@ data class PurchaseTransactionDto(
     val navAtPurchase: Double?,
     val units: Double?,
     val profitLoss: Double?,
+    val redemptionMode: String? = null,
+    // Only on a basket SIP installment: the amount each scheme received (amount above is then the combined total)
+    val schemes: List<SchemeLegDto>? = null,
     val mode: String? = null
+)
+
+/** One scheme's share of a clubbed basket SIP installment */
+@Serializable
+data class SchemeLegDto(
+    val isin: String? = null,
+    val amount: Double? = null,
+    val state: String? = null,
+    val folioNumber: String? = null,
+    val allottedUnits: Double? = null
 )
