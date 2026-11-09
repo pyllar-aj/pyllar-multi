@@ -53,7 +53,6 @@ private val Link = Color(0xFF1A7A42)
 fun LoanDetailsScreen(
     applicationId: String,
     onBackClick: () -> Unit,
-    onHelpClick: () -> Unit = {},
     viewModel: LoanDetailsViewModel = koinInject()
 ) {
     LaunchedEffect(applicationId) {
@@ -72,7 +71,6 @@ fun LoanDetailsScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(start = 20.dp, end = 20.dp, top = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Surface(
@@ -83,10 +81,6 @@ fun LoanDetailsScreen(
                     Icon(Icons.Filled.ArrowBack, contentDescription = "Back", tint = Brown)
                 }
             }
-            Text(
-                "Help", modifier = Modifier.clickable(onClick = onHelpClick),
-                fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Link
-            )
         }
 
         Column(

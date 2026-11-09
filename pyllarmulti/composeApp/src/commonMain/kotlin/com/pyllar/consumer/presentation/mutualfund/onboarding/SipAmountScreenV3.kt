@@ -53,6 +53,7 @@ import com.pyllar.consumer.presentation.mutualfund.details.FundDetailsViewModel
 import com.pyllar.consumer.presentation.mutualfund.details.FundHeader
 import com.pyllar.consumer.presentation.mutualfund.details.SipCreationResult
 import com.pyllar.consumer.presentation.dashboard.InvestmentDashboardV2ViewModel
+import com.pyllar.consumer.presentation.dashboard.getFundLogo
 import com.pyllar.consumer.presentation.ui.theme.*
 import com.pyllar.consumer.util.*
 import kotlinx.coroutines.delay
@@ -217,7 +218,7 @@ fun SipAmountScreenV3(
     onNavigateBack: () -> Unit = {},
     onForceLogout: () -> Unit = {},
     onNavigateToHelp: () -> Unit = {},
-    onNavigateToFundDetails: (userId: String, goalId: String, amount: Double, kycAttemptId: String, investorId: String, frequency: String, installmentDay: Int?, schemeIsin: String?) -> Unit = { _, _, _, _, _, _, _, _ -> },
+    onNavigateToFundDetails: (userId: String, goalId: String, amount: Double, kycAttemptId: String, investorId: String, frequency: String, installmentDay: Int?, schemeIsin: String?, isMultiScheme: Boolean) -> Unit = { _, _, _, _, _, _, _, _, _ -> },
     onStartKyc: () -> Unit = {},
     viewModel: SipAmountScreenV2ViewModel = koinInject(),
     fundDetailsViewModel: FundDetailsViewModel = koinInject(),
@@ -981,15 +982,17 @@ fun SipAmountScreenV3(
                             onClick = { tappedSchemeIsin: String? ->
                                 val currentFreq = if (isMonthly) "monthly" else "daily"
                                 val currentInstalmentDay = if (isMonthly) sipDate else null
+                                val isMultiScheme = limitsState.schemes.size > 1 || !tappedSchemeIsin.isNullOrBlank()
                                 onNavigateToFundDetails(
                                     effectiveUserId,
                                     effectiveGoalId,
-                                    currentAmount.toDouble(),
+                                    if (isMultiScheme) 0.0 else currentAmount.toDouble(),
                                     effectiveKycAttemptId,
                                     effectiveInvestorId,
                                     currentFreq,
                                     currentInstalmentDay,
-                                    tappedSchemeIsin
+                                    tappedSchemeIsin,
+                                    isMultiScheme
                                 )
                             }
                         )
@@ -1089,6 +1092,7 @@ fun SipAmountScreenV3(
             isSheetLoading = isSheetLoading,
             sheetError = sheetError,
             areDetailsLoaded = areDetailsLoaded,
+            schemes = limitsState.schemes,
             onConfirm = {
                 val kycStatusVal = currentKycStatus
                 val isKycPending = !false &&
@@ -1862,50 +1866,47 @@ private fun SipSchemeCard(
                         onClick = { onClick(scheme.isin) }
                     )
                 }
-                return@Column
-            }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0xFFF5F5F5))
-                        .border(1.dp, SipSubtleBorder, RoundedCornerShape(12.dp)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                    } else {
-                        val logo = getFundLogo(fundName)
-                        if (logo != null) {
+            } else {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0xFFF5F5F5))
+                            .border(1.dp, SipSubtleBorder, RoundedCornerShape(12.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                        } else {
                             Image(
-                                painter = painterResource(logo),
-                                contentDescription = stringResource(Res.string.content_description_fund_logo),
+                                painter = painterResource(getFundLogo(fundName)),
+                                contentDescription = fundName,
                                 modifier = Modifier.size(36.dp)
                             )
                         }
                     }
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = fundName ?: "",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = SipInk,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    if (!category.isNullOrBlank()) {
-                        Spacer(modifier = Modifier.height(3.dp))
-                        Text(text = category, fontSize = 11.sp, color = SipInk.copy(alpha = 0.5f))
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = fundName ?: "",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = SipInk,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        if (!category.isNullOrBlank()) {
+                            Spacer(modifier = Modifier.height(3.dp))
+                            Text(text = category, fontSize = 11.sp, color = SipInk.copy(alpha = 0.5f))
+                        }
                     }
+                    Icon(
+                        imageVector = Icons.Default.KeyboardArrowRight,
+                        contentDescription = null,
+                        tint = SipInk.copy(alpha = 0.3f)
+                    )
                 }
-                Icon(
-                    imageVector = Icons.Default.KeyboardArrowRight,
-                    contentDescription = null,
-                    tint = SipInk.copy(alpha = 0.3f)
-                )
             }
         }
     }
@@ -1932,14 +1933,11 @@ private fun SipSchemeRow(
                 .border(1.dp, SipSubtleBorder, RoundedCornerShape(12.dp)),
             contentAlignment = Alignment.Center
         ) {
-            val logo = getFundLogo(fundName)
-            if (logo != null) {
-                Image(
-                    painter = painterResource(logo),
-                    contentDescription = stringResource(Res.string.content_description_fund_logo),
-                    modifier = Modifier.size(36.dp)
-                )
-            }
+            Image(
+                painter = painterResource(getFundLogo(fundName)),
+                contentDescription = fundName,
+                modifier = Modifier.size(36.dp)
+            )
         }
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
@@ -1970,17 +1968,6 @@ private fun SipSchemeRow(
             contentDescription = null,
             tint = SipInk.copy(alpha = 0.3f)
         )
-    }
-}
-
-private fun getFundLogo(fundName: String?): org.jetbrains.compose.resources.DrawableResource? {
-    val name = fundName ?: return null
-    return when {
-        name.contains("Invesco", true) -> Res.drawable.invesco
-        name.contains("Aditya", true) -> Res.drawable.aditya
-        name.contains("Axis", true) -> Res.drawable.axis_lo
-        name.contains("Nippon", true) -> Res.drawable.nippon
-        else -> null
     }
 }
 
@@ -2032,6 +2019,7 @@ private fun FundDetailsBottomSheet(
     isSheetLoading: Boolean,
     sheetError: String?,
     areDetailsLoaded: Boolean,
+    schemes: List<com.pyllar.consumer.data.remote.model.dto.LimitsSchemeDto> = emptyList(),
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
     showDisclaimerDialog: () -> Unit,
@@ -2062,26 +2050,49 @@ private fun FundDetailsBottomSheet(
                 else -> "$frequencyLabel SIP"
             }
 
+            val isMultiScheme = schemes.size > 1
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.weight(1f)) {
                     Text(text = title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    fundDetailsState.fundDetails?.fundName?.let { fundName ->
+                    if (isMultiScheme) {
                         Text(
-                            text = stringResource(Res.string.powered_by, fundName),
+                            text = stringResource(Res.string.intro_trusted_amcs),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                    } else {
+                        fundDetailsState.fundDetails?.fundName?.let { fundName ->
+                            Text(
+                                text = stringResource(Res.string.powered_by, fundName),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
-                fundDetailsState.fundDetails?.fundName?.let { fundName ->
-                    val logo = getFundLogo(fundName)
-                    if (logo != null) {
+                if (isMultiScheme) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(start = 16.dp)
+                    ) {
+                        schemes.take(2).forEach { scheme ->
+                            Image(
+                                painter = painterResource(getFundLogo(scheme.fundName)),
+                                contentDescription = scheme.fundName,
+                                modifier = Modifier.size(44.dp)
+                            )
+                        }
+                    }
+                } else {
+                    fundDetailsState.fundDetails?.fundName?.let { fundName ->
                         Image(
-                            painter = painterResource(logo),
+                            painter = painterResource(getFundLogo(fundName)),
                             contentDescription = stringResource(Res.string.content_description_fund_logo),
                             modifier = Modifier.size(60.dp).padding(start = 16.dp)
                         )

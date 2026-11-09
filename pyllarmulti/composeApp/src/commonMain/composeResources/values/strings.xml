@@ -928,5 +928,7 @@
     <string name="banner_gold_unavailable_notice">New investments in Gold Mutual Funds are temporarily unavailable.</string>
     <string name="gold_goal_unavailable_notice">New investments are temporarily unavailable due to regulatory restrictions.</string>
     <string name="scheme_details_gold_unavailable_notice">New investments in Gold are temporarily unavailable due to a regulatory advisory in India. You can continue investing in our other goals.</string>
+    <string name="intro_trusted_amcs">Powered by</string>
+    <string name="complete_kyc">Complete KYC</string>
 </resources>
 

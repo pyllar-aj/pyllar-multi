@@ -3,7 +3,6 @@ package com.pyllar.consumer.presentation.loan
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -44,7 +43,6 @@ private val DarkGold = Color(0xFF8B6B25)
 private val Brown = Color(0xFF3E2723)
 private val BrownMuted = Color(0xFF6D4C41)
 private val Hairline = Color(0xFFEFEBE9)
-private val Link = Color(0xFF1A7A42)
 
 private val MONTH_NAMES = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 
@@ -66,7 +64,6 @@ private fun statusLabel(status: String?) = when (status) {
 @Composable
 fun LoanCooldownScreen(
     onBackClick: () -> Unit,
-    onHelpClick: () -> Unit = {},
     viewModel: LoanCooldownViewModel = koinInject()
 ) {
     val ui by viewModel.uiState.collectAsState()
@@ -80,7 +77,6 @@ fun LoanCooldownScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(start = 20.dp, end = 20.dp, top = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Surface(
@@ -91,10 +87,6 @@ fun LoanCooldownScreen(
                     Icon(Icons.Filled.ArrowBack, contentDescription = "Back", tint = Brown)
                 }
             }
-            Text(
-                "Help", modifier = Modifier.clickable(onClick = onHelpClick),
-                fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Link
-            )
         }
 
         Column(

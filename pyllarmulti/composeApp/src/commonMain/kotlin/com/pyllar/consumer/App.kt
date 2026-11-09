@@ -100,7 +100,8 @@ sealed class Screen {
         val fromSipAmount: Boolean = false,
         val frequency: String = "daily",
         val installmentDay: Int? = null,
-        val schemeIsin: String = ""
+        val schemeIsin: String = "",
+        val isMultiScheme: Boolean = false
     ) : Screen()
     data class FundDetailsViewOnly(val isin: String, val userId: String, val goalId: String) : Screen()
     data class LumpsumFundDetails(val isin: String, val userId: String, val goalId: String, val lumpsumAmount: Double, val kycAttemptId: String = "", val investorId: String = "") : Screen()
@@ -991,6 +992,7 @@ fun App() {
                     frequency = screen.frequency,
                     installmentDay = screen.installmentDay,
                     schemeIsin = screen.schemeIsin,
+                    isMultiScheme = screen.isMultiScheme,
                     onBackClick = { navigateBack() },
                     onStartKyc = { navigateTo(Screen.KycInformation(screen.userId)) },
                     onSipCreated = { amount, nextScreen, mandate ->
@@ -1078,8 +1080,8 @@ fun App() {
                     },
                     onNavigateBack = { navigateBack() },
                     onNavigateToHelp = { navigateTo(Screen.HelpSupport(screen.userId)) },
-                    onNavigateToFundDetails = { userId, goalId, amt, kycId, invId, freq, day, schemeIsin ->
-                        navigateTo(Screen.FundDetails("", userId, goalId, amt, kycAttemptId = kycId, investorId = invId, fromSipAmount = true, frequency = freq, installmentDay = day, schemeIsin = schemeIsin ?: ""))
+                    onNavigateToFundDetails = { userId, goalId, amt, kycId, invId, freq, day, schemeIsin, isMultiScheme ->
+                        navigateTo(Screen.FundDetails("", userId, goalId, amt, kycAttemptId = kycId, investorId = invId, fromSipAmount = true, frequency = freq, installmentDay = day, schemeIsin = schemeIsin ?: "", isMultiScheme = isMultiScheme))
                     }
                 )
             }
@@ -1247,7 +1249,6 @@ fun App() {
             is Screen.LoanApplication -> {
                 com.pyllar.consumer.presentation.loan.LoanApplicationScreen(
                     onBackClick = { navigateBack() },
-                    onHelpClick = { scope.launch { navigateTo(Screen.HelpSupport(sessionStore.getCurrentUserId())) } },
                     onSubmitted = { applicationId ->
                         if (screenStack.isNotEmpty() && screenStack.last() is Screen.LoanApplication) {
                             screenStack.removeAt(screenStack.size - 1)
@@ -1260,21 +1261,18 @@ fun App() {
                 com.pyllar.consumer.presentation.loan.LoanOffersScreen(
                     applicationId = screen.applicationId,
                     onBackClick = { navigateBack() },
-                    onHelpClick = { scope.launch { navigateTo(Screen.HelpSupport(sessionStore.getCurrentUserId())) } },
                     onOpenHosted = { url -> navigateTo(Screen.LoanWebView(url)) }
                 )
             }
             is Screen.LoanCooldown -> {
                 com.pyllar.consumer.presentation.loan.LoanCooldownScreen(
-                    onBackClick = { navigateBack() },
-                    onHelpClick = { scope.launch { navigateTo(Screen.HelpSupport(sessionStore.getCurrentUserId())) } }
+                    onBackClick = { navigateBack() }
                 )
             }
             is Screen.LoanDetails -> {
                 com.pyllar.consumer.presentation.loan.LoanDetailsScreen(
                     applicationId = screen.applicationId,
-                    onBackClick = { navigateBack() },
-                    onHelpClick = { scope.launch { navigateTo(Screen.HelpSupport(sessionStore.getCurrentUserId())) } }
+                    onBackClick = { navigateBack() }
                 )
             }
             is Screen.LoanWebView -> {

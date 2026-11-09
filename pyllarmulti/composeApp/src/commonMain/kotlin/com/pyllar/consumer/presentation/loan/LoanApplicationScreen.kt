@@ -136,7 +136,6 @@ private fun stepErrors(step: Int, v: LoanFormValues): Map<String, String> {
 @Composable
 fun LoanApplicationScreen(
     onBackClick: () -> Unit,
-    onHelpClick: () -> Unit = {},
     onSubmitted: (applicationId: String) -> Unit,
     viewModel: LoanApplicationViewModel = koinInject()
 ) {
@@ -180,7 +179,6 @@ fun LoanApplicationScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = 20.dp, end = 20.dp, top = 16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Surface(
@@ -194,11 +192,6 @@ fun LoanApplicationScreen(
                         Icon(Icons.Filled.ArrowBack, contentDescription = "Back", tint = Brown)
                     }
                 }
-                Text(
-                    "Help",
-                    modifier = Modifier.clickable(onClick = onHelpClick),
-                    fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1A7A42)
-                )
             }
 
             Column(modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 20.dp)) {

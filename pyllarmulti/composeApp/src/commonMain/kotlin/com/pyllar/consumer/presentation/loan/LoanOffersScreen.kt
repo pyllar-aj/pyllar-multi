@@ -91,7 +91,6 @@ private fun shortName(name: String) = if (name.startsWith("Cholamandalam")) "Cho
 fun LoanOffersScreen(
     applicationId: String,
     onBackClick: () -> Unit,
-    onHelpClick: () -> Unit = {},
     onOpenHosted: (String) -> Unit = {},
     viewModel: LoanOffersViewModel = koinInject()
 ) {
@@ -148,7 +147,6 @@ fun LoanOffersScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(start = 20.dp, end = 20.dp, top = 16.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Surface(
@@ -159,10 +157,6 @@ fun LoanOffersScreen(
                                     Icon(Icons.Filled.ArrowBack, contentDescription = "Back", tint = Brown)
                                 }
                             }
-                            Text(
-                                "Help", modifier = Modifier.clickable(onClick = onHelpClick),
-                                fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Link
-                            )
                         }
                         Column(modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 20.dp)) {
                             Text("Loan application", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = DeepGreen)

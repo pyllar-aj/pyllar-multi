@@ -69,12 +69,14 @@ fun FundDetailsScreen(
     installmentDay: Int? = null,
     /** A multi-scheme goal: the scheme the user tapped in the "Allocates to" list. Blank = the goal's first scheme. */
     schemeIsin: String = "",
+    isMultiScheme: Boolean = false,
     onBackClick: () -> Unit = {},
     onStartKyc: () -> Unit = {},
     onSipCreated: (Double, String?, com.pyllar.consumer.data.remote.model.dto.MandateWrapper?) -> Unit = { _, _, _ -> },
     viewModel: FundDetailsViewModel = koinInject(),
     dashboardViewModel: InvestmentDashboardV2ViewModel = koinInject()
 ) {
+    val effectiveIsMultiScheme = isMultiScheme || schemeIsin.isNotBlank()
     val state by viewModel.uiState.collectAsState()
     val dashboardState by dashboardViewModel.dashboardState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
@@ -181,16 +183,18 @@ fun FundDetailsScreen(
                 )
             },
         bottomBar = {
-            if (fromSipAmount) {
+            if (fromSipAmount || !effectiveIsMultiScheme) {
                 FundDetailsBottomBar(
                     isLoading = state.isSipCreating,
                     isFetching = state.isLoading,
                     isEnabled = state.fundDetails != null,
                     sipAmount = sipAmount,
+                    frequency = frequency,
                     accountNumber = state.bankAccountNumber,
                     ifscCode = state.bankIfscCode,
                     bankName = state.bankName,
                     kycStatus = dashboardState.kycStatus,
+                    showInvestButton = !effectiveIsMultiScheme,
                     onInvestClick = {
                         if (sipAmount <= 0) return@FundDetailsBottomBar
                         
@@ -406,12 +410,17 @@ fun FundDetailsBottomBar(
     isFetching: Boolean,
     isEnabled: Boolean,
     sipAmount: Double,
+    frequency: String = "daily",
     accountNumber: String?,
     ifscCode: String?,
     bankName: String?,
     kycStatus: String = "",
+    showInvestButton: Boolean = true,
     onInvestClick: () -> Unit
 ) {
+    val hasBankDetails = accountNumber != null || ifscCode != null
+    if (!showInvestButton && !hasBankDetails) return
+
     Surface(
         tonalElevation = 4.dp, 
         shadowElevation = 8.dp,
@@ -424,7 +433,7 @@ fun FundDetailsBottomBar(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Bank Details (if available)
-            if (accountNumber != null || ifscCode != null) {
+            if (hasBankDetails) {
                 BankDetailsCard(
                     accountNumber = accountNumber,
                     ifscCode = ifscCode,
@@ -432,18 +441,11 @@ fun FundDetailsBottomBar(
                 )
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("SIP Amount", style = MaterialTheme.typography.labelSmall, color = V2BronzeMuted)
-                    Text("₹$sipAmount", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = V2BronzeInk)
-                }
+            // Invest Button (hidden if multi-scheme)
+            if (showInvestButton) {
                 Box(
                     modifier = Modifier
-                        .weight(1.5f)
+                        .fillMaxWidth()
                         .background(Brush.linearGradient(listOf(V2GoldAccent, V2GoldDeep)), RoundedCornerShape(50))
                         .padding(1.5.dp)
                 ) {
@@ -463,9 +465,17 @@ fun FundDetailsBottomBar(
                     ) {
                         if (isLoading || isFetching) {
                             CircularProgressIndicator(modifier = Modifier.size(20.dp), color = V2Cream)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(if (isLoading) "Submitting..." else "Checking...")
                         } else {
                             val buttonText = if (kycStatus.equals("INITIATE", ignoreCase = true)) {
-                                "Complete KYC"
+                                stringResource(Res.string.complete_kyc)
+                            } else if (sipAmount > 0) {
+                                if (frequency.equals("monthly", ignoreCase = true)) {
+                                    "Invest ₹${sipAmount.toInt()}/month"
+                                } else {
+                                    "Invest ₹${sipAmount.toInt()}/day"
+                                }
                             } else {
                                 "Invest Now"
                             }

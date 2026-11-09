@@ -219,6 +219,7 @@ fun getFundLogo(fundName: String?): DrawableResource {
     return when {
         name.contains("axis") -> Res.drawable.axis_lo
         name.contains("aditya") -> Res.drawable.aditya
+        name.contains("edelweiss") -> Res.drawable.edelweiss
         name.contains("invesco") -> Res.drawable.invesco
         name.contains("nippon") -> Res.drawable.nippon
         else -> Res.drawable.axis_lo
