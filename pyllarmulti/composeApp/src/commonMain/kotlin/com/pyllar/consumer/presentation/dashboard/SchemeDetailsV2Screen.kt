@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -1248,79 +1249,15 @@ fun SchemeDetailsV2Screen(
                                                 val stepTimelineActive = !(step5Done && today > day5Date)
 
                                                 if (stepTimelineActive) {
-                                                    Column(
-                                                        modifier = Modifier.fillMaxWidth(),
-                                                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                                                    ) {
-                                                        // Timeline Header
-                                                        Text(
-                                                            text = stringResource(Res.string.account_setup_progress_title),
-                                                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                                            color = MaterialTheme.colorScheme.onSurface
-                                                        )
-
-                                                        // Timeline Steps (5 Steps matching design image)
-                                                        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                                                            // Step 1: Plan setup
-                                                            SetupProgressStepRow(
-                                                                title = stringResource(Res.string.step_plan_setup_title),
-                                                                subtitle = stringResource(Res.string.step_plan_setup_desc),
-                                                                isCompleted = step1Done,
-                                                                isInProgress = false,
-                                                                goalColor = goalColor
-                                                            )
-
-                                                            // Step 2: Money debits started
-                                                            SetupProgressStepRow(
-                                                                title = stringResource(Res.string.step_money_debits_title),
-                                                                subtitle = stringResource(
-                                                                    Res.string.step_money_debits_desc,
-                                                                    dailyAmountStr
-                                                                ),
-                                                                isCompleted = step2Done,
-                                                                isInProgress = !step2Done,
-                                                                overrideStatusText = if (!step2Done) stringResource(Res.string.status_upcoming) else null,
-                                                                goalColor = goalColor
-                                                            )
-
-                                                            // Step 3: Folio creation
-                                                            val step3InProgress = step2Done && !step3Done
-                                                            SetupProgressStepRow(
-                                                                title = stringResource(Res.string.step_folio_creation_title),
-                                                                subtitle = stringResource(Res.string.step_folio_creation_desc),
-                                                                isCompleted = step3Done,
-                                                                isInProgress = step3InProgress,
-                                                                goalColor = goalColor
-                                                            )
-
-                                                            // Step 4: Unit allotment started
-                                                            val step4InProgress = step3Done && !step4Done
-                                                            SetupProgressStepRow(
-                                                                title = stringResource(Res.string.step_unit_allotment_title),
-                                                                subtitle = stringResource(Res.string.step_unit_allotment_desc),
-                                                                isCompleted = step4Done,
-                                                                isInProgress = step4InProgress,
-                                                                goalColor = goalColor
-                                                            )
-
-                                                            // Step 5: Account setup complete
-                                                            val step5InProgress = step4Done && !step5Done
-                                                            SetupProgressStepRow(
-                                                                title = stringResource(Res.string.step_account_setup_complete_title),
-                                                                subtitle = stringResource(Res.string.step_account_setup_complete_desc),
-                                                                isCompleted = step5Done,
-                                                                isInProgress = step5InProgress,
-                                                                goalColor = goalColor
-                                                            )
-                                                        }
-
-                                                        // Checklist Footer
-                                                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                                            ChecklistRow(text = stringResource(Res.string.allotment_checklist_1))
-                                                            ChecklistRow(text = stringResource(Res.string.allotment_checklist_2))
-                                                            ChecklistRow(text = stringResource(Res.string.your_money_invested_from_day_one))
-                                                        }
-                                                    }
+                                                    AccountSetupProgressTimeline(
+                                                        dailyAmountStr = dailyAmountStr,
+                                                        step1Done = step1Done,
+                                                        step2Done = step2Done,
+                                                        step3Done = step3Done,
+                                                        step4Done = step4Done,
+                                                        step5Done = step5Done,
+                                                        goalColor = goalColor
+                                                    )
 
                                                     Spacer(modifier = Modifier.height(6.dp))
                                                 }
@@ -3890,25 +3827,14 @@ private fun RedemptionStepRowItem(
             }
         }
         Column(modifier = Modifier.weight(1f)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                    color = if (isDone || isInProgress) Color(0xFF1E293B) else Color.Gray,
-                    modifier = Modifier.weight(1f, fill = false).padding(end = 8.dp)
-                )
-                Text(
-                    text = statusText,
-                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                    color = statusColor,
-                    maxLines = 1,
-                    softWrap = false
-                )
-            }
+            SetupProgressStepHeader(
+                title = title,
+                titleStyle = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                titleColor = if (isDone || isInProgress) Color(0xFF1E293B) else Color.Gray,
+                statusText = statusText,
+                statusStyle = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                statusColor = statusColor
+            )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = subtitle,
@@ -5046,6 +4972,206 @@ private fun getPreviousBusinessDay(startDate: LocalDate, businessDaysToSubtract:
 }
 
 @Composable
+private fun AccountSetupProgressTimeline(
+    dailyAmountStr: String,
+    step1Done: Boolean,
+    step2Done: Boolean,
+    step3Done: Boolean,
+    step4Done: Boolean,
+    step5Done: Boolean,
+    goalColor: Color
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Timeline Header
+        Text(
+            text = stringResource(Res.string.account_setup_progress_title),
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+            color = MaterialTheme.colorScheme.onSurface
+        )
+
+        // Timeline Steps (5 Steps matching design image)
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            // Step 1: Plan setup
+            SetupProgressStepRow(
+                title = stringResource(Res.string.step_plan_setup_title),
+                subtitle = stringResource(Res.string.step_plan_setup_desc),
+                isCompleted = step1Done,
+                isInProgress = false,
+                goalColor = goalColor
+            )
+
+            // Step 2: Money debits started
+            SetupProgressStepRow(
+                title = stringResource(Res.string.step_money_debits_title),
+                subtitle = stringResource(
+                    Res.string.step_money_debits_desc,
+                    dailyAmountStr
+                ),
+                isCompleted = step2Done,
+                isInProgress = !step2Done,
+                overrideStatusText = if (!step2Done) stringResource(Res.string.status_upcoming) else null,
+                goalColor = goalColor
+            )
+
+            // Step 3: Folio creation
+            val step3InProgress = step2Done && !step3Done
+            SetupProgressStepRow(
+                title = stringResource(Res.string.step_folio_creation_title),
+                subtitle = stringResource(Res.string.step_folio_creation_desc),
+                isCompleted = step3Done,
+                isInProgress = step3InProgress,
+                goalColor = goalColor
+            )
+
+            // Step 4: Unit allotment started
+            val step4InProgress = step3Done && !step4Done
+            SetupProgressStepRow(
+                title = stringResource(Res.string.step_unit_allotment_title),
+                subtitle = stringResource(Res.string.step_unit_allotment_desc),
+                isCompleted = step4Done,
+                isInProgress = step4InProgress,
+                goalColor = goalColor
+            )
+
+            // Step 5: Account setup complete
+            val step5InProgress = step4Done && !step5Done
+            SetupProgressStepRow(
+                title = stringResource(Res.string.step_account_setup_complete_title),
+                subtitle = stringResource(Res.string.step_account_setup_complete_desc),
+                isCompleted = step5Done,
+                isInProgress = step5InProgress,
+                goalColor = goalColor
+            )
+        }
+
+        // Checklist Footer
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            ChecklistRow(text = stringResource(Res.string.allotment_checklist_1))
+            ChecklistRow(text = stringResource(Res.string.allotment_checklist_2))
+            ChecklistRow(text = stringResource(Res.string.your_money_invested_from_day_one))
+        }
+    }
+}
+
+/**
+ * Computes whether a step header's title and single-line status badge fit side-by-side
+ * without forcing mid-word breaks inside [titleSingleLineWidth]/[titleMinWordWidth].
+ */
+private fun shouldPlaceStepHeaderSideBySide(
+    headerWidth: Int,
+    statusWidth: Int,
+    gapPx: Int,
+    titleSingleLineWidth: Int,
+    titleMinWordWidth: Int
+): Boolean {
+    if (headerWidth <= 0) return false
+    val remainingWidth = (headerWidth - statusWidth - gapPx).coerceAtLeast(0)
+    if (remainingWidth <= 0) return false
+    return titleSingleLineWidth <= remainingWidth ||
+        (remainingWidth >= titleMinWordWidth && remainingWidth * 5 >= headerWidth * 2)
+}
+
+/**
+ * Step header that keeps [statusText] on a single line and stacks it below [title]
+ * when keeping them side-by-side on narrow widths or large font scales would wrap words inside [title].
+ */
+@Composable
+private fun SetupProgressStepHeader(
+    title: String,
+    titleStyle: TextStyle,
+    titleColor: Color,
+    statusText: String,
+    statusStyle: TextStyle,
+    statusColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Layout(
+        modifier = modifier.fillMaxWidth(),
+        content = {
+            Text(
+                text = title,
+                style = titleStyle,
+                color = titleColor
+            )
+            Text(
+                text = statusText,
+                style = statusStyle,
+                color = statusColor,
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    ) { measurables, constraints ->
+        val titleMeasurable = measurables[0]
+        val statusMeasurable = measurables[1]
+        val gapPx = 8.dp.roundToPx()
+        val stackedGapPx = 4.dp.roundToPx()
+
+        val statusPlaceable = statusMeasurable.measure(
+            constraints.copy(minWidth = 0, minHeight = 0)
+        )
+
+        if (!constraints.hasBoundedWidth) {
+            val titlePlaceable = titleMeasurable.measure(
+                constraints.copy(minWidth = 0, minHeight = 0)
+            )
+            val width = titlePlaceable.width + gapPx + statusPlaceable.width
+            val height = maxOf(titlePlaceable.height, statusPlaceable.height)
+                .coerceIn(constraints.minHeight, constraints.maxHeight)
+            layout(width, height) {
+                titlePlaceable.placeRelative(0, (height - titlePlaceable.height) / 2)
+                statusPlaceable.placeRelative(
+                    titlePlaceable.width + gapPx,
+                    (height - statusPlaceable.height) / 2
+                )
+            }
+        } else {
+            val headerWidth = constraints.maxWidth
+            val remainingWidth = (headerWidth - statusPlaceable.width - gapPx).coerceAtLeast(0)
+            val titleSingleLineWidth = titleMeasurable.maxIntrinsicWidth(constraints.maxHeight)
+            val titleMinWordWidth = titleMeasurable.minIntrinsicWidth(constraints.maxHeight)
+
+            val fitsSideBySide = shouldPlaceStepHeaderSideBySide(
+                headerWidth = headerWidth,
+                statusWidth = statusPlaceable.width,
+                gapPx = gapPx,
+                titleSingleLineWidth = titleSingleLineWidth,
+                titleMinWordWidth = titleMinWordWidth
+            )
+
+            if (fitsSideBySide) {
+                val titlePlaceable = titleMeasurable.measure(
+                    constraints.copy(minWidth = 0, maxWidth = remainingWidth, minHeight = 0)
+                )
+                val height = maxOf(titlePlaceable.height, statusPlaceable.height)
+                    .coerceIn(constraints.minHeight, constraints.maxHeight)
+                layout(headerWidth, height) {
+                    titlePlaceable.placeRelative(0, (height - titlePlaceable.height) / 2)
+                    statusPlaceable.placeRelative(
+                        (headerWidth - statusPlaceable.width).coerceAtLeast(0),
+                        (height - statusPlaceable.height) / 2
+                    )
+                }
+            } else {
+                val titlePlaceable = titleMeasurable.measure(
+                    constraints.copy(minWidth = 0, maxWidth = headerWidth, minHeight = 0)
+                )
+                val height = (titlePlaceable.height + stackedGapPx + statusPlaceable.height)
+                    .coerceIn(constraints.minHeight, constraints.maxHeight)
+                layout(headerWidth, height) {
+                    titlePlaceable.placeRelative(0, 0)
+                    statusPlaceable.placeRelative(0, titlePlaceable.height + stackedGapPx)
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun SetupProgressStepRow(
     title: String,
     subtitle: String,
@@ -5094,34 +5220,26 @@ private fun SetupProgressStepRow(
         }
 
         Column(modifier = Modifier.weight(1f)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = Color(0xFF1E293B)
-                )
-                val statusText = overrideStatusText ?: when {
-                    isCompleted -> stringResource(Res.string.status_done)
-                    isInProgress -> stringResource(Res.string.status_in_progress)
-                    else -> stringResource(Res.string.status_upcoming)
-                }
-                val statusColor = when {
-                    isCompleted -> Color(0xFF2E7D32)
-                    isInProgress -> goalColor
-                    else -> Color(0xFF8D6E63)
-                }
-                Text(
-                    text = statusText,
-                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
-                    color = statusColor
-                )
+            val statusText = overrideStatusText ?: when {
+                isCompleted -> stringResource(Res.string.status_done)
+                isInProgress -> stringResource(Res.string.status_in_progress)
+                else -> stringResource(Res.string.status_upcoming)
             }
+            val statusColor = when {
+                isCompleted -> Color(0xFF2E7D32)
+                isInProgress -> goalColor
+                else -> Color(0xFF8D6E63)
+            }
+            SetupProgressStepHeader(
+                title = title,
+                titleStyle = MaterialTheme.typography.bodyMedium.copy(
+                    fontWeight = FontWeight.Bold
+                ),
+                titleColor = Color(0xFF1E293B),
+                statusText = statusText,
+                statusStyle = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                statusColor = statusColor
+            )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = subtitle,
