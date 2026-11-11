@@ -4,6 +4,7 @@ import com.pyllar.consumer.data.remote.model.dto.StandardApiResponseDtoRaw
 import com.pyllar.consumer.util.Resource
 import com.pyllar.consumer.data.remote.parser.ErrorType
 import com.pyllar.consumer.util.platformLog
+import com.pyllar.consumer.util.toUserFriendlyErrorMessage
 import io.ktor.client.call.body
 import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.get
@@ -163,7 +164,7 @@ class PyllarApiClient(
 
             if (response.status.value == 401) {
                 handshakeCoordinator.invalidateSession()
-                return Resource.Error("Session expired (401). Please try again.")
+                return Resource.Error("Your session expired. Please try again.", errorType = ErrorType.AUTHENTICATION_ERROR)
             }
 
             // Multipart responses are treated as plain JSON based on user requirements
@@ -270,7 +271,7 @@ class PyllarApiClient(
             if (response.status.value == 401) {
                 handshakeCoordinator.invalidateSession()
                 return Resource.Error(
-                    message = "Secure session expired or invalid. Please try again.",
+                    message = "Your session expired. Please try again.",
                     errorType = ErrorType.AUTHENTICATION_ERROR
                 )
             }
@@ -292,7 +293,13 @@ class PyllarApiClient(
                     json.decodeFromString(serializer<StandardApiResponseDtoRaw>(), responseText)
                 } catch (e: Exception) {
                     platformLog("HTTPSecure(Pyllar) Plain JSON parse failed: ${e.message}")
-                    StandardApiResponseDtoRaw(status = response.status.value.toString(), message = responseText)
+                    val fallbackStatus = if (response.status.value >= 500) "SERVER_ERROR" else response.status.value.toString()
+                    val fallbackMessage = if (response.status.value >= 500) {
+                        "We are facing issues connecting to our servers. Please try again later."
+                    } else {
+                        responseText.toUserFriendlyErrorMessage()
+                    }
+                    StandardApiResponseDtoRaw(status = fallbackStatus, message = fallbackMessage)
                 }
                 return parseStandardResponse<T>(parsed)
             }
@@ -326,14 +333,26 @@ class PyllarApiClient(
 
     @PublishedApi
     internal fun formatNetworkException(e: Exception): Pair<String, ErrorType> {
+        if (e is SecureChannelException) {
+            return Pair("We are facing issues connecting to our servers. Please try again later.", ErrorType.NETWORK_ERROR)
+        }
+        if (e is kotlinx.serialization.SerializationException) {
+            return Pair("We received an unexpected response from the server. Please try again.", ErrorType.PARSING_ERROR)
+        }
         val msg = e.message ?: ""
-        val isTimeout = msg.contains("timeout", ignoreCase = true) || e::class.simpleName?.contains("Timeout", ignoreCase = true) == true
+        val isTimeout = msg.contains("timeout", ignoreCase = true) ||
+                msg.contains("timed out", ignoreCase = true) ||
+                e::class.simpleName?.contains("Timeout", ignoreCase = true) == true
         if (isTimeout) {
             return Pair("Connection timed out. Please check your internet connection and try again.", ErrorType.TIMEOUT_ERROR)
         }
         val isConnectionError = msg.contains("ConnectException", ignoreCase = true) ||
                 msg.contains("UnknownHostException", ignoreCase = true) ||
                 msg.contains("Unable to resolve host", ignoreCase = true) ||
+                msg.contains("hostname could not be found", ignoreCase = true) ||
+                msg.contains("network is unreachable", ignoreCase = true) ||
+                msg.contains("Broken pipe", ignoreCase = true) ||
+                msg.contains("connection reset", ignoreCase = true) ||
                 msg.contains("Failed to connect", ignoreCase = true)
         if (isConnectionError) {
             return Pair("Unable to connect to server. Please check your internet connection.", ErrorType.NETWORK_ERROR)
@@ -341,7 +360,7 @@ class PyllarApiClient(
         val cleanMsg = if (msg.contains("[url=") || msg.contains("Exception") || msg.length > 120) {
             "A network error occurred. Please try again."
         } else {
-            msg.ifBlank { "A network error occurred. Please try again." }
+            msg.takeIf { it.isNotBlank() }?.toUserFriendlyErrorMessage() ?: "A network error occurred. Please try again."
         }
         return Pair(cleanMsg, ErrorType.NETWORK_ERROR)
     }
@@ -382,7 +401,7 @@ class PyllarApiClient(
             Resource.Success(response.body<T>())
         } else {
             val errorBody = try { response.bodyAsText() } catch (e: Exception) { "Network Error" }
-            Resource.Error(errorBody)
+            Resource.Error(errorBody.toUserFriendlyErrorMessage())
         }
     }
 
