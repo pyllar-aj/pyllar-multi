@@ -52,8 +52,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pyllar.consumer.presentation.components.LoadingScreen
 import com.pyllar.consumer.analytics.PlatformAnalyticsLogger
 import com.pyllar.consumer.domain.models.AuthToken
+import com.pyllar.consumer.data.remote.parser.ErrorType
 import com.pyllar.consumer.presentation.ui.components.rememberTimeoutState
 import com.pyllar.consumer.util.Resource
+import com.pyllar.consumer.util.toUserFriendlyErrorMessage
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
@@ -681,18 +683,23 @@ fun PhoneVerificationScreenV3(
                             )
                         } else if (verificationResult is Resource.Error) {
                             val error = verificationResult as Resource.Error<*>
-                            val errorMsg = error.message ?: ""
-                            val isNetworkError = errorMsg.contains("Network", ignoreCase = true) ||
+                            val errorMsg = error.message.orEmpty()
+                            val isNetworkError = error.isNetworkError ||
+                                    error.errorType == ErrorType.TIMEOUT_ERROR ||
+                                    errorMsg.contains("Network", ignoreCase = true) ||
                                     errorMsg.contains("timeout", ignoreCase = true) ||
+                                    errorMsg.contains("timed out", ignoreCase = true) ||
                                     errorMsg.contains("connection", ignoreCase = true) ||
+                                    errorMsg.contains("internet", ignoreCase = true) ||
                                     errorMsg.contains("Failed to connect", ignoreCase = true) ||
                                     errorMsg.contains("IOException", ignoreCase = true)
+                            val displayError = when {
+                                isNetworkError -> stringResource(Res.string.check_internet_connection)
+                                errorMsg.isBlank() -> stringResource(Res.string.an_error_occurred)
+                                else -> errorMsg.toUserFriendlyErrorMessage()
+                            }
                             Text(
-                                text = if (isNetworkError) {
-                                    stringResource(Res.string.check_internet_connection)
-                                } else {
-                                    errorMsg.ifBlank { stringResource(Res.string.an_error_occurred) }
-                                },
+                                text = displayError,
                                 color = MaterialTheme.colorScheme.error,
                                 style = MaterialTheme.typography.bodyMedium,
                                 textAlign = TextAlign.Center,

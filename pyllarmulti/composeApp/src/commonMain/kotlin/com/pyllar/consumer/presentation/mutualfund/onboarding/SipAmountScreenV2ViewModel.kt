@@ -12,6 +12,8 @@ import com.pyllar.consumer.domain.repository.FundDetailsRepository
 import com.pyllar.consumer.domain.storage.SessionStore
 import com.pyllar.consumer.util.Resource
 import com.pyllar.consumer.util.platformLog
+import com.pyllar.consumer.util.toUserFriendlyErrorMessage
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -71,6 +73,8 @@ class SipAmountScreenV2ViewModel(
                     )
                     return@launch
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 platformLog("SipAmountScreenV2ViewModel: ⚠️ Basket limits unavailable, using older limits: ${e.message}")
             }
@@ -101,7 +105,7 @@ class SipAmountScreenV2ViewModel(
                                 minAmount = 101L,
                                 maxAmount = 500L,
                                 defaultAmount = 101L,
-                                error = result.message,
+                                error = result.message?.takeIf { it.isNotBlank() }?.toUserFriendlyErrorMessage(),
                                 schemes = emptyList()
                             )
                         }
@@ -110,13 +114,15 @@ class SipAmountScreenV2ViewModel(
                         }
                     }
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 platformLog("SipAmountScreenV2ViewModel: 💥 Exception fetching investment limits: ${e.message}")
                 _limitsState.value = InvestmentLimitsState(
                     isLoading = false,
                     minAmount = 101L,
                     maxAmount = 500L,
-                    error = e.message,
+                    error = e.message?.takeIf { it.isNotBlank() }?.toUserFriendlyErrorMessage(),
                     schemes = emptyList()
                 )
             }
@@ -135,7 +141,7 @@ class SipAmountScreenV2ViewModel(
             val effectiveUserInvPurpose = userPurposeId.ifBlank { userInvPurpose ?: "" }
 
             platformLog("SipAmountScreenV2ViewModel: 🚀 createSip initiated for userId='$userId', basketGoal=$isBasketGoal")
-            var finalResult: SipCreationResult = SipCreationResult.Failure("Unknown error")
+            var finalResult: SipCreationResult = SipCreationResult.Failure("Failed to create SIP. Please try again.")
 
             val flow = if (isBasketGoal) {
                 val basketRequest = CreateBasketSipRequestDto(
@@ -184,7 +190,9 @@ class SipAmountScreenV2ViewModel(
                     }
                     is Resource.Error -> {
                         platformLog("SipAmountScreenV2ViewModel: ❌ Error received: ${result.message}")
-                        finalResult = SipCreationResult.Failure(result.message ?: "Failed to create SIP")
+                        val friendly = result.message?.takeIf { it.isNotBlank() }?.toUserFriendlyErrorMessage()
+                            ?: "Failed to create SIP. Please try again."
+                        finalResult = SipCreationResult.Failure(friendly)
                     }
                     is Resource.Loading -> {
                         platformLog("SipAmountScreenV2ViewModel: ⏳ Loading...")
@@ -193,9 +201,13 @@ class SipAmountScreenV2ViewModel(
             }
             platformLog("SipAmountScreenV2ViewModel: 🏁 createSip returning: ${finalResult::class.simpleName}")
             finalResult
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             platformLog("SipAmountScreenV2ViewModel: ❌ Exception: ${e.message}")
-            SipCreationResult.Failure("Network error: ${e.message}")
+            val friendly = e.message?.takeIf { it.isNotBlank() }?.toUserFriendlyErrorMessage()
+                ?: "Failed to create SIP. Please try again."
+            SipCreationResult.Failure(friendly)
         }
     }
 }

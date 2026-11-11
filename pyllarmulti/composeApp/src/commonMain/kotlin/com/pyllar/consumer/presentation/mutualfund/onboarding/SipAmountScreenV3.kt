@@ -56,6 +56,7 @@ import com.pyllar.consumer.presentation.dashboard.InvestmentDashboardV2ViewModel
 import com.pyllar.consumer.presentation.dashboard.getFundLogo
 import com.pyllar.consumer.presentation.ui.theme.*
 import com.pyllar.consumer.util.*
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
@@ -372,6 +373,14 @@ fun SipAmountScreenV3(
             !fundDetailsState.pastPerformanceLoading &&
             fundDetailsState.pastPerformance != null &&
             !isInitTxnLoading
+    val detailsLoadError = (fundDetailsState.error ?: fundDetailsState.pastPerformanceError)
+        ?.takeIf { it.isNotBlank() }
+        ?.toUserFriendlyErrorMessage()
+    val hasDetailsLoadError = !isInitTxnLoading &&
+            !fundDetailsState.isLoading &&
+            !fundDetailsState.pastPerformanceLoading &&
+            !areDetailsLoaded &&
+            detailsLoadError != null
 
     LaunchedEffect(effectiveUserId, effectiveGoalId) {
         if (effectiveUserId.isNotBlank() && effectiveGoalId.isNotBlank()) {
@@ -548,6 +557,15 @@ fun SipAmountScreenV3(
                     .padding(bottom = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                if (hasDetailsLoadError) {
+                    Text(
+                        text = detailsLoadError!!,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                    )
+                }
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -558,6 +576,17 @@ fun SipAmountScreenV3(
                     Button(
                         onClick = {
                             if (isSheetLoading) return@Button
+                            if (hasDetailsLoadError) {
+                                if (effectiveUserId.isNotBlank() && effectiveGoalId.isNotBlank()) {
+                                    if (fundDetailsState.fundDetails == null) {
+                                        fundDetailsViewModel.loadFundDetailsByGoal(effectiveUserId, effectiveGoalId)
+                                    }
+                                    if (fundDetailsState.pastPerformance == null) {
+                                        fundDetailsViewModel.loadGoalPastPerformance(effectiveUserId, effectiveGoalId)
+                                    }
+                                }
+                                return@Button
+                            }
                             if (currentKycStatus.equals("INITIATE", ignoreCase = true)) {
                                 onStartKyc()
                                 return@Button
@@ -577,10 +606,11 @@ fun SipAmountScreenV3(
                                 return@Button
                             }
 
+                            sheetError = null
                             showDetailsBottomSheet = true
                         },
                         modifier = Modifier.fillMaxWidth().height(48.dp),
-                        enabled = !isSheetLoading && !isInitTxnLoading && areDetailsLoaded,
+                        enabled = !isSheetLoading && !isInitTxnLoading && (areDetailsLoaded || hasDetailsLoadError),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = SipHeroObsidian,
                             contentColor = Color.White,
@@ -588,7 +618,9 @@ fun SipAmountScreenV3(
                             disabledContentColor = Color.White.copy(alpha = 0.7f)
                         )
                     ) {
-                        if (isSheetLoading || !areDetailsLoaded) {
+                        if (hasDetailsLoadError) {
+                            Text(stringResource(Res.string.retry))
+                        } else if (isSheetLoading || !areDetailsLoaded) {
                             CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White)
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(if (isSheetLoading) stringResource(Res.string.submitting) else "Fetching details...")
@@ -739,12 +771,35 @@ fun SipAmountScreenV3(
                                         }
                                     }
                                     Spacer(modifier = Modifier.height(12.dp))
-                                    if (pastPerformanceLoading || pastPerformance == null) {
+                                    if (pastPerformanceLoading || (pastPerformance == null && fundDetailsState.pastPerformanceError == null)) {
                                         Box(
                                             modifier = Modifier.fillMaxWidth().height(150.dp),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             CircularProgressIndicator(color = theme.accentColor, modifier = Modifier.size(28.dp), strokeWidth = 2.dp)
+                                        }
+                                    } else if (pastPerformance == null) {
+                                        Column(
+                                            modifier = Modifier.fillMaxWidth().height(150.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.Center
+                                        ) {
+                                            Text(
+                                                text = fundDetailsState.pastPerformanceError.orEmpty().toUserFriendlyErrorMessage(),
+                                                color = Color.White.copy(alpha = 0.8f),
+                                                style = MaterialTheme.typography.bodySmall,
+                                                textAlign = TextAlign.Center
+                                            )
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                            TextButton(
+                                                onClick = {
+                                                    if (effectiveUserId.isNotBlank() && effectiveGoalId.isNotBlank()) {
+                                                        fundDetailsViewModel.loadGoalPastPerformance(effectiveUserId, effectiveGoalId)
+                                                    }
+                                                }
+                                            ) {
+                                                Text(stringResource(Res.string.retry), color = theme.accentColor, fontWeight = FontWeight.Bold)
+                                            }
                                         }
                                     } else {
                                         Box(
@@ -1137,27 +1192,31 @@ fun SipAmountScreenV3(
                             }
                             is SipCreationResult.Failure -> {
                                 isSheetLoading = false
-                                sheetError = result.message
+                                sheetError = result.message.takeIf { it.isNotBlank() }?.toUserFriendlyErrorMessage()
+                                    ?: "Failed to create SIP. Please try again."
+                            }
+                            is SipCreationResult.SecureChannelError -> {
+                                isSheetLoading = false
+                                sheetError = "Unable to connect securely. Please try again."
                             }
                             else -> {
                                 isSheetLoading = false
-                                sheetError = "Unexpected operation result."
+                                sheetError = "Something went wrong. Please try again."
                             }
                         }
+                    } catch (e: CancellationException) {
+                        throw e
                     } catch (e: Exception) {
                         isSheetLoading = false
-                        val msg = e.message ?: ""
-                        sheetError = if (msg.contains("timeout", ignoreCase = true)) {
-                            "Connection timed out. Please try again."
-                        } else if (msg.contains("[url=") || msg.length > 100) {
-                            "An unexpected network error occurred. Please try again."
-                        } else {
-                            msg.ifBlank { "An unexpected error occurred. Please try again." }
-                        }
+                        sheetError = e.message?.takeIf { it.isNotBlank() }?.toUserFriendlyErrorMessage()
+                            ?: "An unexpected error occurred. Please try again."
                     }
                 }
             },
-            onDismiss = { showDetailsBottomSheet = false },
+            onDismiss = {
+                sheetError = null
+                showDetailsBottomSheet = false
+            },
             showDisclaimerDialog = { showDisclaimerDialog = true },
             uriHandler = uriHandler
         )

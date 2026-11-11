@@ -13,6 +13,8 @@ import com.pyllar.consumer.domain.storage.SessionStore
 import com.pyllar.consumer.util.Log
 import com.pyllar.consumer.util.Resource
 import com.pyllar.consumer.util.platformLog
+import com.pyllar.consumer.util.toUserFriendlyErrorMessage
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -79,6 +81,10 @@ class FundDetailsViewModel(
         }
     }
 
+    private fun friendlyError(raw: String?, fallback: String): String {
+        return raw?.takeIf { it.isNotBlank() }?.toUserFriendlyErrorMessage() ?: fallback
+    }
+
     private fun handleResult(result: Resource<FundDetailsResponseDto>) {
         when (result) {
             is Resource.Success -> {
@@ -91,6 +97,7 @@ class FundDetailsViewModel(
                 
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
+                    error = null,
                     fundDetails = data,
                     chartData = sampledData,
                     isPositiveReturn = isPositive,
@@ -102,7 +109,7 @@ class FundDetailsViewModel(
             is Resource.Error -> {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    error = result.message
+                    error = friendlyError(result.message, "Failed to load fund details. Please try again.")
                 )
             }
             is Resource.Loading -> {
@@ -151,66 +158,74 @@ class FundDetailsViewModel(
         amount: Double
     ): SipCreationResult {
         _uiState.value = _uiState.value.copy(isSipCreating = true, sipError = null)
-        
-        val userPurposeId = try {
-            sessionStore.getValue(KeyValueConstants.USER_PURPOSE_ID)
-        } catch (e: Exception) {
-            null
-        }
-        val effectiveUserInvPurpose = userPurposeId ?: ""
+        return try {
+            val userPurposeId = try {
+                sessionStore.getValue(KeyValueConstants.USER_PURPOSE_ID)
+            } catch (e: Exception) {
+                null
+            }
+            val effectiveUserInvPurpose = userPurposeId ?: ""
 
-        val request = CreateDailySipRequestDto(
-            userId = userId,
-            kycAttemptId = kycAttemptId,
-            investorId = investorId,
-            amount = amount,
-            userInvPurpose = effectiveUserInvPurpose
-        )
-        
-        var finalResult: SipCreationResult = SipCreationResult.Failure("Failed to create SIP")
-
-        val basketGoal = isBasketGoal(effectiveUserInvPurpose)
-        val flow = if (basketGoal) {
-            repository.createBasketSip(
-                CreateBasketSipRequestDto(
-                    userId = userId,
-                    kycAttemptId = kycAttemptId,
-                    investorId = investorId,
-                    amount = amount,
-                    userInvPurpose = effectiveUserInvPurpose,
-                    frequency = "DAILY"
-                )
+            val request = CreateDailySipRequestDto(
+                userId = userId,
+                kycAttemptId = kycAttemptId,
+                investorId = investorId,
+                amount = amount,
+                userInvPurpose = effectiveUserInvPurpose
             )
-        } else {
-            repository.createDailySip(request)
-        }
-        
-        flow.collect { resource ->
-            when (resource) {
-                is Resource.Success -> {
-                    _uiState.value = _uiState.value.copy(isSipCreating = false)
-                    try {
-                        sessionStore.saveValue("sip_frequency", "daily")
-                        sessionStore.saveValue("sip_installment_day", "")
-                    } catch (_: Exception) {}
-                    val mandateWrapper = resource.data
-                    rememberBasketMandate(basketGoal, mandateWrapper)
-                    finalResult = SipCreationResult.Success(
-                        message = "SIP created successfully!",
-                        nextScreen = resource.navigation?.nextScreen,
-                        mandateWrapper = mandateWrapper
+
+            var finalResult: SipCreationResult = SipCreationResult.Failure("Failed to create SIP. Please try again.")
+
+            val basketGoal = isBasketGoal(effectiveUserInvPurpose)
+            val flow = if (basketGoal) {
+                repository.createBasketSip(
+                    CreateBasketSipRequestDto(
+                        userId = userId,
+                        kycAttemptId = kycAttemptId,
+                        investorId = investorId,
+                        amount = amount,
+                        userInvPurpose = effectiveUserInvPurpose,
+                        frequency = "DAILY"
                     )
-                }
-                is Resource.Error -> {
-                    _uiState.value = _uiState.value.copy(isSipCreating = false, sipError = resource.message)
-                    finalResult = SipCreationResult.Failure(resource.message ?: "Failed to create SIP")
-                }
-                is Resource.Loading -> {
-                    _uiState.value = _uiState.value.copy(isSipCreating = true)
+                )
+            } else {
+                repository.createDailySip(request)
+            }
+
+            flow.collect { resource ->
+                when (resource) {
+                    is Resource.Success -> {
+                        _uiState.value = _uiState.value.copy(isSipCreating = false)
+                        try {
+                            sessionStore.saveValue("sip_frequency", "daily")
+                            sessionStore.saveValue("sip_installment_day", "")
+                        } catch (_: Exception) {}
+                        val mandateWrapper = resource.data
+                        rememberBasketMandate(basketGoal, mandateWrapper)
+                        finalResult = SipCreationResult.Success(
+                            message = "SIP created successfully!",
+                            nextScreen = resource.navigation?.nextScreen,
+                            mandateWrapper = mandateWrapper
+                        )
+                    }
+                    is Resource.Error -> {
+                        val friendly = friendlyError(resource.message, "Failed to create SIP. Please try again.")
+                        _uiState.value = _uiState.value.copy(isSipCreating = false, sipError = friendly)
+                        finalResult = SipCreationResult.Failure(friendly)
+                    }
+                    is Resource.Loading -> {
+                        _uiState.value = _uiState.value.copy(isSipCreating = true)
+                    }
                 }
             }
+            finalResult
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            val friendly = friendlyError(e.message, "Failed to create SIP. Please try again.")
+            _uiState.value = _uiState.value.copy(isSipCreating = false, sipError = friendly)
+            SipCreationResult.Failure(friendly)
         }
-        return finalResult
     }
 
     suspend fun createLumpsumPurchase(
@@ -218,41 +233,49 @@ class FundDetailsViewModel(
         amount: Double
     ): SipCreationResult {
         _uiState.value = _uiState.value.copy(isSipCreating = true, sipError = null)
-        
-        val userPurposeId = try {
-            sessionStore.getValue(com.pyllar.consumer.data.local.KeyValueConstants.USER_PURPOSE_ID)
-        } catch (e: Exception) {
-            null
-        }
-        
-        val request = com.pyllar.consumer.data.remote.model.dto.CreateLumpsumPurchaseRequestDto(
-            userId = userId,
-            amount = amount,
-            userInvPurpose = userPurposeId ?: ""
-        )
-        
-        var finalResult: SipCreationResult = SipCreationResult.Failure("Failed to create purchase")
-        
-        repository.createLumpsumPurchase(request).collect { resource ->
-            when (resource) {
-                is Resource.Success -> {
-                    _uiState.value = _uiState.value.copy(isSipCreating = false)
-                    finalResult = SipCreationResult.LumpsumSuccess(
-                        message = "Purchase created successfully!",
-                        nextScreen = resource.navigation?.nextScreen,
-                        lumpsumData = resource.data
-                    )
-                }
-                is Resource.Error -> {
-                    _uiState.value = _uiState.value.copy(isSipCreating = false, sipError = resource.message)
-                    finalResult = SipCreationResult.Failure(resource.message ?: "Failed to create purchase")
-                }
-                is Resource.Loading -> {
-                    _uiState.value = _uiState.value.copy(isSipCreating = true)
+        return try {
+            val userPurposeId = try {
+                sessionStore.getValue(com.pyllar.consumer.data.local.KeyValueConstants.USER_PURPOSE_ID)
+            } catch (e: Exception) {
+                null
+            }
+
+            val request = com.pyllar.consumer.data.remote.model.dto.CreateLumpsumPurchaseRequestDto(
+                userId = userId,
+                amount = amount,
+                userInvPurpose = userPurposeId ?: ""
+            )
+
+            var finalResult: SipCreationResult = SipCreationResult.Failure("Failed to create purchase. Please try again.")
+
+            repository.createLumpsumPurchase(request).collect { resource ->
+                when (resource) {
+                    is Resource.Success -> {
+                        _uiState.value = _uiState.value.copy(isSipCreating = false)
+                        finalResult = SipCreationResult.LumpsumSuccess(
+                            message = "Purchase created successfully!",
+                            nextScreen = resource.navigation?.nextScreen,
+                            lumpsumData = resource.data
+                        )
+                    }
+                    is Resource.Error -> {
+                        val friendly = friendlyError(resource.message, "Failed to create purchase. Please try again.")
+                        _uiState.value = _uiState.value.copy(isSipCreating = false, sipError = friendly)
+                        finalResult = SipCreationResult.Failure(friendly)
+                    }
+                    is Resource.Loading -> {
+                        _uiState.value = _uiState.value.copy(isSipCreating = true)
+                    }
                 }
             }
+            finalResult
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            val friendly = friendlyError(e.message, "Failed to create purchase. Please try again.")
+            _uiState.value = _uiState.value.copy(isSipCreating = false, sipError = friendly)
+            SipCreationResult.Failure(friendly)
         }
-        return finalResult
     }
 
     fun clearSipError() {
@@ -261,6 +284,7 @@ class FundDetailsViewModel(
 
     fun loadPastPerformance(userId: String, goalType: String) {
         viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(pastPerformanceLoading = true, pastPerformanceError = null)
             repository.getPastPerformance(userId, goalType).collect { resource ->
                 when (resource) {
                     is Resource.Success -> {
@@ -273,11 +297,11 @@ class FundDetailsViewModel(
                     is Resource.Error -> {
                         _uiState.value = _uiState.value.copy(
                             pastPerformanceLoading = false,
-                            pastPerformanceError = resource.message
+                            pastPerformanceError = friendlyError(resource.message, "Failed to load past performance. Please try again.")
                         )
                     }
                     is Resource.Loading -> {
-                        _uiState.value = _uiState.value.copy(pastPerformanceLoading = true)
+                        _uiState.value = _uiState.value.copy(pastPerformanceLoading = true, pastPerformanceError = null)
                     }
                 }
             }
@@ -291,7 +315,7 @@ class FundDetailsViewModel(
     fun loadGoalPastPerformance(userId: String, goalType: String) {
         viewModelScope.launch {
             platformLog("🔄 loadGoalPastPerformance called - userId: '$userId', goalType: '$goalType'")
-            _uiState.value = _uiState.value.copy(pastPerformanceLoading = true)
+            _uiState.value = _uiState.value.copy(pastPerformanceLoading = true, pastPerformanceError = null)
             repository.getGoalPastPerformance(userId, goalType).collect { resource ->
                 when (resource) {
                     is Resource.Success -> {
@@ -304,11 +328,11 @@ class FundDetailsViewModel(
                     is Resource.Error -> {
                         _uiState.value = _uiState.value.copy(
                             pastPerformanceLoading = false,
-                            pastPerformanceError = resource.message
+                            pastPerformanceError = friendlyError(resource.message, "Failed to load past performance. Please try again.")
                         )
                     }
                     is Resource.Loading -> {
-                        _uiState.value = _uiState.value.copy(pastPerformanceLoading = true)
+                        _uiState.value = _uiState.value.copy(pastPerformanceLoading = true, pastPerformanceError = null)
                     }
                 }
             }
@@ -325,73 +349,81 @@ class FundDetailsViewModel(
         numberOfInstallments: Int? = null
     ): SipCreationResult {
         _uiState.value = _uiState.value.copy(isSipCreating = true, sipError = null)
-        
-        val userPurposeId = try {
-            sessionStore.getValue(KeyValueConstants.USER_PURPOSE_ID)
-        } catch (e: Exception) {
-            null
-        }
-        val effectiveUserInvPurpose = userPurposeId ?: ""
+        return try {
+            val userPurposeId = try {
+                sessionStore.getValue(KeyValueConstants.USER_PURPOSE_ID)
+            } catch (e: Exception) {
+                null
+            }
+            val effectiveUserInvPurpose = userPurposeId ?: ""
 
-        val request = com.pyllar.consumer.data.remote.model.dto.CreatePurchasePlanRequestDto(
-            userId = userId,
-            kycAttemptId = kycAttemptId,
-            investorId = investorId,
-            amount = amount,
-            userInvPurpose = effectiveUserInvPurpose,
-            frequency = frequency,
-            installmentDay = installmentDay,
-            numberOfInstallments = numberOfInstallments
-        )
-        
-        var finalResult: SipCreationResult = SipCreationResult.Failure("Failed to create purchase plan")
-
-        val basketGoal = isBasketGoal(effectiveUserInvPurpose)
-        val flow = if (basketGoal) {
-            repository.createBasketSip(
-                CreateBasketSipRequestDto(
-                    userId = userId,
-                    kycAttemptId = kycAttemptId,
-                    investorId = investorId,
-                    amount = amount,
-                    userInvPurpose = effectiveUserInvPurpose,
-                    frequency = frequency.uppercase(),
-                    installmentDay = installmentDay
-                )
+            val request = com.pyllar.consumer.data.remote.model.dto.CreatePurchasePlanRequestDto(
+                userId = userId,
+                kycAttemptId = kycAttemptId,
+                investorId = investorId,
+                amount = amount,
+                userInvPurpose = effectiveUserInvPurpose,
+                frequency = frequency,
+                installmentDay = installmentDay,
+                numberOfInstallments = numberOfInstallments
             )
-        } else {
-            repository.createPurchasePlan(request)
-        }
-        
-        flow.collect { resource ->
-            when (resource) {
-                is Resource.Success -> {
-                    _uiState.value = _uiState.value.copy(isSipCreating = false)
-                    try {
-                        sessionStore.saveValue("sip_amount", amount.toString())
-                        sessionStore.saveValue("sip_frequency", "monthly")
-                        sessionStore.saveValue("sip_installment_day", installmentDay?.toString() ?: "")
-                    } catch (e: Exception) {
-                        platformLog("FundDetailsViewModel: ⚠️ Failed to save sip values: ${e.message}")
-                    }
-                    val mandateWrapper = resource.data
-                    rememberBasketMandate(basketGoal, mandateWrapper)
-                    finalResult = SipCreationResult.Success(
-                        message = "Purchase plan created successfully!",
-                        nextScreen = resource.navigation?.nextScreen,
-                        mandateWrapper = mandateWrapper
+
+            var finalResult: SipCreationResult = SipCreationResult.Failure("Failed to create purchase plan. Please try again.")
+
+            val basketGoal = isBasketGoal(effectiveUserInvPurpose)
+            val flow = if (basketGoal) {
+                repository.createBasketSip(
+                    CreateBasketSipRequestDto(
+                        userId = userId,
+                        kycAttemptId = kycAttemptId,
+                        investorId = investorId,
+                        amount = amount,
+                        userInvPurpose = effectiveUserInvPurpose,
+                        frequency = frequency.uppercase(),
+                        installmentDay = installmentDay
                     )
-                }
-                is Resource.Error -> {
-                    _uiState.value = _uiState.value.copy(isSipCreating = false, sipError = resource.message)
-                    finalResult = SipCreationResult.Failure(resource.message ?: "Failed to create purchase plan")
-                }
-                is Resource.Loading -> {
-                    _uiState.value = _uiState.value.copy(isSipCreating = true)
+                )
+            } else {
+                repository.createPurchasePlan(request)
+            }
+
+            flow.collect { resource ->
+                when (resource) {
+                    is Resource.Success -> {
+                        _uiState.value = _uiState.value.copy(isSipCreating = false)
+                        try {
+                            sessionStore.saveValue("sip_amount", amount.toString())
+                            sessionStore.saveValue("sip_frequency", "monthly")
+                            sessionStore.saveValue("sip_installment_day", installmentDay?.toString() ?: "")
+                        } catch (e: Exception) {
+                            platformLog("FundDetailsViewModel: ⚠️ Failed to save sip values: ${e.message}")
+                        }
+                        val mandateWrapper = resource.data
+                        rememberBasketMandate(basketGoal, mandateWrapper)
+                        finalResult = SipCreationResult.Success(
+                            message = "Purchase plan created successfully!",
+                            nextScreen = resource.navigation?.nextScreen,
+                            mandateWrapper = mandateWrapper
+                        )
+                    }
+                    is Resource.Error -> {
+                        val friendly = friendlyError(resource.message, "Failed to create purchase plan. Please try again.")
+                        _uiState.value = _uiState.value.copy(isSipCreating = false, sipError = friendly)
+                        finalResult = SipCreationResult.Failure(friendly)
+                    }
+                    is Resource.Loading -> {
+                        _uiState.value = _uiState.value.copy(isSipCreating = true)
+                    }
                 }
             }
+            finalResult
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            val friendly = friendlyError(e.message, "Failed to create purchase plan. Please try again.")
+            _uiState.value = _uiState.value.copy(isSipCreating = false, sipError = friendly)
+            SipCreationResult.Failure(friendly)
         }
-        return finalResult
     }
 
     private fun mapPeriodToKey(period: String): String {

@@ -10,6 +10,8 @@ import com.pyllar.consumer.domain.storage.SessionStore
 import com.pyllar.consumer.platform.DeviceInfoProvider
 import com.pyllar.consumer.platform.PushTokenProvider
 import com.pyllar.consumer.util.Resource
+import com.pyllar.consumer.util.toUserFriendlyErrorMessage
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -78,9 +80,23 @@ class PhoneVerificationViewModel(
                     pushToken = pushToken
                 )
 
-                authRepository.sendOtp(request).collect {
-                    _verificationResult.value = it
+                authRepository.sendOtp(request).collect { resource ->
+                    _verificationResult.value = if (resource is Resource.Error) {
+                        val rawMsg = resource.message.orEmpty()
+                        val sanitized = if (rawMsg.isBlank()) "" else rawMsg.toUserFriendlyErrorMessage()
+                        resource.copy(message = sanitized)
+                    } else {
+                        resource
+                    }
                 }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                val rawMsg = e.message.orEmpty()
+                _verificationResult.value = Resource.Error(
+                    message = if (rawMsg.isBlank()) "" else rawMsg.toUserFriendlyErrorMessage(),
+                    errorType = ErrorType.UNKNOWN_ERROR
+                )
             } finally {
                 _isVerifying.value = false
             }

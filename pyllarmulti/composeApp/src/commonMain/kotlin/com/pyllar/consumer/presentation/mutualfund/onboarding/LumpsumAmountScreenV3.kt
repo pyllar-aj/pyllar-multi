@@ -75,6 +75,7 @@ import com.pyllar.consumer.presentation.ui.components.TimeoutButton
 import com.pyllar.consumer.presentation.ui.components.rememberTimeoutState
 import com.pyllar.consumer.presentation.ui.components.TrustStrip
 import com.pyllar.consumer.util.*
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
@@ -220,6 +221,14 @@ fun LumpsumAmountScreenV3(
             !fundDetailsState.pastPerformanceLoading &&
             fundDetailsState.pastPerformance != null &&
             !isInitTxnLoading
+    val detailsLoadError = (fundDetailsState.error ?: fundDetailsState.pastPerformanceError)
+        ?.takeIf { it.isNotBlank() }
+        ?.toUserFriendlyErrorMessage()
+    val hasDetailsLoadError = !isInitTxnLoading &&
+            !fundDetailsState.isLoading &&
+            !fundDetailsState.pastPerformanceLoading &&
+            !areDetailsLoaded &&
+            detailsLoadError != null
 
     LaunchedEffect(effectiveUserId, effectiveGoalId) {
         if (effectiveUserId.isNotBlank() && effectiveGoalId.isNotBlank()) {
@@ -420,7 +429,7 @@ fun LumpsumAmountScreenV3(
                                     color = theme.eyebrowColor
                                 )
                                 Spacer(modifier = Modifier.height(1.dp))
-                                if (pastPerformanceLoading || pastPerformance == null) {
+                                if (pastPerformanceLoading || (pastPerformance == null && fundDetailsState.pastPerformanceError == null)) {
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -432,6 +441,31 @@ fun LumpsumAmountScreenV3(
                                             modifier = Modifier.size(28.dp),
                                             strokeWidth = 2.dp
                                         )
+                                    }
+                                } else if (pastPerformance == null) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(150.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center
+                                    ) {
+                                        Text(
+                                            text = fundDetailsState.pastPerformanceError.orEmpty().toUserFriendlyErrorMessage(),
+                                            color = Color.White.copy(alpha = 0.8f),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            textAlign = TextAlign.Center
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        TextButton(
+                                            onClick = {
+                                                if (effectiveUserId.isNotBlank() && effectiveGoalId.isNotBlank()) {
+                                                    fundDetailsViewModel.loadPastPerformance(effectiveUserId, effectiveGoalId)
+                                                }
+                                            }
+                                        ) {
+                                            Text(stringResource(Res.string.retry), color = theme.accentColor, fontWeight = FontWeight.Bold)
+                                        }
                                     }
                                 } else {
                                     Row(
@@ -657,6 +691,15 @@ fun LumpsumAmountScreenV3(
                     .padding(horizontal = 16.dp)
                     .padding(bottom = 16.dp)
             ) {
+                if (hasDetailsLoadError) {
+                    Text(
+                        text = detailsLoadError!!,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                    )
+                }
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -666,6 +709,17 @@ fun LumpsumAmountScreenV3(
                 ) {
                     TimeoutButton(
                         onClick = {
+                            if (hasDetailsLoadError) {
+                                if (effectiveUserId.isNotBlank() && effectiveGoalId.isNotBlank()) {
+                                    if (fundDetailsState.fundDetails == null) {
+                                        fundDetailsViewModel.loadFundDetailsByGoal(effectiveUserId, effectiveGoalId)
+                                    }
+                                    if (fundDetailsState.pastPerformance == null) {
+                                        fundDetailsViewModel.loadPastPerformance(effectiveUserId, effectiveGoalId)
+                                    }
+                                }
+                                return@TimeoutButton
+                            }
                             if (amount < minAmount || amount > maxAmount) {
                                 coroutineScope.launch {
                                     submitResult = org.jetbrains.compose.resources.getString(
@@ -701,7 +755,7 @@ fun LumpsumAmountScreenV3(
                                 isLoading = false
                             }
                         },
-                        enabled = !isLoading && !isInitTxnLoading && areDetailsLoaded,
+                        enabled = !isLoading && !isInitTxnLoading && (areDetailsLoaded || hasDetailsLoadError),
                         timeoutState = timeoutState,
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(
@@ -711,7 +765,9 @@ fun LumpsumAmountScreenV3(
                             disabledContentColor = Color.White.copy(alpha = 0.7f)
                         )
                     ) {
-                        if (isLoading || !areDetailsLoaded) {
+                        if (hasDetailsLoadError) {
+                            Text(stringResource(Res.string.retry), fontWeight = FontWeight.Bold)
+                        } else if (isLoading || !areDetailsLoaded) {
                             CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White)
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(if (isLoading) "Submitting..." else "Fetching details...")
@@ -857,49 +913,57 @@ fun LumpsumAmountScreenV3(
                                     sheetCoroutineScope.launch {
                                         isSheetLoading = true
                                         sheetError = null
-
-                                        val resolvedUserId = if (effectiveUserId.isNotBlank()) effectiveUserId else {
-                                            try {
-                                                sessionStore.getCurrentUserId().takeIf { it.isNotBlank() } ?: userId
-                                            } catch (e: Exception) {
-                                                userId
+                                        try {
+                                            val resolvedUserId = if (effectiveUserId.isNotBlank()) effectiveUserId else {
+                                                try {
+                                                    sessionStore.getCurrentUserId().takeIf { it.isNotBlank() } ?: userId
+                                                } catch (e: Exception) {
+                                                    userId
+                                                }
                                             }
-                                        }
 
-                                        val result = fundDetailsViewModel.createLumpsumPurchase(
-                                            userId = resolvedUserId,
-                                            amount = amount.toDouble()
-                                        )
+                                            val result = fundDetailsViewModel.createLumpsumPurchase(
+                                                userId = resolvedUserId,
+                                                amount = amount.toDouble()
+                                            )
 
-                                        when (result) {
-                                            is SipCreationResult.LumpsumSuccess -> {
-                                                isSheetLoading = false
-                                                showDetailsBottomSheet = false
-                                                val mappedData = result.lumpsumData?.let { data ->
-                                                    MandateWrapper(
-                                                        finMandateId = data.old_id ?: 0L,
-                                                        mandateId = data.payment_id ?: 0L,
-                                                        uri = data.token_url
+                                            when (result) {
+                                                is SipCreationResult.LumpsumSuccess -> {
+                                                    isSheetLoading = false
+                                                    showDetailsBottomSheet = false
+                                                    val mappedData = result.lumpsumData?.let { data ->
+                                                        MandateWrapper(
+                                                            finMandateId = data.old_id ?: 0L,
+                                                            mandateId = data.payment_id ?: 0L,
+                                                            uri = data.token_url
+                                                        )
+                                                    }
+                                                    onLumpsumCreated(
+                                                        amount.toDouble(),
+                                                        result.nextScreen ?: effectiveGoalId.ifBlank { goalId },
+                                                        mappedData
                                                     )
                                                 }
-                                                onLumpsumCreated(
-                                                    amount.toDouble(),
-                                                    result.nextScreen ?: effectiveGoalId.ifBlank { goalId },
-                                                    mappedData
-                                                )
+                                                is SipCreationResult.Failure -> {
+                                                    isSheetLoading = false
+                                                    sheetError = result.message.takeIf { it.isNotBlank() }?.toUserFriendlyErrorMessage()
+                                                        ?: "Failed to create purchase. Please try again."
+                                                }
+                                                is SipCreationResult.SecureChannelError -> {
+                                                    isSheetLoading = false
+                                                    sheetError = "Unable to connect securely. Please try again."
+                                                }
+                                                else -> {
+                                                    isSheetLoading = false
+                                                    sheetError = "Something went wrong. Please try again."
+                                                }
                                             }
-                                            is SipCreationResult.Failure -> {
-                                                isSheetLoading = false
-                                                sheetError = result.message
-                                            }
-                                            is SipCreationResult.SecureChannelError -> {
-                                                isSheetLoading = false
-                                                sheetError = "Secure channel error. Please try again."
-                                            }
-                                            else -> {
-                                                isSheetLoading = false
-                                                sheetError = "Unexpected operation result."
-                                            }
+                                        } catch (e: CancellationException) {
+                                            throw e
+                                        } catch (e: Exception) {
+                                            isSheetLoading = false
+                                            sheetError = e.message?.takeIf { it.isNotBlank() }?.toUserFriendlyErrorMessage()
+                                                ?: "An unexpected error occurred. Please try again."
                                         }
                                     }
                                 }
