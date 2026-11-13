@@ -19,6 +19,8 @@ data class InvestmentDashboardV2State(
     val firstMilestoneTimestamp: Long = 0,
     val firstLakhMilestoneTimestamp: Long = 0,
     val kycStatus: String = "",
+    /** True when the user opened CAMS KYC recently and it is not verified yet (kycStatus is unaffected by this). */
+    val camsKycInProgress: Boolean = false,
     val userName: String = "",
     val referralEnabled: Boolean = false,
     val showSurvey: Boolean = false,

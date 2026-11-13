@@ -12,6 +12,7 @@ import com.pyllar.consumer.navigation.AppRoutes
 import com.pyllar.consumer.navigation.loanRouteFor
 import com.pyllar.consumer.util.Log
 import com.pyllar.consumer.util.Resource
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -56,6 +57,8 @@ class InvestmentDashboardV2ViewModel(
     private val _dashboardState = MutableStateFlow(InvestmentDashboardV2State())
     val dashboardState: StateFlow<InvestmentDashboardV2State> = _dashboardState
 
+    private var dashboardLoadJob: Job? = null
+
     /**
      * Asks the server where the loans card should lead (form, or offers for an application already in flight)
      * and hands back a route. Any failure falls back to the form so the card never dead-ends.
@@ -72,8 +75,9 @@ class InvestmentDashboardV2ViewModel(
     }
 
     fun loadDashboardData(userId: String) {
+        if (dashboardLoadJob?.isActive == true) return
         com.pyllar.consumer.util.Log.d(TAG, "loadDashboardData: START for userId: $userId")
-        viewModelScope.launch {
+        dashboardLoadJob = viewModelScope.launch {
             Log.d(TAG, "loadDashboardData coroutine: START")
             _dashboardState.value = _dashboardState.value.copy(isLoading = true, errorMessage = null)
 
@@ -313,6 +317,9 @@ class InvestmentDashboardV2ViewModel(
             firstMilestoneTimestamp = firstMilestoneTimestamp,
             firstLakhMilestoneTimestamp = lakhMilestoneTimestamp,
             kycStatus = response.kycDetails?.kycStatus ?: "PENDING",
+            camsKycInProgress = response.kycDetails?.providerStates.orEmpty().any {
+                it.provider == "CAMS_AB" && it.state == "IN_PROGRESS"
+            },
             userName = response.userName ?: "",
             referralEnabled = response.referralEnabled ?: false,
             showSurvey = response.showSurvey ?: false,

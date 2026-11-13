@@ -930,5 +930,21 @@
     <string name="scheme_details_gold_unavailable_notice">New investments in Gold are temporarily unavailable due to a regulatory advisory in India. You can continue investing in our other goals.</string>
     <string name="intro_trusted_amcs">Powered by</string>
     <string name="complete_kyc">Complete KYC</string>
+
+    <!-- KYC Method Selection Bottom Sheet -->
+    <string name="kyc_selection_title">Complete Your KYC</string>
+    <string name="kyc_selection_subtitle">Choose your preferred verification method. You can switch anytime if one doesn\'t work.</string>
+    <string name="kyc_option_digilocker_title">DigiLocker KYC</string>
+    <string name="kyc_option_digilocker_badge">Highest success rate for DigiLocker users</string>
+    <string name="kyc_option_digilocker_desc">Verification using your Aadhaar-linked DigiLocker.</string>
+    <string name="kyc_option_cams_title">CAMS KYC</string>
+    <string name="kyc_option_cams_badge">Highest success rate for non-DigiLocker users</string>
+    <string name="kyc_option_cams_desc">A few additional details are required to complete your KYC.</string>
+    <string name="kyc_btn_start_with_digilocker">Start with DigiLocker</string>
+    <string name="kyc_btn_start_with_cams">Start with CAMS</string>
+    <string name="kyc_cams_in_progress_title">KYC in Progress</string>
+    <string name="kyc_cams_in_progress_hint">Your CAMS KYC is in progress. You can wait for it, or verify with another method. The status will be updated within 2 days.</string>
+    <string name="kyc_cams_unavailable">CAMS KYC is not available right now. Please try DigiLocker or try again later.</string>
+    <string name="kyc_try_another_method">Try another KYC method</string>
 </resources>
 

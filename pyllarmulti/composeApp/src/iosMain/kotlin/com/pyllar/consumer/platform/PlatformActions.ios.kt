@@ -1,12 +1,18 @@
 package com.pyllar.consumer.platform
 
+import platform.Foundation.NSCharacterSet
+import platform.Foundation.NSString
 import platform.Foundation.NSURL
+import platform.Foundation.URLQueryAllowedCharacterSet
+import platform.Foundation.stringByAddingPercentEncodingWithAllowedCharacters
 import platform.UIKit.UIApplication
 import platform.UIKit.UIActivityViewController
 import platform.UIKit.UIViewController
 import platform.Foundation.NSURLComponents
 import platform.Foundation.NSURLQueryItem
 import platform.UIKit.UIWindow
+import platform.darwin.dispatch_async
+import platform.darwin.dispatch_get_main_queue
 import com.pyllar.consumer.util.platformLog
 
 class IosPlatformActions : PlatformActions {
@@ -16,6 +22,36 @@ class IosPlatformActions : PlatformActions {
         if (nsUrl != null) {
             UIApplication.sharedApplication.openURL(nsUrl, options = emptyMap<Any?, Any?>(), completionHandler = null)
         }
+    }
+
+    override fun openInBrowser(url: String, onResult: ((Boolean) -> Unit)?): Boolean {
+        val trimmed = url.trim()
+        if (trimmed.isBlank()) {
+            onResult?.invoke(false)
+            return false
+        }
+        val nsUrl = NSURL.URLWithString(trimmed)
+            ?: (trimmed as NSString)
+                .stringByAddingPercentEncodingWithAllowedCharacters(NSCharacterSet.URLQueryAllowedCharacterSet)
+                ?.let { NSURL.URLWithString(it) }
+        if (nsUrl == null) {
+            platformLog("IosPlatformActions: ❌ Invalid browser URL: $trimmed")
+            onResult?.invoke(false)
+            return false
+        }
+        dispatch_async(dispatch_get_main_queue()) {
+            UIApplication.sharedApplication.openURL(
+                nsUrl,
+                options = emptyMap<Any?, Any?>(),
+                completionHandler = { success ->
+                    platformLog("IosPlatformActions: openInBrowser result: $success")
+                    dispatch_async(dispatch_get_main_queue()) {
+                        onResult?.invoke(success)
+                    }
+                }
+            )
+        }
+        return true
     }
 
     override fun openUpiUrl(url: String, packageName: String?) {

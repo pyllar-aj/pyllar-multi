@@ -1058,6 +1058,9 @@ fun App() {
                     isExistingInvestment = screen.isExistingInvestment,
                     kycStatus = screen.kycStatus,
                     onStartKyc = { navigateTo(Screen.KycInformation(screen.userId)) },
+                    onNavigateToDashboard = { resolvedUserId ->
+                        navigateTo(Screen.InvestmentDashboard(resolvedUserId.ifBlank { screen.userId }), clearStack = true)
+                    },
                     onSipCreated = { amount, nextScreen, mandate ->
                         if (nextScreen == com.pyllar.consumer.navigation.ScreenNames.MANDATE_AUTH && mandate != null) {
                             navigateTo(Screen.MandateAuth(

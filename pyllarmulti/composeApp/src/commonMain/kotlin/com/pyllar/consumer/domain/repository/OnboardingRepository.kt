@@ -115,5 +115,9 @@ interface OnboardingRepository {
     fun submitDoubtsSurvey(
         request: com.pyllar.consumer.data.remote.requests.DoubtsSurveyRequestDto
     ): Flow<Resource<com.pyllar.consumer.data.remote.model.dto.StandardApiResponseDtoRaw>>
+
+    suspend fun getKycOptions(): Resource<com.pyllar.consumer.data.remote.model.dto.KycOptionsResponseDto>
+
+    suspend fun recordCamsKycStarted(): Resource<com.pyllar.consumer.data.remote.model.dto.CamsStartedResponseDto>
 }
 

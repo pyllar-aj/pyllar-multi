@@ -48,10 +48,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.drawscope.rotate as drawRotate
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
@@ -113,7 +117,13 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.outlined.Schedule as OutlinedSchedule
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.pyllar.consumer.presentation.mutualfund.onboarding.KycProviderSheetHost
 import com.pyllar.consumer.presentation.ui.theme.getCursiveFontFamily
+import com.pyllar.consumer.util.BackHandler
 
 
 
@@ -152,8 +162,17 @@ fun InvestmentDashboardV2Screen(
     var isSelectingGoal by remember { mutableStateOf(false) }
     var showMenu by remember { mutableStateOf(false) }
     var showKycPendingBottomSheet by remember { mutableStateOf(false) }
+    var showKycOptionsBottomSheet by remember { mutableStateOf(false) }
     var showGoldPriceInfoDialog by remember { mutableStateOf(false) }
     var showSilverPriceInfoDialog by remember { mutableStateOf(false) }
+
+    BackHandler(enabled = showMenu || showKycPendingBottomSheet || showKycOptionsBottomSheet) {
+        when {
+            showMenu -> showMenu = false
+            showKycPendingBottomSheet -> showKycPendingBottomSheet = false
+            showKycOptionsBottomSheet -> showKycOptionsBottomSheet = false
+        }
+    }
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     val scrollOffsetPx = with(androidx.compose.ui.platform.LocalDensity.current) { 100.dp.roundToPx() }
@@ -302,6 +321,25 @@ fun InvestmentDashboardV2Screen(
         if (resolvedUserId.isNotBlank()) {
             viewModel.loadDashboardData(resolvedUserId)
         }
+    }
+
+    // Coming back from Chrome/Safari (CAMS KYC) or any other app: reload so the KYC state is current.
+    // Skip the immediate initial ON_RESUME only when the lifecycle is already RESUMED on attach (because the
+    // effect above already loads). If the screen mounted while transitioning to background (e.g. navigating
+    // here from SipAmountV3 right as Safari opened), the next ON_RESUME is the return from Safari and must reload.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, resolvedUserId) {
+        var skipInitialResume = lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                if (!skipInitialResume && resolvedUserId.isNotBlank()) {
+                    viewModel.loadDashboardData(resolvedUserId)
+                }
+                skipInitialResume = false
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     // Check and request notification permission once if never asked before
@@ -1201,19 +1239,41 @@ fun InvestmentDashboardV2Screen(
                     } else if (dashboardState.kycStatus.equals("IN_PROGRESS", ignoreCase = true)) {
                         item {
                             Box(modifier = Modifier.padding(horizontal = 16.dp)) {
-                                KycSubmittedAwaitingApprovalCard(
-                                    onContactSupport = {
-                                        platformActions.openWhatsApp("917676596301", "Hello, my KYC has been submitted and is currently awaiting approval.")
+                                Column {
+                                    KycSubmittedAwaitingApprovalCard(
+                                        onContactSupport = {
+                                            platformActions.openWhatsApp("917676596301", "Hello, my KYC has been submitted and is currently awaiting approval.")
+                                        }
+                                    )
+                                    // Both in progress looks exactly like before; the other method is only offered
+                                    // while CAMS has not been started.
+                                    if (!dashboardState.camsKycInProgress) {
+                                        TextButton(
+                                            onClick = { showKycOptionsBottomSheet = true },
+                                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                                        ) {
+                                            Text(stringResource(Res.string.kyc_try_another_method))
+                                        }
                                     }
-                                )
+                                }
                             }
                         }
                     } else if (dashboardState.kycStatus.equals("INITIATE", ignoreCase = true)) {
                         item {
                             Box(modifier = Modifier.padding(horizontal = 16.dp)) {
-                                InitiateKycCard(
-                                    onStartKyc = onStartKyc
-                                )
+                                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    if (dashboardState.camsKycInProgress) {
+                                        KycProviderInProgressNotice(
+                                            title = stringResource(Res.string.kyc_cams_in_progress_title),
+                                            message = stringResource(Res.string.kyc_cams_in_progress_hint),
+                                            actionLabel = stringResource(Res.string.kyc_try_another_method),
+                                            onAction = { showKycOptionsBottomSheet = true }
+                                        )
+                                    }
+                                    InitiateKycCard(
+                                        onStartKyc = { showKycOptionsBottomSheet = true }
+                                    )
+                                }
                             }
                         }
                     } else {
@@ -1415,6 +1475,17 @@ fun InvestmentDashboardV2Screen(
                 }
             )
         }
+
+        // Always composed: the sheet closes itself on a choice and the CAMS URL fetch must outlive that.
+        KycProviderSheetHost(
+            visible = showKycOptionsBottomSheet,
+            camsInProgress = dashboardState.camsKycInProgress,
+            onDismiss = { showKycOptionsBottomSheet = false },
+            onStartDigiLocker = {
+                showKycOptionsBottomSheet = false
+                onStartKyc()
+            }
+        )
     }
 }
 
@@ -4941,6 +5012,285 @@ fun KycApprovedReadyToInvestCard(
 enum class StepStatus {
     COMPLETED,
     PENDING
+}
+
+/** "CAMS KYC in progress" card shown above the Start KYC card: wait for CAMS, or pick another method. */
+@Composable
+private fun KycProviderInProgressNotice(
+    title: String,
+    message: String,
+    actionLabel: String,
+    onAction: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val cardBackground = Color(0xFFFFF9EA)
+    val cardBorder = Color(0xFFD8B55E)
+    val iconContainerBg = Color(0xFFF6E9C8)
+    val iconTint = Color(0xFF916E24)
+    val titleColor = Color(0xFF142D1E)
+    val bodyColor = Color(0xFF6B5843)
+    val actionGreen = Color(0xFF1B4332)
+
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = cardBackground),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(20.dp),
+        border = BorderStroke(1.dp, cardBorder)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 18.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.Top,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(42.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(iconContainerBg),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.OutlinedSchedule,
+                            contentDescription = null,
+                            tint = iconTint,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 17.sp,
+                                lineHeight = 22.sp,
+                                letterSpacing = (-0.2).sp
+                            ),
+                            color = titleColor
+                        )
+                        Text(
+                            text = message,
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontSize = 13.5.sp,
+                                lineHeight = 19.sp
+                            ),
+                            color = bodyColor
+                        )
+                    }
+                }
+
+                CamsKycInProgressIllustration(
+                    modifier = Modifier.size(width = 62.dp, height = 54.dp)
+                )
+            }
+
+            OutlinedButton(
+                onClick = onAction,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 46.dp),
+                shape = RoundedCornerShape(14.dp),
+                border = BorderStroke(1.2.dp, actionGreen),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = Color.White,
+                    contentColor = actionGreen
+                ),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)
+            ) {
+                Text(
+                    text = actionLabel,
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
+                    ),
+                    color = titleColor
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CamsKycInProgressIllustration(
+    modifier: Modifier = Modifier
+) {
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+
+        // Soft mint-sage organic backdrop blob
+        val blobPath = Path().apply {
+            moveTo(0.52f * w, 0.08f * h)
+            cubicTo(
+                0.78f * w, 0.06f * h,
+                0.96f * w, 0.22f * h,
+                0.94f * w, 0.44f * h
+            )
+            cubicTo(
+                0.92f * w, 0.72f * h,
+                0.76f * w, 0.93f * h,
+                0.52f * w, 0.92f * h
+            )
+            cubicTo(
+                0.24f * w, 0.91f * h,
+                0.04f * w, 0.76f * h,
+                0.06f * w, 0.55f * h
+            )
+            cubicTo(
+                0.08f * w, 0.30f * h,
+                0.26f * w, 0.10f * h,
+                0.52f * w, 0.08f * h
+            )
+            close()
+        }
+        drawPath(
+            path = blobPath,
+            color = Color(0xFFE4EFE7)
+        )
+
+        val docLeft = 0.21f * w
+        val docTop = 0.14f * h
+        val docWidth = 0.55f * w
+        val docHeight = 0.72f * h
+        val docPivot = Offset(docLeft + docWidth * 0.5f, docTop + docHeight * 0.5f)
+        val docCorner = CornerRadius(5.5.dp.toPx(), 5.5.dp.toPx())
+
+        // Tilted KYC clipboard/document card
+        drawRotate(degrees = -7f, pivot = docPivot) {
+            // Soft document shadow
+            drawRoundRect(
+                color = Color(0x140A2415),
+                topLeft = Offset(docLeft + 2.dp.toPx(), docTop + 3.dp.toPx()),
+                size = Size(docWidth, docHeight),
+                cornerRadius = docCorner
+            )
+
+            // Paper body
+            drawRoundRect(
+                brush = Brush.verticalGradient(
+                    colors = listOf(Color(0xFFFCFCFB), Color(0xFFEEF2EF)),
+                    startY = docTop,
+                    endY = docTop + docHeight
+                ),
+                topLeft = Offset(docLeft, docTop),
+                size = Size(docWidth, docHeight),
+                cornerRadius = docCorner
+            )
+            drawRoundRect(
+                color = Color(0xFFD6DFD9),
+                topLeft = Offset(docLeft, docTop),
+                size = Size(docWidth, docHeight),
+                cornerRadius = docCorner,
+                style = Stroke(width = 0.8.dp.toPx())
+            )
+
+            // Clipboard top clip
+            val docCenterX = docLeft + docWidth * 0.5f
+            val clipW = docWidth * 0.42f
+            val clipH = docHeight * 0.10f
+            val tabW = docWidth * 0.20f
+            val tabH = docHeight * 0.055f
+            drawRoundRect(
+                color = Color(0xFF9FB2A6),
+                topLeft = Offset(docCenterX - tabW * 0.5f, docTop - docHeight * 0.07f),
+                size = Size(tabW, tabH),
+                cornerRadius = CornerRadius(2.dp.toPx(), 2.dp.toPx())
+            )
+            drawRoundRect(
+                color = Color(0xFFB5C4BA),
+                topLeft = Offset(docCenterX - clipW * 0.5f, docTop - docHeight * 0.04f),
+                size = Size(clipW, clipH),
+                cornerRadius = CornerRadius(2.5.dp.toPx(), 2.5.dp.toPx())
+            )
+
+            // Profile avatar box on upper-left of sheet
+            val avatarLeft = docLeft + docWidth * 0.13f
+            val avatarTop = docTop + docHeight * 0.18f
+            val avatarW = docWidth * 0.30f
+            val avatarH = docHeight * 0.28f
+            drawRoundRect(
+                color = Color(0xFFE7EDE8),
+                topLeft = Offset(avatarLeft, avatarTop),
+                size = Size(avatarW, avatarH),
+                cornerRadius = CornerRadius(3.dp.toPx(), 3.dp.toPx())
+            )
+
+            // User silhouette inside avatar box
+            clipRect(
+                left = avatarLeft,
+                top = avatarTop,
+                right = avatarLeft + avatarW,
+                bottom = avatarTop + avatarH
+            ) {
+                val silhouetteColor = Color(0xFF6B8476)
+                drawCircle(
+                    color = silhouetteColor,
+                    radius = avatarW * 0.18f,
+                    center = Offset(avatarLeft + avatarW * 0.5f, avatarTop + avatarH * 0.36f)
+                )
+                drawArc(
+                    color = silhouetteColor,
+                    startAngle = 180f,
+                    sweepAngle = 180f,
+                    useCenter = true,
+                    topLeft = Offset(avatarLeft + avatarW * 0.15f, avatarTop + avatarH * 0.62f),
+                    size = Size(avatarW * 0.70f, avatarH * 0.72f)
+                )
+            }
+
+            // Header lines next to avatar box
+            val linesX = avatarLeft + avatarW + docWidth * 0.09f
+            val maxLineW = (docLeft + docWidth - docWidth * 0.13f) - linesX
+            drawRoundRect(
+                color = Color(0xFFBDC8C1),
+                topLeft = Offset(linesX, avatarTop + avatarH * 0.20f),
+                size = Size(maxLineW, 3.dp.toPx()),
+                cornerRadius = CornerRadius(1.5.dp.toPx(), 1.5.dp.toPx())
+            )
+            drawRoundRect(
+                color = Color(0xFFD6DFD9),
+                topLeft = Offset(linesX, avatarTop + avatarH * 0.55f),
+                size = Size(maxLineW * 0.72f, 2.5.dp.toPx()),
+                cornerRadius = CornerRadius(1.25.dp.toPx(), 1.25.dp.toPx())
+            )
+
+            // Form lines below avatar box
+            val bodyFullW = docWidth * 0.74f
+            drawRoundRect(
+                color = Color(0xFFC4CFC8),
+                topLeft = Offset(avatarLeft, avatarTop + avatarH + docHeight * 0.10f),
+                size = Size(bodyFullW, 3.dp.toPx()),
+                cornerRadius = CornerRadius(1.5.dp.toPx(), 1.5.dp.toPx())
+            )
+            drawRoundRect(
+                color = Color(0xFFD7E0DA),
+                topLeft = Offset(avatarLeft, avatarTop + avatarH + docHeight * 0.22f),
+                size = Size(bodyFullW * 0.85f, 2.5.dp.toPx()),
+                cornerRadius = CornerRadius(1.25.dp.toPx(), 1.25.dp.toPx())
+            )
+            drawRoundRect(
+                color = Color(0xFFD7E0DA),
+                topLeft = Offset(avatarLeft, avatarTop + avatarH + docHeight * 0.34f),
+                size = Size(bodyFullW * 0.55f, 2.5.dp.toPx()),
+                cornerRadius = CornerRadius(1.25.dp.toPx(), 1.25.dp.toPx())
+            )
+        }
+    }
 }
 
 @Composable

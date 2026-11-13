@@ -81,7 +81,19 @@ data class UserKycDetailsDto(
     @SerialName("panVerified")
     val panVerified: Boolean?,
     @SerialName("addressVerified")
-    val addressVerified: Boolean?
+    val addressVerified: Boolean?,
+    /** Per-provider progress (DigiLocker / CAMS); empty once KYC is done, null from an older backend. */
+    @SerialName("providerStates")
+    val providerStates: List<KycProviderStateDto>? = null
+)
+
+@Serializable
+data class KycProviderStateDto(
+    @SerialName("provider")
+    val provider: String? = null,
+    /** IN_PROGRESS or NOT_STARTED. */
+    @SerialName("state")
+    val state: String? = null
 )
 
 @Serializable

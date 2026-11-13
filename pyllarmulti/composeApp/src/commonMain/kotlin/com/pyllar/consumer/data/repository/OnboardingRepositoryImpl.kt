@@ -455,4 +455,17 @@ class OnboardingRepositoryImpl(
         )
         emit(result)
     }
+
+    override suspend fun getKycOptions(): Resource<com.pyllar.consumer.data.remote.model.dto.KycOptionsResponseDto> {
+        return apiClient.get<com.pyllar.consumer.data.remote.model.dto.KycOptionsResponseDto>(
+            path = "api/kyc/onboarding/options"
+        )
+    }
+
+    override suspend fun recordCamsKycStarted(): Resource<com.pyllar.consumer.data.remote.model.dto.CamsStartedResponseDto> {
+        return apiClient.post<com.pyllar.consumer.data.remote.model.dto.CamsStartedResponseDto, Unit?>(
+            path = "api/kyc/onboarding/cams/started",
+            body = null
+        )
+    }
 }

@@ -61,6 +61,7 @@ import com.pyllar.consumer.presentation.mutualfund.onboarding.LumpsumPurchaseAut
 import com.pyllar.consumer.presentation.mutualfund.onboarding.CheckPanPopulatedDetailsViewModel
 import com.pyllar.consumer.presentation.mutualfund.onboarding.PennyDropLoadingModel
 import com.pyllar.consumer.presentation.mutualfund.onboarding.DoubtsSurveyViewModel
+import com.pyllar.consumer.presentation.mutualfund.onboarding.KycProviderViewModel
 import com.pyllar.consumer.presentation.profile.ProfileViewModel
 import com.pyllar.consumer.navigation.ForceUpdateManager
 import com.pyllar.consumer.presentation.referral.ReferralViewModel
@@ -122,6 +123,7 @@ val sharedModule: Module = module {
     factory { MandateAuthModel(get(), get(), CoroutineScope(Dispatchers.Main)) }
     factoryOf(::LumpsumPurchaseAuthViewModel)
     factoryOf(::DoubtsSurveyViewModel)
+    factoryOf(::KycProviderViewModel)
     factory { WithdrawAmountViewModel(get(), get()) }
     factory { com.pyllar.consumer.presentation.mutualfund.upi.UpiAccountLinkingViewModel(get()) }
 

@@ -27,6 +27,30 @@ class AndroidPlatformActions(private val context: Context) : PlatformActions {
         }
     }
 
+    override fun openInBrowser(url: String, onResult: ((Boolean) -> Unit)?): Boolean {
+        val uri = Uri.parse(url)
+        val chrome = Intent(Intent.ACTION_VIEW, uri)
+            .setPackage("com.android.chrome")
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        val launched = try {
+            context.startActivity(chrome)
+            true
+        } catch (e: ActivityNotFoundException) {
+            try {
+                context.startActivity(Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                true
+            } catch (e2: Exception) {
+                Log.e("AndroidPlatformActions", "Failed to open URL in browser: $url", e2)
+                false
+            }
+        } catch (e: Exception) {
+            Log.e("AndroidPlatformActions", "Failed to open URL in Chrome: $url", e)
+            false
+        }
+        onResult?.invoke(launched)
+        return launched
+    }
+
     override fun openUpiUrl(url: String, packageName: String?) {
         try {
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {

@@ -83,6 +83,11 @@ data class UpiAppInfo(
  */
 interface PlatformActions {
     fun openUrl(url: String)
+    /**
+     * Opens [url] in Chrome (Android) or default browser (fallback / iOS).
+     * Calls [onResult] on the main thread with whether launching succeeded.
+     */
+    fun openInBrowser(url: String, onResult: ((Boolean) -> Unit)? = null): Boolean
     fun openUpiUrl(url: String, packageName: String? = null)
     fun shareText(text: String, title: String = "Share")
     fun openWhatsApp(phoneNumber: String, message: String)

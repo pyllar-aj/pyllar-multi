@@ -221,6 +221,7 @@ fun SipAmountScreenV3(
     onNavigateToHelp: () -> Unit = {},
     onNavigateToFundDetails: (userId: String, goalId: String, amount: Double, kycAttemptId: String, investorId: String, frequency: String, installmentDay: Int?, schemeIsin: String?, isMultiScheme: Boolean) -> Unit = { _, _, _, _, _, _, _, _, _ -> },
     onStartKyc: () -> Unit = {},
+    onNavigateToDashboard: (String) -> Unit = {},
     viewModel: SipAmountScreenV2ViewModel = koinInject(),
     fundDetailsViewModel: FundDetailsViewModel = koinInject(),
     dashboardViewModel: InvestmentDashboardV2ViewModel = koinInject(),
@@ -362,6 +363,7 @@ fun SipAmountScreenV3(
 
     var showDetailsBottomSheet by remember { mutableStateOf(false) }
     var showKycPendingBottomSheet by remember { mutableStateOf(false) }
+    var showKycOptionsBottomSheet by remember { mutableStateOf(false) }
     var isSheetLoading by remember { mutableStateOf(false) }
     var sheetError by remember { mutableStateOf<String?>(null) }
 
@@ -381,6 +383,12 @@ fun SipAmountScreenV3(
             !fundDetailsState.pastPerformanceLoading &&
             !areDetailsLoaded &&
             detailsLoadError != null
+
+    LaunchedEffect(effectiveUserId) {
+        if (effectiveUserId.isNotBlank()) {
+            dashboardViewModel.loadDashboardData(effectiveUserId)
+        }
+    }
 
     LaunchedEffect(effectiveUserId, effectiveGoalId) {
         if (effectiveUserId.isNotBlank() && effectiveGoalId.isNotBlank()) {
@@ -502,7 +510,11 @@ fun SipAmountScreenV3(
     }
 
     com.pyllar.consumer.util.BackHandler {
-        handleBack()
+        when {
+            showKycOptionsBottomSheet -> showKycOptionsBottomSheet = false
+            showKycPendingBottomSheet -> showKycPendingBottomSheet = false
+            else -> handleBack()
+        }
     }
 
     // Exit-intent doubts survey eligibility: shown once, on the first back-press after the
@@ -588,7 +600,7 @@ fun SipAmountScreenV3(
                                 return@Button
                             }
                             if (currentKycStatus.equals("INITIATE", ignoreCase = true)) {
-                                onStartKyc()
+                                showKycOptionsBottomSheet = true
                                 return@Button
                             }
 
@@ -1267,6 +1279,20 @@ fun SipAmountScreenV3(
             kycStatus = currentKycStatus
         )
     }
+
+    // Always composed: the sheet closes itself on a choice and the CAMS URL fetch must outlive that.
+    KycProviderSheetHost(
+        visible = showKycOptionsBottomSheet,
+        camsInProgress = dashboardState.camsKycInProgress,
+        onDismiss = { showKycOptionsBottomSheet = false },
+        onStartDigiLocker = {
+            showKycOptionsBottomSheet = false
+            onStartKyc()
+        },
+        onCamsOpened = {
+            onNavigateToDashboard(effectiveUserId)
+        }
+    )
 }
 
 @Composable
