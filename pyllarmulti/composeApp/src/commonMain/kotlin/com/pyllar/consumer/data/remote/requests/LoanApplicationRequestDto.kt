@@ -69,7 +69,9 @@ data class LoanOfferDto(
     @SerialName("netDisbursed") val netDisbursed: Double? = null,
     @SerialName("totalInterest") val totalInterest: Double? = null,
     @SerialName("installments") val installments: Int? = null,
-    @SerialName("tncUrl") val tncUrl: String? = null
+    @SerialName("tncUrl") val tncUrl: String? = null,
+    /** The user has already started the journey with this lender (HANDED_OFF); Continue resumes it. */
+    @SerialName("accepted") val accepted: Boolean = false
 )
 
 @Serializable

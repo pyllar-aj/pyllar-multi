@@ -251,7 +251,7 @@ fun LoanOffersScreen(
                             CircularProgressIndicator(modifier = Modifier.size(22.dp), color = Color.White, strokeWidth = 2.dp)
                         } else {
                             Text(
-                                selected?.let { "Continue with ${shortName(it.lenderName)}" } ?: "Select an offer",
+                                selected?.let { (if (it.accepted) "Resume with " else "Continue with ") + shortName(it.lenderName) } ?: "Select an offer",
                                 fontSize = 17.sp, fontWeight = FontWeight.Bold
                             )
                         }
@@ -400,6 +400,7 @@ private fun OfferCard(
         }
 
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (offer.accepted) Tag("IN PROGRESS WITH LENDER", Success, Color.White)
             if (lowestApr) Tag("LOWEST APR", Obsidian, Color(0xFFFFECB3))
             offer.term?.takeIf { it.isNotBlank() }?.let { Tag(it.uppercase(), TagBg, TagFg) }
             if (!multi) Tag("SINGLE PAYMENT", TagBg, TagFg)

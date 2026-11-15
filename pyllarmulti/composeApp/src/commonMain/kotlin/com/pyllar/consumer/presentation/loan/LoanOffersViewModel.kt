@@ -134,8 +134,10 @@ class LoanOffersViewModel(
 
     private fun apply(view: LoanApplicationViewDto) {
         val current = _uiState.value
-        // Keep the user's pick only while that offer is still in the list.
+        // Keep the user's pick only while that offer is still in the list; otherwise default to the offer they
+        // already started with the lender (HANDED_OFF), so Continue resumes it.
         val selected = current.selectedOfferId?.takeIf { id -> view.offers.any { it.offerId == id } }
+            ?: view.offers.firstOrNull { it.accepted }?.offerId
         _uiState.value = current.copy(
             status = view.status,
             offers = view.offers,
