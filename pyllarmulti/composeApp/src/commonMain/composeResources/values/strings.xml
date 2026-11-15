@@ -896,10 +896,10 @@
     <string name="sip_limit_reached_title">Limit Reached</string>
     <string name="sip_daily_limit_reached_message">You have reached the limit of 5 active daily plans for this goal. Please contact support if you want to create another plan.</string>
     <string name="sip_monthly_limit_reached_message">You have reached the limit of 3 active monthly plans for this goal. Please contact support if you want to create another plan.</string>
-    <string name="mandate_status_rejected">Daily Saving couldn\'t be enabled</string>
-    <string name="mandate_status_rejected_monthly">Monthly Saving couldn\'t be enabled</string>
-    <string name="mandate_status_cancelled">Daily Saving couldn\'t be enabled</string>
-    <string name="mandate_status_cancelled_monthly">Monthly Saving couldn\'t be enabled</string>
+    <string name="mandate_status_rejected">Daily Saving couldn't be enabled</string>
+    <string name="mandate_status_rejected_monthly">Monthly Saving couldn't be enabled</string>
+    <string name="mandate_status_cancelled">Daily Saving couldn't be enabled</string>
+    <string name="mandate_status_cancelled_monthly">Monthly Saving couldn't be enabled</string>
     <string name="explore_more_goals">EXPLORE MORE</string>
 
     <!-- Referral Banner Strings -->
@@ -933,7 +933,7 @@
 
     <!-- KYC Method Selection Bottom Sheet -->
     <string name="kyc_selection_title">Complete Your KYC</string>
-    <string name="kyc_selection_subtitle">Choose your preferred verification method. You can switch anytime if one doesn\'t work.</string>
+    <string name="kyc_selection_subtitle">Choose your preferred verification method. You can switch anytime if one doesn't work.</string>
     <string name="kyc_option_digilocker_title">DigiLocker KYC</string>
     <string name="kyc_option_digilocker_badge">Highest success rate for DigiLocker users</string>
     <string name="kyc_option_digilocker_desc">Verification using your Aadhaar-linked DigiLocker.</string>

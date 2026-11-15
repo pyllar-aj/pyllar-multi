@@ -2900,6 +2900,7 @@ fun NextGoalCard(
     val gradientColors = getGoalGradientColors(goal.category, goal.colorTheme)
     val borderColor = getDarkBorderColorForCategory(goal.category, goal.colorTheme)
     val correlationColor = getCorrelationColorForCategory(goal.category, goal.colorTheme)
+    val correlationText = getCorrelationText(goal.category)
     val category = goal.category.uppercase()
     val isAllInOne = category == "ALL_IN_ONE"
     var expanded by remember(initialExpanded) { mutableStateOf(initialExpanded) }
@@ -3338,40 +3339,6 @@ fun NextGoalCard(
                         }
                     }
                     Spacer(modifier = Modifier.height(6.dp))
-                    if (category == "GOLD") {
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(10.dp),
-                            color = Color(0xFFFFF1DC),
-                            border = BorderStroke(1.dp, Color(0xFFD97706).copy(alpha = 0.7f))
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Filled.Info,
-                                    contentDescription = null,
-                                    tint = Color(0xFFB45309),
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Text(
-                                    text = stringResource(Res.string.gold_goal_unavailable_notice),
-                                    style = MaterialTheme.typography.bodySmall.copy(
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontSize = 11.5.sp,
-                                        lineHeight = 15.sp
-                                    ),
-                                    color = Color(0xFF78350F)
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(10.dp))
-                    }
-
-                    val correlationText = getCorrelationText(goal.category)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -3838,6 +3805,70 @@ fun NextGoalCard(
                                 color = Color(0xFF8A4E1E).copy(alpha = 0.8f)
                             )
                         }
+                    }
+                } else {
+                    if (category == "GOLD") {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(10.dp),
+                            color = Color(0xFFFFF1DC),
+                            border = BorderStroke(1.dp, Color(0xFFD97706).copy(alpha = 0.7f))
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Info,
+                                    contentDescription = null,
+                                    tint = Color(0xFFB45309),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    text = stringResource(Res.string.gold_goal_unavailable_notice),
+                                    style = MaterialTheme.typography.bodySmall.copy(
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 11.5.sp,
+                                        lineHeight = 15.sp
+                                    ),
+                                    color = Color(0xFF78350F)
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(10.dp))
+                    }
+
+                    // Divider
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(1.dp)
+                            .background(correlationColor.copy(alpha = 0.3f))
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Bottom: Correlation text
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.TrendingUp,
+                            contentDescription = null,
+                            tint = borderColor,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = correlationText,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = borderColor
+                        )
                     }
                 }
             }
